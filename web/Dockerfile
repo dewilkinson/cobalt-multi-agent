@@ -31,7 +31,7 @@ RUN npm install -g pnpm
 # Add build-time environment variables
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-LABEL cache_buster=v1_10
+LABEL cache_buster=v1_8080
 
 
 RUN pnpm run build
@@ -61,9 +61,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # USER nextjs
 
 
-EXPOSE 3000
+EXPOSE 8080
 
-ENV PORT=3000
+
+ENV PORT=8080
 ENV HOSTNAME=0.0.0.0
 
 
