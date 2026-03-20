@@ -31,6 +31,8 @@ RUN npm install -g pnpm
 # Add build-time environment variables
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+LABEL cache_buster=v1_10
+
 
 RUN pnpm run build
 
