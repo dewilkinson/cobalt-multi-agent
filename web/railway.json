@@ -1,0 +1,16 @@
+{
+  "$schema": "https://railway.app/schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": ".Dockerfile",
+    "context": ".",
+    "buildArgs": {
+      "NEXT_PUBLIC_API_URL": "${{BACKEND_SERVICE_URL}}/api"
+    }
+  },
+  "deploy": {
+    "numReplicas": 1,
+    "sleepApplication": false,
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
