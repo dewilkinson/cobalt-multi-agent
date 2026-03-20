@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile",
     "context": ".",
     "buildArgs": {
-      "NEXT_PUBLIC_API_URL": "${{BACKEND_SERVICE_URL}}/api"
+      "NEXT_PUBLIC_API_URL": "https://bluesec-multiagent-backend.up.railway.app/api"
     }
   },
   "deploy": {
