@@ -22,8 +22,10 @@ from src.tools import (
     crawl_tool,
     get_retriever_tool,
     get_web_search_tool,
+    get_stock_quote,
     python_repl_tool,
 )
+
 from src.tools.search import LoggedTavilySearch
 from src.utils.json_utils import repair_json_output
 
@@ -483,7 +485,12 @@ async def researcher_node(
     """Researcher node that do research"""
     logger.info("Researcher node is researching.")
     configurable = Configuration.from_runnable_config(config)
-    tools = [get_web_search_tool(configurable.max_search_results), crawl_tool]
+    tools = [
+        get_web_search_tool(configurable.max_search_results),
+        crawl_tool,
+        get_stock_quote,
+    ]
+
     retriever_tool = get_retriever_tool(state.get("resources", []))
     if retriever_tool:
         tools.insert(0, retriever_tool)
