@@ -25,7 +25,7 @@ def continue_to_running_research_team(state: State):
         return "planner"
 
     if all(step.execution_res for step in current_plan.steps):
-        return "planner"
+        return "reporter"
 
     # Find first incomplete step
     incomplete_step = None
@@ -35,7 +35,7 @@ def continue_to_running_research_team(state: State):
             break
 
     if not incomplete_step:
-        return "planner"
+        return "reporter"
 
     if incomplete_step.step_type == StepType.RESEARCH:
         return "researcher"
@@ -60,7 +60,7 @@ def _build_base_graph():
     builder.add_conditional_edges(
         "research_team",
         continue_to_running_research_team,
-        ["planner", "researcher", "coder"],
+        ["planner", "researcher", "coder", "reporter"],
     )
     builder.add_edge("reporter", END)
     return builder

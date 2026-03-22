@@ -433,6 +433,7 @@ async def _execute_agent_step(
                 )
             ],
             "observations": observations + [response_content],
+            "current_plan": current_plan,
         },
         goto="research_team",
     )
