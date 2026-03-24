@@ -17,5 +17,5 @@ You may **not** use the names "VibeLink" or "Project Cobalt":
 ## Contact
 For branding inquiries, commercial licensing requests, or permission to use our trademarks, please contact:
 **D. Wilkinson**  
-[dwilkins@bluesec.ai](mailto:dwilkins@bluesec.ai)  
+[help@bluesec.ai](mailto:help@bluesec.ai)  
 BlueShell Securities LLC
