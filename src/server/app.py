@@ -7,9 +7,10 @@ import logging
 from typing import Annotated, Any, List, cast
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
+from fastapi.security import APIKeyHeader
 from langchain_core.messages import AIMessageChunk, BaseMessage, ToolMessage
 from langgraph.types import Command
 from langgraph.store.memory import InMemoryStore
@@ -96,8 +97,16 @@ except Exception as e:
 in_memory_store = InMemoryStore()
 graph = build_graph_with_memory()
 
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-@app.post("/api/chat/stream")
+async def verify_api_key(api_key: str = Security(api_key_header)):
+    expected_key = get_str_env("DEERFLOW_API_KEY", "")
+    if expected_key:
+        if not api_key or api_key != expected_key:
+            raise HTTPException(status_code=401, detail="Invalid API Key")
+    return api_key
+
+@app.post("/api/chat/stream", dependencies=[Depends(verify_api_key)])
 async def chat_stream(request: ChatRequest):
     # Check if MCP server configuration is enabled
     mcp_enabled = get_bool_env("ENABLE_MCP_SERVER_CONFIGURATION", False)
