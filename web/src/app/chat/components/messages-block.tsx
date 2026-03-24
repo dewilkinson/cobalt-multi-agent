@@ -6,7 +6,7 @@ import { FastForward, Play } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useRef, useState } from "react";
 
-import { RainbowText } from "~/components/deer-flow/rainbow-text";
+import { RainbowText } from "~/components/cobalt-multi-agent/rainbow-text";
 import { Button } from "~/components/ui/button";
 import {
   Card,
@@ -195,7 +195,7 @@ export function MessagesBlock({ className }: { className?: string }) {
                 {t("demoNotice")}{" "}
                 <a
                   className="underline"
-                  href="https://github.com/bytedance/deer-flow"
+                  href="https://github.com/bytedance/cobalt-multi-agent"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

@@ -8,10 +8,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuration
-API_URL = os.getenv("DEERFLOW_API_URL", "https://bluesec-multiagent-backend.up.railway.app/api/chat/stream")
-API_KEY = os.getenv("DEERFLOW_API_KEY", "")
+API_URL = os.getenv("COBALT_API_URL", "https://bluesec-multiagent-backend.up.railway.app/api/chat/stream")
+API_KEY = os.getenv("COBALT_API_KEY", "")
 OBSIDIAN_VAULT_PATH = os.getenv("OBSIDIAN_VAULT_PATH", "")
-OBSIDIAN_NOTE_NAME = os.getenv("OBSIDIAN_NOTE_NAME", "DeerFlow_Log.md")
+OBSIDIAN_NOTE_NAME = os.getenv("OBSIDIAN_NOTE_NAME", "Cobalt Multiagent_Log.md")
 
 def append_to_obsidian(prompt: str, response: str):
     if not OBSIDIAN_VAULT_PATH:
@@ -27,7 +27,7 @@ def append_to_obsidian(prompt: str, response: str):
     try:
         with open(note_path, 'a', encoding='utf-8') as f:
             f.write(f"\n\n### User:\n{prompt}\n")
-            f.write(f"\n### DeerFlow:\n{response}\n")
+            f.write(f"\n### Cobalt Multiagent:\n{response}\n")
             f.write("---\n")
         print(f"\n[INFO] Successfully logged conversation to {note_path}")
     except Exception as e:
@@ -35,7 +35,7 @@ def append_to_obsidian(prompt: str, response: str):
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python ask_deerflow.py <prompt>")
+        print("Usage: python ask_cobaltmultiagent.py <prompt>")
         sys.exit(1)
         
     prompt = " ".join(sys.argv[1:])
@@ -46,7 +46,7 @@ def main():
     }
 
     try:
-        print(f"Sending request to DeerFlow API ({API_URL})...\n")
+        print(f"Sending request to Cobalt Multiagent API ({API_URL})...\n")
         full_response = []
         
         headers = {}
@@ -87,7 +87,7 @@ def main():
             print("\n[WARNING] Received an empty response. Not logging to Obsidian.")
 
     except httpx.ReadTimeout:
-        print(f"\n[ERROR] Request timed out. The Deerflow server took too long to respond.")
+        print(f"\n[ERROR] Request timed out. The Cobalt Multiagent server took too long to respond.")
     except Exception as e:
         print(f"\n[ERROR] Request failed: {e}")
 

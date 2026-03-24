@@ -7,12 +7,12 @@ import { ArrowUp, Lightbulb, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useRef, useState } from "react";
 
-import { Detective } from "~/components/deer-flow/icons/detective";
+import { Detective } from "~/components/cobalt-multi-agent/icons/detective";
 import MessageInput, {
   type MessageInputRef,
-} from "~/components/deer-flow/message-input";
-import { ReportStyleDialog } from "~/components/deer-flow/report-style-dialog";
-import { Tooltip } from "~/components/deer-flow/tooltip";
+} from "~/components/cobalt-multi-agent/message-input";
+import { ReportStyleDialog } from "~/components/cobalt-multi-agent/report-style-dialog";
+import { Tooltip } from "~/components/cobalt-multi-agent/tooltip";
 import { BorderBeam } from "~/components/magicui/border-beam";
 import { Button } from "~/components/ui/button";
 import { enhancePrompt } from "~/core/api";

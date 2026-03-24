@@ -59,7 +59,7 @@ logger = logging.getLogger(__name__)
 INTERNAL_SERVER_ERROR_DETAIL = "Internal Server Error"
 
 app = FastAPI(
-    title="DeerFlow API",
+    title="Cobalt Multiagent API",
     description="API for Deer",
     version="0.1.0",
 )
@@ -100,7 +100,7 @@ graph = build_graph_with_memory()
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 async def verify_api_key(api_key: str = Security(api_key_header)):
-    expected_key = get_str_env("DEERFLOW_API_KEY", "")
+    expected_key = get_str_env("COBALT_API_KEY", "")
     if expected_key:
         if not api_key or api_key != expected_key:
             raise HTTPException(status_code=401, detail="Invalid API Key")

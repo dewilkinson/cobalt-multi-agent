@@ -9,7 +9,7 @@ IF "%MODE%"=="dev" GOTO DEV
 IF "%MODE%"=="development" GOTO DEV
 
 :PROD
-echo Starting DeerFlow in [PRODUCTION] mode...
+echo Starting Cobalt Multiagent in [PRODUCTION] mode...
 start .\.venv\Scripts\python.exe server.py
 cd web
 start C:\Users\rende\AppData\Local\pnpm\pnpm.CMD start
@@ -17,7 +17,7 @@ REM Wait for user to close
 GOTO END
 
 :DEV
-echo Starting DeerFlow in [DEVELOPMENT] mode...
+echo Starting Cobalt Multiagent in [DEVELOPMENT] mode...
 start .\.venv\Scripts\python.exe server.py --reload
 cd web
 start C:\Users\rende\AppData\Local\pnpm\pnpm.CMD dev

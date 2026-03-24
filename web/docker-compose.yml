@@ -1,11 +1,11 @@
 services:
-  deer-flow-web:
+  cobalt-multi-agent-web:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-    image: deer-flow-web
+    image: cobalt-multi-agent-web
     ports:
       - "3000:3000"
     env_file:

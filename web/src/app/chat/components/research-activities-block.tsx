@@ -12,12 +12,12 @@ import SyntaxHighlighter from "react-syntax-highlighter";
 import { docco } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { dark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
-import { FavIcon } from "~/components/deer-flow/fav-icon";
-import Image from "~/components/deer-flow/image";
-import { LoadingAnimation } from "~/components/deer-flow/loading-animation";
-import { Markdown } from "~/components/deer-flow/markdown";
-import { RainbowText } from "~/components/deer-flow/rainbow-text";
-import { Tooltip } from "~/components/deer-flow/tooltip";
+import { FavIcon } from "~/components/cobalt-multi-agent/fav-icon";
+import Image from "~/components/cobalt-multi-agent/image";
+import { LoadingAnimation } from "~/components/cobalt-multi-agent/loading-animation";
+import { Markdown } from "~/components/cobalt-multi-agent/markdown";
+import { RainbowText } from "~/components/cobalt-multi-agent/rainbow-text";
+import { Tooltip } from "~/components/cobalt-multi-agent/tooltip";
 import {
   Accordion,
   AccordionContent,

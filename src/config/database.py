@@ -124,7 +124,7 @@ def get_database_url() -> str:
     # Otherwise construct from individual components
     host = os.getenv("RESEARCH_DB_HOST", "localhost")
     port = os.getenv("RESEARCH_DB_PORT", "5432")
-    database = os.getenv("RESEARCH_DB_NAME", "deerflow_research")
+    database = os.getenv("RESEARCH_DB_NAME", "cobaltmultiagent_research")
     user = os.getenv("RESEARCH_DB_USER", "postgres")
     password = os.getenv("RESEARCH_DB_PASSWORD", "postgres")
 

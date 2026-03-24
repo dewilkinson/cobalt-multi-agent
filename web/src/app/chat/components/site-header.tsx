@@ -5,7 +5,7 @@ import { StarFilledIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
 import { useTranslations } from 'next-intl';
 
-import { LanguageSwitcher } from "~/components/deer-flow/language-switcher";
+import { LanguageSwitcher } from "~/components/cobalt-multi-agent/language-switcher";
 import { NumberTicker } from "~/components/magicui/number-ticker";
 import { Button } from "~/components/ui/button";
 import { env } from "~/env";
@@ -18,7 +18,7 @@ export function SiteHeader() {
       <div className="container flex h-15 items-center justify-between px-3">
         <div className="text-xl font-medium">
           <span className="mr-1 text-2xl">🦌</span>
-          <span>DeerFlow</span>
+          <span>Cobalt Multiagent</span>
         </div>
         <div className="relative flex items-center gap-2">
           <Button
@@ -45,7 +45,7 @@ export function SiteHeader() {
             asChild
             className="group relative z-10"
           >
-            <Link href="https://github.com/bytedance/deer-flow" target="_blank">
+            <Link href="https://github.com/bytedance/cobalt-multi-agent" target="_blank">
               <GitHubLogoIcon className="size-4" />
               {t('starOnGitHub')}
               {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY &&
@@ -64,7 +64,7 @@ export async function StarCounter() {
 
   try {
     const response = await fetch(
-      "https://api.github.com/repos/bytedance/deer-flow",
+      "https://api.github.com/repos/bytedance/cobalt-multi-agent",
       {
         headers: env.GITHUB_OAUTH_TOKEN
           ? {

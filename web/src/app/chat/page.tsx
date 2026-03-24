@@ -11,16 +11,16 @@ import { Suspense } from "react";
 
 import { Button } from "~/components/ui/button";
 
-import { Logo } from "../../components/deer-flow/logo";
-import { ThemeToggle } from "../../components/deer-flow/theme-toggle";
-import { Tooltip } from "../../components/deer-flow/tooltip";
+import { Logo } from "../../components/cobalt-multi-agent/logo";
+import { ThemeToggle } from "../../components/cobalt-multi-agent/theme-toggle";
+import { Tooltip } from "../../components/cobalt-multi-agent/tooltip";
 import { SettingsDialog } from "../settings/dialogs/settings-dialog";
 
 const Main = dynamic(() => import("./main"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center">
-      Loading DeerFlow...
+      Loading Cobalt Multiagent...
     </div>
   ),
 });
@@ -36,7 +36,7 @@ export default function HomePage() {
           <Tooltip title={t("starOnGitHub")}>
             <Button variant="ghost" size="icon" asChild>
               <Link
-                href="https://github.com/bytedance/deer-flow"
+                href="https://github.com/bytedance/cobalt-multi-agent"
                 target="_blank"
               >
                 <GithubOutlined />

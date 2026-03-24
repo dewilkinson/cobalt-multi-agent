@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """
-Server script for running the DeerFlow API.
+Server script for running the Cobalt Multiagent API.
 """
 import os
 import asyncio
@@ -45,7 +45,7 @@ signal.signal(signal.SIGINT, handle_shutdown)
 
 if __name__ == "__main__":
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description="Run the DeerFlow API server")
+    parser = argparse.ArgumentParser(description="Run the Cobalt Multiagent API server")
     parser.add_argument(
         "--reload",
         action="store_true",
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         reload = True
 
     try:
-        logger.info(f"Starting DeerFlow API server on {args.host}:{args.port}")
+        logger.info(f"Starting Cobalt Multiagent API server on {args.host}:{args.port}")
         uvicorn.run(
             "src.server:app",
             host=args.host,

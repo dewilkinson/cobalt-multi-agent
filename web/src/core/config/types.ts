@@ -7,7 +7,7 @@ export interface RagConfig {
   provider: string;
 }
 
-export interface DeerFlowConfig {
+export interface Cobalt MultiagentConfig {
   rag: RagConfig;
   models: ModelConfig;
 }
