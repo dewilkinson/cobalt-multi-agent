@@ -1,14 +1,14 @@
 services:
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: cobalt-multi-agent-backend
     # Remove the ports section to not expose to host
     env_file:
-      - .env
+      - ./backend/.env
     volumes:
-      - ./conf.yaml:/app/conf.yaml:ro
+      - ./backend/conf.yaml.example:/app/conf.yaml:ro
     restart: unless-stopped
     networks:
       - cobalt-multi-agent-network
