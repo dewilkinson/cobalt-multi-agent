@@ -88,48 +88,46 @@ def log_cobalt_response(response: str, placeholder_id: str):
             has_double_newline = payload.count("\n\n") > 0
             has_multiple_paragraphs = payload.count("<p>") > 1 or (payload.count("<p>") == 1 and "</p>" in payload and len(payload.split("</p>")[1].strip()) > 0)
             
-            if has_double_newline or has_multiple_paragraphs:
-                res_timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-                filename = f"CMA_Response_{res_timestamp}.md"
-                # Use the same folder as the log note
-                rel_folder = os.path.dirname(OBSIDIAN_NOTE_NAME)
-                abs_folder = os.path.join(OBSIDIAN_VAULT_PATH, rel_folder)
-                res_path = os.path.join(abs_folder, filename)
-                
-                with open(res_path, 'w', encoding='utf-8') as f:
-                    f.write(response)
-                
-                # Use first paragraph as summary (skipping headers)
-                clean_payload = re.sub(r'^#+ .*?(\n+|$)', '', payload, flags=re.MULTILINE).strip()
-                summary = clean_payload.split("\n\n")[0]
-                if "<p>" in summary:
-                    # If it uses <p> tags, try to extract the first one
-                    match = re.search(r'<p>(.*?)</p>', summary, re.DOTALL)
-                    if match:
-                        summary = match.group(0) # Keep tags for rendering
-                
-                # If summary is still empty or too short, fallback to first block
-                if not summary or len(summary) < 10:
-                    summary = payload.split("\n\n")[0]
-                
-                # Use HTML link for absolute file URL to ensure it renders inside the div
-                file_url = f"file:///{res_path.replace('\\', '/')}"
-                payload = f"{summary}<br><br><a href=\"{file_url}\">Full Response</a>"
-                print(f"[INFO] Long response extracted with summary. Linked via: {file_url}")
-
             timestamp_time = datetime.now().strftime("%H:%M:%S")
             ai_header = f"<strong>Agent</strong> <span style=\"font-size: 64%; font-weight: normal; font-style: italic;\">{timestamp_time}</span>:"
-            ai_entry = f"{ai_header}\n<div style=\"color: #999; font-size: 80%;\">\n{payload}\n</div>"
+
+            if has_double_newline or has_multiple_paragraphs:
+                # Use first paragraph as summary (skipping headers)
+                clean_payload = re.sub(r'^#+ .*?(\n+|$)', '', payload, flags=re.MULTILINE).strip()
+                summary_text = clean_payload.split("\n\n")[0]
+                if "<p>" in summary_text:
+                    match = re.search(r'<p>(.*?)</p>', summary_text, re.DOTALL)
+                    if match:
+                        summary_text = match.group(1)
+                
+                # Strip markdown-specific characters from the summary
+                summary_text = re.sub(r'[*_#`\[\]]', '', summary_text).strip()
+                summary_text = re.sub(r'^[ \t]*[-*+][ \t]+', '', summary_text)
+                
+                if not summary_text or len(summary_text) < 10:
+                    summary_text = "Detailed Analysis"
+                
+                if len(summary_text) > 120:
+                    summary_text = summary_text[:117] + "..."
+
+                # Wrap in native Obsidian callout for perfect containment in all view modes
+                # The "-" makes it collapsed by default. The type "INFO" is standard.
+                # We still use the inner div for our custom typography.
+                payload = f"> [!INFO]- Show Detail: {summary_text}\n> <div style=\"color: #999; font-size: 80%; border-left: 2px solid #333; padding-left: 10px;\">\n> \n{re.sub('(?m)^', '> ', response.strip())}\n> \n> </div>"
+                ai_entry = f"{ai_header}\n{payload}"
+                print(f"[INFO] Long response wrapped in native Obsidian callout toggle.")
+            else:
+                ai_entry = f"{ai_header}\n<div style=\"color: #999; font-size: 80%;\">\n{payload}\n</div>"
             
-            # Replace the unique placeholder
-            placeholder = f"<span id=\"{placeholder_id}\" style=\"color: #00ffff; font-size: 80%;\"><strong>Awaiting response...</strong></span>"
-            if placeholder in content:
-                new_content = content.replace(placeholder, ai_entry)
+            # Replace the unique placeholder using Regex for robustness (handles potential line-wrapping)
+            placeholder_pattern = rf'<span[^>]+?id\s*=\s*["\']{placeholder_id}["\'].*?</span>'
+            if re.search(placeholder_pattern, content, re.DOTALL):
+                new_content = re.sub(placeholder_pattern, ai_entry, content, count=1, flags=re.DOTALL)
                 with open(note_path, 'w', encoding='utf-8') as f:
                     f.write(new_content)
-                print(f"\n[INFO] Cobalt Multiagent response logged to Obsidian.")
+                print(f"\n[INFO] Cobalt Multiagent response logged to Obsidian (replaced {placeholder_id}).")
             else:
-                print(f"\n[WARNING] Could not find placeholder {placeholder_id} in log. Appending instead.")
+                print(f"\n[WARNING] Could not find placeholder {placeholder_id} in log. Prepending response.")
                 _write_prepend_to_obsidian(f"<div style=\"font-size: 65%;\">\n\n{ai_entry}\n\n---\n\n</div>\n\n")
 
     except Exception as e:
