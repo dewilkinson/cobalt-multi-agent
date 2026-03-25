@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { env } from "~/env";
 
-import type { Cobalt MultiagentConfig } from "../config";
+import type { CobaltMultiagentConfig } from "../config";
 import { useReplay } from "../replay";
 
 import { fetchReplayTitle } from "./chat";
@@ -45,11 +45,11 @@ export function useReplayMetadata() {
 }
 
 export function useConfig(): {
-  config: Cobalt MultiagentConfig | null;
+  config: CobaltMultiagentConfig | null;
   loading: boolean;
 } {
   const [loading, setLoading] = useState(true);
-  const [config, setConfig] = useState<Cobalt MultiagentConfig | null>(null);
+  const [config, setConfig] = useState<CobaltMultiagentConfig | null>(null);
 
   useEffect(() => {
     if (env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY) {

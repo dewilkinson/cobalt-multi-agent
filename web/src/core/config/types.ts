@@ -7,7 +7,7 @@ export interface RagConfig {
   provider: string;
 }
 
-export interface Cobalt MultiagentConfig {
+export interface CobaltMultiagentConfig {
   rag: RagConfig;
   models: ModelConfig;
 }
