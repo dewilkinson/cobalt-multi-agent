@@ -239,3 +239,30 @@ MILVUS_EMBEDDING_BASE_URL=
 MILVUS_EMBEDDING_MODEL=
 MILVUS_EMBEDDING_API_KEY=
 ```
+
+## Brokerage Integration (SnapTrade)
+
+Cobalt Multiagent supports retrieving real-time and historical trading data from brokerages like **Fidelity** via the **SnapTrade** API.
+
+### Prerequisites
+1. Sign up for a [SnapTrade Developer Account](https://snaptrade.com/).
+2. Obtain your `Client ID` and `Consumer Key` from the SnapTrade dashboard.
+3. Link your brokerage account (e.g., Fidelity) to obtain a `User ID` and `User Secret`.
+
+### Configuration
+Add the following environment variables to your `.env` file:
+
+```ini
+# SnapTrade API Credentials
+SNAPTRADE_CLIENT_ID=your_client_id
+SNAPTRADE_CONSUMER_KEY=your_consumer_key
+
+# User-Specific Credentials (from linked account)
+SNAPTRADE_USER_ID=your_user_id
+SNAPTRADE_USER_SECRET=your_user_secret
+```
+
+### Supported Features
+- **Account Discovery**: Automatically find and list connected brokerage accounts.
+- **Trade History**: Retrieve historical trade logs (buy/sell/dividends) for analysis.
+- **SMC Context**: The Scout agent utilizes this data to provide a "Source of Truth" for Smart Money Concepts (SMC) grading.

@@ -23,6 +23,15 @@ from src.tools import (
     get_retriever_tool,
     get_web_search_tool,
     get_stock_quote,
+    get_brokerage_accounts,
+    get_brokerage_history,
+    get_brokerage_balance,
+    get_brokerage_statements,
+    write_daily_journal,
+    list_journal_entries,
+    read_journal_entry,
+    get_journal_folder,
+    set_journal_folder,
     python_repl_tool,
 )
 
@@ -327,12 +336,13 @@ def reporter_node(state: State, config: RunnableConfig):
                 name="observation",
             )
         )
-    logger.debug(f"Current invoke messages: {invoke_messages}")
     response = get_llm_by_type(AGENT_LLM_MAP["reporter"]).invoke(invoke_messages)
     response_content = response.content
-    logger.info(f"reporter response: {response_content}")
-
-    return {"final_report": response_content}
+    
+    return {
+        "final_report": response_content,
+        "messages": [AIMessage(content=response_content, name="reporter")]
+    }
 
 
 def research_team_node(state: State):
@@ -342,7 +352,7 @@ def research_team_node(state: State):
 
 
 async def _execute_agent_step(
-    state: State, agent, agent_name: str
+    state: State, agent, agent_name: str, config: RunnableConfig = None, observations: list[str] = [], current_plan: Plan = None
 ) -> Command[Literal["research_team"]]:
     """Helper function to execute a step using the specified agent."""
     current_plan = state.get("current_plan")
@@ -431,19 +441,48 @@ async def _execute_agent_step(
         )
         recursion_limit = default_recursion_limit
 
+    # Merge state obsidian_settings into configurable config for tools
+    current_obsidian_settings = state.get("obsidian_settings", {})
+    agent_config = (config or {}).copy()
+    if "configurable" not in agent_config:
+        agent_config["configurable"] = {}
+    else:
+        # Shallow copy the configurable dict to avoid side-effects
+        agent_config["configurable"] = agent_config["configurable"].copy()
+    
+    if current_obsidian_settings:
+        logger.info(f"Merging state obsidian_settings for agent {agent_name}")
+        agent_config["configurable"]["obsidian_settings"] = current_obsidian_settings
+
     logger.info(f"Agent '{agent_name}' starting ainvoke with input length {len(str(agent_input))} and recursion_limit {recursion_limit}")
     result = await agent.ainvoke(
-        input=agent_input, config={"recursion_limit": recursion_limit}
+        input=agent_input, config={**agent_config, "recursion_limit": recursion_limit}
     )
     logger.info(f"Agent '{agent_name}' ainvoke completed")
 
     # Process the result
     response_content = result["messages"][-1].content
-    logger.debug(f"{agent_name.capitalize()} full response: {response_content}")
-
+    
+    if not response_content:
+        # Try to find the last AI message with content
+        for msg in reversed(result["messages"]):
+            if hasattr(msg, "content") and msg.content:
+                response_content = msg.content
+                break
+    
     # Update the step with the execution result
     current_step.execution_res = response_content
-    logger.info(f"Step '{current_step.title}' execution completed by {agent_name}")
+
+    # Extract potential obsidian_settings updates from tool messages
+    new_obsidian_settings = state.get("obsidian_settings", {}).copy()
+    for msg in result["messages"]:
+        if hasattr(msg, "tool_calls"):
+            for tc in msg.tool_calls:
+                if tc.get("name") == "set_journal_folder":
+                    new_journal_dir = tc.get("args", {}).get("new_journal_dir")
+                    if new_journal_dir:
+                        new_obsidian_settings["OBSIDIAN_JOURNAL_DIR"] = new_journal_dir
+                        logger.info(f"Updated session journal dir to: {new_journal_dir}")
 
     return Command(
         update={
@@ -455,6 +494,7 @@ async def _execute_agent_step(
             ],
             "observations": observations + [response_content],
             "current_plan": current_plan,
+            "obsidian_settings": new_obsidian_settings,
         },
         goto="research_team",
     )
@@ -512,11 +552,15 @@ async def _setup_and_execute_agent_step(
                 )
                 loaded_tools.append(tool)
         agent = create_agent(agent_type, agent_type, loaded_tools, agent_type)
-        return await _execute_agent_step(state, agent, agent_type)
+        return await _execute_agent_step(
+            state, agent, agent_type, config, state.get("observations", []), state.get("current_plan")
+        )
     else:
         # Use default tools if no MCP servers are configured
         agent = create_agent(agent_type, agent_type, default_tools, agent_type)
-        return await _execute_agent_step(state, agent, agent_type)
+        return await _execute_agent_step(
+            state, agent, agent_type, config, state.get("observations", []), state.get("current_plan")
+        )
 
 
 async def researcher_node(
@@ -553,4 +597,35 @@ async def coder_node(
         config,
         "coder",
         [python_repl_tool],
+    )
+
+
+async def journalist_node(state: State, config: RunnableConfig):
+    """Node for the journalist agent to generate and manage trading journals."""
+    return await _setup_and_execute_agent_step(
+        state,
+        config,
+        "journalist",
+        [
+            write_daily_journal,
+            list_journal_entries,
+            read_journal_entry,
+            get_journal_folder,
+            set_journal_folder,
+            get_brokerage_history,
+            get_stock_quote,
+        ],
+    )
+
+
+async def scout_node(
+    state: State, config: RunnableConfig
+) -> Command[Literal["research_team"]]:
+    """Scout node that retrieves brokerage data via SnapTrade."""
+    logger.info("Scout node is scouting brokerage data.")
+    return await _setup_and_execute_agent_step(
+        state,
+        config,
+        "scout",
+        [get_brokerage_accounts, get_brokerage_history, get_brokerage_balance, get_brokerage_statements, get_stock_quote],
     )

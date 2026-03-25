@@ -49,6 +49,8 @@ class Configuration:
     max_step_num: int = 3  # Maximum number of steps in a plan
     max_search_results: int = 3  # Maximum number of search results
     mcp_settings: dict = None  # MCP settings, including dynamic loaded tools
+    snaptrade_settings: dict = field(default_factory=dict) # SnapTrade credentials and settings
+    obsidian_settings: dict = field(default_factory=dict) # Obsidian vault and note settings
     report_style: str = ReportStyle.ACADEMIC.value  # Report style
     enable_deep_thinking: bool = False  # Whether to enable deep thinking
 
@@ -60,9 +62,17 @@ class Configuration:
         configurable = (
             config["configurable"] if config and "configurable" in config else {}
         )
-        values: dict[str, Any] = {
-            f.name: os.environ.get(f.name.upper(), configurable.get(f.name))
-            for f in fields(cls)
-            if f.init
-        }
-        return cls(**{k: v for k, v in values.items() if v})
+        values: dict[str, Any] = {}
+        for f in fields(cls):
+            if not f.init:
+                continue
+            
+            # Check environment variable first
+            env_val = os.environ.get(f.name.upper())
+            if env_val is not None:
+                values[f.name] = env_val
+            # Then check configurable
+            elif f.name in configurable:
+                values[f.name] = configurable[f.name]
+        
+        return cls(**{k: v for k, v in values.items() if v is not None})

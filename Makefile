@@ -8,13 +8,13 @@ help: ## Show this help message
 	@echo "Usage: make <target>"
 
 install-dev: ## Install development dependencies
-	uv pip install -e ".[dev]" && uv pip install -e ".[test]"
+	cd backend && uv pip install -e ".[dev]" && uv pip install -e ".[test]"
 
 format: ## Format code using ruff
-	uv run ruff format --config pyproject.toml .
+	cd backend && uv run ruff format --config pyproject.toml .
 
 lint: ## Lint and fix code using ruff
-	uv run ruff check --fix --select I --config pyproject.toml .
+	cd backend && uv run ruff check --fix --select I --config pyproject.toml .
 
 lint-frontend: ## Lint frontend code and check build
 	cd web && pnpm install --frozen-lockfile
@@ -23,13 +23,13 @@ lint-frontend: ## Lint frontend code and check build
 	cd web && pnpm build
 
 serve: ## Start development server with reload
-	uv run server.py --reload
+	cd backend && uv run server.py --reload
 
 test: ## Run tests with pytest
-	uv run pytest tests/
+	cd backend && uv run pytest tests/
 
 langgraph-dev: ## Start langgraph development server
-	uvx --refresh --from "langgraph-cli[inmem]" --with-editable . --python 3.12 langgraph dev --allow-blocking
+	cd backend && uvx --refresh --from "langgraph-cli[inmem]" --with-editable . --python 3.12 langgraph dev --allow-blocking
 
 coverage: ## Run tests with coverage report
-	uv run pytest --cov=src tests/ --cov-report=term-missing --cov-report=xml
+	cd backend && uv run pytest --cov=src tests/ --cov-report=term-missing --cov-report=xml

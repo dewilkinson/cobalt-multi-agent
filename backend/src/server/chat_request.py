@@ -56,6 +56,12 @@ class ChatRequest(BaseModel):
     mcp_settings: Optional[dict] = Field(
         None, description="MCP settings for the chat request"
     )
+    snaptrade_settings: Optional[dict] = Field(
+        None, description="SnapTrade credentials for the scout tool"
+    )
+    obsidian_settings: Optional[dict] = Field(
+        None, description="Obsidian vault and note settings for the journalist tool"
+    )
     enable_background_investigation: Optional[bool] = Field(
         True, description="Whether to get background investigation before plan"
     )

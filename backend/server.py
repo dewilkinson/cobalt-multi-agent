@@ -12,6 +12,7 @@ import signal
 import sys
 
 import uvicorn
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Configure logging
 logging.basicConfig(

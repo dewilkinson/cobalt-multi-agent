@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Query, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from fastapi.security import APIKeyHeader
-from langchain_core.messages import AIMessageChunk, BaseMessage, ToolMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
 from langgraph.types import Command
 from langgraph.store.memory import InMemoryStore
 from langgraph.checkpoint.mongodb import AsyncMongoDBSaver
@@ -136,6 +136,8 @@ async def chat_stream(request: ChatRequest):
             request.enable_background_investigation,
             request.report_style,
             request.enable_deep_thinking,
+            request.snaptrade_settings if request.snaptrade_settings else {},
+            request.obsidian_settings if request.obsidian_settings else {},
         ),
         media_type="text/event-stream",
     )
@@ -252,7 +254,7 @@ async def _process_message_chunk(message_chunk, message_metadata, thread_id, age
     )
 
     # Save assistant messages to database
-    if isinstance(message_chunk, AIMessageChunk) and message_chunk.content:
+    if isinstance(message_chunk, (AIMessage, AIMessageChunk)) and message_chunk.content:
         try:
             # Try to save the message to database (this will work if session exists)
             if session_obj:
@@ -293,7 +295,7 @@ async def _process_message_chunk(message_chunk, message_metadata, thread_id, age
             pass
 
         yield _make_event("tool_call_result", event_stream_message)
-    elif isinstance(message_chunk, AIMessageChunk):
+    elif isinstance(message_chunk, (AIMessage, AIMessageChunk)):
         # AI Message - Raw message tokens
         if message_chunk.tool_calls:
             # AI Message - Tool Call
@@ -321,7 +323,7 @@ async def _process_message_chunk(message_chunk, message_metadata, thread_id, age
                 pass
 
             yield _make_event("tool_calls", event_stream_message)
-        elif message_chunk.tool_call_chunks:
+        elif hasattr(message_chunk, "tool_call_chunks") and message_chunk.tool_call_chunks:
             # AI Message - Tool Call Chunks
             event_stream_message["tool_call_chunks"] = _process_tool_call_chunks(
                 message_chunk.tool_call_chunks
@@ -381,6 +383,8 @@ async def _astream_workflow_generator(
     enable_background_investigation: bool,
     report_style: ReportStyle,
     enable_deep_thinking: bool,
+    snaptrade_settings: dict,
+    obsidian_settings: dict,
 ):
     # Create research project and session for persistence
     research_topic = messages[-1]["content"] if messages else "Research Session"
@@ -434,6 +438,7 @@ async def _astream_workflow_generator(
         "auto_accepted_plan": auto_accepted_plan,
         "enable_background_investigation": enable_background_investigation,
         "research_topic": messages[-1]["content"] if messages else "",
+        "obsidian_settings": obsidian_settings,
     }
 
     if not auto_accepted_plan and interrupt_feedback:
@@ -444,14 +449,18 @@ async def _astream_workflow_generator(
 
     # Prepare workflow config
     workflow_config = {
-        "thread_id": thread_id,
-        "resources": resources,
-        "max_plan_iterations": max_plan_iterations,
-        "max_step_num": max_step_num,
-        "max_search_results": max_search_results,
-        "mcp_settings": mcp_settings,
-        "report_style": report_style.value,
-        "enable_deep_thinking": enable_deep_thinking,
+        "configurable": {
+            "thread_id": thread_id,
+            "resources": resources,
+            "max_plan_iterations": max_plan_iterations,
+            "max_step_num": max_step_num,
+            "max_search_results": max_search_results,
+            "mcp_settings": mcp_settings,
+            "report_style": report_style.value,
+            "enable_deep_thinking": enable_deep_thinking,
+            "snaptrade_settings": snaptrade_settings,
+            "obsidian_settings": obsidian_settings,
+        },
         "recursion_limit": get_recursion_limit(),
     }
 

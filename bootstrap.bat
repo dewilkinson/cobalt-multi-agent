@@ -10,18 +10,18 @@ IF "%MODE%"=="development" GOTO DEV
 
 :PROD
 echo Starting Cobalt Multiagent in [PRODUCTION] mode...
-start .\.venv\Scripts\python.exe server.py
-cd web
-start C:\Users\rende\AppData\Local\pnpm\pnpm.CMD start
-REM Wait for user to close
+cd backend
+start uv run server.py
+cd ../web
+start pnpm start
 GOTO END
 
 :DEV
 echo Starting Cobalt Multiagent in [DEVELOPMENT] mode...
-start .\.venv\Scripts\python.exe server.py --reload
-cd web
-start C:\Users\rende\AppData\Local\pnpm\pnpm.CMD dev
-REM Wait for user to close
+cd backend
+start uv run server.py --reload
+cd ../web
+start pnpm dev
 pause
 
 :END

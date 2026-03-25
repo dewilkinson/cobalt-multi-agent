@@ -5,6 +5,10 @@ import os
 from typing import Any, Dict
 
 import yaml
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv(override=True)
 
 
 def get_bool_env(name: str, default: bool = False) -> bool:

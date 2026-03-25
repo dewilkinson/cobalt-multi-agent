@@ -155,3 +155,4 @@ zipp==3.23.0
 zstandard==0.24.0
 psycopg==3.3.3
 psycopg-binary==3.3.3
+snaptrade-python-sdk==11.0.169
