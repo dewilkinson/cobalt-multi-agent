@@ -2,5 +2,13 @@
     "type": "analyst",
     "name": "The Analyst",
     "prompt_file": "analyst",
-    "tools": ["get_smc_analysis", "get_ema_analysis", "get_stock_quote"]
+    "tools": [
+        "get_smc_analysis",
+        "get_ema_analysis",
+        "get_stock_quote",
+        "get_rsi_analysis",
+        "get_macd_analysis",
+        "get_volatility_atr",
+        "get_volume_profile"
+    ]
 }

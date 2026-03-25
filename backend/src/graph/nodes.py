@@ -35,6 +35,10 @@ from src.tools import (
     python_repl_tool,
     get_smc_analysis,
     get_ema_analysis,
+    get_rsi_analysis,
+    get_macd_analysis,
+    get_volatility_atr,
+    get_volume_profile,
 )
 
 from src.tools.search import LoggedTavilySearch
@@ -630,7 +634,19 @@ async def scout_node(
         state,
         config,
         "scout",
-        [get_brokerage_accounts, get_brokerage_history, get_brokerage_balance, get_brokerage_statements, get_stock_quote],
+        [
+            get_brokerage_accounts, 
+            get_brokerage_history, 
+            get_brokerage_balance, 
+            get_brokerage_statements, 
+            get_stock_quote,
+            get_smc_analysis,
+            get_ema_analysis,
+            get_rsi_analysis,
+            get_macd_analysis,
+            get_volatility_atr,
+            get_volume_profile,
+        ],
     )
 
 
@@ -643,6 +659,14 @@ async def analyst_node(
         state,
         config,
         "analyst",
-        [get_smc_analysis, get_ema_analysis, get_stock_quote],
+        [
+            get_smc_analysis, 
+            get_ema_analysis, 
+            get_stock_quote,
+            get_rsi_analysis,
+            get_macd_analysis,
+            get_volatility_atr,
+            get_volume_profile,
+        ],
     )
 
