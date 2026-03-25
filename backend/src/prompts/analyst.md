@@ -13,7 +13,7 @@ Differentiate between "Noise" and "Data." Your mission is to present SMC (Smart 
    - **MUST** present findings in table format.
 
 # Output Format
-## Technical Summary: {{ ticker }}
+## Technical Summary
 | Indicator | Value/Finding | Note |
 | :--- | :--- | :--- |
 | **BOS/CHoCH** | [Latest Finding] | [Bias] |
