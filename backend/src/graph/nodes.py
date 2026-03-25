@@ -39,6 +39,7 @@ from src.tools import (
     get_macd_analysis,
     get_volatility_atr,
     get_volume_profile,
+    get_bollinger_bands,
 )
 from src.config.analyst import get_analyst_keywords
 

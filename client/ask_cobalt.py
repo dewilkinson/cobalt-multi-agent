@@ -134,12 +134,89 @@ def log_cobalt_response(response: str, placeholder_id: str):
     except Exception as e:
         print(f"\n[ERROR] Failed to update Obsidian response: {e}")
 
+# Local Defaults Configuration
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cma_config.json")
+
+def load_config():
+    if os.path.exists(CONFIG_PATH):
+        try:
+            with open(CONFIG_PATH, 'r') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_config(config):
+    try:
+        with open(CONFIG_PATH, 'w') as f:
+            json.dump(config, f, indent=4)
+        print(f"[INFO] Configuration updated: {CONFIG_PATH}")
+    except Exception as e:
+        print(f"[ERROR] Failed to save configuration: {e}")
+
 def main():
+    config = load_config()
+    
     if len(sys.argv) < 2:
         print("Usage: python ask_cobalt.py <prompt>")
+        print("       python ask_cobalt.py set_timeframe <val> [period] (e.g. 1h 5d, 15m 1d)")
+        print("       python ask_cobalt.py set_lookback <val> (e.g. 5d, 1mo)")
+        print("       python ask_cobalt.py get_timeframe")
+        print("       python ask_cobalt.py get_lookback")
         sys.exit(1)
         
+    cmd = sys.argv[1].lower()
+    
+    # Handle specific configuration commands
+    if cmd == "set_timeframe" and len(sys.argv) >= 3:
+        config["timeframe"] = sys.argv[2].lower()
+        if len(sys.argv) >= 4:
+            config["period"] = sys.argv[3].lower()
+        save_config(config)
+        msg = f"[INFO] Default timeframe set to: {config['timeframe']}"
+        if "period" in config and len(sys.argv) >= 4:
+            msg += f" (with lookback: {config['period']})"
+        print(msg)
+        return
+        
+    if cmd == "set_lookback" and len(sys.argv) >= 3:
+        config["period"] = sys.argv[2].lower()
+        save_config(config)
+        print(f"[INFO] Default lookback period set to: {config['period']}")
+        return
+        
+    if cmd == "get_timeframe":
+        val = config.get("timeframe", "Not set (using tool defaults)")
+        print(f"Current default timeframe: {val}")
+        return
+        
+    if cmd == "get_lookback":
+        val = config.get("period", "Not set (using tool defaults)")
+        print(f"Current default lookback period: {val}")
+        return
+
+    # Keep generic config for flexibility
+    if cmd == "config" and len(sys.argv) >= 4:
+        key = sys.argv[2].lower()
+        value = sys.argv[3].lower()
+        config[key] = value
+        save_config(config)
+        return
+
     prompt = " ".join(sys.argv[1:])
+    
+    # Inject defaults if not explicitly mentioned in the prompt
+    default_timeframe = config.get("timeframe")
+    default_period = config.get("period")
+    
+    injection_parts = []
+    if default_timeframe and "timeframe" not in prompt.lower() and "interval" not in prompt.lower():
+        injection_parts.append(f"timeframe: {default_timeframe}")
+    if default_period and "period" not in prompt.lower() and "lookback" not in prompt.lower():
+        injection_parts.append(f"period: {default_period}")
+    
+    if injection_parts:
+        prompt = f"{prompt} (Defaults: {', '.join(injection_parts)})"
     placeholder_id = f"cma-{uuid.uuid4().hex[:8]}"
     
     # Immediately log the user request
@@ -177,14 +254,20 @@ def main():
                             data = json.loads(data_str)
                             content = data.get("content", "")
                             agent = data.get("agent", "")
-                            # Support both reporter (research) and coordinator (greetings/simple info)
-                            if content and agent in ["reporter", "coordinator"]:
+                            # Support all active agent nodes including technical ones
+                            if content and agent in ["reporter", "coordinator", "analyst", "scout", "researcher", "journalist"]:
+                                # Convert list content to string if necessary for hashing/printing
+                                if isinstance(content, list):
+                                    content_str = str(content)
+                                else:
+                                    content_str = content
+                                
                                 # Aggressive deduplication: skip if exactly seen, or if it repeats the end of our current buffer
                                 current_full_text = "".join(full_response_chunks)
-                                if content not in seen_chunks and not current_full_text.endswith(content):
-                                    print(content, end="", flush=True)
-                                    full_response_chunks.append(content)
-                                    seen_chunks.add(content)
+                                if content_str not in seen_chunks and not current_full_text.endswith(content_str):
+                                    print(content_str, end="", flush=True)
+                                    full_response_chunks.append(content_str)
+                                    seen_chunks.add(content_str)
                         except json.JSONDecodeError:
                             pass
                             

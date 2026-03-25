@@ -4,15 +4,33 @@
 """
 Server script for running the Cobalt Multiagent API.
 """
+import sys
 import os
+
+# 1. FINAL BSON MONKEY-PATCH: Namespace Stitching
+try:
+    import bson
+    from bson import ObjectId
+except (ImportError, AttributeError):
+    try:
+        # Patch the base bson module
+        import pymongo.bson as pymongo_bson
+        sys.modules['bson'] = pymongo_bson
+        
+        # Manually stitch ObjectId if missing
+        from bson.objectid import ObjectId
+        setattr(sys.modules['bson'], 'ObjectId', ObjectId)
+        
+        print(f"Successfully stitched BSON ObjectId into sys.modules: {ObjectId}")
+    except Exception as e:
+        print(f"Failed to stitch BSON: {str(e)}")
+        pass
+
 import asyncio
 import argparse
 import logging
 import signal
-import sys
-
 import uvicorn
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Configure logging
 logging.basicConfig(
@@ -45,12 +63,17 @@ signal.signal(signal.SIGTERM, handle_shutdown)
 signal.signal(signal.SIGINT, handle_shutdown)
 
 if __name__ == "__main__":
+    # Add current directory to sys.path for local module resolution
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    if current_dir not in sys.path:
+        sys.path.append(current_dir)
+        
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Run the Cobalt Multiagent API server")
     parser.add_argument(
         "--reload",
         action="store_true",
-        help="Enable auto-reload (default: True except on Windows)",
+        help="Enable auto-reload (Note: Reload will NOT use the direct app object)",
     )
     parser.add_argument(
         "--host",
@@ -75,14 +98,19 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Determine reload setting
+    # CRITICAL: We avoid "reload=True" on Windows to keep our monkey-patch in memory.
     reload = False
-    if args.reload:
-        reload = True
-
+    
     try:
+        # 2. DIRECT IMPORT OF APP OBJECT WITHIN THE PATCHED CONTEXT
+        # This will now succeed because BSON has ObjectId.
+        from src.server.app import app
+        
         logger.info(f"Starting Cobalt Multiagent API server on {args.host}:{args.port}")
+        
+        # 3. USE DIRECT APP OBJECT INSTEAD OF STRING: No more context-less re-imports
         uvicorn.run(
-            "src.server:app",
+            app,
             host=args.host,
             port=args.port,
             reload=reload,
@@ -90,4 +118,6 @@ if __name__ == "__main__":
         )
     except Exception as e:
         logger.error(f"Failed to start server: {str(e)}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)

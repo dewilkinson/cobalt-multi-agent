@@ -19,4 +19,5 @@ AGENT_LLM_MAP: dict[str, LLMType] = {
     "prompt_enhancer": "basic",
     "scout": "basic",
     "journalist": "basic",
+    "analyst": "basic",
 }

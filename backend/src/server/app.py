@@ -1,9 +1,40 @@
 # Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
 # SPDX-License-Identifier: MIT
 
+import sys
+import os
+
+# Emergency BSON patch for local environment: MUST BE FIRST
+try:
+    import bson
+    from bson import ObjectId
+except (ImportError, AttributeError):
+    try:
+        import pymongo.bson as pymongo_bson
+        sys.modules['bson'] = pymongo_bson
+        from bson import ObjectId
+    except Exception:
+        pass
+
 import base64
 import json
 import logging
+import sys
+import os
+
+# Emergency BSON patch for local environment
+try:
+    from bson import ObjectId
+except (ImportError, AttributeError):
+    try:
+        import pymongo.bson as pymongo_bson
+        sys.modules['bson'] = pymongo_bson
+        from bson import ObjectId
+        patch_logger = logging.getLogger("bson_patch")
+        patch_logger.info("Successfully monkey-patched BSON in app context")
+    except Exception:
+        pass
+
 from typing import Annotated, Any, List, cast
 from uuid import uuid4
 
@@ -14,7 +45,8 @@ from fastapi.security import APIKeyHeader
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
 from langgraph.types import Command
 from langgraph.store.memory import InMemoryStore
-from langgraph.checkpoint.mongodb import AsyncMongoDBSaver
+# Use our clean, native checkpointer to avoid BSON version conflict
+from src.graph.mongodb_checkpointer import NativeMongoDBSaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg_pool import AsyncConnectionPool
 
@@ -451,7 +483,6 @@ async def _astream_workflow_generator(
     workflow_config = {
         "configurable": {
             "thread_id": thread_id,
-            "resources": resources,
             "max_plan_iterations": max_plan_iterations,
             "max_step_num": max_step_num,
             "max_search_results": max_search_results,
@@ -488,8 +519,8 @@ async def _astream_workflow_generator(
                     yield event
 
         if checkpoint_url.startswith("mongodb://"):
-            logger.info("start async mongodb checkpointer.")
-            async with AsyncMongoDBSaver.from_conn_string(
+            logger.info("Starting native MongoDB checkpointer.")
+            async with NativeMongoDBSaver.from_conn_string(
                 checkpoint_url
             ) as checkpointer:
                 graph.checkpointer = checkpointer

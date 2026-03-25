@@ -10,7 +10,7 @@ from .broker import get_brokerage_accounts, get_brokerage_history, get_brokerage
 from .journal import write_daily_journal, list_journal_entries, read_journal_entry, get_journal_folder, set_journal_folder
 from .smc import get_smc_analysis
 from .ema import get_ema_analysis
-from .indicators import get_rsi_analysis, get_macd_analysis, get_volatility_atr, get_volume_profile
+from .indicators import get_rsi_analysis, get_macd_analysis, get_volatility_atr, get_volume_profile, get_bollinger_bands
 from .tts import VolcengineTTS
 
 __all__ = [

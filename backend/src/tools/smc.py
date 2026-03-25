@@ -61,32 +61,37 @@ def detect_structure(df: pd.DataFrame):
     return breaks
 
 @tool
-async def get_smc_analysis(ticker: str) -> str:
+async def get_smc_analysis(ticker: str, period: str = "60d", interval: str = "1d") -> str:
     """
     Perform Smart Money Concepts (SMC) technical analysis on a given ticker.
     Detects Fair Value Gaps (FVG) and Market Structure (BOS).
     Best for finding high-probability reversal and continuation zones.
+    
+    Args:
+        ticker: The stock ticker symbol.
+        period: The lookback period (e.g., '60d', '1mo', '1y').
+        interval: The timeframe interval (e.g., '1h', '1d', '1wk').
     """
-    def compute_smc(symbol: str):
-        logger.info(f"Computing custom SMC analysis for {symbol}")
+    def compute_smc(symbol: str, p: str, i: str):
+        logger.info(f"Computing custom SMC analysis for {symbol} (p={p}, i={i})")
         stock = yf.Ticker(symbol)
-        df = stock.history(period="60d", interval="1d")
+        df = stock.history(period=p, interval=i)
         if df.empty:
-            return f"Error: No data found for ticker '{symbol}'."
+            return f"Error: No data found for ticker '{symbol}' with period '{p}' and interval '{i}'."
         
         df.columns = [c.lower() for c in df.columns]
         
         fvgs = detect_fvg(df)
         breaks = detect_structure(df)
         
-        report = f"### SMC Technical Scan: {symbol.upper()}\n\n"
+        report = f"### SMC Technical Scan: {symbol.upper()} (Timeframe: {i})\n\n"
         
         # Structure
         if breaks:
             latest_bos = breaks[-1]
             report += f"✅ **Market Structure:** {latest_bos['type']} detected on {latest_bos['date']}.\n"
         else:
-            report += "⚪ **Market Structure:** Ranging. No significant structure breaks detected in the last 60 days.\n"
+            report += f"⚪ **Market Structure:** Ranging. No significant structure breaks detected in the last {p}.\n"
             
         # Gaps
         recent_fvgs = fvgs[-3:] if fvgs else []
@@ -101,7 +106,7 @@ async def get_smc_analysis(ticker: str) -> str:
         return report
 
     try:
-        return await asyncio.wait_for(asyncio.to_thread(compute_smc, ticker), timeout=20.0)
+        return await asyncio.wait_for(asyncio.to_thread(compute_smc, ticker, period, interval), timeout=25.0)
     except Exception as e:
         logger.error(f"Custom SMC Tool error: {str(e)}")
         return f"Error during SMC analysis: {str(e)}"
