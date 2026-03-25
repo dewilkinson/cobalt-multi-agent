@@ -40,6 +40,7 @@ from src.tools import (
     get_volatility_atr,
     get_volume_profile,
 )
+from src.config.analyst import get_analyst_keywords
 
 from src.tools.search import LoggedTavilySearch
 from src.utils.json_utils import repair_json_output
@@ -104,7 +105,11 @@ def planner_node(
     logger.info("Planner generating full plan")
     configurable = Configuration.from_runnable_config(config)
     plan_iterations = state["plan_iterations"] if state.get("plan_iterations", 0) else 0
-    messages = apply_prompt_template("planner", state, configurable)
+    # Inject Analyst Keywords for routing
+    analyst_keywords = ", ".join(get_analyst_keywords())
+    state_for_prompt = {**state, "ANALYST_KEYWORDS": analyst_keywords}
+    
+    messages = apply_prompt_template("planner", state_for_prompt, configurable)
 
     if state.get("enable_background_investigation") and state.get(
         "background_investigation_results"
