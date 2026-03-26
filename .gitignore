@@ -36,3 +36,11 @@ web/.next/
 # coverage report
 coverage.xml
 coverage/
+
+# Logs and temporary files
+*.log
+*.txt
+backend/*.log
+backend/*.txt
+tmp/
+!backend/requirements.txt
