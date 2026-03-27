@@ -94,7 +94,13 @@ async def get_smc_analysis(ticker: str, period: str = "60d", interval: str = "1d
         if df.empty:
             return f"Error: No data found for ticker '{symbol}' with period '{p}' and interval '{i}'."
         
-        df.columns = [c.lower() for c in df.columns]
+        # Handle yf.download MultiIndex (happens with the new batch fetcher)
+        if isinstance(df.columns, pd.MultiIndex):
+            # If we requested one ticker but got MultiIndex structure, flatten it
+            # Usually level 0 is ticker, level 1 is attribute (Open, High, etc.)
+            df.columns = [c[1] if isinstance(c, tuple) else c for c in df.columns]
+
+        df.columns = [str(c).lower() for c in df.columns]
         
         fvgs = detect_fvg(df)
         breaks = detect_structure(df)

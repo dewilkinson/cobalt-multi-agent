@@ -10,151 +10,153 @@ import logging
 import asyncio
 import yfinance as yf
 import pandas as pd
+import threading
+import time
 from langchain_core.tools import tool
-from typing import Dict, Any, Union, List
+from typing import Dict, Any, Union, List, Optional
+
+# Use curl_cffi for industrial-strength browser spoofing
+from curl_cffi.requests import Session
 
 logger = logging.getLogger(__name__)
 
 from .shared_storage import SCOUT_CONTEXT, GLOBAL_CONTEXT
 
-# 1. Private context: Truly private to this module instance.
+# 1. Private context
 _NODE_RESOURCE_CONTEXT: Dict[str, Any] = {}
 
-# 2. Shared context: Persistent, shared by all agents of the SAME type.
+# 2. Shared context
 _SHARED_RESOURCE_CONTEXT = SCOUT_CONTEXT
 
-# 3. Global context: Shared across all agent types
+# 3. Global context
 _GLOBAL_RESOURCE_CONTEXT = GLOBAL_CONTEXT
 
+# Global lock to prevent slamming Yahoo Finance API
+_YF_THROTTLE_LOCK = threading.Lock()
 
-def _fetch_stock_history(ticker: str, period: str = "5d", interval: str = "1d") -> pd.DataFrame:
-    """Internal helper to fetch OHLC data as a DataFrame using yfinance (Scout Restricted)."""
-    stock = yf.Ticker(ticker)
-    df = stock.history(period=period, interval=interval)
-    return df
+# Thread-local storage for sessions to avoid pickling/multiprocessing issues
+_thread_local = threading.local()
 
+def _get_session():
+    """Retrieve or create a thread-local curl_cffi session."""
+    if not hasattr(_thread_local, "session"):
+        logger.info("Initializing new curl_cffi session for current thread...")
+        _thread_local.session = Session(impersonate="chrome120")
+        _thread_local.session.headers.update({
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://finance.yahoo.com/'
+        })
+    return _thread_local.session
 
-
-
-def _fetch_symbol_history_data(symbol: str, p: str, i: str):
-    """Internal helper to fetch history for a single symbol."""
-    try:
-        stock = yf.Ticker(symbol)
-        data = stock.history(period=p, interval=i)
-        if data.empty:
-            return f"### {symbol}\n- [ERROR]: No data found.\n"
+def _fetch_batch_history(tickers: List[str], period: str = "5d", interval: str = "1d") -> pd.DataFrame:
+    """
+    Centralized batched fetcher for Yahoo Finance data.
+    Ensures all requests are batched where possible and respects a 1-second throttle.
+    """
+    with _YF_THROTTLE_LOCK:
+        logger.info(f"Executing batched fetch for {tickers} (p={period}, i={interval})")
+        # Ensure tickers is a list for yf.download consistency
+        if isinstance(tickers, str):
+            tickers = [tickers]
+            
+        session = _get_session()
+        data = yf.download(
+            tickers=tickers,
+            period=period,
+            interval=interval,
+            group_by='ticker',
+            session=session,
+            progress=False,
+            threads=False # Maintain throttle integrity
+        )
         
-        last_row = data.iloc[-1]
-        try:
-            currency = stock.fast_info.get("currency", "USD") if hasattr(stock, "fast_info") else "USD"
-        except Exception:
-            currency = "USD"
-        
-        return f"""
-### {symbol.upper()} ({currency})
-- **Period**: {p} | **Interval**: {i}
-- **Close**: {float(last_row['Close']):.2f}
-- **High**: {float(last_row['High']):.2f}
-- **Low**: {float(last_row['Low']):.2f}
-- **Volume**: {int(last_row['Volume']):,}
-"""
-    except Exception as e:
-        return f"### {symbol}\n- [ERROR]: {str(e)}\n"
+        # Hard delay to prevent rate limiting
+        time.sleep(1.0)
+        return data
+
+# Backward compatibility alias
+_fetch_stock_history = _fetch_batch_history
+
+def _extract_ticker_data(df: pd.DataFrame, ticker: str) -> pd.DataFrame:
+    """Helper to extract a single ticker's dataframe from a multi-index yf.download result."""
+    if ticker in df.columns.levels[0]:
+        return df[ticker].dropna()
+    return pd.DataFrame()
 
 @tool
 async def get_symbol_history_data(symbols: List[str], period: str = "1d", interval: str = "1h") -> str:
     """
-    Scout Primitive: Retrieve stock history for multiple symbols and return a structured markdown report.
-    
-    Args:
-        symbols: A list of stock ticker symbols (e.g., ['AAPL', 'NVDA', 'TSLA']).
-        period: The lookback period (default '1d').
-        interval: The timeframe interval (default '1h').
-        
-    Returns:
-        A markdown-formatted string containing the history for all requested symbols.
+    Scout Primitive: Retrieve stock history for multiple symbols in a single batched request.
     """
-    logger.info(f"Scout fetching history for {len(symbols)} symbols (p={period}, i={interval})")
+    logger.info(f"Scout fetching history for {symbols}")
     
-    # Check cache first
+    # Check cache
     history_cache = _NODE_RESOURCE_CONTEXT.setdefault("history_cache", {})
     cache_key = f"{','.join(sorted(symbols))}_{period}_{interval}"
     if cache_key in history_cache:
-        logger.info("Using cached symbol history data.")
         return history_cache[cache_key]
     
     try:
-        tasks = [asyncio.to_thread(_fetch_symbol_history_data, sym, period, interval) for sym in symbols]
-        results = await asyncio.gather(*tasks)
+        # Batch Fetch
+        full_df = await asyncio.to_thread(_fetch_batch_history, symbols, period, interval)
         
-        report = f"# Stock History Report\nGenerated at {logging.Formatter().formatTime(logging.LogRecord('', 0, '', 0, '', {}, None))}\n\n"
+        results = []
+        for sym in symbols:
+            # Handle both single-ticker and multi-ticker return types from yf.download
+            if len(symbols) > 1:
+                ticker_df = _extract_ticker_data(full_df, sym)
+            else:
+                ticker_df = full_df.dropna()
+
+            if ticker_df.empty:
+                results.append(f"### {sym}\n- [ERROR]: No data found.")
+                continue
+
+            last_row = ticker_df.iloc[-1]
+            results.append(f"""
+### {sym.upper()}
+- **Period**: {period} | **Interval**: {interval}
+- **Close**: {float(last_row['Close']):.2f}
+- **High**: {float(last_row['High']):.2f}
+- **Low**: {float(last_row['Low']):.2f}
+- **Volume**: {int(last_row['Volume']):,}
+""")
+        
+        report = f"# Stock History Report\nGenerated at {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
         report += "\n".join(results)
         
-        # Save to cache if no errors occurred
         if "[ERROR]" not in report:
             history_cache[cache_key] = report.strip()
             
         return report.strip()
     except Exception as e:
-        logger.error(f"Error in get_symbol_history_data: {str(e)}")
-        return f"[ERROR]: Failed to fetch history list: {str(e)}"
-
+        logger.error(f"Error: {str(e)}")
+        return f"[ERROR]: Failed to fetch history batch: {str(e)}"
 
 
 @tool
 async def get_stock_quote(ticker: str, period: str = "5d", interval: str = "1d") -> Union[Dict[str, Any], str]:
     """
-    Get current stock quote and OHLC (Open, High, Low, Close) data for a given ticker symbol.
-    
-    Args:
-        ticker: The stock ticker symbol (e.g., 'AAPL', 'NVDA', 'TSLA').
-        period: The lookback period (e.g., '1d', '5d', '1mo', '1y').
-        interval: The timeframe interval (e.g., '1m', '5m', '15m', '1h', '1d').
-        
-    Returns:
-        A dictionary containing symbol, price, open, high, low, close, and volume, 
-        or an error message if the ticker is invalid.
+    Get current stock quote and OHLC data using the batched fetcher.
     """
-    logger.info(f"Fetching stock quote for {ticker} (p={period}, i={interval})")
-    
-    # Inner synchronous fetching function to be run in a separate thread
-    def fetch_data(ticker_symbol: str, p: str, i: str):
-        logger.info(f"Initializing ticker in thread for '{ticker_symbol}'...")
-        stock = yf.Ticker(ticker_symbol)
-        connection_info = f"Requesting '{ticker_symbol}' from Yahoo Finance API (yfinance v2)..."
-        params = {"ticker": ticker_symbol, "period": p, "interval": i}
+    try:
+        data = await asyncio.to_thread(_fetch_batch_history, [ticker], period, interval)
+        ticker_df = _extract_ticker_data(data, ticker)
         
-        logger.info(f"Fetching history in thread (p={p}, i={i})...")
-        data = stock.history(period=p, interval=i)
+        if ticker_df.empty:
+            return f"[ERROR]: No data found for ticker '{ticker}'."
         
-        logger.info("History fetched in thread.")
-        if data.empty:
-            return f"[ERROR]: No data found for ticker '{ticker_symbol}'.\n[CONN_INFO]: {connection_info}\n[PARAMS]: {params}"
+        last_row = ticker_df.iloc[-1]
         
-        last_row = data.iloc[-1]
-        raw_payload = data.tail(1).to_json(orient="records")
-        
-        logger.info("Fetching currency...")
-        try:
-            # Avoid notoriously slow stock.info which can hang indefinitely.
-            currency = stock.fast_info.get("currency", "USD") if hasattr(stock, "fast_info") else "USD"
-        except Exception:
-            currency = "USD"
-        logger.info(f"Currency fetched: {currency}")
-        
+        # Build report
         report = f"""
 [TECHNICAL_LOG]
 Status: SUCCESS
-Connection: {connection_info}
-Parameters: {params}
-
-[API_PAYLOAD]
-{raw_payload}
+Parameters: {{'ticker': '{ticker}', 'period': '{period}', 'interval': '{interval}'}}
 
 [OHLC_DATA]
-Symbol: {ticker_symbol.upper()}
-Currency: {currency}
-Date: {last_row.name.strftime('%Y-%m-%d %H:%M:%S') if hasattr(last_row.name, 'strftime') else last_row.name}
+Symbol: {ticker.upper()}
 Open: {float(last_row['Open']):.2f}
 High: {float(last_row['High']):.2f}
 Low: {float(last_row['Low']):.2f}
@@ -163,82 +165,53 @@ Current: {float(last_row['Close']):.2f}
 Volume: {int(last_row['Volume'])}
 """
         return report.strip()
-
-    try:
-        # Implementing a 15-second timeout for the synchronous yfinance data fetching
-        result = await asyncio.wait_for(asyncio.to_thread(fetch_data, ticker, period, interval), timeout=15.0)
-        return result
-    except asyncio.TimeoutError:
-        logger.error(f"Timeout while fetching stock quote for {ticker} after 15 seconds")
-        return f"[ERROR]: Timeout (15s) while attempting to fetch '{ticker}' from Yahoo Finance API."
     except Exception as e:
-        logger.error(f"Error in get_stock_quote for {ticker}: {str(e)}")
-        return f"[ERROR]: {str(e)}\n[CONN_INFO]: Attempted connection to Yahoo Finance for {ticker}"
-
+        return f"[ERROR]: {str(e)}"
 
 @tool
 async def get_sharpe_ratio(ticker: str, period: str = "1y") -> str:
-    """
-    Scout Primitive: Calculate the Sharpe Ratio for a given ticker.
-    Uses the 10Y Treasury Yield (^TNX) as the risk-free rate proxy.
-    
-    Args:
-        ticker: The stock ticker symbol.
-        period: The lookback period (default '1y').
-    """
+    """Calculate Sharpe ratio using batched fetching for the ticker and risk-free benchmark."""
     try:
-        df = await asyncio.to_thread(_fetch_stock_history, ticker, period, "1d")
-        if df.empty:
-            return f"### Sharpe Ratio: {ticker.upper()}\n[ERROR]: No data found for specified period."
+        # Batch fetch both the ticker and the 10Y Yield proxy
+        full_df = await asyncio.to_thread(_fetch_batch_history, [ticker, "^TNX"], period, "1d")
         
-        # Risk-free rate proxy from ^TNX
-        tnx = yf.Ticker("^TNX")
-        try:
-            rf_rate = tnx.fast_info.get("lastPrice", 4.3) / 100.0
-        except Exception:
-            rf_rate = 0.043 # Fallback to 4.3%
+        ticker_df = _extract_ticker_data(full_df, ticker)
+        tnx_df = _extract_ticker_data(full_df, "^TNX")
+
+        if ticker_df.empty: return f"### Sharpe: {ticker.upper()}\n[ERROR]: No ticker data."
+        
+        # Calculate risk-free rate from ^TNX if available, else 4.3%
+        rf_rate = 0.043
+        if not tnx_df.empty:
+            rf_rate = float(tnx_df.iloc[-1]['Close']) / 100.0
             
-        returns = df['Close'].pct_change().dropna()
+        returns = ticker_df['Close'].pct_change().dropna()
         excess_returns = returns - (rf_rate / 252)
         sharpe = (excess_returns.mean() / excess_returns.std()) * (252**0.5)
-        
-        return f"### Sharpe Ratio: {ticker.upper()}\n- **Value:** {sharpe:.2f}\n- **Risk-Free Rate (Proxy ^TNX):** {rf_rate*100:.2f}%\n"
+        return f"### Sharpe Ratio: {ticker.upper()}\n- **Value:** {sharpe:.2f}\n"
     except Exception as e:
-        logger.error(f"Error calculating Sharpe for {ticker}: {str(e)}")
         return f"### Sharpe Ratio: {ticker.upper()}\n[ERROR]: {str(e)}"
-
 
 @tool
 async def get_sortino_ratio(ticker: str, period: str = "1y") -> str:
-    """
-    Scout Primitive: Calculate the Sortino Ratio (downside risk-adjusted return) for a given ticker.
-    Uses the 10Y Treasury Yield (^TNX) as the risk-free rate proxy.
-    
-    Args:
-        ticker: The stock ticker symbol.
-        period: The lookback period (default '1y').
-    """
+    """Calculate Sortino ratio using batched fetching."""
     try:
-        df = await asyncio.to_thread(_fetch_stock_history, ticker, period, "1d")
-        if df.empty:
-            return f"### Sortino Ratio: {ticker.upper()}\n[ERROR]: No data found for specified period."
+        full_df = await asyncio.to_thread(_fetch_batch_history, [ticker, "^TNX"], period, "1d")
         
-        tnx = yf.Ticker("^TNX")
-        try:
-            rf_rate = tnx.fast_info.get("lastPrice", 4.3) / 100.0
-        except Exception:
-            rf_rate = 0.043
+        ticker_df = _extract_ticker_data(full_df, ticker)
+        tnx_df = _extract_ticker_data(full_df, "^TNX")
+
+        if ticker_df.empty: return f"### Sortino: {ticker.upper()}\n[ERROR]: No ticker data."
+        
+        rf_rate = 0.043
+        if not tnx_df.empty:
+            rf_rate = float(tnx_df.iloc[-1]['Close']) / 100.0
             
-        returns = df['Close'].pct_change().dropna()
+        returns = ticker_df['Close'].pct_change().dropna()
         excess_returns = returns - (rf_rate / 252)
-        
         downside_returns = excess_returns[excess_returns < 0]
         downside_std = downside_returns.std() * (252**0.5)
-        
         sortino = (excess_returns.mean() * 252) / downside_std if downside_std != 0 else 0
-        
-        return f"### Sortino Ratio: {ticker.upper()}\n- **Value:** {sortino:.2f}\n- **Risk-Free Rate (Proxy ^TNX):** {rf_rate*100:.2f}%\n"
+        return f"### Sortino Ratio: {ticker.upper()}\n- **Value:** {sortino:.2f}\n"
     except Exception as e:
-        logger.error(f"Error calculating Sortino for {ticker}: {str(e)}")
         return f"### Sortino Ratio: {ticker.upper()}\n[ERROR]: {str(e)}"
-

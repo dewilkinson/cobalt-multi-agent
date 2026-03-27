@@ -161,6 +161,7 @@ export default function TestDashboard() {
           messages: [{ role: 'user', content: scenario.prompt }],
           thread_id: `test_${Date.now()}`,
           enable_background_investigation: true,
+          auto_accepted_plan: true,
           verbosity: 0 // Test explicit low verbosity
         }),
         signal: abortControllerRef.current.signal

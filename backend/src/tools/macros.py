@@ -6,25 +6,27 @@
 
 import logging
 import asyncio
+import re
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from typing import List, Dict, Any, Optional
 from langchain_core.tools import tool
-from .finance import get_stock_quote, get_sharpe_ratio, get_sortino_ratio
+from .finance import get_symbol_history_data, get_sortino_ratio, _fetch_batch_history, _extract_ticker_data
 from .smc import get_smc_analysis
 
-from .shared_storage import RESEARCHER_CONTEXT
+from .shared_storage import RESEARCHER_CONTEXT, GLOBAL_CONTEXT
+
+NY_TZ = ZoneInfo("America/New_York")
 
 logger = logging.getLogger(__name__)
-
-from .shared_storage import RESEARCHER_CONTEXT, GLOBAL_CONTEXT
 
 # 1. Private to the Agent Code Itself
 _NODE_RESOURCE_CONTEXT: Dict[str, Any] = {}
 
-# 2. Shared context: Persistent, shared by Researcher sub-modules
+# 2. Shared context
 _SHARED_RESOURCE_CONTEXT = RESEARCHER_CONTEXT
 
-# 3. Global context: Shared across all agent types
+# 3. Global context
 _GLOBAL_RESOURCE_CONTEXT = GLOBAL_CONTEXT
 
 
@@ -36,83 +38,150 @@ _MACRO_CACHE: Dict[str, Any] = {
 
 # Define the standard macro set
 MACRO_TICKERS = {
+    "VIX": "^VIX",
     "DXY": "DX-Y.NYB",
     "TNX": "^TNX",
     "SPY": "SPY",
     "QQQ": "QQQ",
     "IWM": "IWM",
-    "VIX": "^VIX",
     "GLD": "GLD",
     "BTC": "BTC-USD",
     "USO": "USO"
 }
 
-TIMEFRAMES = ["15m", "1h", "4h", "1d", "1wk"]
+MACRO_NAMES = {
+    "VIX": "CBOE Volatility Index",
+    "DXY": "US Dollar Index",
+    "TNX": "10-Year Treasury Yield",
+    "SPY": "S&P 500 Trust ETF",
+    "QQQ": "Nasdaq 100 ETF",
+    "IWM": "Russell 2000 ETF",
+    "GLD": "SPDR Gold ETF",
+    "BTC": "Bitcoin (USD)",
+    "USO": "United States Oil Fund"
+}
+
+TIMEFRAMES = ["15m", "1h", "4h", "1d"]
 
 @tool
 async def fetch_market_macros() -> str:
     """
     Fetch comprehensive market macro data for key global indices and assets.
-    Includes: Dollar Index (DXY), 10Y Yield (TNX), S&P 500 (SPY), Nasdaq (QQQ), 
-    Russell 2000 (IWM), Volatility (VIX), Gold (GLD), Bitcoin (BTC), and Oil (USO).
-    
-    Performs full SMC analysis across 15m, 1h, 4h, 1d, and 1w timeframes for all tickers.
-    
-    NOTE: This tool features a 15-minute cooldown cache to prevent excessive API calls.
     """
-    global _MACRO_CACHE
+    return "Not implemented in this version. Use get_macro_data for structured output."
+
+
+_LOOKBACK = 10
+_INTERVAL = "1h"
+_MACRO_API_CACHE: Dict[str, Any] = {"data": None, "timestamp": None}
+
+async def get_macro_data() -> List[Dict[str, Any]]:
+    """
+    Structured version of market macros for API consumption.
+    Refactored for speed:
+    1. Bulk fetch quotes for all tickers.
+    2. Parallelize SMC/Sortino tasks (throttled by the global finance lock).
+    """
+    logger.info(f"Fetching structured macro data (LB={_LOOKBACK}, INT={_INTERVAL})...")
     
-    # Cache Check
-    if _MACRO_CACHE["timestamp"] and _MACRO_CACHE["data"]:
-        elapsed = datetime.now() - _MACRO_CACHE["timestamp"]
-        if elapsed < timedelta(minutes=15):
-            logger.info(f"Using cached macro data (Age: {elapsed.total_seconds():.0f}s)")
-            return f"**[CACHED]** - Last refresh: {_MACRO_CACHE['timestamp'].strftime('%H:%M:%S')}\n\n{_MACRO_CACHE['data']}"
+    # Use global cache if less than 15 minutes old
+    now = datetime.now()
+    if _MACRO_API_CACHE["data"] and _MACRO_API_CACHE["timestamp"]:
+        if (now - _MACRO_API_CACHE["timestamp"]).total_seconds() < 900:
+            logger.info("Returning structured macro data from API cache.")
+            return _MACRO_API_CACHE["data"]
 
-    logger.info("Starting global macro fetch sequence (Cache miss/expire)...")
-    
-    async def process_ticker(label: str, yahoo_ticker: str):
-        logger.info(f"Processing macro: {label} ({yahoo_ticker})")
-        
-        # 1. Fetch current quote
-        quote = await get_stock_quote.ainvoke({"ticker": yahoo_ticker, "period": "5d", "interval": "1d"})
-        
-        # 2. Fetch SMC for all timeframes in parallel
-        smc_tasks = [
-            get_smc_analysis.ainvoke({"ticker": yahoo_ticker, "period": "60d", "interval": tf}) 
-            for tf in TIMEFRAMES
-        ]
-        smc_results = await asyncio.gather(*smc_tasks)
-        
-        smc_summary = ""
-        for tf, res in zip(TIMEFRAMES, smc_results):
-            tf_data = str(res)
-            trend = "Bullish" if "Bullish" in tf_data else "Bearish" if "Bearish" in tf_data else "Neutral"
-            smc_summary += f"- **{tf}**: {trend}\n"
-        
-        section = f"""
-## {label} ({yahoo_ticker})
-{quote if isinstance(quote, str) else "Data unavailable"}
+    tickers = list(MACRO_TICKERS.values())
+    labels = list(MACRO_TICKERS.keys())
 
-### Multi-Timeframe SMC Trend
-{smc_summary}
----
-"""
-        return section
+    # 1. Bulk Fetch Quotes (1m for precision)
+    history_report = await get_symbol_history_data.ainvoke({
+        "symbols": tickers,
+        "period": "1d",
+        "interval": "1m"
+    })
 
-    tasks = [process_ticker(label, ticker) for label, ticker in MACRO_TICKERS.items()]
+    # 2. Bulk Fetch Sparklines (last 10 of 1h interval)
+    sparkline_data = await asyncio.to_thread(_fetch_batch_history, tickers, "15d", _INTERVAL)
+
+    # Parse prices from bulk report
+    prices = {}
+    for line in history_report.split("###"):
+        if not line.strip(): continue
+        try:
+            name_part = line.split("\n")[0].strip()
+            close_match = re.search(r"Close\*\*:\s*([\d\.,]+)", line)
+            if close_match:
+                prices[name_part] = float(close_match.group(1).replace(',', ''))
+        except Exception as e:
+            logger.error(f"Error parsing price for part: {e}")
+
+    async def process_one(label: str, yahoo_ticker: str):
+        try:
+            # Sortino Ratio (Throttled by lock)
+            sortino_md = await get_sortino_ratio.ainvoke({"ticker": yahoo_ticker, "period": "3mo"})
+            sortino = 0.0
+            s_match = re.search(r"Value:\*\*\s*([\+\-\d\.,]+)", str(sortino_md))
+            if s_match:
+                try: sortino = float(s_match.group(1).replace(',', ''))
+                except: pass
+
+            # SMC (Throttled by lock)
+            tf_trends = {tf: "Neutral" for tf in TIMEFRAMES}
+            for tf in TIMEFRAMES:
+                res = await get_smc_analysis.ainvoke({"ticker": yahoo_ticker, "period": "60d", "interval": tf})
+                tf_data = str(res)
+                if "Bullish" in tf_data: tf_trends[tf] = "Bullish"
+                elif "Bearish" in tf_data: tf_trends[tf] = "Bearish"
+
+            # Extract Sparkline with timestamps
+            sparkline = []
+            try:
+                ticker_spark_df = _extract_ticker_data(sparkline_data, yahoo_ticker)
+                if not ticker_spark_df.empty:
+                    # Take last _LOOKBACK non-null values
+                    last_n = ticker_spark_df.tail(_LOOKBACK)
+                    sparkline = []
+                    for _, row in last_n.iterrows():
+                        # yfinance usually returns UTC for most intervals, handle naive as UTC
+                        ts = row.name
+                        if ts.tzinfo is None:
+                            ts = ts.replace(tzinfo=ZoneInfo("UTC"))
+                        
+                        sparkline.append({
+                            "v": float(row['Close']),
+                            "t": ts.astimezone(NY_TZ).strftime(' %m/%d  %I:%M %p').lower()
+                        })
+            except Exception as e:
+                logger.error(f"Sparkline error for {yahoo_ticker}: {e}")
+
+            return {
+                "label": label,
+                "name": MACRO_NAMES.get(label, ""),
+                "ticker": yahoo_ticker,
+                "price": prices.get(yahoo_ticker, 0.0) or prices.get(yahoo_ticker.upper(), 0.0),
+                "change": 0.0,
+                "sortino": sortino,
+                "trends": tf_trends,
+                "sparkline": sparkline
+            }
+        except Exception as e:
+            logger.error(f"Error {label}: {e}")
+            return {
+                "label": label, 
+                "name": MACRO_NAMES.get(label, ""), 
+                "ticker": yahoo_ticker, 
+                "price": 0.0, 
+                "change": 0.0, 
+                "sortino": 0.0, 
+                "trends": {},
+                "sparkline": []
+            }
+
+    # 2. Parallelize processing (Lock in finance.py will handle the safety)
+    tasks = [process_one(l, t) for l, t in MACRO_TICKERS.items()]
     results = await asyncio.gather(*tasks)
     
-    final_report = "# 🌐 Global Market Macro Report\n\n"
-    report_content = "".join(results)
-    final_report += report_content
-    
-    # Update cache ONLY if no major errors occurred in the report
-    if "[ERROR]" not in report_content:
-        _MACRO_CACHE["data"] = final_report.strip()
-        _MACRO_CACHE["timestamp"] = datetime.now()
-        logger.info("Macro report cached successfully.")
-    else:
-        logger.warning("Macro report contains errors. Skipping caching to allow immediate retry.")
-    
-    return final_report.strip()
+    _MACRO_API_CACHE["data"] = results
+    _MACRO_API_CACHE["timestamp"] = now
+    return results
