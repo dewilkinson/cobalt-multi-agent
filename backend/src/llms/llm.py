@@ -51,6 +51,16 @@ def _get_env_llm_conf(llm_type: str) -> Dict[str, Any]:
         if key.startswith(prefix):
             conf_key = key[len(prefix) :].lower()
             conf[conf_key] = value
+            
+    # Fallback: Use basic model credentials for vision if vision is unconfigured
+    # Note: Gemini 1.5/2.5 Flash acts as a multimodal vision model out of the box
+    if llm_type == "vision" and not conf:
+        basic_prefix = "BASIC_MODEL__"
+        for key, value in os.environ.items():
+            if key.startswith(basic_prefix):
+                conf_key = key[len(basic_prefix) :].lower()
+                conf[conf_key] = value
+
     return conf
 
 

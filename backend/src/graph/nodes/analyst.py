@@ -29,11 +29,13 @@ _GLOBAL_RESOURCE_CONTEXT = GLOBAL_CONTEXT
 
 async def analyst_node(state: State, config: RunnableConfig):
     """Analyst node implementation."""
-    logger.info("Analyst Node: Synthesizing technical indicators.")
+    cached_list = ", ".join(sorted(list(GLOBAL_CONTEXT.get("cached_tickers", set()))))
+    logger.info(f"Analyst Node: Synthesizing technical indicators. GLOBAL_CACHE_VISIBILITY=[{cached_list}]")
     tools = [
         get_smc_analysis, get_ema_analysis, get_stock_quote, get_rsi_analysis,
         get_macd_analysis, get_volatility_atr, get_volume_profile, get_bollinger_bands,
         fetch_market_macros
     ]
 
-    return await _setup_and_execute_agent_step(state, config, "analyst", tools)
+    instructions = f"Report verbosity={state.get('verbosity', 1)}. "
+    return await _setup_and_execute_agent_step(state, config, "analyst", tools, agent_instructions=instructions)

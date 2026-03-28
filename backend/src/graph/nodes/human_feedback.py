@@ -22,12 +22,14 @@ _SHARED_RESOURCE_CONTEXT: Dict[str, Any] = {}
 # 3. Global context: Shared across all agent types
 _GLOBAL_RESOURCE_CONTEXT = GLOBAL_CONTEXT
 
-def human_feedback_node(state: State) -> Command[Literal["parser", "reporter", "researcher", "coder", "scout", "journaler", "analyst", "imaging", "__end__"]]:
+def human_feedback_node(state: State) -> Command[Literal["parser", "reporter", "researcher", "coder", "scout", "journaler", "analyst", "imaging", "system", "__end__"]]:
     """Human Feedback node implementation."""
     current_plan = state.get("current_plan")
     auto_accepted_plan = state.get("auto_accepted_plan", False)
     
-    plan_obj = current_plan if isinstance(current_plan, Plan) else None
+    # Handle both Pydantic Plan and serialized dict
+    plan_obj = current_plan
+    is_pydantic = isinstance(plan_obj, Plan)
     
     # Auto-accept in Test or Debug mode
     import os
@@ -49,16 +51,39 @@ def human_feedback_node(state: State) -> Command[Literal["parser", "reporter", "
             raise TypeError(f"Unsupported feedback type: {feedback}")
 
     # Determine next routing
-    if not plan_obj or not plan_obj.steps:
+    steps = []
+    if is_pydantic:
+        steps = getattr(plan_obj, "steps", [])
+    elif isinstance(plan_obj, dict):
+        steps = plan_obj.get("steps", [])
+
+    if not steps:
+        logger.info("[ROUTING] No steps found in plan. Transitioning to Reporter.")
         return Command(goto="reporter")
     
-    first_step = plan_obj.steps[0]
-    st = first_step.step_type.lower()
+    # Find the first step that hasn't been executed yet
+    next_step = None
+    for step in steps:
+        execution_res = getattr(step, "execution_res", None) if not isinstance(step, dict) else step.get("execution_res")
+        if execution_res is None:
+            next_step = step
+            break
+            
+    if not next_step:
+        logger.info("[ROUTING] All steps completed. Transitioning to Reporter.")
+        return Command(goto="reporter")
+    
+    st_raw = getattr(next_step, "step_type", "reporter") if not isinstance(next_step, dict) else next_step.get("step_type", "reporter")
+    st = str(st_raw).lower()
+
+    logger.info(f"[ROUTING] Planning transition to Node: {st} (Step: {getattr(next_step, 'title', 'Untitled') if not isinstance(next_step, dict) else next_step.get('title')})")
+
     if st == "research": return Command(goto="researcher")
     if st == "processing": return Command(goto="coder")
     if st == "scout": return Command(goto="scout")
     if st == "journaler": return Command(goto="journaler")
     if st == "analyst": return Command(goto="analyst")
     if st == "imaging": return Command(goto="imaging")
+    if st == "system": return Command(goto="system")
     
     return Command(goto="reporter")

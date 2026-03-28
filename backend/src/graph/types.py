@@ -17,6 +17,7 @@ class State(MessagesState):
 
     # Runtime Variables
     locale: str = "en-US"
+    verbosity: int = 1
     research_topic: str = ""
     observations: list[str] = []
     resources: list[Resource] = []
@@ -28,4 +29,5 @@ class State(MessagesState):
     background_investigation_results: str = None
     macro_history: str = ""
     obsidian_settings: dict = {}
+    test_mode: bool = False
 

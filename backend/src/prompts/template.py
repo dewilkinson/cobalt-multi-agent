@@ -53,9 +53,11 @@ def apply_prompt_template(
     Returns:
         List of messages with the system prompt as the first message
     """
-    # Check test mode globally
-    from src.config.loader import get_bool_env
-    is_test = os.environ.get("VLI_TEST_MODE", "").lower() in ("true", "1", "yes") or get_bool_env("VLI_TEST_MODE", False)
+    is_test = (
+        os.environ.get("VLI_TEST_MODE", "").lower() in ("true", "1", "yes") 
+        or get_bool_env("VLI_TEST_MODE", False)
+        or state.get("test_mode", False)
+    )
 
     # Convert state to dict for template rendering
     state_vars = {

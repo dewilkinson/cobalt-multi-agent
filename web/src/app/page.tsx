@@ -1,48 +1,25 @@
-// Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
-// SPDX-License-Identifier: MIT
+import { Footer } from "@/components/landing/footer";
+import { Header } from "@/components/landing/header";
+import { Hero } from "@/components/landing/hero";
+import { CaseStudySection } from "@/components/landing/sections/case-study-section";
+import { CommunitySection } from "@/components/landing/sections/community-section";
+import { SandboxSection } from "@/components/landing/sections/sandbox-section";
+import { SkillsSection } from "@/components/landing/sections/skills-section";
+import { WhatsNewSection } from "@/components/landing/sections/whats-new-section";
 
-import { useTranslations } from 'next-intl';
-import { useMemo } from "react";
-
-import { SiteHeader } from "./chat/components/site-header";
-import { Jumbotron } from "./landing/components/jumbotron";
-import { Ray } from "./landing/components/ray";
-import { CaseStudySection } from "./landing/sections/case-study-section";
-import { CoreFeatureSection } from "./landing/sections/core-features-section";
-import { JoinCommunitySection } from "./landing/sections/join-community-section";
-import { MultiAgentSection } from "./landing/sections/multi-agent-section";
-
-export default function HomePage() {
+export default function LandingPage() {
   return (
-    <div className="flex flex-col items-center">
-      <SiteHeader />
-      <main className="container flex flex-col items-center justify-center gap-56">
-        <Jumbotron />
+    <div className="min-h-screen w-full bg-[#0a0a0a]">
+      <Header />
+      <main className="flex w-full flex-col">
+        <Hero />
         <CaseStudySection />
-        <MultiAgentSection />
-        <CoreFeatureSection />
-        <JoinCommunitySection />
+        <SkillsSection />
+        <SandboxSection />
+        <WhatsNewSection />
+        <CommunitySection />
       </main>
       <Footer />
-      <Ray />
     </div>
-  );
-}
-function Footer() {
-  const t = useTranslations('footer');
-  const year = useMemo(() => new Date().getFullYear(), []);
-  return (
-    <footer className="container mt-32 flex flex-col items-center justify-center">
-      <hr className="from-border/0 via-border/70 to-border/0 m-0 h-px w-full border-none bg-gradient-to-r" />
-      <div className="text-muted-foreground container flex h-20 flex-col items-center justify-center text-sm">
-        <p className="text-center font-serif text-lg md:text-xl">
-          &quot;{t('quote')}&quot;
-        </p>
-      </div>
-      <div className="text-muted-foreground container mb-8 flex flex-col items-center justify-center text-xs">
-        <p>{t('license')}</p>
-        <p>&copy; {year} {t('copyright')}</p>
-      </div>
-    </footer>
   );
 }

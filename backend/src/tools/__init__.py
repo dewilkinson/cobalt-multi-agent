@@ -10,7 +10,7 @@ from .screenshot import snapper
 from .python_repl import python_repl_tool
 from .retriever import get_retriever_tool
 from .search import get_web_search_tool
-from .finance import get_stock_quote, get_symbol_history_data, get_sharpe_ratio, get_sortino_ratio
+from .finance import get_stock_quote, get_symbol_history_data, get_sharpe_ratio, get_sortino_ratio, simulate_cache_volatility, get_cache_heat_map, vli_cache_tick, clear_vli_diagnostic
 from .broker import get_brokerage_accounts, get_brokerage_history, get_brokerage_balance, get_brokerage_statements
 from .journal import write_daily_journal, list_journal_entries, read_journal_entry, get_journal_folder, set_journal_folder
 from .smc import get_smc_analysis
@@ -28,6 +28,7 @@ __all__ = [
     "get_retriever_tool",
     "get_stock_quote",
     "get_symbol_history_data",
+    "simulate_cache_volatility",
     "get_brokerage_accounts",
     "get_brokerage_history",
     "get_brokerage_balance",
@@ -49,6 +50,9 @@ __all__ = [
     "get_image_from_local_path",
     "get_sharpe_ratio",
     "get_sortino_ratio",
+    "get_cache_heat_map",
+    "vli_cache_tick",
+    "clear_vli_diagnostic",
     "fetch_market_macros",
     "get_macro_data",
 ]

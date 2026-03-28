@@ -10,7 +10,7 @@ from langchain_core.runnables import RunnableConfig
 from src.config.configuration import Configuration
 from src.tools import (
     get_brokerage_accounts, get_brokerage_history, get_brokerage_balance,
-    get_brokerage_statements, get_stock_quote, get_web_search_tool, crawl_tool, snapper
+    get_brokerage_statements, get_stock_quote, get_web_search_tool, crawl_tool, snapper, simulate_cache_volatility
 )
 from src.tools.shared_storage import SCOUT_CONTEXT, GLOBAL_CONTEXT
 from ..types import State
@@ -30,6 +30,15 @@ _GLOBAL_RESOURCE_CONTEXT = GLOBAL_CONTEXT
 async def scout_node(state: State, config: RunnableConfig):
     """Scout node implementation."""
     logger.info("Scout Node: Initializing.")
+    
+    # 1. Manually emit a Trace message if in Test Mode to ensure visibility in Dashboard
+    if state.get("test_mode"):
+        from langchain_core.messages import AIMessage
+        state["messages"].append(AIMessage(
+            content=f"🔍 Request received for data retrieval: {state.get('research_topic', 'Unknown')}",
+            name="scout"
+        ))
+
     configurable = Configuration.from_runnable_config(config)
     tools = [
         get_brokerage_accounts, 
@@ -40,6 +49,7 @@ async def scout_node(state: State, config: RunnableConfig):
         get_web_search_tool(configurable.max_search_results),
         crawl_tool,
         snapper,
+        simulate_cache_volatility
     ]
 
     return await _setup_and_execute_agent_step(state, config, "scout", tools)

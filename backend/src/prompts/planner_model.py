@@ -19,6 +19,7 @@ class StepType(str, Enum):
 
     ANALYST = "analyst"
     IMAGING = "imaging"
+    SYSTEM = "system"
 
 
 class Step(BaseModel):
@@ -63,6 +64,23 @@ class Plan(BaseModel):
                                 "Collect data on market size, growth rates, major players, and investment trends in AI sector."
                             ),
                             "step_type": "research",
+                        }
+                    ],
+                },
+                {
+                    "has_enough_context": False,
+                    "thought": (
+                        "The user is requesting a high-fidelity VLI diagnostic stress test. This requires use of the privileged System node."
+                    ),
+                    "title": "VLI Diagnostic Stress Test",
+                    "steps": [
+                        {
+                            "need_search": False,
+                            "title": "Execute Autonomic Cache Simulation",
+                            "description": (
+                                "Execute the VLI cache logic, maintaining state and timers as instructed."
+                            ),
+                            "step_type": "system",
                         }
                     ],
                 }

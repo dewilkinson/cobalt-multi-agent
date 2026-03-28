@@ -57,6 +57,7 @@ class Configuration:
     obsidian_settings: dict = field(default_factory=dict) # Obsidian vault and note settings
     report_style: str = ReportStyle.ACADEMIC.value  # Report style
     enable_deep_thinking: bool = False  # Whether to enable deep thinking
+    developer_mode: bool = True  # Enable root-level system node access by default
 
     @classmethod
     def from_runnable_config(

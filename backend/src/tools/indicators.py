@@ -35,16 +35,16 @@ def calculate_rsi(df: pd.DataFrame, period: int = 14):
     gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
     rs = gain / loss
-    df['RSI'] = 100 - (100 / (1 + rs))
+    df['rsi'] = 100 - (100 / (1 + rs))
     return df
 
 def calculate_macd(df: pd.DataFrame, fast: int = 12, slow: int = 26, signal: int = 9):
     """Calculates Moving Average Convergence Divergence (MACD)."""
-    df['EMA_fast'] = df['close'].ewm(span=fast, adjust=False).mean()
-    df['EMA_slow'] = df['close'].ewm(span=slow, adjust=False).mean()
-    df['MACD'] = df['EMA_fast'] - df['EMA_slow']
-    df['MACD_signal'] = df['MACD'].ewm(span=signal, adjust=False).mean()
-    df['MACD_hist'] = df['MACD'] - df['MACD_signal']
+    df['ema_fast'] = df['close'].ewm(span=fast, adjust=False).mean()
+    df['ema_slow'] = df['close'].ewm(span=slow, adjust=False).mean()
+    df['macd'] = df['ema_fast'] - df['ema_slow']
+    df['macd_signal'] = df['macd'].ewm(span=signal, adjust=False).mean()
+    df['macd_hist'] = df['macd'] - df['macd_signal']
     return df
 
 def calculate_atr(df: pd.DataFrame, period: int = 14):
@@ -54,7 +54,7 @@ def calculate_atr(df: pd.DataFrame, period: int = 14):
     low_close = (df['low'] - df['close'].shift()).abs()
     ranges = pd.concat([high_low, high_close, low_close], axis=1)
     true_range = ranges.max(axis=1)
-    df['ATR'] = true_range.rolling(window=period).mean()
+    df['atr'] = true_range.rolling(window=period).mean()
     return df
 
 @tool
@@ -67,9 +67,9 @@ async def get_rsi_analysis(ticker: str, period: str = "60d", interval: str = "1d
         df = _fetch_stock_history(symbol, p, i)
         if df.empty: return f"### RSI: {symbol.upper()}\nError: No data for p={p}, i={i}\n"
 
-        df.columns = [c.lower() for c in df.columns]
+        df.columns = [str(c).lower() for c in df.columns]
         df = calculate_rsi(df)
-        val = df['RSI'].iloc[-1]
+        val = df['rsi'].iloc[-1]
         status = "Overbought" if val > 70 else "Oversold" if val < 30 else "Neutral"
         return f"### RSI: {symbol.upper()} ({i})\n- **Value:** {val:.2f}\n- **Stance:** {status}\n"
 
@@ -85,13 +85,13 @@ async def get_macd_analysis(ticker: str, period: str = "60d", interval: str = "1
         df = _fetch_stock_history(symbol, p, i)
         if df.empty: return f"### MACD: {symbol.upper()}\nError: No data for p={p}, i={i}\n"
 
-        df.columns = [c.lower() for c in df.columns]
+        df.columns = [str(c).lower() for c in df.columns]
         df = calculate_macd(df)
         last = df.iloc[-1]
         prev = df.iloc[-2]
-        crossover = "Bullish Cross" if (last['MACD'] > last['MACD_signal'] and prev['MACD'] < prev['MACD_signal']) else \
-                    "Bearish Cross" if (last['MACD'] < last['MACD_signal'] and prev['MACD'] > prev['MACD_signal']) else "No Cross"
-        return f"### MACD: {symbol.upper()} ({i})\n- **MACD:** {last['MACD']:.3f}\n- **Signal:** {last['MACD_signal']:.3f}\n- **Momentum:** {crossover}\n"
+        crossover = "Bullish Cross" if (last['macd'] > last['macd_signal'] and prev['macd'] < prev['macd_signal']) else \
+                    "Bearish Cross" if (last['macd'] < last['macd_signal'] and prev['macd'] > prev['macd_signal']) else "No Cross"
+        return f"### MACD: {symbol.upper()} ({i})\n- **MACD:** {last['macd']:.3f}\n- **Signal:** {last['macd_signal']:.3f}\n- **Momentum:** {crossover}\n"
 
     return await asyncio.to_thread(compute, ticker, period, interval)
 
@@ -105,9 +105,9 @@ async def get_volatility_atr(ticker: str, period: str = "60d", interval: str = "
         df = _fetch_stock_history(symbol, p, i)
         if df.empty: return f"### Volatility (ATR): {symbol.upper()}\nError: No data for p={p}, i={i}\n"
 
-        df.columns = [c.lower() for c in df.columns]
+        df.columns = [str(c).lower() for c in df.columns]
         df = calculate_atr(df)
-        val = df['ATR'].iloc[-1]
+        val = df['atr'].iloc[-1]
         return f"### Volatility (ATR): {symbol.upper()} ({i})\n- **ATR:** {val:.2f} (Current range expectation)\n"
 
     try:
@@ -128,18 +128,20 @@ async def get_bollinger_bands(ticker: str, period: str = "60d", interval: str = 
         if df.empty:
             return f"Error: No data found for ticker '{symbol}' with period '{p}' and interval '{i}'."
         
-        # Calculate SMA 20
-        df['SMA20'] = df['Close'].rolling(window=20).mean()
-        # Calculate Standard Deviation
-        df['STD'] = df['Close'].rolling(window=20).std()
-        # Calculate Upper/Lower Bands
-        df['Upper'] = df['SMA20'] + (df['STD'] * 2)
-        df['Lower'] = df['SMA20'] - (df['STD'] * 2)
+        df.columns = [str(c).lower() for c in df.columns]
         
-        current_price = df['Close'].iloc[-1]
-        upper = df['Upper'].iloc[-1]
-        lower = df['Lower'].iloc[-1]
-        mid = df['SMA20'].iloc[-1]
+        # Calculate SMA 20
+        df['sma20'] = df['close'].rolling(window=20).mean()
+        # Calculate Standard Deviation
+        df['std'] = df['close'].rolling(window=20).std()
+        # Calculate Upper/Lower Bands
+        df['upper'] = df['sma20'] + (df['std'] * 2)
+        df['lower'] = df['sma20'] - (df['std'] * 2)
+        
+        current_price = df['close'].iloc[-1]
+        upper = df['upper'].iloc[-1]
+        lower = df['lower'].iloc[-1]
+        mid = df['sma20'].iloc[-1]
         
         status = "Neutral"
         if current_price > upper:
@@ -176,12 +178,13 @@ async def get_volume_profile(ticker: str, period: str = "60d", interval: str = "
     """
     def compute_vp(symbol: str, p: str, i: str):
         df = _fetch_stock_history(symbol, p, i)
-
         if df.empty: return f"### Volume Profile: {symbol.upper()}\nError: No data for p={p}, i={i}\n"
+        
+        df.columns = [str(c).lower() for c in df.columns]
         # Bins for price levels
-        bins = np.linspace(df['Low'].min(), df['High'].max(), 10)
-        df['PriceBin'] = pd.cut(df['Close'], bins=bins)
-        profile = df.groupby('PriceBin')['Volume'].sum()
+        bins = np.linspace(df['low'].min(), df['high'].max(), 10)
+        df['price_bin'] = pd.cut(df['close'], bins=bins)
+        profile = df.groupby('price_bin')['volume'].sum()
         poc = profile.idxmax() # Point of Control
         return f"### Volume Profile: {symbol.upper()} ({i})\n- **Highest Volume Node (POC):** {poc}\n"
 

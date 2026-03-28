@@ -25,7 +25,7 @@ _NODE_RESOURCE_CONTEXT = ANALYST_CONTEXT
 def calculate_ema(df: pd.DataFrame, periods: List[int]):
     """Calculates Exponential Moving Averages (EMA) for multiple periods."""
     for p in periods:
-        df[f'EMA_{p}'] = df['close'].ewm(span=p, adjust=False).mean()
+        df[f'ema_{p}'] = df['close'].ewm(span=p, adjust=False).mean()
     return df
 
 @tool
@@ -47,7 +47,8 @@ async def get_ema_analysis(
         if df.empty:
             return f"Error: No data found for ticker '{symbol}' to calculate EMA."
         
-        df.columns = [c.lower() for c in df.columns]
+        # Standardize columns
+        df.columns = [str(c).lower() for c in df.columns]
         df = calculate_ema(df, p_list)
         
         # Get the latest values
@@ -57,15 +58,15 @@ async def get_ema_analysis(
         
         report += "#### Latest EMA Values:\n"
         for p in p_list:
-            val = last_row[f'EMA_{p}']
+            val = last_row[f'ema_{p}']
             status = "Above" if last_row['close'] > val else "Below"
             report += f"- **EMA {p}:** {val:.2f} (Price is {status} EMA)\n"
             
-        # Check for crossovers or specific trends
-        if last_row['EMA_20'] > last_row['EMA_50'] > last_row['EMA_200']:
-            report += "\n📈 **Trend Sentiment:** Strong Bullish Alignment (20 > 50 > 200)."
-        elif last_row['EMA_20'] < last_row['EMA_50'] < last_row['EMA_200']:
-            report += "\n📉 **Trend Sentiment:** Strong Bearish Alignment (20 < 50 < 200)."
+        if last_row.get(f'ema_20') is not None and last_row.get(f'ema_50') is not None and last_row.get(f'ema_200') is not None:
+             if last_row['ema_20'] > last_row['ema_50'] > last_row['ema_200']:
+                report += "\n📈 **Trend Sentiment:** Strong Bullish Alignment (20 > 50 > 200)."
+             elif last_row['ema_20'] < last_row['ema_50'] < last_row['ema_200']:
+                report += "\n📉 **Trend Sentiment:** Strong Bearish Alignment (20 < 50 < 200)."
             
         report += f"\n\n[EMA_DATA_FETCHED]: Sampled {len(df)} bars over the last {ts}."
         return report

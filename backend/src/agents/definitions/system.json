@@ -1,0 +1,30 @@
+{
+    "type": "system",
+    "name": "System Administrator",
+    "prompt_file": "system",
+    "tools": [
+        "get_web_search_tool",
+        "crawl_tool",
+        "snapper",
+        "get_stock_quote",
+        "fetch_market_macros",
+        "get_smc_analysis",
+        "get_ema_analysis",
+        "get_rsi_analysis",
+        "get_macd_analysis",
+        "get_volatility_atr",
+        "get_volume_profile",
+        "get_bollinger_bands",
+        "simulate_cache_volatility",
+        "get_cache_heat_map",
+        "get_brokerage_accounts",
+        "get_brokerage_history",
+        "get_brokerage_balance",
+        "get_brokerage_statements",
+        "python_repl_tool",
+        "get_image_from_url",
+        "get_image_from_local_path",
+        "vli_cache_tick",
+        "clear_vli_diagnostic"
+    ]
+}

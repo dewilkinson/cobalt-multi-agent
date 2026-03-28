@@ -76,6 +76,8 @@ class ChatRequest(BaseModel):
     enable_deep_thinking: Optional[bool] = Field(
         False, description="Whether to enable deep thinking"
     )
+    verbosity: Optional[int] = Field(1, description="The verbosity level of the agent logs")
+    is_test_mode: Optional[bool] = Field(False, description="Whether the request is part of a test scenario")
 
 
 class TTSRequest(BaseModel):

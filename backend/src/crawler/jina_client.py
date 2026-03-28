@@ -26,5 +26,23 @@ class JinaClient:
                 "Jina API key is not set. Provide your own key to access a higher rate limit. See https://jina.ai/reader for more information."
             )
         data = {"url": url}
-        response = requests.post("https://r.jina.ai/", headers=headers, json=data)
-        return response.text
+        
+        logger.debug(f"[WEB REQUEST] JinaClient fetching: {url}")
+        import time
+        start_time = time.time()
+        try:
+            # Set a 30 second timeout for external crawling
+            response = requests.post("https://r.jina.ai/", headers=headers, json=data, timeout=30.0)
+            duration_ms = (time.time() - start_time) * 1000
+            
+            logger.debug(f"[WEB RESPONSE] JinaClient received status {response.status_code} in {duration_ms:.2f}ms for: {url}")
+            response.raise_for_status()
+            return response.text
+        except requests.Timeout:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"[TIMEOUT] JinaClient request to {url} timed out after {duration_ms:.2f}ms")
+            raise
+        except requests.RequestException as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"[ERROR] JinaClient request to {url} failed after {duration_ms:.2f}ms: {e}")
+            raise

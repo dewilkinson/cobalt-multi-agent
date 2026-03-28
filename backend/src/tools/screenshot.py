@@ -7,6 +7,7 @@
 
 # SPDX-License-Identifier: MIT
 
+import asyncio
 import base64
 import logging
 from typing import Annotated, Dict, Any
@@ -22,41 +23,40 @@ logger = logging.getLogger(__name__)
 _NODE_RESOURCE_CONTEXT = SCOUT_CONTEXT
 
 
+def _snapper_worker(url: str) -> str:
+    """Synchronous worker for local screen capture using PIL."""
+    try:
+        from PIL import ImageGrab
+        import io
+        
+        logger.info(f"Taking a snapshot of the local screen in place of {url}...")
+        
+        # Take screenshot of the primary monitor
+        screenshot = ImageGrab.grab()
+        
+        # Save to bytes buffer
+        buffer = io.BytesIO()
+        screenshot.save(buffer, format="PNG")
+        screenshot_bytes = buffer.getvalue()
+        
+        # Encode to base64
+        import json
+        b64 = base64.b64encode(screenshot_bytes).decode("utf-8")
+        return json.dumps({"images": [f"data:image/png;base64,{b64}"]})
+        
+    except Exception as e:
+        import json
+        error_msg = f"Failed to take local screenshot. Error: {repr(e)}"
+        logger.error(error_msg)
+        return json.dumps({"error": error_msg})
+
 
 @tool
 @log_io
-def snapper(
-    url: Annotated[str, "The URL of the webpage or chart to take a snapshot of. Must be a valid http or https URL."],
+async def snapper(
+    url: Annotated[str, "The URL of the webpage or chart to take a snapshot of. If you need to capture the user's actual desktop/screen, pass 'desktop' as the URL."],
 ) -> str:
-    """Use this to capture a full-resolution PNG image snapshot of a website or chart. This is the preferred tool when visual layout or graphical data (like TradingView) is required instead of raw HTML or text content."""
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        return '{ "error": "playwright is not installed. Run `uv add playwright` and `uv run playwright install`." }'
-
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            # Set a standard desktop viewport for charts to render well
-            page.set_viewport_size({"width": 1280, "height": 800})
-            
-            logger.info(f"Navigating to {url} for screenshot...")
-            
-            # Use networkidle to ensure JavaScript widgets (like TradingView) finish loading
-            page.goto(url, wait_until="networkidle", timeout=20000)
-            
-            # Add an explicit wait time for heavy chart DOM elements to fully settle
-            page.wait_for_timeout(4000)
-            
-            screenshot_bytes = page.screenshot(type="png")
-            browser.close()
-            
-            # Encode to base64
-            b64 = base64.b64encode(screenshot_bytes).decode("utf-8")
-            return f'{{"images": ["data:image/png;base64,{b64}"]}}'
-            
-    except Exception as e:
-        error_msg = f"Failed to take screenshot of {url}. Error: {repr(e)}"
-        logger.error(error_msg)
-        return f'{{"error": "{error_msg}"}}'
+    """Use this to capture a full-resolution PNG image snapshot of a website, chart, or the user's local desktop screen. This is the preferred tool when visual layout or graphical data (like TradingView or the active Windows desktop) is required."""
+    # Execute the synchronous worker in a separate thread to avoid Windows event loop policy conflicts
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, _snapper_worker, url)

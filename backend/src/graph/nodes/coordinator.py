@@ -32,11 +32,37 @@ def coordinator_node(state: State, config: RunnableConfig) -> Command[Literal["h
     """Coordinator node - Detailed multi-step planning."""
     logger.info("VLI Coordinator is planning execution.")
     analyst_keywords = ", ".join(get_analyst_keywords())
-    state_for_prompt = {**state, "ANALYST_KEYWORDS": analyst_keywords}
+    
+    # Extract cached tickers to make the Coordinator "Cache Aware"
+    cached_tickers_set = set()
+        
+    # Check Global Ticker Tracker from Scout
+    try:
+        from src.tools.shared_storage import GLOBAL_CONTEXT
+        global_tickers = GLOBAL_CONTEXT.get("cached_tickers", set())
+        cached_tickers_set.update(global_tickers)
+    except Exception as e:
+        logger.debug(f"Could not read global ticker cache for coordinator: {e}")
+        
+    from src.config.configuration import Configuration
+    configurable = Configuration.from_runnable_config(config)
+    dev_mode = getattr(configurable, 'developer_mode', False)
+    
+    state_for_prompt = {
+        **state, 
+        "DEVELOPER_MODE": str(dev_mode).lower(),
+        "ANALYST_KEYWORDS": analyst_keywords,
+        "CACHED_TICKERS": ", ".join(sorted(list(cached_tickers_set))) if cached_tickers_set else "None (Data Store Empty)"
+    }
+    logger.info(f"[COORD_PLANNER] VLI Coordinator (DevMode: {dev_mode}) found CACHED_TICKERS: {state_for_prompt['CACHED_TICKERS']}")
     
     messages = apply_prompt_template("coordinator", state_for_prompt)
+    
     llm = get_llm_by_type(AGENT_LLM_MAP.get("coordinator", "reasoning"))
-    structured_llm = llm.with_structured_output(Plan)
+    from .common import get_orchestrator_tools
+    tools = get_orchestrator_tools(config)
+    llm_with_tools = llm.bind_tools(tools)
+    structured_llm = llm_with_tools.with_structured_output(Plan)
     
     plan_obj = structured_llm.invoke(messages)
     return Command(

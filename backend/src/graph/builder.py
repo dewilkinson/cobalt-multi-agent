@@ -19,6 +19,7 @@ from .nodes import (
     analyst_node,
     imaging_node,
     reporter_node,
+    system_node
 )
 from .types import State
 
@@ -42,6 +43,7 @@ def _build_base_graph():
 
     builder.add_node("analyst", analyst_node)
     builder.add_node("imaging", imaging_node)
+    builder.add_node("system", system_node)
     
     # Synthesis
     builder.add_node("reporter", reporter_node)
@@ -58,6 +60,7 @@ def _build_base_graph():
 
     builder.add_edge("analyst", "reporter")
     builder.add_edge("imaging", "reporter")
+    builder.add_edge("system", "reporter")
     
     builder.add_edge("reporter", END)
     

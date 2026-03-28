@@ -20,6 +20,17 @@ except (ImportError, AttributeError):
     except Exception:
         pass
 
+import asyncio
+import sys
+
+# Ensure Windows ProactorEventLoop for Playwright Async Support
+if sys.platform == "win32":
+    try:
+        if not isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    except Exception:
+        pass
+
 import base64
 import json
 import logging
@@ -86,6 +97,7 @@ from src.server.rag_request import (
     RAGResourcesResponse,
 )
 from src.server.research_api import router as research_router
+from src.server.studio_api import router as studio_router
 from src.tools import VolcengineTTS
 from src.graph.checkpoint import chat_stream_message
 from src.utils.json_utils import sanitize_args
@@ -184,6 +196,8 @@ async def chat_stream(request: ChatRequest):
             request.enable_deep_thinking,
             request.snaptrade_settings if request.snaptrade_settings else {},
             request.obsidian_settings if request.obsidian_settings else {},
+            request.verbosity,
+            request.is_test_mode,
         ),
         media_type="text/event-stream",
     )
@@ -431,6 +445,8 @@ async def _astream_workflow_generator(
     enable_deep_thinking: bool,
     snaptrade_settings: dict,
     obsidian_settings: dict,
+    verbosity: int = 1,
+    is_test_mode: bool = False,
 ):
     # Create research project and session for persistence
     research_topic = messages[-1]["content"] if messages else "Research Session"
@@ -485,6 +501,8 @@ async def _astream_workflow_generator(
         "enable_background_investigation": enable_background_investigation,
         "research_topic": messages[-1]["content"] if messages else "",
         "obsidian_settings": obsidian_settings,
+        "verbosity": verbosity,
+        "test_mode": is_test_mode,
     }
 
     if not auto_accepted_plan and interrupt_feedback:
@@ -797,3 +815,7 @@ async def config():
 
 # Include research API routes
 app.include_router(research_router, prefix="/api/research", tags=["research"])
+app.include_router(studio_router)
+
+# Trigger hot reload
+

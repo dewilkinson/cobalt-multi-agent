@@ -47,6 +47,8 @@ async def get_image_from_url(url: str) -> str:
             return f"[IMAGE_LOADED]: Source={url}, MIME={mime_type}, Data=data:{mime_type};base64,{b64_data}"
     except Exception as e:
         logger.error(f"Error fetching image from URL: {e}")
+        if "desktop" in url.lower():
+            return f"[ERROR]: Failed to download image from {url}: Request URL is missing an 'http://' or 'https://' protocol. HINT: Use the 'snapper' tool with url='desktop' to capture the local screen instead."
         return f"[ERROR]: Failed to download image from {url}: {str(e)}"
 
 @tool

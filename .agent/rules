@@ -1,0 +1,2 @@
+git clone https://github.com/dewilkinson/obsidian-vault.git obsidian-vault-remote
+"C:\Program Files\Beyond Compare 5\BCompare.exe" "C:\github\obsidian-vault" "C:\temp\obsidian-vault-remote"

@@ -67,13 +67,30 @@ TIMEFRAMES = ["15m", "1h", "4h", "1d"]
 async def fetch_market_macros() -> str:
     """
     Fetch comprehensive market macro data for key global indices and assets.
+    Provides price, trend, and stability (SMC/Sortino) analysis for major indices.
     """
-    return "Not implemented in this version. Use get_macro_data for structured output."
+    data = await get_macro_data()
+    if not data:
+        return "Error: Unable to synthesize macro market data at this time."
+    
+    report = "## Market Macros - High Fidelity Stock Analysis\n\n"
+    
+    for item in data:
+        trends = item.get("trends", {})
+        ts_str = ", ".join([f"{tf}: {trend}" for tf, trend in trends.items()])
+        
+        report += f"### {item['label']} ({item['name']})\n"
+        report += f"- **Price**: {item['price']:.2f}\n"
+        report += f"- **Sortino Ratio**: {item['sortino']:.2f}\n"
+        report += f"- **SMC Trends**: {ts_str}\n\n"
+        
+    return report
 
 
 _LOOKBACK = 10
 _INTERVAL = "1h"
-_MACRO_API_CACHE: Dict[str, Any] = {"data": None, "timestamp": None}
+_LOOKBACK = 10
+_INTERVAL = "1h"
 
 async def get_macro_data() -> List[Dict[str, Any]]:
     """
@@ -83,13 +100,6 @@ async def get_macro_data() -> List[Dict[str, Any]]:
     2. Parallelize SMC/Sortino tasks (throttled by the global finance lock).
     """
     logger.info(f"Fetching structured macro data (LB={_LOOKBACK}, INT={_INTERVAL})...")
-    
-    # Use global cache if less than 15 minutes old
-    now = datetime.now()
-    if _MACRO_API_CACHE["data"] and _MACRO_API_CACHE["timestamp"]:
-        if (now - _MACRO_API_CACHE["timestamp"]).total_seconds() < 900:
-            logger.info("Returning structured macro data from API cache.")
-            return _MACRO_API_CACHE["data"]
 
     tickers = list(MACRO_TICKERS.values())
     labels = list(MACRO_TICKERS.keys())

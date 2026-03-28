@@ -6,7 +6,9 @@
 # SPDX-License-Identifier: MIT
 
 import functools
+import inspect
 import logging
+import time
 from typing import Any, Callable, Type, TypeVar
 
 logger = logging.getLogger(__name__)
@@ -25,24 +27,57 @@ def log_io(func: Callable) -> Callable:
         The wrapped function with input/output logging
     """
 
-    @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
-        # Log input parameters
-        func_name = func.__name__
-        params = ", ".join(
-            [*(str(arg) for arg in args), *(f"{k}={v}" for k, v in kwargs.items())]
-        )
-        logger.info(f"Tool {func_name} called with parameters: {params}")
+    if inspect.iscoroutinefunction(func):
+        @functools.wraps(func)
+        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
+            start_time = time.time()
+            func_name = func.__name__
+            params = ", ".join(
+                [*(str(arg) for arg in args), *(f"{k}={v}" for k, v in kwargs.items())]
+            )
+            logger.debug(f"[ENTRY] Tool {func_name} invoked with parameters: {params}")
 
-        # Execute the function
-        result = func(*args, **kwargs)
+            try:
+                result = await func(*args, **kwargs)
+                end_time = time.time()
+                duration_ms = (end_time - start_time) * 1000
+                logger.debug(f"[EXIT] Tool {func_name} returned successfully in {duration_ms:.2f}ms. Result (truncated): {str(result)[:500]}")
+                logger.debug(f"Tool {func_name} executed in {duration_ms:.2f}ms.")
+                return result
+            except Exception as e:
+                end_time = time.time()
+                duration_ms = (end_time - start_time) * 1000
+                logger.error(f"[ERROR] Tool {func_name} failed after {duration_ms:.2f}ms with error: {str(e)}", exc_info=True)
+                raise
+        return async_wrapper
+    else:
+        @functools.wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            start_time = time.time()
+            # Log input parameters
+            func_name = func.__name__
+            params = ", ".join(
+                [*(str(arg) for arg in args), *(f"{k}={v}" for k, v in kwargs.items())]
+            )
+            logger.debug(f"[ENTRY] Tool {func_name} invoked with parameters: {params}")
 
-        # Log the output
-        logger.info(f"Tool {func_name} returned: {result}")
+            # Execute the function
+            try:
+                result = func(*args, **kwargs)
+                
+                end_time = time.time()
+                duration_ms = (end_time - start_time) * 1000
+                # Log the output
+                logger.debug(f"[EXIT] Tool {func_name} returned successfully in {duration_ms:.2f}ms. Result (truncated): {str(result)[:500]}")
+                logger.debug(f"Tool {func_name} executed in {duration_ms:.2f}ms.")
+                return result
+            except Exception as e:
+                end_time = time.time()
+                duration_ms = (end_time - start_time) * 1000
+                logger.error(f"[ERROR] Tool {func_name} failed after {duration_ms:.2f}ms with error: {str(e)}", exc_info=True)
+                raise
 
-        return result
-
-    return wrapper
+        return wrapper
 
 
 class LoggedToolMixin:
@@ -54,16 +89,23 @@ class LoggedToolMixin:
         params = ", ".join(
             [*(str(arg) for arg in args), *(f"{k}={v}" for k, v in kwargs.items())]
         )
-        logger.debug(f"Tool {tool_name}.{method_name} called with parameters: {params}")
+        logger.debug(f"[ENTRY] Tool {tool_name}.{method_name} invoked with parameters: {params}")
 
     def _run(self, *args: Any, **kwargs: Any) -> Any:
         """Override _run method to add logging."""
         self._log_operation("_run", *args, **kwargs)
-        result = super()._run(*args, **kwargs)
-        logger.debug(
-            f"Tool {self.__class__.__name__.replace('Logged', '')} returned: {result}"
-        )
-        return result
+        start_time = time.time()
+        try:
+            result = super()._run(*args, **kwargs)
+            duration_ms = (time.time() - start_time) * 1000
+            logger.debug(
+                f"[EXIT] Tool {self.__class__.__name__.replace('Logged', '')} returned successfully in {duration_ms:.2f}ms. Result (truncated): {str(result)[:500]}"
+            )
+            return result
+        except Exception as e:
+            duration_ms = (time.time() - start_time) * 1000
+            logger.error(f"[ERROR] Tool {self.__class__.__name__.replace('Logged', '')} failed after {duration_ms:.2f}ms with error: {str(e)}", exc_info=True)
+            raise
 
 
 def create_logged_tool(base_tool_class: Type[T]) -> Type[T]:

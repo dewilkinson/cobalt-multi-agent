@@ -11,7 +11,7 @@ from src.config.configuration import Configuration
 from src.tools import (
     get_web_search_tool, crawl_tool, get_stock_quote, get_symbol_history_data, fetch_market_macros,
     get_smc_analysis, get_ema_analysis, get_rsi_analysis, get_macd_analysis,
-    get_volatility_atr, get_volume_profile, get_bollinger_bands, snapper
+    get_volatility_atr, get_volume_profile, get_bollinger_bands, snapper, simulate_cache_volatility
 )
 from src.tools.research import RULES as RESEARCH_RULES
 from src.tools.shared_storage import ANALYST_CONTEXT, GLOBAL_CONTEXT
@@ -62,7 +62,8 @@ async def researcher_node(state: State, config: RunnableConfig):
         get_macd_analysis,
         get_volatility_atr, 
         get_volume_profile, 
-        get_bollinger_bands
+        get_bollinger_bands,
+        simulate_cache_volatility
     ]
 
     return await _setup_and_execute_agent_step(state, config, "researcher", tools)

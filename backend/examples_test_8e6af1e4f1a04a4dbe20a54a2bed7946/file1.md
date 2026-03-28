@@ -1,3 +1,0 @@
-# Title One
-
-Content body.

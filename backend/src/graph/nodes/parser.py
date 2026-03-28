@@ -33,11 +33,16 @@ async def parser_node(state: State, config: RunnableConfig) -> Command[Literal["
     logger.info("VLI Parser is processing user vibe.")
     
     configurable = Configuration.from_runnable_config(config)
-    messages = apply_prompt_template("parser", state)
+    from .common import get_orchestrator_tools
+    tools = get_orchestrator_tools(config)
     
     llm = get_llm_by_type(AGENT_LLM_MAP.get("parser", "basic"))
-    structured_llm = llm.with_structured_output(Plan)
+    # Bind tools for potential bypass
+    llm_with_tools = llm.bind_tools(tools)
+    structured_llm = llm_with_tools.with_structured_output(Plan)
 
+    messages = apply_prompt_template("parser", state)
+    
     response = structured_llm.invoke(messages)
     plan_obj = response
     
