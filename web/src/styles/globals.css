@@ -209,6 +209,15 @@
   }
 }
 
+/* Chat UI Overrides */
+.markdown-content, 
+.message-content, 
+[class*="message-content"],
+[class*="markdown-content"] {
+  font-size: 14px !important;
+  line-height: 1.5;
+}
+
 input,
 textarea {
   outline: none;

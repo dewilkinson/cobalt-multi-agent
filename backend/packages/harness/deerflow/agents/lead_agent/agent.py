@@ -1,6 +1,6 @@
 import logging
 
-from langchain.agents import create_agent
+from langchain.agents.factory import create_agent
 from langchain.agents.middleware import SummarizationMiddleware
 from langchain_core.runnables import RunnableConfig
 

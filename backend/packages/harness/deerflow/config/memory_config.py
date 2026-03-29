@@ -1,5 +1,6 @@
 """Configuration for memory mechanism."""
 
+from typing import Any
 from pydantic import BaseModel, Field
 
 
@@ -58,6 +59,31 @@ class MemoryConfig(BaseModel):
         ge=100,
         le=8000,
         description="Maximum tokens to use for memory injection",
+    )
+    storage_registry: list[str] = Field(
+        default_factory=list,
+        description="Explicit list of authorized shared and global storage IDs",
+    )
+    storage_policies: dict[str, dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Hierarchical access control policies for agents by type",
+    )
+    backup_enabled: bool = Field(
+        default=False,
+        description="Whether to enable automated state backups on agent termination",
+    )
+    max_backups: int = Field(
+        default=10,
+        ge=1,
+        description="Maximum number of backups to keep per agent",
+    )
+    redis_url: str | None = Field(
+        default=None,
+        description="URL for Redis-based distributed locking (e.g., redis://localhost:6379)",
+    )
+    lock_type: str = Field(
+        default="file",
+        description="Type of locking to use for shared memory: 'file' or 'redis'",
     )
 
 

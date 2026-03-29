@@ -50,14 +50,14 @@ models:
   #         type: enabled
 
   # Example: OpenAI model
-  # - name: gpt-4
-  #   display_name: GPT-4
-  #   use: langchain_openai:ChatOpenAI
-  #   model: gpt-4
-  #   api_key: $OPENAI_API_KEY # Use environment variable
-  #   max_tokens: 4096
-  #   temperature: 0.7
-  #   supports_vision: true # Enable vision support for view_image tool
+  - name: gpt-4
+    display_name: GPT-4
+    use: langchain_openai:ChatOpenAI
+    model: gpt-4
+    api_key: $OPENAI_API_KEY # Use environment variable
+    max_tokens: 4096
+    temperature: 0.7
+    supports_vision: true # Enable vision support for view_image tool
 
   # Example: OpenAI Responses API model
   # - name: gpt-5-responses
@@ -541,6 +541,18 @@ memory:
   fact_confidence_threshold: 0.7 # Minimum confidence for storing facts
   injection_enabled: true # Whether to inject memory into system prompt
   max_injection_tokens: 2000 # Maximum tokens for memory injection
+  lock_type: file # Use 'redis' for Railway/Distributed deployments
+  redis_url: $REDIS_URL # Only used if lock_type is 'redis'
+  backup_enabled: true
+  max_backups: 10
+  storage_registry: ["global", "researcher", "coder", "writer"] # Authorized Storage IDs
+  storage_policies:
+    researcher:
+      importance: 1.2
+    coder:
+      importance: 1.5
+    writer:
+      importance: 0.8
 
 # ============================================================================
 # Checkpointer Configuration

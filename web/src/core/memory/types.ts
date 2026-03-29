@@ -34,6 +34,11 @@ export interface UserMemory {
     content: string;
     category: string;
     confidence: number;
+    importance?: number;
+    provenance?: {
+      instance_id: string;
+      timestamp: string;
+    };
     createdAt: string;
     source: string;
   }[];

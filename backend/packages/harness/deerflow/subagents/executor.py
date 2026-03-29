@@ -11,7 +11,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from langchain.agents import create_agent
+MAX_CONCURRENT_SUBAGENTS = 3
+
+from langchain.agents.factory import create_agent
 from langchain.tools import BaseTool
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
@@ -452,8 +454,6 @@ class SubagentExecutor:
         _scheduler_pool.submit(run_task)
         return task_id
 
-
-MAX_CONCURRENT_SUBAGENTS = 3
 
 
 def get_background_task_result(task_id: str) -> SubagentResult | None:

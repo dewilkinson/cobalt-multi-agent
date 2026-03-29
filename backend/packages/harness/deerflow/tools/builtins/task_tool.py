@@ -7,6 +7,7 @@ from dataclasses import replace
 from typing import Annotated, Literal
 
 from langchain.tools import InjectedToolCallId, ToolRuntime, tool
+from langchain_core.tools import InjectedToolArg
 from langgraph.config import get_stream_writer
 from langgraph.typing import ContextT
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @tool("task", parse_docstring=True)
 async def task_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: Annotated[ToolRuntime, InjectedToolArg],
     description: str,
     prompt: str,
     subagent_type: Literal["general-purpose", "bash"],

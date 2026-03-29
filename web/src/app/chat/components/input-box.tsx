@@ -71,8 +71,27 @@ export function InputBox({
       if (responding) {
         onCancel?.();
       } else {
-        if (message.trim() === "") {
-          return;
+        const trimmed = message.trim();
+        if (trimmed === "") return;
+
+        // Intercept slash commands
+        if (trimmed.startsWith("/")) {
+          const parts = trimmed.split(/\s+/);
+          const cmd = parts[0].toLowerCase();
+          const scope = parts[1] || "global";
+
+          if (cmd === "/snapshot") {
+            onSend?.(`Please execute the 'snapshot_memory' tool for the scope: '${scope}'.`, { resources });
+            onRemoveFeedback?.();
+            inputRef.current?.setContent("");
+            return;
+          }
+          if (cmd === "/prune") {
+            onSend?.(`Please execute the 'prune_memory' tool for the scope: '${scope}'.`, { resources });
+            onRemoveFeedback?.();
+            inputRef.current?.setContent("");
+            return;
+          }
         }
         if (onSend) {
           onSend(message, {

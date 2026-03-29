@@ -131,6 +131,26 @@ class Paths:
         """
         return self.thread_dir(thread_id) / "user-data" / "outputs"
 
+    @property
+    def memory_dir(self) -> Path:
+        """Root directory for all memory state: `{base_dir}/_memory/`."""
+        return self.base_dir / "_memory"
+
+    @property
+    def backups_dir(self) -> Path:
+        """Directory for agent state backups: `{base_dir}/_memory/backups/`."""
+        return self.memory_dir / "backups"
+
+    @property
+    def shared_dir(self) -> Path:
+        """Directory for shared agent state: `{base_dir}/_memory/shared/`."""
+        return self.memory_dir / "shared"
+
+    def obsidian_memory_dir(self) -> Path:
+        """Directory for Obsidian-backed memory inside the vault."""
+        # This will be resolved dynamically using the vault path
+        return Path("_memory")
+
     def acp_workspace_dir(self, thread_id: str) -> Path:
         """
         Host path for the ACP workspace of a specific thread.

@@ -59,9 +59,11 @@ def _normalize_presented_filepath(
     return f"{OUTPUTS_VIRTUAL_PREFIX}/{relative_path.as_posix()}"
 
 
+from langchain_core.tools import InjectedToolArg
+
 @tool("present_files", parse_docstring=True)
 def present_file_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: Annotated[ToolRuntime, InjectedToolArg],
     filepaths: list[str],
     tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> Command:

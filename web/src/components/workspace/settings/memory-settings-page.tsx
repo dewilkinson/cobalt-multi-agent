@@ -122,15 +122,20 @@ function memoryToMarkdown(
   } else {
     parts.push(
       [
-        `| ${t.settings.memory.markdown.table.category} | ${t.settings.memory.markdown.table.confidence} | ${t.settings.memory.markdown.table.content} | ${t.settings.memory.markdown.table.source} | ${t.settings.memory.markdown.table.createdAt} |`,
-        "|---|---|---|---|---|",
+        `| ${t.settings.memory.markdown.table.category} | ${t.settings.memory.markdown.table.scope} | ${t.settings.memory.markdown.table.importance} | ${t.settings.memory.markdown.table.confidence} | ${t.settings.memory.markdown.table.content} | ${t.settings.memory.markdown.table.source} | ${t.settings.memory.markdown.table.createdAt} |`,
+        "|---|---|---|---|---|---|---|",
         ...memory.facts.map((f) => {
           const { key, value } = confidenceToLevelKey(f.confidence);
           const levelLabel =
             t.settings.memory.markdown.table.confidenceLevel[key];
           const confidenceText =
             typeof value === "number" ? `${levelLabel}` : levelLabel;
-          return `| ${upperFirst(f.category)} | ${confidenceText} | ${f.content} | [${t.settings.memory.markdown.table.view}](${pathOfThread(f.source)}) | ${formatTimeAgo(f.createdAt)} |`;
+          
+          const scope = f.provenance?.instance_id || "global";
+          const importanceValue = f.importance ?? 1.0;
+          const importanceText = `${(importanceValue * 10).toFixed(0)}/10`;
+
+          return `| ${upperFirst(f.category)} | ${upperFirst(scope)} | ${importanceText} | ${confidenceText} | ${f.content} | [${t.settings.memory.markdown.table.view}](${pathOfThread(f.source)}) | ${formatTimeAgo(f.createdAt)} |`;
         }),
       ].join("\n"),
     );

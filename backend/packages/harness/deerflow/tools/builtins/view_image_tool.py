@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Annotated
 
 from langchain.tools import InjectedToolCallId, ToolRuntime, tool
+from langchain_core.tools import InjectedToolArg
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 from langgraph.typing import ContextT
@@ -14,7 +15,7 @@ from deerflow.sandbox.tools import get_thread_data, replace_virtual_path
 
 @tool("view_image", parse_docstring=True)
 def view_image_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: Annotated[ToolRuntime, InjectedToolArg],
     image_path: str,
     tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> Command:

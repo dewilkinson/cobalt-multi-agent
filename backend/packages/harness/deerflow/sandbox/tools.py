@@ -3,6 +3,8 @@ import re
 from pathlib import Path
 
 from langchain.tools import ToolRuntime, tool
+from langchain_core.tools import InjectedToolArg
+from typing import Annotated
 from langgraph.typing import ContextT
 
 from deerflow.agents.thread_state import ThreadDataState, ThreadState
@@ -699,7 +701,7 @@ def ensure_thread_directories_exist(runtime: ToolRuntime[ContextT, ThreadState] 
 
 
 @tool("bash", parse_docstring=True)
-def bash_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, command: str) -> str:
+def bash_tool(runtime: Annotated[ToolRuntime, InjectedToolArg], description: str, command: str) -> str:
     """Execute a bash command in a Linux environment.
 
 
@@ -730,7 +732,7 @@ def bash_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, com
 
 
 @tool("ls", parse_docstring=True)
-def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path: str) -> str:
+def ls_tool(runtime: Annotated[ToolRuntime, InjectedToolArg], description: str, path: str) -> str:
     """List the contents of a directory up to 2 levels deep in tree format.
 
     Args:
@@ -766,7 +768,7 @@ def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path:
 
 @tool("read_file", parse_docstring=True)
 def read_file_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: Annotated[ToolRuntime, InjectedToolArg],
     description: str,
     path: str,
     start_line: int | None = None,
@@ -813,7 +815,7 @@ def read_file_tool(
 
 @tool("write_file", parse_docstring=True)
 def write_file_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: Annotated[ToolRuntime, InjectedToolArg],
     description: str,
     path: str,
     content: str,
@@ -850,7 +852,7 @@ def write_file_tool(
 
 @tool("str_replace", parse_docstring=True)
 def str_replace_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: Annotated[ToolRuntime, InjectedToolArg],
     description: str,
     path: str,
     old_str: str,

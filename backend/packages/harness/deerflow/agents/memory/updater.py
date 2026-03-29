@@ -127,16 +127,7 @@ class MemoryUpdater:
         return create_chat_model(name=model_name, thinking_enabled=False)
 
     def update_memory(self, messages: list[Any], thread_id: str | None = None, agent_name: str | None = None) -> bool:
-        """Update memory based on conversation messages.
-
-        Args:
-            messages: List of conversation messages.
-            thread_id: Optional thread ID for tracking source.
-            agent_name: If provided, updates per-agent memory. If None, updates global memory.
-
-        Returns:
-            True if update was successful, False otherwise.
-        """
+        """Update memory based on conversation messages."""
         config = get_memory_config()
         if not config.enabled:
             return False
@@ -174,7 +165,7 @@ class MemoryUpdater:
             update_data = json.loads(response_text)
 
             # Apply updates
-            updated_memory = self._apply_updates(current_memory, update_data, thread_id)
+            updated_memory = self._apply_updates(current_memory, update_data, thread_id, agent_name)
 
             # Strip file-upload mentions from all summaries before saving.
             # Uploaded files are session-scoped and won't exist in future sessions,
@@ -197,21 +188,17 @@ class MemoryUpdater:
         current_memory: dict[str, Any],
         update_data: dict[str, Any],
         thread_id: str | None = None,
+        agent_name: str | None = None,
     ) -> dict[str, Any]:
-        """Apply LLM-generated updates to memory.
-
-        Args:
-            current_memory: Current memory data.
-            update_data: Updates from LLM.
-            thread_id: Optional thread ID for tracking.
-
-        Returns:
-            Updated memory data.
-        """
+        """Apply LLM-generated updates with Weighted Pruning and Provenance."""
         config = get_memory_config()
         now = datetime.utcnow().isoformat() + "Z"
+        
+        # Instance ID for Provenance (derived from agent_name or thread_id)
+        instance_id = agent_name or thread_id or "system"
+        importance_weight = config.storage_policies.get(agent_name or "default", {}).get("importance", 1.0)
 
-        # Update user sections
+        # Update user sections (Remains same)
         user_updates = update_data.get("user", {})
         for section in ["workContext", "personalContext", "topOfMind"]:
             section_data = user_updates.get(section, {})
@@ -221,7 +208,7 @@ class MemoryUpdater:
                     "updatedAt": now,
                 }
 
-        # Update history sections
+        # Update history sections (Remains same)
         history_updates = update_data.get("history", {})
         for section in ["recentMonths", "earlierContext", "longTermBackground"]:
             section_data = history_updates.get(section, {})
@@ -236,7 +223,7 @@ class MemoryUpdater:
         if facts_to_remove:
             current_memory["facts"] = [f for f in current_memory.get("facts", []) if f.get("id") not in facts_to_remove]
 
-        # Add new facts
+        # Add new facts with Provenance and Importance
         existing_fact_keys = {fact_key for fact_key in (_fact_content_key(fact.get("content")) for fact in current_memory.get("facts", [])) if fact_key is not None}
         new_facts = update_data.get("newFacts", [])
         for fact in new_facts:
@@ -253,6 +240,11 @@ class MemoryUpdater:
                     "content": normalized_content,
                     "category": fact.get("category", "context"),
                     "confidence": confidence,
+                    "importance": importance_weight,
+                    "provenance": {
+                        "instance_id": instance_id,
+                        "timestamp": now
+                    },
                     "createdAt": now,
                     "source": thread_id or "unknown",
                 }
@@ -260,16 +252,41 @@ class MemoryUpdater:
                 if fact_key is not None:
                     existing_fact_keys.add(fact_key)
 
-        # Enforce max facts limit
+        # Weighted Pruning: Confidence * Importance
         if len(current_memory["facts"]) > config.max_facts:
-            # Sort by confidence and keep top ones
             current_memory["facts"] = sorted(
                 current_memory["facts"],
-                key=lambda f: f.get("confidence", 0),
+                key=lambda f: f.get("confidence", 0) * f.get("importance", 1.0),
                 reverse=True,
             )[: config.max_facts]
 
         return current_memory
+
+    def prune_memory(self, agent_name: str | None = None) -> str:
+        """Manually trigger weighted pruning for the specified memory pool."""
+        from deerflow.agents.memory.storage import get_memory_storage
+        storage = get_memory_storage()
+        current_memory = storage.load(agent_name)
+        config = get_memory_config()
+        
+        if len(current_memory.get("facts", [])) <= config.max_facts:
+            return f"No pruning needed. Pool has {len(current_memory.get('facts', []))} facts."
+
+        # Keep top facts based on Confidence * Importance
+        current_memory["facts"] = sorted(
+            current_memory["facts"],
+            key=lambda f: f.get("confidence", 0) * f.get("importance", 1.0),
+            reverse=True,
+        )[: config.max_facts]
+        
+        storage.save(current_memory, agent_name)
+        return f"Successfully pruned memory. Remaining facts: {len(current_memory['facts'])}"
+
+
+def prune_memory_from_pool(agent_name: str | None = None) -> str:
+    """Convenience function to prune memory."""
+    updater = MemoryUpdater()
+    return updater.prune_memory(agent_name)
 
 
 def update_memory_from_conversation(messages: list[Any], thread_id: str | None = None, agent_name: str | None = None) -> bool:

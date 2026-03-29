@@ -48,6 +48,8 @@ dependencies = [
     "beautifulsoup4>=4.12.3",
     "tavily-python>=0.5.0",
     "curl-cffi>=0.7.4",
+    "anthropic>=0.39.0",
+    "langchain-anthropic>=0.1.0",
     "snaptrade-python-sdk>=11.0.0",
     "sqlalchemy>=2.0.38",
     "peewee>=3.17.9",
@@ -55,6 +57,7 @@ dependencies = [
     "scipy>=1.15.2",
     "tqdm>=4.67.1",
     "pillow>=12.1.1",
+    "redis>=5.0.1",
 ]
 
 [project.optional-dependencies]
@@ -100,4 +103,12 @@ extend-include = ["*.pyi"]
 indent-style = "space"
 line-ending = "auto"
 exclude = ['^/build/']
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-asyncio>=1.0.0",
+    "pytest-cov>=6.0.0",
+    "mongomock>=4.2.0",
+]
 
