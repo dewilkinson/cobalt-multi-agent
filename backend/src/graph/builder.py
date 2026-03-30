@@ -20,7 +20,7 @@ from .nodes import (
     imaging_node,
     reporter_node,
     system_node,
-    sentinel_rm_node
+    risk_manager_node
 )
 from .types import State
 
@@ -43,7 +43,7 @@ def _build_base_graph():
     builder.add_node("journaler", journaler_node)
 
     builder.add_node("analyst", analyst_node)
-    builder.add_node("sentinel_rm", sentinel_rm_node)
+    builder.add_node("risk_manager", risk_manager_node)
     builder.add_node("imaging", imaging_node)
     builder.add_node("system", system_node)
     
@@ -58,10 +58,10 @@ def _build_base_graph():
     builder.add_edge("researcher", "reporter")
     builder.add_edge("coder", "reporter")
     
-    # Scout acts as Data Broker -> Routes to Sentinel RM for High-Frequency Grading
-    builder.add_edge("scout", "sentinel_rm")
-    # Sentinel RM evaluates and mandates back to the Coordinator (Option B)
-    builder.add_edge("sentinel_rm", "coordinator")
+    # Scout acts as Data Broker -> Routes to Risk Manager for High-Frequency Grading
+    builder.add_edge("scout", "risk_manager")
+    # Risk Manager evaluates and mandates back to the Coordinator (Option B)
+    builder.add_edge("risk_manager", "coordinator")
     
     builder.add_edge("journaler", "reporter")
 

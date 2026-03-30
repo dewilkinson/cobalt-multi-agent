@@ -1,21 +1,21 @@
-# Tests for the Sentinel RM Agent Node
+# Tests for the Risk Manager Agent Node
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 from langchain_core.messages import HumanMessage
-from src.graph.nodes.sentinel_rm import sentinel_rm_node
+from src.graph.nodes.risk_manager import risk_manager_node
 from src.graph.types import State, Plan
 
 @pytest.mark.asyncio
-async def test_sentinel_rm_node_initialization():
+async def test_risk_manager_node_initialization():
     # We aren't testing the full LLM graph execution here, just verifying the 
     # node is importable and conforms to the signature
-    assert callable(sentinel_rm_node)
+    assert callable(risk_manager_node)
 
 @pytest.mark.asyncio
-async def test_sentinel_node_verbosity_and_execution():
-    """Test that the Sentinel RM node correctly executes with verbosity controls."""
-    with patch("src.graph.nodes.sentinel_rm._setup_and_execute_agent_step", new_callable=AsyncMock) as mock_exec:
-        mock_exec.return_value = {"messages": [HumanMessage(content="Sentinel evaluation complete. [LIQUIDATE]")]}
+async def test_risk_manager_node_verbosity_and_execution():
+    """Test that the Risk Manager node correctly executes with verbosity controls."""
+    with patch("src.graph.nodes.risk_manager._setup_and_execute_agent_step", new_callable=AsyncMock) as mock_exec:
+        mock_exec.return_value = {"messages": [HumanMessage(content="Risk Manager evaluation complete. [LIQUIDATE]")]}
 
         state = State(
             current_plan=Plan(
@@ -31,7 +31,7 @@ async def test_sentinel_node_verbosity_and_execution():
         )
         
         config = MagicMock()
-        result = await sentinel_rm_node(state, config)
+        result = await risk_manager_node(state, config)
         
         # Verify result structure output matches expected
         assert "messages" in result
@@ -50,7 +50,7 @@ async def test_sentinel_node_verbosity_and_execution():
         # Verify verbosity instructions
         assert "verbosity=3" in kwargs.get("agent_instructions", "")
 
-def test_sentinel_apex_parenthesis_formatting():
+def test_risk_manager_apex_parenthesis_formatting():
     """Manually test formatting logic strictly mandated by the apex 500 prompt."""
     val = -1500
     formatted = f"({abs(val):,})" if val < 0 else str(val)
