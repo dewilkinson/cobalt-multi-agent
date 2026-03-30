@@ -72,12 +72,26 @@ class Configuration:
             if not f.init:
                 continue
             
+            value = None
             # Check environment variable first
             env_val = os.environ.get(f.name.upper())
             if env_val is not None:
-                values[f.name] = env_val
+                value = env_val
             # Then check configurable
             elif f.name in configurable:
-                values[f.name] = configurable[f.name]
+                value = configurable[f.name]
+            
+            if value is not None and value != "" and value != 0:
+                # Type conversion based on field type
+                field_type = f.type
+                try:
+                    if field_type is int and isinstance(value, str):
+                        values[f.name] = int(value)
+                    elif field_type is bool and isinstance(value, str):
+                        values[f.name] = value.lower() in ("true", "1", "yes")
+                    else:
+                        values[f.name] = value
+                except (ValueError, TypeError):
+                    values[f.name] = value
         
         return cls(**{k: v for k, v in values.items() if v is not None})

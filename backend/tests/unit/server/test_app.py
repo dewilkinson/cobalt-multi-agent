@@ -510,8 +510,9 @@ class TestAstreamWorkflowGenerator:
 
         # Mock the async stream - yield messages in the correct format
         async def mock_astream(*args, **kwargs):
-            # Yield a tuple (message, metadata) instead of just [message]
-            yield ("agent1:subagent", "messages", (mock_message, {}))
+            # Yield a tuple (ns_list, metadata_key, (message, message_metadata))
+            # Language namespaces in LangGraph are lists/tuples of strings
+            yield (["agent1", "subagent"], "messages", (mock_message, {}))
 
         mock_graph.astream = mock_astream
 
@@ -532,6 +533,8 @@ class TestAstreamWorkflowGenerator:
             enable_background_investigation=False,
             report_style=ReportStyle.ACADEMIC,
             enable_deep_thinking=False,
+            snaptrade_settings={},
+            obsidian_settings={},
         )
 
         events = []
@@ -542,7 +545,7 @@ class TestAstreamWorkflowGenerator:
         assert "event: message_chunk" in events[0]
         assert "Hello world" in events[0]
         # Check for the actual agent name that appears in the output
-        assert '"agent": "a"' in events[0]
+        assert '"agent": "agent1"' in events[0]
 
     @pytest.mark.asyncio
     @patch("src.server.app.graph")
@@ -552,7 +555,7 @@ class TestAstreamWorkflowGenerator:
             # Verify that Command is passed as input when interrupt_feedback is provided
             assert isinstance(args[0], Command)
             assert "[edit_plan] Hello" in args[0].resume
-            yield ("agent1", "step1", {"test": "data"})
+            yield (["agent1"], "step1", {"test": "data"})
 
         mock_graph.astream = mock_astream
 
@@ -571,6 +574,8 @@ class TestAstreamWorkflowGenerator:
             enable_background_investigation=False,
             report_style=ReportStyle.ACADEMIC,
             enable_deep_thinking=False,
+            snaptrade_settings={},
+            obsidian_settings={},
         )
 
         events = []
@@ -588,7 +593,7 @@ class TestAstreamWorkflowGenerator:
         interrupt_data = {"__interrupt__": [mock_interrupt]}
 
         async def mock_astream(*args, **kwargs):
-            yield ("agent1", "step1", interrupt_data)
+            yield (["agent1"], "step1", interrupt_data)
 
         mock_graph.astream = mock_astream
 
@@ -605,6 +610,8 @@ class TestAstreamWorkflowGenerator:
             enable_background_investigation=False,
             report_style=ReportStyle.ACADEMIC,
             enable_deep_thinking=False,
+            snaptrade_settings={},
+            obsidian_settings={},
         )
 
         events = []
@@ -624,7 +631,7 @@ class TestAstreamWorkflowGenerator:
         mock_tool_message.id = "msg_456"
 
         async def mock_astream(*args, **kwargs):
-            yield ("agent1:subagent", "step1", (mock_tool_message, {}))
+            yield (["agent1", "subagent"], "step1", (mock_tool_message, {}))
 
         mock_graph.astream = mock_astream
 
@@ -641,6 +648,8 @@ class TestAstreamWorkflowGenerator:
             enable_background_investigation=False,
             report_style=ReportStyle.ACADEMIC,
             enable_deep_thinking=False,
+            snaptrade_settings={},
+            obsidian_settings={},
         )
 
         events = []
@@ -665,7 +674,7 @@ class TestAstreamWorkflowGenerator:
         mock_ai_message.tool_call_chunks = [{"name": "search"}]
 
         async def mock_astream(*args, **kwargs):
-            yield ("agent1:subagent", "step1", (mock_ai_message, {}))
+            yield (["agent1", "subagent"], "step1", (mock_ai_message, {}))
 
         mock_graph.astream = mock_astream
 
@@ -682,6 +691,8 @@ class TestAstreamWorkflowGenerator:
             enable_background_investigation=False,
             report_style=ReportStyle.ACADEMIC,
             enable_deep_thinking=False,
+            snaptrade_settings={},
+            obsidian_settings={},
         )
 
         events = []
@@ -706,7 +717,7 @@ class TestAstreamWorkflowGenerator:
         mock_ai_message.tool_call_chunks = [{"name": "search", "index": 0}]
 
         async def mock_astream(*args, **kwargs):
-            yield ("agent1:subagent", "step1", (mock_ai_message, {}))
+            yield (["agent1", "subagent"], "step1", (mock_ai_message, {}))
 
         mock_graph.astream = mock_astream
 
@@ -723,6 +734,8 @@ class TestAstreamWorkflowGenerator:
             enable_background_investigation=False,
             report_style=ReportStyle.ACADEMIC,
             enable_deep_thinking=False,
+            snaptrade_settings={},
+            obsidian_settings={},
         )
 
         events = []
@@ -744,7 +757,7 @@ class TestAstreamWorkflowGenerator:
         mock_ai_message.tool_call_chunks = []
 
         async def mock_astream(*args, **kwargs):
-            yield ("agent1:subagent", "step1", (mock_ai_message, {}))
+            yield (["agent1", "subagent"], "step1", (mock_ai_message, {}))
 
         mock_graph.astream = mock_astream
 
@@ -761,6 +774,8 @@ class TestAstreamWorkflowGenerator:
             enable_background_investigation=False,
             report_style=ReportStyle.ACADEMIC,
             enable_deep_thinking=False,
+            snaptrade_settings={},
+            obsidian_settings={},
         )
 
         events = []

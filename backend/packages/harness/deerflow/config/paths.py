@@ -149,7 +149,7 @@ class Paths:
     def obsidian_memory_dir(self) -> Path:
         """Directory for Obsidian-backed memory inside the vault."""
         # This will be resolved dynamically using the vault path
-        return Path(".cobalt/_memory")
+        return Path("_cobalt/_memory")
 
     def acp_workspace_dir(self, thread_id: str) -> Path:
         """

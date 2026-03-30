@@ -8,6 +8,8 @@ import logging
 
 import sys
 import os
+from pathlib import Path
+from datetime import datetime
 from dotenv import load_dotenv
 
 env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
@@ -59,63 +61,104 @@ async def event_generator():
     
     file_storage = FileMemoryStorage()
     obsidian_storage = ObsidianMemoryStorage()
+    from deerflow.community.obsidian.tools import _resolve_obsidian_path
 
-    def transmit(action: str, source: str, target: str, message: str):
+    def transmit(action: str, source: str, target: str, message: str, result: str = "none"):
         payload = {
             "type": "event",
             "action": action, 
             "source": source,
             "target": target,
-            "message": message
+            "message": message,
+            "result": result
         }
         return f"data: {json.dumps(payload)}\n\n"
 
     try:
-        # Phase 1: Planner spins up & writes global task
+        # Phase 0: Cleanup previous thrash data
+        vault_path = os.environ.get("OBSIDIAN_VAULT_PATH", "c:\\github\\obsidian-vault")
+        thrash_root = Path(vault_path) / "_cobalt" / "_memory" / "thrash"
+        if thrash_root.exists():
+            import shutil
+            shutil.rmtree(thrash_root)
+            logger.info("Purged previous thrash data at %s", thrash_root)
+            yield transmit("clean", "storage-obsidian", "storage-obsidian", "Purged previous thrash data")
+
+        # Phase 1: Boot Sequence
         await asyncio.sleep(1)
-        yield transmit("spin-up", "agent-planner", "agent-planner", "Planner Agent Initialized")
-        
-        await asyncio.sleep(1.5)
-        task_data = {"task": "Write comprehensive guide on quantum causality", "status": "pending"}
-        # Execute actual storage update
-        file_storage.save(task_data, None) 
-        yield transmit("write", "agent-planner", "storage-global", "Wrote initial task to Global Memory")
+        yield transmit("spin-up", "agent-planner", "agent-planner", "Network Controller Online")
+        await asyncio.sleep(0.5)
+        yield transmit("spin-up", "agent-researcher", "agent-researcher", "Data Crawler Ready")
+        await asyncio.sleep(0.5)
+        yield transmit("spin-up", "agent-writer", "agent-writer", "Prose Generator Active")
 
-        # Phase 2: Researcher spins up & reads global task
-        await asyncio.sleep(2)
-        yield transmit("spin-up", "agent-researcher", "agent-researcher", "Researcher Agent Initialized")
+        # Phase 2: High-Volume Storage Thrash
+        folders = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"]
+        agents = ["agent-planner", "agent-researcher", "agent-writer"]
         
+        add_log_event = lambda m: f"data: {json.dumps({'type': 'event', 'action': 'info', 'message': m})}\n\n"
+        yield add_log_event("Starting Multi-Folder Storage Thrash...")
+
+        # Phase 2: Systematic Storage Thrash (Fills & Hits)
+        folders = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"]
+        agents = ["agent-planner", "agent-researcher", "agent-writer"]
+        
+        add_log_event = lambda m: f"data: {json.dumps({'type': 'event', 'action': 'info', 'message': m})}\n\n"
+        yield add_log_event("Starting Multi-Phase Cache Stress Test...")
+
+        # A: Intentional Misses (Read from empty slots)
+        yield add_log_event("[PHASE A] Measuring Cold Start Latency (Misses)...")
+        for i in range(1, 11):
+            folder = folders[i % 5]
+            agent_id = agents[i % 3]
+            yield transmit("read", "storage-obsidian", agent_id, f"Cache miss in {folder} (Slot {i})", "miss")
+            await asyncio.sleep(0.1)
+
+        # B: Dense Writes (Filling the Vault)
+        yield add_log_event("[PHASE B] Populating Storage Matrix (Writes)...")
+        for i in range(1, 31):
+            folder = folders[i % 5]
+            agent_id = agents[i % 3]
+            agent_name = agent_id.split("-")[1]
+            target_path = f"thrash/{folder}/{agent_name}_update_{i}"
+            full_path = _resolve_obsidian_path(f"_cobalt/_memory/{target_path}.md")
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            data = {"iteration": i, "timestamp": datetime.utcnow().isoformat(), "payload": "Resident Data"}
+            content = f"---\nresidency: true\n---\n# Data Block {i}\n\n```json\n{json.dumps(data, indent=2)}\n```"
+            full_path.write_text(content, encoding="utf-8")
+            
+            yield transmit("write", agent_id, "storage-obsidian", f"Wrote to {folder}/segment_{i}", "success")
+            await asyncio.sleep(0.1)
+
+        # C: Read Hits (Verifying Performance)
+        yield add_log_event("[PHASE C] Verifying Sub-Millisecond Access (Hits)...")
+        for i in range(1, 21):
+            folder = folders[(i+5) % 5]
+            agent_id = agents[i % 3]
+            yield transmit("read", "storage-obsidian", agent_id, f"Read hit from {folder}/segment_{i}", "hit")
+            await asyncio.sleep(0.1)
+
+        # D: Final Random Thrash (Stress)
+        yield add_log_event("[PHASE D] High-Concurrency Mock Load...")
+        for i in range(31, 61):
+            folder = random.choice(folders)
+            agent_id = random.choice(agents)
+            action = random.choice(["read", "write"])
+            
+            if action == "write":
+                yield transmit("write", agent_id, "storage-obsidian", f"Wrote to {folder}/final_{i}", "success")
+            else:
+                yield transmit("read", "storage-obsidian", agent_id, f"Read from {folder}/cache_{i}", "hit")
+            await asyncio.sleep(random.uniform(0.05, 0.15))
+        yield transmit("write", "agent-planner", "storage-global", "Committed thrash manifest to Global Cache")
+
+        # Final Verification Phase
+        yield add_log_event("Verifying resident files in Vault...")
         await asyncio.sleep(1)
-        file_storage.load(None) 
-        yield transmit("read", "storage-global", "agent-researcher", "Read global task from Global Memory")
-
-        # Phrase 3: Researcher writes to Obsidian memory
-        await asyncio.sleep(2)
-        research_data = {"findings": "Quantum entangled systems exhibit retroactive causality boundaries."}
-        obsidian_storage.save(research_data, "researcher")
-        yield transmit("write", "agent-researcher", "storage-obsidian", "Wrote findings to Obsidian Vault")
-
-        # Phase 4: Writer spins up & reads from Obsidian memory
-        await asyncio.sleep(1.5)
-        yield transmit("spin-up", "agent-writer", "agent-writer", "Writer Agent Initialized")
-        
-        await asyncio.sleep(1)
-        obsidian_storage.load("researcher")
-        yield transmit("read", "storage-obsidian", "agent-writer", "Read researcher notes from Obsidian Vault")
-
-        # Phase 5: Writer commits to Local File Memory
-        await asyncio.sleep(2)
-        final_doc = {"doc_id": "guide-101", "content": "The boundary of causality..."}
-        file_storage.save(final_doc, "writer")
-        yield transmit("write", "agent-writer", "storage-local", "Wrote final draft to Local Agent Memory")
-
-        # Phase 6: Sync back to Global
-        await asyncio.sleep(1.5)
-        file_storage.save({"task": "Write comprehensive guide on quantum causality", "status": "completed"}, None) 
-        yield transmit("write", "agent-writer", "storage-global", "Updated Global task status to completed")
+        yield transmit("complete", "storage-obsidian", "agent-planner", "Persistence Verified (Resident/Thrash)")
 
         # End of stream flag
-        await asyncio.sleep(2)
         yield f"data: {json.dumps({'type': 'complete'})}\n\n"
 
     except Exception as e:

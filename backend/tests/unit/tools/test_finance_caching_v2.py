@@ -71,9 +71,10 @@ async def test_scout_eviction_and_warming_logic():
         }
     }
     
-    # Request data (heat increments)
+    # Request data
     await get_symbol_history_data.ainvoke({"symbols": ["STALE_MOCK"]})
-    assert GLOBAL_CONTEXT["ticker_metadata"]["STALE_MOCK"]["heat"] == 101
+    # Feature: Heat tracking removed from Scout to enforce isolation
+    # assert GLOBAL_CONTEXT["ticker_metadata"]["STALE_MOCK"]["heat"] == 101
 
 @pytest.mark.asyncio
 async def test_eager_worker_refresh_logic():

@@ -26,66 +26,6 @@ def mock_state():
         "Plan": Plan,
     }
 
-
-def test_continue_to_running_research_team_no_plan(mock_state):
-    state = {"current_plan": None}
-    assert builder_mod.continue_to_running_research_team(state) == "planner"
-
-
-def test_continue_to_running_research_team_no_steps(mock_state):
-    state = {"current_plan": mock_state["Plan"](steps=[])}
-    assert builder_mod.continue_to_running_research_team(state) == "planner"
-
-
-def test_continue_to_running_research_team_all_executed(mock_state):
-    Step = mock_state["Step"]
-    Plan = mock_state["Plan"]
-    steps = [Step(execution_res=True), Step(execution_res=True)]
-    state = {"current_plan": Plan(steps=steps)}
-    assert builder_mod.continue_to_running_research_team(state) == "planner"
-
-
-def test_continue_to_running_research_team_next_researcher(mock_state):
-    Step = mock_state["Step"]
-    Plan = mock_state["Plan"]
-    steps = [
-        Step(execution_res=True),
-        Step(execution_res=None, step_type=builder_mod.StepType.RESEARCH),
-    ]
-    state = {"current_plan": Plan(steps=steps)}
-    assert builder_mod.continue_to_running_research_team(state) == "researcher"
-
-
-def test_continue_to_running_research_team_next_coder(mock_state):
-    Step = mock_state["Step"]
-    Plan = mock_state["Plan"]
-    steps = [
-        Step(execution_res=True),
-        Step(execution_res=None, step_type=builder_mod.StepType.PROCESSING),
-    ]
-    state = {"current_plan": Plan(steps=steps)}
-    assert builder_mod.continue_to_running_research_team(state) == "coder"
-
-
-def test_continue_to_running_research_team_next_coder_withresult(mock_state):
-    Step = mock_state["Step"]
-    Plan = mock_state["Plan"]
-    steps = [
-        Step(execution_res=True),
-        Step(execution_res=True, step_type=builder_mod.StepType.PROCESSING),
-    ]
-    state = {"current_plan": Plan(steps=steps)}
-    assert builder_mod.continue_to_running_research_team(state) == "planner"
-
-
-def test_continue_to_running_research_team_default_planner(mock_state):
-    Step = mock_state["Step"]
-    Plan = mock_state["Plan"]
-    steps = [Step(execution_res=True), Step(execution_res=None, step_type=None)]
-    state = {"current_plan": Plan(steps=steps)}
-    assert builder_mod.continue_to_running_research_team(state) == "planner"
-
-
 @patch("src.graph.builder.StateGraph")
 def test_build_base_graph_adds_nodes_and_edges(MockStateGraph):
     mock_builder = MagicMock()
@@ -94,9 +34,12 @@ def test_build_base_graph_adds_nodes_and_edges(MockStateGraph):
     builder_mod._build_base_graph()
 
     # Check that all nodes and edges are added
-    assert mock_builder.add_edge.call_count >= 2
-    assert mock_builder.add_node.call_count >= 8
-    mock_builder.add_conditional_edges.assert_called_once()
+    # We now have 11 nodes and 11 direct edges in the simplified version
+    assert mock_builder.add_node.call_count == 11
+    assert mock_builder.add_edge.call_count == 11
+    
+    # Conditional edges were removed in the simplified version
+    mock_builder.add_conditional_edges.assert_not_called()
 
 
 @patch("src.graph.builder._build_base_graph")

@@ -18,7 +18,7 @@ class TestCrawlTool:
         url = "https://example.com"
 
         # Act
-        result = crawl_tool(url)
+        result = crawl_tool.func(url)
 
         # Assert
         assert isinstance(result, dict)
@@ -42,7 +42,7 @@ class TestCrawlTool:
         url = "https://example.com"
 
         # Act
-        result = crawl_tool(url)
+        result = crawl_tool.func(url)
 
         # Assert
         assert result["crawled_content"] == short_content
@@ -58,7 +58,7 @@ class TestCrawlTool:
         url = "https://example.com"
 
         # Act
-        result = crawl_tool(url)
+        result = crawl_tool.func(url)
 
         # Assert
         assert isinstance(result, str)
@@ -77,7 +77,7 @@ class TestCrawlTool:
         url = "https://example.com"
 
         # Act
-        result = crawl_tool(url)
+        result = crawl_tool.func(url)
 
         # Assert
         assert isinstance(result, str)
@@ -100,7 +100,7 @@ class TestCrawlTool:
         url = "https://example.com"
 
         # Act
-        result = crawl_tool(url)
+        result = crawl_tool.func(url)
 
         # Assert
         assert isinstance(result, str)

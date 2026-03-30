@@ -12,6 +12,7 @@ SCOUT_CONTEXT: Dict[str, Any] = {}
 ANALYST_CONTEXT: Dict[str, Any] = {}
 JOURNALER_CONTEXT: Dict[str, Any] = {}
 CODER_CONTEXT: Dict[str, Any] = {}
+SENTINEL_RM_CONTEXT: Dict[str, Any] = {}
 ORCHESTRATOR_CONTEXT: Dict[str, Any] = {}
 PROSE_CONTEXT: Dict[str, Any] = {}
 PPT_CONTEXT: Dict[str, Any] = {}

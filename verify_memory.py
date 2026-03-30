@@ -55,10 +55,10 @@ def test_obsidian_storage():
         storage.save(test_data, "researcher")
         
         # Verify markdown wrapping
-        obsidian_dir = Path("_memory/obsidian") # Default if not configured
+        obsidian_dir = Path("_cobalt/_memory") 
         if os.getenv("OBSIDIAN_VAULT_PATH"):
              vault = Path(os.getenv("OBSIDIAN_VAULT_PATH"))
-             path = vault / "_memory" / "researcher_memory.md"
+             path = vault / "_cobalt" / "_memory" / "agents" / "researcher.md"
              if path.exists():
                  content = path.read_text()
                  if "```json" in content and "Verified" in content:

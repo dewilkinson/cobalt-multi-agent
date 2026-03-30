@@ -21,3 +21,4 @@ from .imaging import imaging_node
 from .human_feedback import human_feedback_node
 from .reporter import reporter_node
 from .system import system_node
+from .sentinel_rm import sentinel_rm_node

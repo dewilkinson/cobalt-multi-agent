@@ -121,16 +121,20 @@ def test_llm_selects_dashscope_and_sets_enable_thinking(monkeypatch, dashscope_c
     # Use dummy class to capture kwargs on construction
     monkeypatch.setattr(llm_module, "ChatDashscope", DummyChatDashscope)
 
-    # basic -> enable_thinking False
-    inst = llm_module._create_llm_use_conf("basic", dashscope_conf)
-    assert isinstance(inst, DummyChatDashscope)
-    assert inst.kwargs["extra_body"]["enable_thinking"] is False
-    assert inst.kwargs["base_url"].find("dashscope.") > 0
+    # Aggressively clear environment to avoid local dev machine overrides (e.g. Google AI Studio platform)
+    from unittest.mock import patch
+    import os
+    with patch.dict(os.environ, {}, clear=True):
+        # basic -> enable_thinking False
+        inst = llm_module._create_llm_use_conf("basic", dashscope_conf)
+        assert isinstance(inst, DummyChatDashscope)
+        assert inst.kwargs["extra_body"]["enable_thinking"] is False
+        assert inst.kwargs["base_url"].find("dashscope.") > 0
 
-    # reasoning -> enable_thinking True
-    inst2 = llm_module._create_llm_use_conf("reasoning", dashscope_conf)
-    assert isinstance(inst2, DummyChatDashscope)
-    assert inst2.kwargs["extra_body"]["enable_thinking"] is True
+        # reasoning -> enable_thinking True
+        inst2 = llm_module._create_llm_use_conf("reasoning", dashscope_conf)
+        assert isinstance(inst2, DummyChatDashscope)
+        assert inst2.kwargs["extra_body"]["enable_thinking"] is True
 
 
 def test_llm_verify_ssl_false_adds_http_clients(monkeypatch, dashscope_conf):
@@ -142,9 +146,13 @@ def test_llm_verify_ssl_false_adds_http_clients(monkeypatch, dashscope_conf):
         "verify_ssl": False,
     }
 
-    inst = llm_module._create_llm_use_conf("basic", dashscope_conf)
-    assert "http_client" in inst.kwargs
-    assert "http_async_client" in inst.kwargs
+    # Aggressively clear environment to avoid local dev machine overrides
+    from unittest.mock import patch
+    import os
+    with patch.dict(os.environ, {}, clear=True):
+        inst = llm_module._create_llm_use_conf("basic", dashscope_conf)
+        assert "http_client" in inst.kwargs
+        assert "http_async_client" in inst.kwargs
 
 
 def test_convert_delta_to_message_chunk_developer_and_function_call_and_tool_calls():

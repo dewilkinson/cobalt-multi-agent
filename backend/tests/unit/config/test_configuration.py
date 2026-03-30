@@ -58,9 +58,9 @@ def test_from_runnable_config_with_env_override(monkeypatch):
         }
     }
     config = Configuration.from_runnable_config(config_dict)
-    # Environment variables take precedence and are strings
-    assert config.max_plan_iterations == "9"
-    assert config.max_step_num == "11"
+    # Environment variables take precedence and are now converted to correct types
+    assert config.max_plan_iterations == 9
+    assert config.max_step_num == 11
     assert config.max_search_results == 4  # not overridden
     # Clean up
     monkeypatch.delenv("MAX_PLAN_ITERATIONS")
@@ -91,16 +91,20 @@ def test_from_runnable_config_with_no_config():
     assert config.mcp_settings is None
 
 
-def test_get_recursion_limit_default():
+def test_get_recursion_limit_default(monkeypatch):
     from src.config.configuration import get_recursion_limit
 
+    # Clear env var to ensure we get the default
+    monkeypatch.delenv("AGENT_RECURSION_LIMIT", raising=False)
     result = get_recursion_limit()
     assert result == 25
 
 
-def test_get_recursion_limit_custom_default():
+def test_get_recursion_limit_custom_default(monkeypatch):
     from src.config.configuration import get_recursion_limit
 
+    # Clear env var to ensure we get the custom default
+    monkeypatch.delenv("AGENT_RECURSION_LIMIT", raising=False)
     result = get_recursion_limit(50)
     assert result == 50
 

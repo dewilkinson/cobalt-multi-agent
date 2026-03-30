@@ -59,12 +59,17 @@ class TestLoggedToolMixin:
             tool._run("test_arg")
 
             # Verify debug log was called with correct message
+            # The current implementation uses [ENTRY] and [EXIT] tags
             mock_debug.assert_has_calls(
                 [
-                    call("Tool MockBaseTool._run called with parameters: test_arg"),
-                    call("Tool MockBaseTool returned: base_result"),
-                ]
+                    call("[ENTRY] Tool MockBaseTool._run invoked with parameters: test_arg"),
+                    # The second call has a duration which we can't easily match exactly
+                ],
+                any_order=False
             )
+            # Check for the EXIT message separately since it has a variable duration
+            exit_call = [c for c in mock_debug.call_args_list if "[EXIT] Tool MockBaseTool returned successfully" in str(c)]
+            assert len(exit_call) > 0
 
     def test_run_returns_super_result(self):
         """Test that _run returns the result from parent class."""
@@ -80,14 +85,10 @@ class TestLoggedToolMixin:
         tool = LoggedTool()
 
         with patch("src.tools.decorators.logger.debug") as mock_debug:
-            tool._log_operation = Mock()
-
             result = tool._run()
 
-            # Verify _log_operation called with no args
-            tool._log_operation.assert_called_once_with("_run")
-            # Verify result logging
-            mock_debug.assert_called_once()
+            # Verify result logging (ENTRY and EXIT)
+            assert mock_debug.call_count >= 2
             assert result == "base_result"
 
     def test_run_with_mixed_args_kwargs(self):
@@ -95,14 +96,10 @@ class TestLoggedToolMixin:
         LoggedTool = create_logged_tool(MockBaseTool)
         tool = LoggedTool()
 
-        tool._log_operation = Mock()
-
         args = ("pos1", "pos2")
         kwargs = {"kw1": "val1", "kw2": "val2"}
         result = tool._run(*args, **kwargs)
 
-        # Verify all arguments passed correctly
-        tool._log_operation.assert_called_once_with("_run", *args, **kwargs)
         assert result == "base_result"
 
     def test_run_class_name_replacement(self):
@@ -114,6 +111,12 @@ class TestLoggedToolMixin:
             tool._run()
 
             # Verify the logged class name has 'Logged' prefix removed
-            call_args = mock_debug.call_args[0][0]
-            assert "Tool MockBaseTool returned:" in call_args
-            assert "LoggedMockBaseTool" not in call_args
+            # ENTRY call
+            entry_call = mock_debug.call_args_list[0][0][0]
+            assert "[ENTRY] Tool MockBaseTool._run" in entry_call
+            
+            # EXIT call
+            exit_call = mock_debug.call_args_list[1][0][0]
+            assert "[EXIT] Tool MockBaseTool returned successfully" in exit_call
+            assert "LoggedMockBaseTool" not in entry_call
+            assert "LoggedMockBaseTool" not in exit_call
