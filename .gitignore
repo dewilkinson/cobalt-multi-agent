@@ -42,6 +42,8 @@ coverage/
 *.txt
 backend/*.log
 backend/*.txt
+backend/logs/*.json
+backend/logs/*.jsonl
 tmp/
 !backend/requirements.txt
 
