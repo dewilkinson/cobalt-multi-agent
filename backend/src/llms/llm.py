@@ -23,6 +23,9 @@ from src.llms.providers.dashscope import ChatDashscope
 # Cache for LLM instances
 _llm_cache: dict[LLMType, BaseChatModel] = {}
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def _get_config_file_path() -> str:
     """Get the path to the configuration file."""
@@ -128,7 +131,27 @@ def _create_llm_use_conf(llm_type: LLMType, conf: Dict[str, Any]) -> BaseChatMod
         gemini_conf.pop("http_client", None)
         gemini_conf.pop("http_async_client", None)
 
-        return ChatGoogleGenerativeAI(**gemini_conf)
+        # [RELIABILITY] Exact model name logging for VLI SMC Stabilization
+        model_name = gemini_conf.get("model", "unknown")
+        logger.info(f"LLM Tool: Initializing Gemini model '{model_name}' (Type: {llm_type})")
+        
+        # [NEW] Support Gemini 3 'thinking_level' parameter
+        if llm_type == "reasoning" and "thinking_level" in merged_conf:
+            gemini_conf["thinking_level"] = merged_conf["thinking_level"]
+            # Recommended temperature for reasoning models
+            if "temperature" not in gemini_conf:
+                gemini_conf["temperature"] = 1.0
+
+        try:
+            return ChatGoogleGenerativeAI(**gemini_conf)
+        except Exception as e:
+            logger.error(f"LLM Tool: Failed to initialize Gemini '{model_name}': {e}")
+            if "not found" in str(e).lower() and not model_name.startswith("models/"):
+                retry_name = f"models/{model_name}"
+                logger.info(f"LLM Tool: Retrying with prefix '{retry_name}'...")
+                gemini_conf["model"] = retry_name
+                return ChatGoogleGenerativeAI(**gemini_conf)
+            raise e
 
     if "azure_endpoint" in merged_conf or os.getenv("AZURE_OPENAI_ENDPOINT"):
         return AzureChatOpenAI(**merged_conf)

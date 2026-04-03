@@ -1,6 +1,6 @@
 {
     "type": "scout",
-    "name": "The Scout",
+    "name": "scout",
     "prompt_file": "scout",
     "tools": [
         "get_brokerage_accounts", 

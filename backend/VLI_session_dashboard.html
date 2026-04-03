@@ -3,521 +3,640 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cobalt | VLI Session Visualizer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>Cobalt | VLI Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <style>
         :root {
-            --bg-color: #0d1117;
-            --card-bg: rgba(22, 27, 34, 0.7);
-            --border-color: rgba(48, 54, 61, 0.5);
+            --cobalt-deep: #0a0c10;
             --cobalt-blue: #58a6ff;
             --emerald-green: #3fb950;
-            --text-primary: #c9d1d9;
+            --ruby-red: #f85149;
+            --glass-bg: rgba(13, 17, 23, 0.85);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #e6edf3;
             --text-muted: #8b949e;
-            --terminal-green: #39FF14;
-            --gemini-grad: linear-gradient(135deg, #4285f4, #9b51e0, #e91e63);
+            --font-main: 'Outfit', sans-serif;
+            --font-mono: 'Inter', monospace;
+            --price-up: #3fb950;
+            --price-down: #f85149;
         }
 
-        * {
-            box-sizing: border-box;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background-color: var(--bg-color);
+            background-color: var(--cobalt-deep);
             color: var(--text-primary);
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 20px 20px 150px 20px; /* Enhanced bottom padding for taskbar clearance */
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+            font-family: var(--font-main);
             height: 100vh;
-            overflow: hidden;
-            font-size: 14pt; /* Increased base font size */
+            overflow: hidden !important; /* Rigid No-Scroll */
+            background: radial-gradient(circle at 50% -20%, #161b22 0%, #0a0c10 100%);
         }
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border-color);
-            flex-shrink: 0;
-        }
-
-        .logo {
-            font-family: 'Outfit', sans-serif;
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(90deg, var(--cobalt-blue), var(--emerald-green));
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
+        /* --- DASHBOARD GRID --- */
         .dashboard-container {
             display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-            flex-grow: 1;
-            min-height: 0;
-            overflow: hidden;
+            grid-template-columns: 1fr 475px; /* CI Sidebar expanded to 475px */
+            height: 100vh;
+            gap: 1.5px; /* Sharp spacing */
+            background: var(--card-border);
         }
 
         .grid-left {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr 1fr;
+            grid-template-rows: auto 1fr;
             gap: 15px;
-            overflow-y: auto;
-            padding-right: 5px;
+            padding: 20px;
+            overflow: hidden;
+            background: var(--cobalt-deep);
         }
 
-        .card {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 15px;
+        .grid-right {
+            background: #0d1117;
+            border-left: 1px solid var(--card-border);
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            min-height: 200px;
         }
 
-        .card-header {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        /* Terminal Style */
-        .terminal {
-            font-family: 'Courier New', Courier, monospace;
-            background: #000;
-            border-radius: 8px;
-            padding: 10px;
-            flex-grow: 1;
-            overflow-y: auto;
-            font-size: 12px;
-        }
-
-        .terminal-line { margin-bottom: 8px; }
-        .prompt { color: var(--emerald-green); }
-        .command { color: var(--text-primary); }
-        .response { color: var(--cobalt-blue); font-style: italic; margin-left: 15px; }
-
-        /* Vault Explorer */
-        .vault-content {
-            background: rgba(0,0,0,0.3);
-            border-radius: 8px;
-            padding: 10px;
-            flex-grow: 1;
-            overflow-y: auto;
-            font-size: 12px;
-            white-space: pre-wrap;
-        }
-
-        /* GEMINI SIDEBAR */
-        .chat-sidebar {
+        /* --- CARDS & UI COMPONENTS --- */
+        .card {
+            background: var(--glass-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(12px);
+            border-radius: 12px;
             display: flex;
             flex-direction: column;
-            border-left: 1px solid var(--border-color);
-            padding-left: 20px;
-            height: 100%;
-        }
-
-        .chat-messages {
-            flex-grow: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            padding-bottom: 15px;
-        }
-
-        .message {
-            max-width: 85%;
-            padding: 12px 16px;
-            border-radius: 15px;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-        .user-message {
-            align-self: flex-end;
-            background: rgba(88, 166, 255, 0.1);
-            border: 1px solid var(--cobalt-blue);
-            color: var(--text-primary);
-        }
-
-        .ai-message {
-            align-self: flex-start;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
+            overflow: hidden;
             position: relative;
         }
 
-        .ai-message::before {
-            content: 'GEMINI';
-            position: absolute;
-            top: -18px;
-            left: 0;
-            font-size: 10px;
-            color: var(--cobalt-blue);
-            font-weight: bold;
+        .card-header {
+            padding: 12px 18px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--text-muted);
         }
 
-        .chat-input-area {
-            background: #161b22;
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 8px 15px;
+        .card-body {
+            padding: 15px;
+            flex-grow: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* HUD Badges */
+        .live-badge {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--emerald-green);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 800;
+            border: 1px solid rgba(63, 185, 80, 0.3);
+        }
+
+        .descriptor {
+            width: 24px;
+            height: 24px;
+            background: var(--card-border);
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--cobalt-blue);
         }
 
-        .chat-input-area textarea {
+        /* Tables & Lists */
+        .macro-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .macro-table th { text-align: left; color: var(--text-muted); font-size: 10px; padding-bottom: 8px; }
+        .macro-table td { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .symbol-bold { font-weight: 700; color: #fff; }
+        .val-mono { font-family: var(--font-mono); font-weight: 400 !important; }
+
+        /* CI CHAT */
+        .chat-messages { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .msg { max-width: 90%; padding: 12px 16px; border-radius: 12px; font-size: 15px; line-height: 1.5; }
+        .msg-ai { background: rgba(88, 166, 255, 0.05); color: var(--text-primary); align-self: flex-start; border-left: 3px solid var(--cobalt-blue); }
+        .msg-user { background: rgba(255, 255, 255, 0.03); color: var(--text-primary); align-self: flex-end; font-style: italic; }
+
+        /* INPUT PANEL */
+        .input-area { padding: 20px; background: rgba(0,0,0,0.2); border-top: 1px solid var(--card-border); }
+        .gemini-panel {
+            background: rgba(30, 35, 45, 0.5);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #chat-input {
             background: transparent;
             border: none;
-            color: var(--text-primary);
-            flex-grow: 1;
-            padding: 8px;
+            color: #fff;
+            font-family: var(--font-main);
+            font-size: 15px;
             outline: none;
-            font-size: 14pt;
-            font-family: inherit;
             resize: none;
-            height: 40px;
-            max-height: 200px;
-            overflow-y: auto;
+            min-height: 60px;
         }
-
-        .icon-btn {
-            background: none;
+        .panel-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .media-btn {
+            color: var(--cobalt-blue);
+            font-size: 24px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255,255,255,0.05);
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+        }
+        .control-select {
+            background: transparent;
             border: none;
             color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            appearance: none;
             cursor: pointer;
-            padding: 5px;
+            outline: none;
+        }
+        .dropdown-arrow { font-size: 8px; color: var(--text-muted); margin-left: 4px; pointer-events: none; }
+
+        .send-btn {
+            background: rgba(88, 166, 255, 0.2);
+            color: var(--cobalt-blue);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            transition: color 0.2s;
+            justify-content: center;
+            cursor: pointer;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        .send-btn.processing {
+            background: rgba(248, 81, 73, 0.2);
+            color: var(--ruby-red);
+            border-radius: 4px; /* Square for Stop */
+            border-color: rgba(248, 81, 73, 0.4);
+        }
+        .send-btn.processing::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: currentColor;
+            border-radius: 2px;
+        }
+        .send-btn:hover { background: var(--cobalt-blue); color: #fff; }
+        .send-btn.processing:hover { background: var(--ruby-red); color: #fff; }
 
-        .icon-btn:hover { color: var(--cobalt-blue); }
+        /* TELEMETRY TAIL */
+        .terminal {
+            font-family: var(--font-mono);
+            font-size: 10pt;
+            background: #05070a;
+            color: #d1d5db;
+            padding: 15px;
+            border-radius: 8px;
+            line-height: 1.5;
+            border-left: 2px solid rgba(88, 166, 255, 0.3);
+            max-height: 485px !important; 
+            overflow-y: auto !important;
+            scrollbar-width: thin !important;
+            scrollbar-color: var(--cobalt-blue) #05070a !important;
+        }
+        .terminal::-webkit-scrollbar { width: 6px !important; }
+        .terminal::-webkit-scrollbar-track { background: #05070a !important; }
+        .terminal::-webkit-scrollbar-thumb { background: var(--cobalt-blue) !important; border-radius: 3px !important; }
+        .terminal h1, .terminal h2, .terminal h3 { color: var(--cobalt-blue); font-size: 11pt; margin: 12px 0 6px 0; letter-spacing: 0.5px; }
+        .terminal p { margin-bottom: 6px; }
+        .terminal ul { margin-left: 18px; margin-bottom: 8px; list-style-type: square; }
+        .terminal strong { color: #fff; border-bottom: 1px dotted rgba(255,255,255,0.2); }
 
-        .image-preview {
-            max-width: 100px;
-            border-radius: 5px;
+        /* Error Overlay */
+        #error-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(248, 81, 73, 0.1);
+            backdrop-filter: blur(4px);
             display: none;
-            margin-bottom: 10px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            font-weight: 800;
+            color: var(--ruby-red);
         }
 
-        /* Indicator Lights */
-        .indicator-light {
+        /* --- TOGGLE SWITCH --- */
+        .direct-mode-toggle {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 8px 12px;
-            background: rgba(0,0,0,0.4);
-            border-radius: 6px;
-            margin-bottom: 5px;
-            font-size: 12px;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid var(--card-border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
         }
-        .led-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .direct-mode-toggle:hover { background: rgba(255, 255, 255, 0.08); }
+        .direct-mode-toggle.active {
+            border-color: rgba(88, 166, 255, 0.4);
+            background: rgba(88, 166, 255, 0.1);
+            box-shadow: 0 0 10px rgba(88, 166, 255, 0.1);
         }
-        .led { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-        .led-green { background-color: #39FF14; box-shadow: 0 0 6px #39FF14; }
-        .led-yellow { background-color: #d29922; box-shadow: 0 0 6px #d29922; }
-        .led-orange { background-color: #f0883e; box-shadow: 0 0 6px #f0883e; }
-        .led-red { background-color: #f85149; box-shadow: 0 0 6px #f85149; }
-
-        .dynamic-titlebar {
-            font-size: 10px;
-            color: var(--text-muted);
-            padding: 2px 5px;
-            border-bottom: 1px solid var(--border-color);
-            background: rgba(255,255,255,0.03);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .sortino-indicator {
+        .direct-mode-toggle .dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
+            background: var(--text-muted);
+            transition: all 0.2s ease;
         }
+        .direct-mode-toggle.active .dot {
+            background: var(--cobalt-blue);
+            box-shadow: 0 0 5px var(--cobalt-blue);
+        }
+        .direct-mode-toggle .label {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+        .direct-mode-toggle.active .label { color: var(--ruby-red); }
+        .direct-mode-toggle.on {
+            border-color: rgba(63, 185, 80, 0.4);
+            background: rgba(63, 185, 80, 0.1);
+        }
+        .direct-mode-toggle.on .dot {
+            background: var(--emerald-green);
+            box-shadow: 0 0 5px var(--emerald-green);
+        }
+        .direct-mode-toggle.on .label { color: var(--emerald-green); }
 
-        .sortino-green { background: #3fb950; box-shadow: 0 0 5px #3fb950; }
-        .sortino-yellow { background: #d29922; box-shadow: 0 0 5px #d29922; }
-        .sortino-red { background: #f85149; box-shadow: 0 0 5px #f85149; }
-
+        .direct-mode-toggle.off {
+            border-color: rgba(248, 81, 73, 0.4);
+            background: rgba(248, 81, 73, 0.1);
+        }
+        .direct-mode-toggle.off .dot {
+            background: var(--ruby-red);
+            box-shadow: 0 0 5px var(--ruby-red);
+        }
+        .direct-mode-toggle.off .label { color: var(--ruby-red); }
     </style>
 </head>
 <body>
-
-    <header>
-        <div class="logo">COBALT | VLI Session</div>
-        <div id="playback-controls">
-            <span style="font-size: 12px; color: var(--text-muted); margin-right: 15px;" id="conn-status">VLI Linked</span>
-            <span style="font-size: 12px; color: var(--text-muted); margin-right: 15px;" id="step-counter">Step 0 / 0</span>
-            <button id="prev-btn" onclick="prevStep()" disabled>PREV</button>
-            <button id="next-btn" onclick="nextStep()" disabled>NEXT</button>
-        </div>
-    </header>
+    <div id="error-overlay">
+        <div>VIEWPORT OVERFLOW DETECTED</div>
+        <div style="font-size: 11px; font-weight: 400; margin-top: 10px;">UI Integrity Monitor has locked interactions to prevent layout drift.</div>
+    </div>
 
     <div class="dashboard-container">
-        <!-- LEFT 2/3: Operational Grid -->
-        <div class="grid-left">
-            <!-- VLI Command Stream -->
-            <div class="card">
-                <div class="card-header">VLI Command Stream</div>
-                <div class="terminal" id="terminal-pane">
-                    <div class="terminal-line">[SYSTEM] Ready for Research Session...</div>
-                </div>
-            </div>
+        <div class="grid-left" id="operational-grid">
             
-            <!-- Raw Telemetry -->
-            <div class="card">
-                <div class="card-header">Raw Telemetry Tail</div>
-                <div class="terminal" id="telemetry-pane" style="background: rgba(0,0,0,0.8); color: #8b949e;">
-                    <div class="terminal-line">[TELEMETRY] Awaiting transaction dump...</div>
+            <!-- 1. Macro Overview (Bi-Column) -->
+            <div class="card" style="grid-column: 1 / span 2; display: none;">
+                <div class="card-header">
+                    <div>GLOBAL MACRO OVERVIEW</div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="live-badge" id="macro-timer">REFRESH: 60s</span>
+                        <span class="descriptor">MO</span>
+                    </div>
+                </div>
+                <div class="card-body" style="display: flex; gap: 30px; overflow: hidden;">
+                    <table class="macro-table">
+                        <thead><tr><th>SYMBOL</th><th>PRICE</th><th>CHANGE</th></tr></thead>
+                        <tbody id="macro-list-1"></tbody>
+                    </table>
+                    <table class="macro-table">
+                        <thead><tr><th>SYMBOL</th><th>PRICE</th><th>CHANGE</th></tr></thead>
+                        <tbody id="macro-list-2"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- Vault State -->
-            <div class="card">
-                <div class="card-header">Vault Snapshot</div>
-                <div class="vault-content" id="vault-pane">
-                    Waiting for state activation...
+            <!-- 2. Telemetry Tail (Expanded) -->
+            <div class="card" style="grid-column: 1 / span 2;">
+                <div class="card-header">
+                    <div>RAW TELEMETRY TAIL <span class="live-badge">LIVE</span></div>
+                    <span class="descriptor">RT</span>
                 </div>
-            </div>
-
-            <!-- Vault Inbox Monitor -->
-            <div class="card">
-                <div class="card-header">Vault Inbox Monitor</div>
-                <div id="inbox-pane" style="overflow-y: auto;">
-                    <div style="color: var(--text-muted); text-align: center; margin-top: 20px;">No files detected.</div>
-                </div>
-            </div>
-
-            <!-- Insights -->
-            <div class="card">
-                <div class="card-header">Portfolio Manager Insights</div>
-                <div id="insights-pane" style="overflow-y: auto; font-size: 13px;">
-                     <div style="color: var(--text-muted); text-align: center; margin-top: 40px;">No insights detected.</div>
-                </div>
-            </div>
-
-            <!-- Daily Action Plan -->
-            <div class="card">
-                <div class="card-header">Daily Action Plan (Live)</div>
-                <div class="vault-content" id="action-plan-pane" style="background: rgba(88, 166, 255, 0.05); border: 1px solid rgba(88, 166, 255, 0.2);">
-                    Loading current plan from vault...
-                </div>
-            </div>
-
-            <!-- Alerts -->
-            <div class="card">
-                <div class="card-header">Daily Alerts Monitor</div>
-                <div id="alerts-pane" style="overflow-y: auto;">
-                    <!-- Population via API -->
-                </div>
+                <div class="card-body terminal" id="telemetry-body"></div>
             </div>
         </div>
 
-        <!-- RIGHT 1/3: Gemini Chat Sidebar -->
-        <div class="chat-sidebar">
-            <div class="card-header" style="color: var(--cobalt-blue); font-family: 'Outfit';">
-                <span>Gemini 3 Flash</span>
-                <span style="font-size: 10px; opacity: 0.5;">Multimodal / Vision</span>
-            </div>
-            
-            <div class="chat-messages" id="chat-messages">
-                <div class="message ai-message">
-                    Hello! I'm your Session Coordinator. Paste your <strong>Daily Action Plan</strong> here or drop a <strong>Chart</strong> for technical analysis.
+        <!-- COORDINATOR INTERFACE -->
+        <div class="grid-right">
+            <div class="card-header" style="background:transparent; border-bottom:1px solid var(--card-border);">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="led-small led-green"></div>
+                    <div>COORDINATOR INTERFACE</div>
+                    <span class="live-badge" id="conn-status" style="margin-left:5px; background: rgba(139, 148, 158, 0.1); color: var(--text-muted);">SYNCHRONIZING...</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div id="direct-mode-btn" class="direct-mode-toggle on" onclick="toggleDirectMode()">
+                        <div class="dot"></div>
+                        <span class="label">COBALT AI: ON</span>
+                    </div>
+                    <span class="descriptor">CI</span>
                 </div>
             </div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="msg msg-ai"><strong>VLI</strong> initialized. Awaiting market directives or Action Plan updates.</div>
+            </div>
+            <div class="input-area">
+                <div class="gemini-panel">
+                    <textarea id="chat-input" placeholder="Enter directive or $TICKER analysis..."></textarea>
+                    <div class="panel-controls">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div class="media-btn">+</div>
+                            
+                            <div class="control-group">
+                                <select class="control-select">
+                                    <option selected>Thinking</option>
+                                    <option>Fast</option>
+                                </select>
+                                <span class="dropdown-arrow">▼</span>
+                            </div>
 
-            <div class="chat-input-wrapper">
-                <img id="img-preview" class="image-preview" src="">
-                <div class="chat-input-area">
-                    <button class="icon-btn" onclick="document.getElementById('img-upload').click()">📎</button>
-                    <input type="file" id="img-upload" hidden accept="image/*" onchange="handleImageUpload(event)">
-                    <textarea id="chat-input" placeholder="Type a message or paste plan..." onkeypress="handleChatEnter(event)"></textarea>
-                    <button class="icon-btn" onclick="sendMessage()" style="color: var(--emerald-green);">➤</button>
+                            <div class="control-group" style="margin-left: 5px;">
+                                <select class="control-select">
+                                    <option>Gemini 3 Flash</option>
+                                    <option selected>Gemini Pro 3 (low)</option>
+                                    <option>Claude 3.5 Sonnet</option>
+                                </select>
+                                <span class="dropdown-arrow">▼</span>
+                            </div>
+                        </div>
+                        <div class="send-btn" id="send-stop-btn" onclick="handleSendStop()">➤</div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let currentStep = 0;
-        let totalSteps = 0;
-        let selectedImageBase64 = null;
+        let refreshCountdown = 60;
+        let isProcessing = false;
+        let directMode = false;
 
-        // Reactive Polling for Action Plan & Alerts
-        async function pollActiveState() {
-            try {
-                const response = await fetch('http://localhost:8000/api/vli/active-state');
-                const data = await response.json();
-                
-                // Update Action Plan
-                const planPane = document.getElementById('action-plan-pane');
-                planPane.innerHTML = data.plan_html || 'No active plan found in vault.';
-
-                // Update Alerts
-                const alertsPane = document.getElementById('alerts-pane');
-                alertsPane.innerHTML = data.alerts.map(a => `
-                    <div class="indicator-light">
-                        <div class="led-container">
-                            <span class="led led-${a.color}"></span>
-                            <span class="indicator-symbol">${a.symbol}</span>
-                        </div>
-                        <span style="color: var(--text-muted); font-size: 11px;">${a.label}</span>
-                    </div>
-                `).join('') || '<div style="text-align:center; padding-top:20px; color:var(--text-muted);">No active monitors.</div>';
-
-                // Update Inbox Files
-                const inboxPane = document.getElementById('inbox-pane');
-                if (data.inbox_files && data.inbox_files.length > 0) {
-                    inboxPane.innerHTML = data.inbox_files.map(f => `
-                        <div style="background: rgba(88, 166, 255, 0.1); border-left: 3px solid var(--cobalt-blue); padding: 5px 10px; margin-bottom: 5px; font-size: 12px; display: flex; align-items: center; gap: 8px;">
-                            <span style="color: var(--cobalt-blue);">📄</span>
-                            <span>${f}</span>
-                        </div>
-                    `).join('');
-                } else {
-                    inboxPane.innerHTML = '<div style="color: var(--text-muted); text-align: center; margin-top: 20px;">No files detected.</div>';
-                }
-
-                // Update Dynamic Panels (Reconciliation)
-                const grid = document.querySelector('.grid-left');
-                if (data.dynamic_panels) {
-                    data.dynamic_panels.forEach(panel => {
-                        let existing = document.getElementById(panel.id);
-                        if (!existing) {
-                            const card = document.createElement('div');
-                            card.className = 'card';
-                            card.id = panel.id;
-                            card.innerHTML = `
-                                <div class="dynamic-titlebar">
-                                    <span>${panel.id}</span>
-                                    <span>LIVE</span>
-                                </div>
-                                <div class="card-header">${panel.title}</div>
-                                <div class="card-body" style="flex-grow:1; overflow-y:auto; font-size:13px;">
-                                    ${panel.content_html}
-                                </div>
-                            `;
-                            grid.appendChild(card);
-                        } else {
-                            // Update content if changed
-                            const body = existing.querySelector('.card-body');
-                            if (body.innerHTML.trim() !== panel.content_html.trim()) {
-                                body.innerHTML = panel.content_html;
-                            }
-                        }
-                    });
-                }
-
-            } catch (e) {
-                document.getElementById('conn-status').innerText = "VLI Offline";
+        function toggleDirectMode() {
+            directMode = !directMode;
+            const btn = document.getElementById('direct-mode-btn');
+            const label = btn.querySelector('.label');
+            if (!directMode) {
+                btn.classList.remove('off');
+                btn.classList.add('on');
+                label.innerText = "COBALT AI: ON";
+            } else {
+                btn.classList.remove('on');
+                btn.classList.add('off');
+                label.innerText = "COBALT AI: OFF";
             }
         }
 
-        setInterval(pollActiveState, 5000);
-        pollActiveState();
+        function updateCountdown() {
+            refreshCountdown--;
+            if (refreshCountdown < 0) refreshCountdown = 0;
+            document.getElementById('macro-timer').innerText = `Refresh in: ${refreshCountdown}s`;
+        }
+        setInterval(updateCountdown, 1000);
 
-        function handleChatEnter(e) {
-            if (e.key === 'Enter') sendMessage();
+        async function poll() {
+            try {
+                const res = await fetch('/api/vli/active-state');
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+
+                document.getElementById('conn-status').innerText = "VLI ONLINE";
+                document.getElementById('conn-status').style.color = "var(--emerald-green)";
+                if (data.last_macro_update) {
+                    const lastUpdate = data.last_macro_update * 1000; // ms
+                    const now = Date.now();
+                    const secondsPassed = Math.floor((now - lastUpdate) / 1000);
+                    refreshCountdown = Math.max(0, 60 - (secondsPassed % 60));
+                }
+
+                // 1. Macros
+                if (data.macros) {
+                    const m1 = document.getElementById('macro-list-1');
+                    const m2 = document.getElementById('macro-list-2');
+                    m1.innerHTML = ''; m2.innerHTML = '';
+                    data.macros.forEach((m, i) => {
+                        const target = i < (data.macros.length / 2) ? m1 : m2;
+                        const row = document.createElement('tr');
+                        const price = m.price ? `$${parseFloat(m.price).toFixed(2)}` : '---';
+                        const changeVal = (m.change !== undefined && m.change !== null) ? `${m.change >= 0 ? '+' : ''}${parseFloat(m.change).toFixed(2)}%` : '---';
+                        const color = m.color || (m.change >= 0 ? 'var(--price-up)' : 'var(--price-down)');
+                        
+                        row.innerHTML = `
+                            <td class="symbol-bold">${m.symbol}</td>
+                            <td class="val-mono" style="font-weight:400;">${price}</td>
+                            <td class="val-mono" style="color:${color}; font-weight:400;">${changeVal}</td>
+                        `;
+                        target.appendChild(row);
+                    });
+                }
+
+                // 2. Telemetry
+                const tBody = document.getElementById('telemetry-body');
+                const logContainer = tBody.closest('.terminal');
+                const wasAtBottom = logContainer.scrollHeight - logContainer.scrollTop <= logContainer.clientHeight + 50;
+                
+                tBody.innerHTML = marked.parse(data.telemetry_tail || "");
+                
+                if (wasAtBottom) {
+                    logContainer.scrollTo({ top: logContainer.scrollHeight, behavior: 'smooth' });
+                }
+
+                // 3. Status Maintenance
+                // Note: Alerts and Inbox cards were streamlined out in V10, 
+                // so we only update the main connection status indicators.
+
+                // 5. Connectivity Status
+                const statusBadge = document.getElementById('conn-status');
+                statusBadge.innerText = "ONLINE";
+                statusBadge.style.color = "var(--emerald-green)";
+                statusBadge.style.background = "rgba(63, 185, 80, 0.1)";
+
+            } catch (e) {
+                document.getElementById('conn-status').innerText = "OFFLINE";
+                document.getElementById('conn-status').style.color = "var(--ruby-red)";
+                document.getElementById('conn-status').style.background = "rgba(248, 81, 73, 0.1)";
+            }
         }
 
-        function handleImageUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                selectedImageBase64 = event.target.result;
-                const preview = document.getElementById('img-preview');
-                preview.src = selectedImageBase64;
-                preview.style.display = 'block';
-            };
-            reader.readAsDataURL(file);
+        async function handleSendStop() {
+            if (isProcessing) {
+                await stopMessage();
+            } else {
+                await sendMessage();
+            }
+        }
+
+        async function stopMessage() {
+            try {
+                const btn = document.getElementById('send-stop-btn');
+                btn.innerText = "➤"; 
+                btn.classList.remove('processing');
+                isProcessing = false;
+                
+                await fetch('/api/vli/reset', { method: 'POST' });
+                const msgBox = document.getElementById('chat-messages');
+                const sysMsg = document.createElement('div');
+                sysMsg.className = 'msg msg-ai';
+                sysMsg.style.borderColor = 'var(--ruby-red)';
+                sysMsg.innerHTML = "<strong>SYSTEM:</strong> Processing terminated. Agent state reset to safe baseline.";
+                msgBox.appendChild(sysMsg);
+                msgBox.scrollTop = msgBox.scrollHeight;
+            } catch(e) {}
         }
 
         async function sendMessage() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
-            if (!text && !selectedImageBase64) return;
-
-            // Add UI message
-            const msgList = document.getElementById('chat-messages');
-            const userMsg = document.createElement('div');
-            userMsg.className = 'message user-message';
-            userMsg.innerText = text;
-            if (selectedImageBase64) {
-                const img = document.createElement('img');
-                img.src = selectedImageBase64;
-                img.style.width = '100%';
-                img.style.borderRadius = '5px';
-                img.style.marginTop = '10px';
-                userMsg.appendChild(img);
-            }
-            msgList.appendChild(userMsg);
+            if(!text) return;
             
-            // Clear inputs
-            input.value = '';
-            const preview = document.getElementById('img-preview');
-            preview.style.display = 'none';
-            const base64ToSend = selectedImageBase64;
-            selectedImageBase64 = null;
-            msgList.scrollTop = msgList.scrollHeight;
+            // Push to history
+            chatHistory.push(text);
+            historyIndex = chatHistory.length;
+            
+            const btn = document.getElementById('send-stop-btn');
+            btn.innerText = ""; 
+            btn.classList.add('processing');
+            isProcessing = true;
 
-            // Send to Backend
+            const msgBox = document.getElementById('chat-messages');
+            const userMsg = document.createElement('div');
+            userMsg.className = 'msg msg-user';
+            userMsg.innerHTML = marked.parse(text);
+            msgBox.appendChild(userMsg);
+            input.value = '';
+            
+            // Render Math for the user message
+            renderMathInElement(userMsg, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ]
+            });
+            msgBox.scrollTop = msgBox.scrollHeight;
+
             try {
-                const response = await fetch('http://localhost:8000/api/vli/action-plan', {
+                const res = await fetch('/api/vli/action-plan', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        text: text,
-                        image: base64ToSend,
-                        is_action_plan: text.length > 100 // Heuristic for auto-saving
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        text,
+                        direct_mode: directMode
                     })
                 });
-                const result = await response.json();
+                const data = await res.json();
                 
-                const aiMsg = document.createElement('div');
-                aiMsg.className = 'message ai-message';
-                aiMsg.innerText = result.response || "Understood. I've updated the session context.";
-                msgList.appendChild(aiMsg);
-                msgList.scrollTop = msgList.scrollHeight;
-                
-        pollActiveState(); // Force update
-            } catch (e) {
-                console.error("Chat failed", e);
+                if (isProcessing) {
+                    const aiMsg = document.createElement('div');
+                    aiMsg.className = 'msg msg-ai';
+                    aiMsg.innerHTML = marked.parse(data.response || "No response generated.");
+                    msgBox.appendChild(aiMsg);
+                    
+                    // Render Math for the AI message response
+                    renderMathInElement(aiMsg, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$', right: '$', display: false},
+                            {left: '\\(', right: '\\)', display: false},
+                            {left: '\\[', right: '\\]', display: true}
+                        ]
+                    });
+                    
+                    msgBox.scrollTop = msgBox.scrollHeight;
+                }
+            } catch(e) {
+                if (isProcessing) {
+                    const errMsg = document.createElement('div');
+                    errMsg.className = 'msg msg-ai';
+                    errMsg.style.borderColor = 'var(--ruby-red)';
+                    errMsg.innerHTML = "<strong>ERROR:</strong> Directive routing failed. Remote service unreachable.";
+                    msgBox.appendChild(errMsg);
+                }
+            } finally {
+                btn.innerText = "➤";
+                btn.classList.remove('processing');
+                isProcessing = false;
             }
         }
 
-        setInterval(pollActiveState, 2000);
-        pollActiveState();
+        // [V10.4] Synchronization with Background Scraper
+        (async () => {
+            const macroCard = document.querySelector('.card[style*="display: none"]');
+            const state = macroCard ? "off" : "on";
+            try {
+                await fetch(`/api/vli/macro/toggle/${state}`, { method: 'POST' });
+            } catch(e) {}
+        })();
 
-        // Mock Navigation for Telemetry
-        function nextStep() { /* ... */ }
-        function prevStep() { /* ... */ }
+        setInterval(poll, 5000);
+        poll();
+
+        let chatHistory = [];
+        let historyIndex = -1;
+
+        // [UX] Single Enter to Submit (Shift+Enter for newline) + History Navigation
+        document.getElementById('chat-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendStop();
+            } else if (e.key === 'ArrowUp') {
+                if (chatHistory.length > 0 && historyIndex > 0) {
+                    historyIndex--;
+                    e.target.value = chatHistory[historyIndex];
+                    e.preventDefault();
+                }
+            } else if (e.key === 'ArrowDown') {
+                if (chatHistory.length > 0 && historyIndex < chatHistory.length) {
+                    historyIndex++;
+                    if (historyIndex === chatHistory.length) {
+                        e.target.value = '';
+                    } else {
+                        e.target.value = chatHistory[historyIndex];
+                    }
+                    e.preventDefault();
+                }
+            }
+        });
     </script>
 </body>
 </html>

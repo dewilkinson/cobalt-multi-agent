@@ -23,7 +23,8 @@ from .nodes import (
     reporter_node,
     session_monitor_node,
     vision_specialist_node,
-    terminal_specialist_node
+    terminal_specialist_node,
+    smc_analyst_node
 )
 from .types import State
 
@@ -58,6 +59,12 @@ def router_logic(state: State) -> Literal["scout", "portfolio_manager", "analyst
          
     return next_step.step_type.value
 
+def parser_router(state: State) -> Literal["coordinator", "reporter"]:
+    """Determines if the Parser's Fast-Path was enough or if we need a Coordinator."""
+    if state.get("final_report"):
+        return "reporter"
+    return "coordinator"
+
 def _build_base_graph():
     """Build and return the hub-and-spoke state graph."""
     builder = StateGraph(State)
@@ -79,10 +86,12 @@ def _build_base_graph():
     builder.add_node("session_monitor", session_monitor_node)
     builder.add_node("vision_specialist", vision_specialist_node)
     builder.add_node("terminal_specialist", terminal_specialist_node)
+    builder.add_node("smc_analyst", smc_analyst_node)
     
     # Workflow Edges
     builder.add_edge(START, "parser")
-    builder.add_edge("parser", "coordinator")
+    # REPLACE STATIC EDGE WITH DYNAMIC ROUTER
+    builder.add_conditional_edges("parser", parser_router)
     
     # The Coordinator sends state to the Router
     builder.add_conditional_edges(
@@ -91,6 +100,7 @@ def _build_base_graph():
         {
             "scout": "scout",
             "portfolio_manager": "portfolio_manager",
+            "smc_analyst": "smc_analyst",
             "analyst": "analyst",
             "risk_manager": "risk_manager",
             "journaler": "journaler",
@@ -111,7 +121,7 @@ def _build_base_graph():
     
     # ALL execution agents loop back to the coordinator for next-step evaluation
     # This maintains the Hub-and-Spoke integrity
-    for agent in ["scout", "portfolio_manager", "analyst", "risk_manager", "journaler", "researcher", "coder", "imaging", "system", "session_monitor", "vision_specialist", "terminal_specialist"]:
+    for agent in ["scout", "portfolio_manager", "analyst", "smc_analyst", "risk_manager", "journaler", "researcher", "coder", "imaging", "system", "session_monitor", "vision_specialist", "terminal_specialist"]:
         builder.add_edge(agent, "coordinator")
         
     builder.add_edge("reporter", END)
@@ -127,6 +137,8 @@ def build_graph():
     builder = _build_base_graph()
     return builder.compile()
 
-# Global graph instance with high recursion for complex simulation
-graph = _build_base_graph().compile()
+# Global graph instance with high recursion and memory for checking state
+from langgraph.checkpoint.memory import MemorySaver
+memory = MemorySaver()
+graph = _build_base_graph().compile(checkpointer=memory)
 graph.config = {"recursion_limit": 100}

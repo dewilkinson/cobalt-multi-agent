@@ -62,7 +62,7 @@ models:
   - name: gemini-3-flash
     display_name: Gemini 3 Flash
     use: langchain_google_genai:ChatGoogleGenerativeAI
-    model: gemini-3-flash
+    model: gemini-3-flash-preview
     api_key: $GEMINI_API_KEY
     max_tokens: 8192
     supports_vision: true

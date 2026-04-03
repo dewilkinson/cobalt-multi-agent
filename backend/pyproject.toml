@@ -58,6 +58,7 @@ dependencies = [
     "tqdm>=4.67.1",
     "pillow>=12.1.1",
     "redis>=5.0.1",
+    "smartmoneyconcepts>=0.0.27",
 ]
 
 [project.optional-dependencies]

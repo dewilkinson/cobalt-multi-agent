@@ -49,33 +49,33 @@ def coordinator_node(state: State, config: RunnableConfig) -> Dict[str, Any]:
     llm_with_tools = llm.bind_tools(tools)
     structured_llm = llm_with_tools.with_structured_output(Plan)
     
-    # 2. Check if we are returning from an agent
+    # 2. Check if we are returning from an agent (Turn Detection)
     current_plan = state.get("current_plan")
     steps_completed = state.get("steps_completed", 0)
     
-    # Defensive: Check the recent messages - if one is from an agent, we finished a step
-    known_agents = list(AGENT_LLM_MAP.keys()) + ["scout", "analyst", "portfolio_manager", "risk_manager", "journaler"]
-    
-    last_msgs = state["messages"][-5:] if state.get("messages") else []
+    # NEW: More robust check for agent turn completion.
+    # If the most recent message is an AIMessage with a name that isn't coordinator/parser, a step was likely finished.
+    last_msgs = state["messages"][-3:] if state.get("messages") else []
     from_agent = False
     last_agent_name = None
-    for msg in reversed(last_msgs):
-        msg_name = getattr(msg, "name", None)
-        if msg_name in known_agents and msg_name not in ["coordinator", "vli_coordinator"]:
+    
+    if last_msgs:
+        last_msg = last_msgs[-1]
+        msg_name = getattr(last_msg, "name", None)
+        
+        # If the message is explicitly named by one of our nodes
+        if msg_name and msg_name not in ["coordinator", "vli_coordinator", "vli_parser", "assistant", "Assistant"]:
             from_agent = True
             last_agent_name = msg_name
-            break
-    
-    # Check if we are in autonomous research/simulation mode
-    is_autonomous = state.get("is_test_mode", False) or state.get("test_mode", False)
+            logger.info(f"[COORD] Detected turn completion from agent: {msg_name}")
     
     if from_agent and current_plan:
         steps_completed += 1
-        logger.info(f"[COORD] Step {steps_completed}/{len(current_plan.steps)} finished by {last_agent_name}")
+        logger.info(f"[COORD] Incremented completion to {steps_completed}/{len(current_plan.steps)} due to {last_agent_name}")
         if steps_completed >= len(current_plan.steps):
             return {
                 "steps_completed": steps_completed,
-                "messages": [AIMessage(content="Finalizing plan execution.", name="coordinator")]
+                "messages": [AIMessage(content="Finalizing research session. Synthesizing results...", name="coordinator")]
             }
         return {"steps_completed": steps_completed}
 
@@ -91,10 +91,14 @@ def coordinator_node(state: State, config: RunnableConfig) -> Dict[str, Any]:
     configurable = Configuration.from_runnable_config(config)
     dev_mode = getattr(configurable, 'developer_mode', False)
     
+    from src.services.macro_registry import macro_registry
+    macro_labels = ", ".join(list(macro_registry.get_macros().keys()))
+    
     state_for_prompt = {
         **state, 
         "DEVELOPER_MODE": str(dev_mode).lower(),
         "ANALYST_KEYWORDS": analyst_keywords,
+        "MACRO_INDICATORS": macro_labels,
         "CACHED_TICKERS": ", ".join(sorted(list(cached_tickers_set))) if cached_tickers_set else "None (Data Store Empty)",
         "DAILY_ACTION_PLAN": GLOBAL_CONTEXT.get("daily_action_plan", "No daily instructions provided.")
     }
@@ -102,8 +106,27 @@ def coordinator_node(state: State, config: RunnableConfig) -> Dict[str, Any]:
     messages = apply_prompt_template("coordinator", state_for_prompt)
     plan_obj = structured_llm.invoke(messages)
     
+    # [CONTEXT POISONING GUARDRAIL]
+    if (not plan_obj.steps or plan_obj.has_enough_context) and not state.get("direct_mode", False):
+        tech_keywords = ["analyze", "analysis", "smc", "sortino", "sharpe", "report"]
+        user_query_content = str(state.get("messages", [])).lower()
+        if any(kw in user_query_content for kw in tech_keywords):
+            logger.warning(f"[COORD] Guardrail triggered: Coordinator hallucinated direct response for technical query. Forcing smc_analyst step.")
+            plan_obj.has_enough_context = False
+            plan_obj.direct_response = ""
+            from src.prompts.planner_model import Step, StepType
+            user_context = state.get("messages", [])[-1].content if state.get("messages") else "the target ticker"
+            plan_obj.steps = [
+                Step(
+                    need_search=False,
+                    title="Forced Technical Execution",
+                    description=f"Run deep structural analysis to gather empirical data for user request: {user_context}",
+                    step_type=StepType.SMC_ANALYST
+                )
+            ]
+    
     return {
         "current_plan": plan_obj,
         "steps_completed": steps_completed,
-        "messages": [AIMessage(content=str(plan_obj), name="coordinator")]
+        "messages": [AIMessage(content=f"Plan formulated: {plan_obj.title}. Ready to execute {len(plan_obj.steps)} steps.", name="coordinator")]
     }

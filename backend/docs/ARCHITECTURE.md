@@ -41,7 +41,28 @@ Each node operates under a strict isolation standard to prevent state leakage:
 2. **Shared Resource Context**: Persistent state shared by agents of the same type (e.g., historical Analyst findings).
 3. **Global Resource Context**: Immutable configuration and global system state.
 
-## Data Pipeline Flow
+## 4. The Fallback Resonance Pipeline
+
+Project Cobalt implements a multi-stage fallback strategy to ensure data reliability and visual proof of work during market volatility or primary API outages.
+
+### Data Retrieval Hierarchy
+```mermaid
+graph TD
+    A[User Request] --> B{Check yfinance}
+    B -- Success --> C[Report to VLI]
+    B -- Fail --> D{Trigger Finviz Scraper}
+    D -- Success --> E[Populate UX Card + Report]
+    D -- Fail --> F[Snapper / Macro Fallback]
+    F --> G[Low-Fidelity Baseline]
+    E --> H[10-Min Cache Storage]
+    H -.-> B
+```
+
+### High-Fidelity UX Synchronization
+- **UX Card Directive**: When a fallback is triggered, the **Scout** captures a base64 screenshot and normalized tile coordinates.
+- **Dynamic Resonance**: The VLI Dashboard renders a target highlight rectangle and pulse animations based on this telemetry, providing the user with "Visual Proof of Work."
+
+## 5. Data Pipeline Flow
 
 1. **Orchestrator** receives a "vibe" (user input).
 2. **Scout** retrieves the raw data (Brokerage or Web).

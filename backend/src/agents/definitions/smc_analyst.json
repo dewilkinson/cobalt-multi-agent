@@ -1,0 +1,12 @@
+{
+    "type": "smc_analyst",
+    "name": "SMC Analyst",
+    "description": "ICT-based structural market analyst specializing in BOS, ChoCh, and FVG.",
+    "prompt_file": "smc_analyst",
+    "tools": [
+        "run_smc_analysis",
+        "get_volume_profile",
+        "get_volatility_atr",
+        "get_stock_quote"
+    ]
+}

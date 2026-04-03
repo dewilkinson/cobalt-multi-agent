@@ -40,3 +40,11 @@ Use the following markdown structure for new entries:
 - Use `list_journal_entries` and `read_journal_entry` to answer questions about the past.
 - Use `get_journal_folder` to show the current path.
 - Use `set_journal_folder` to change the working directory (session-only).
+
+{% if TRADER_PROFILE %}
+***
+# USER INSTRUCTIONS (TRADER PROFILE)
+The user has configured a specialized Trader Profile. You MUST strictly adhere to these instructions.
+
+{{ TRADER_PROFILE }}
+{% endif %}

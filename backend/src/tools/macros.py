@@ -13,6 +13,7 @@ from typing import List, Dict, Any, Optional
 from langchain_core.tools import tool
 from .finance import get_symbol_history_data, get_sortino_ratio, _fetch_batch_history, _extract_ticker_data
 from .smc import get_smc_analysis
+from src.services.macro_registry import macro_registry
 
 from .shared_storage import ANALYST_CONTEXT, GLOBAL_CONTEXT
 
@@ -36,18 +37,12 @@ _MACRO_CACHE: Dict[str, Any] = {
     "timestamp": None
 }
 
-# Define the standard macro set
-MACRO_TICKERS = {
-    "VIX": "^VIX",
-    "DXY": "DX-Y.NYB",
-    "TNX": "^TNX",
-    "SPY": "SPY",
-    "QQQ": "QQQ",
-    "IWM": "IWM",
-    "GLD": "GLD",
-    "BTC": "BTC-USD",
-    "USO": "USO"
-}
+# Registry-backed Macro Symbol Set
+def get_macro_tickers():
+    return macro_registry.get_macros()
+
+# The following are maintained for legacy compatibility but now proxy to the registry
+MACRO_TICKERS = get_macro_tickers()
 
 MACRO_NAMES = {
     "VIX": "CBOE Volatility Index",
@@ -61,7 +56,7 @@ MACRO_NAMES = {
     "USO": "United States Oil Fund"
 }
 
-TIMEFRAMES = ["15m", "1h", "4h", "1d"]
+TIMEFRAMES = ["1h", "1d"]
 
 @tool
 async def fetch_market_macros() -> str:
@@ -76,13 +71,12 @@ async def fetch_market_macros() -> str:
     report = "## Market Macros - High Fidelity Stock Analysis\n\n"
     
     for item in data:
-        trends = item.get("trends", {})
-        ts_str = ", ".join([f"{tf}: {trend}" for tf, trend in trends.items()])
+        # User requested cleaner format without '^', '=F' tokens
+        display_label = item['label']
         
-        report += f"### {item['label']} ({item['name']})\n"
+        report += f"### {display_label} ({item['name']})\n"
         report += f"- **Price**: {item['price']:.2f}\n"
-        report += f"- **Sortino Ratio**: {item['sortino']:.2f}\n"
-        report += f"- **SMC Trends**: {ts_str}\n\n"
+        report += f"- **Change**: {item['change']:.2f}%\n\n"
         
     return report
 
@@ -101,18 +95,20 @@ async def get_macro_data() -> List[Dict[str, Any]]:
     """
     logger.info(f"Fetching structured macro data (LB={_LOOKBACK}, INT={_INTERVAL})...")
 
-    tickers = list(MACRO_TICKERS.values())
-    labels = list(MACRO_TICKERS.keys())
+    # Fetch from dynamic registry
+    current_macros = macro_registry.get_macros()
+    tickers = list(current_macros.values())
+    labels = list(current_macros.keys())
 
-    # 1. Bulk Fetch Quotes (1m for precision)
+    # 1. Bulk Fetch Quotes (15m for speed)
     history_report = await get_symbol_history_data.ainvoke({
         "symbols": tickers,
         "period": "1d",
-        "interval": "1m"
+        "interval": "15m"
     })
 
-    # 2. Bulk Fetch Sparklines (last 10 of 1h interval)
-    sparkline_data = await asyncio.to_thread(_fetch_batch_history, tickers, "15d", _INTERVAL)
+    # 2. Bulk Fetch Sparklines (last 5 days)
+    sparkline_data = await asyncio.to_thread(_fetch_batch_history, tickers, "5d", _INTERVAL)
 
     # Parse prices from bulk report
     prices = {}
@@ -128,32 +124,21 @@ async def get_macro_data() -> List[Dict[str, Any]]:
 
     async def process_one(label: str, yahoo_ticker: str):
         try:
-            # Sortino Ratio (Throttled by lock)
-            sortino_md = await get_sortino_ratio.ainvoke({"ticker": yahoo_ticker, "period": "3mo"})
-            sortino = 0.0
-            s_match = re.search(r"Value:\*\*\s*([\+\-\d\.,]+)", str(sortino_md))
-            if s_match:
-                try: sortino = float(s_match.group(1).replace(',', ''))
-                except: pass
-
-            # SMC (Throttled by lock)
-            tf_trends = {tf: "Neutral" for tf in TIMEFRAMES}
-            for tf in TIMEFRAMES:
-                res = await get_smc_analysis.ainvoke({"ticker": yahoo_ticker, "period": "60d", "interval": tf})
-                tf_data = str(res)
-                if "Bullish" in tf_data: tf_trends[tf] = "Bullish"
-                elif "Bearish" in tf_data: tf_trends[tf] = "Bearish"
-
-            # Extract Sparkline with timestamps
+            # Extract Sparkline and calculate % Change
             sparkline = []
+            change_pct = 0.0
             try:
                 ticker_spark_df = _extract_ticker_data(sparkline_data, yahoo_ticker)
                 if not ticker_spark_df.empty:
-                    # Take last _LOOKBACK non-null values
+                    # Calculate % change from start of period
+                    start_price = float(ticker_spark_df.iloc[0]['Close'])
+                    current_price = float(ticker_spark_df.iloc[-1]['Close'])
+                    if start_price > 0:
+                        change_pct = ((current_price - start_price) / start_price) * 100
+
+                    # Take last _LOOKBACK non-null values for the UI charts
                     last_n = ticker_spark_df.tail(_LOOKBACK)
-                    sparkline = []
                     for _, row in last_n.iterrows():
-                        # yfinance usually returns UTC for most intervals, handle naive as UTC
                         ts = row.name
                         if ts.tzinfo is None:
                             ts = ts.replace(tzinfo=ZoneInfo("UTC"))
@@ -170,9 +155,9 @@ async def get_macro_data() -> List[Dict[str, Any]]:
                 "name": MACRO_NAMES.get(label, ""),
                 "ticker": yahoo_ticker,
                 "price": prices.get(yahoo_ticker, 0.0) or prices.get(yahoo_ticker.upper(), 0.0),
-                "change": 0.0,
-                "sortino": sortino,
-                "trends": tf_trends,
+                "change": change_pct,
+                "sortino": 0.0,
+                "trends": {},
                 "sparkline": sparkline
             }
         except Exception as e:
@@ -188,10 +173,11 @@ async def get_macro_data() -> List[Dict[str, Any]]:
                 "sparkline": []
             }
 
-    # 2. Parallelize processing (Lock in finance.py will handle the safety)
+    # 3. Parallelize processing (Now extremely fast since no sub-tool calls are made)
     tasks = [process_one(l, t) for l, t in MACRO_TICKERS.items()]
     results = await asyncio.gather(*tasks)
     
-    _MACRO_API_CACHE["data"] = results
-    _MACRO_API_CACHE["timestamp"] = now
+    now = datetime.now()
+    _MACRO_CACHE["data"] = results
+    _MACRO_CACHE["timestamp"] = now
     return results

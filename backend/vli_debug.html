@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VLI Debug Client</title>
+    <style>
+        body { background: #0d1117; color: #c9d1d9; font-family: sans-serif; padding: 20px; }
+        .log-box { background: #161b22; border: 1px solid #30363d; padding: 10px; min-height: 200px; overflow-y: auto; font-family: monospace; }
+        .success { color: #3fb950; }
+        .error { color: #f85149; }
+        input, button { padding: 10px; border-radius: 4px; border: 1px solid #30363d; background: #21262d; color: white; }
+    </style>
+</head>
+<body>
+    <h2>VLI Chat Isolate</h2>
+    
+    <div style="display:flex; gap:10px; margin-bottom:20px;">
+        <input type="text" id="promptInput" value="Get VIX Price" style="flex-grow:1;">
+        <button onclick="sendDebugMessage()">Send</button>
+    </div>
+
+    <h4>Fetch Cycle Log</h4>
+    <div class="log-box" id="cycleLog"></div>
+
+    <script>
+        function logMsg(msg, isError=false, isSuccess=false) {
+            const box = document.getElementById('cycleLog');
+            let color = '';
+            if (isError) color = 'class="error"';
+            if (isSuccess) color = 'class="success"';
+            box.innerHTML += `<div ${color}>[${new Date().toISOString().split('T')[1].split('Z')[0]}] ${msg}</div>`;
+            box.scrollTop = box.scrollHeight;
+        }
+
+        async function sendDebugMessage() {
+            const text = document.getElementById('promptInput').value;
+            logMsg(`Initiating fetch -> POST http://127.0.0.1:8000/api/vli/action-plan`);
+            logMsg(`Payload: { text: "${text}" }`);
+            
+            try {
+                const start = performance.now();
+                const response = await fetch('http://127.0.0.1:8000/api/vli/action-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text, is_action_plan: text.length > 100 })
+                });
+                
+                const time = Math.round(performance.now() - start);
+                logMsg(`HTTP Status: ${response.status} ${response.statusText} (${time}ms)`, response.status !== 200, response.status === 200);
+                
+                const result = await response.json();
+                logMsg(`Response Body: ${JSON.stringify(result)}`, false, true);
+                
+            } catch (err) {
+                logMsg(`Fetch Encountered Exception: ${err.message}`, true);
+            }
+        }
+    </script>
+</body>
+</html>

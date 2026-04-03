@@ -31,7 +31,9 @@ class State(MessagesState):
     portfolio_ledger: str = ""
     active_watchlist: list[str] = []
     obsidian_settings: dict = {}
+    gui_overrides: dict = {}
     
     # Simulation & Lifecycle
     test_mode: bool = False
     is_test_mode: bool = False
+    direct_mode: bool = False

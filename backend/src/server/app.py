@@ -7,6 +7,11 @@
 
 import sys
 import os
+import time
+
+if sys.platform == 'win32' and hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
 
 # Emergency BSON patch for local environment: MUST BE FIRST
 try:
@@ -24,12 +29,8 @@ import asyncio
 import sys
 
 # Ensure Windows ProactorEventLoop for Playwright Async Support
-if sys.platform == "win32":
-    try:
-        if not isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
-            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-    except Exception:
-        pass
+# Note: Event loop policy is now managed by server.py to ensure institutional stability.
+# Proactor is avoided for the main API process to prevent EPIPE/fileno conflicts on Windows.
 
 import base64
 import json
@@ -105,7 +106,7 @@ from src.server.studio_api import router as studio_router
 from src.tools import VolcengineTTS
 from src.graph.checkpoint import chat_stream_message
 from src.utils.json_utils import sanitize_args
-from src.config.vli import get_action_plan_path, get_inbox_path, get_archive_path, VAULT_ROOT
+from src.config.vli import get_action_plan_path, get_inbox_path, get_archive_path, get_vli_path, VAULT_ROOT
 from datetime import datetime
 import re
 from src.tools.scraper import get_latest_ux_data
@@ -122,15 +123,38 @@ if not logger.handlers:
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 
+from src.services.macro_registry import macro_registry
+
 # --- GLOBAL VLI STATE ---
 _vli_extracted_alerts = []  # [{symbol, label, color}]
 _vli_dynamic_panels = []    # [{id, title, content_html}]
-_vli_rules_enabled = False  # Disabled by default per user request
-_vli_last_inbox_action = None # {original_path, target_path}
-_vli_processed_draft_mtimes = {} # {filename: mtime} to prevent duplicates
-_vli_last_ux_card = {}         # {active: bool, image: str, target: str, highlight: dict}
+_vli_macro_worker_task = None
+_vli_last_macro_data = [{"symbol": k, "price": 0, "change": 0, "volume": 0, "color": "gray"} for k in macro_registry.get_macros().keys()]
 _vli_session_id = f"vli-{datetime.now().strftime('%Y%m%d-%H%M%S')}" # Unique per-server-run
 _vli_last_inbox_log_time = 0.0
+_vli_rules_enabled = False
+_vli_convergence_history = []
+_vli_last_ux_card = {}
+_vli_reset_requested = False
+_vli_active_task = None
+_vli_fast_path_cooldown_until = datetime.now()
+_vli_last_inbox_action = None
+_vli_rules_active_since = datetime.now()
+
+# [NEW] Decoupled VLI Macro Integration
+# Ensuring the path is relative to the backend workspace root
+VLI_SNAPSHOT_FILE = os.path.join(os.getcwd(), "backend", "data", "vli_macro_snapshot.json")
+
+def _get_vli_macro_snapshot() -> list:
+    """Reads the latest institutional macro data from the standalone worker's snapshot."""
+    try:
+        if os.path.exists(VLI_SNAPSHOT_FILE):
+            with open(VLI_SNAPSHOT_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data.get("macros", [])
+    except Exception as e:
+        logger.error(f"VLI: Failed to read macro snapshot: {e}")
+    return []
 
 def create_futures_watchlist_panel():
     """Create a high-fidelity Futures Watchlist panel with Sortino indicators."""
@@ -207,10 +231,15 @@ def extract_vli_logic(text: str) -> List[Dict[str, str]]:
 INTERNAL_SERVER_ERROR_DETAIL = "Internal Server Error"
 
 app = FastAPI(
-    title="Cobalt Multiagent API",
-    description="API for Deer",
-    version="0.1.0",
+    title="Cobalt Multi-Agent (CMA) - VibeLink Interface",
+    description="Institutional-grade agentic financial monitoring pipeline.",
+    version="10.2.1"
 )
+
+@app.get("/vli")
+async def vli_dashboard_redirect():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/VLI_session_dashboard.html")
 
 # Add CORS middleware
 # It's recommended to load the allowed origins from an environment variable
@@ -235,8 +264,9 @@ import os
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Cobalt Multiagent: Launching VLI Reactive Pipeline & Inbox Watcher.")
+    logger.info("Cobalt Multiagent: Launching VLI Reactive Pipeline (Inbox Only).")
     asyncio.create_task(vli_inbox_watcher())
+    # Note: Macro Sync is now handled by the standalone vli_macro_worker.py process.
 
 # Load examples into Milvus if configured
 load_examples()
@@ -280,110 +310,83 @@ class VLIActionPlanRequest(BaseModel):
     text: str
     image: Optional[str] = None
     is_action_plan: bool = False
+    direct_mode: bool = False
+
+# --- VLI CONSOLIDATED STATE ENDPOINT ---
 
 @app.get("/api/vli/active-state")
-async def get_vli_active_state():
-    """Live state for the VLI Dashboard (Action Plan + Alerts)."""
-    plan_html = "No active plan found."
-    plan_file = get_action_plan_path()
-    
-    # 1. Read Daily Action Plan (Raw Markdown)
-    plan_markdown = "No active plan found."
-    if os.path.exists(plan_file):
-        with open(plan_file, "r", encoding="utf-8") as f:
-            plan_markdown = f.read()
-
-    # 2. Return Extracted Alerts (Dynamic)
-    global _vli_extracted_alerts, _vli_dynamic_panels
-    if not _vli_extracted_alerts:
-        # Default fallback indicators
-        alerts = [
-            {"symbol": "VIX", "color": "green", "label": "Threshold: 30"},
-            {"symbol": "CL=F", "color": "orange", "label": "Threshold: 90"}
-        ]
-    else:
-        alerts = _vli_extracted_alerts
-    # 3. Read Inbox Files
-    inbox_path = get_inbox_path()
-    # Removed noisy logging per user request
-
-    inbox_files = []
-    if os.path.exists(inbox_path):
-        for f in os.listdir(inbox_path):
-            if not f.startswith("."):
-                inbox_files.append(f)
-
-    # 4. Extract Command Stream (Messages)
-    command_stream = []
+async def get_active_vli_state():
+    """Consolidated Live state for the VLI Dashboard."""
     try:
-        from src.graph.builder import graph
-        global _vli_session_id
-        thread_config = {"configurable": {"thread_id": _vli_session_id}}
-        thread_state = graph.get_state(thread_config)
-        
-        if thread_state and thread_state.values and "messages" in thread_state.values:
-            for msg in thread_state.values["messages"][-15:]:
-                name = getattr(msg, "name", "User" if isinstance(msg, HumanMessage) else "Assistant")
-                content = str(msg.content)[:100] + ("..." if len(str(msg.content)) > 100 else "")
-                command_stream.append(f"[{name.upper()}] {content}")
-    except Exception as e:
-        logger.error(f"VLI: Error extracting command stream: {e}")
-        command_stream = [f"[SYSTEM] Stream Unavailable: {str(e)}"]
-
-    # 5. Read Telemetry Tail
-    telemetry_tail = ""
-    try:
-        from src.config.vli import get_vli_path
+        from src.config.vli import get_vli_path, get_inbox_path, get_action_plan_path
         telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
+        plan_file = get_action_plan_path()
+        
+        # 1. Read Action Plan
+        plan_markdown = "No active plan found."
+        if os.path.exists(plan_file):
+            with open(plan_file, "r", encoding="utf-8") as f:
+                plan_markdown = f.read()
+
+        # 2. Read Telemetry (Optimized Tail - Increased to 16KB to prevent lag)
+        telemetry_tail = ""
         if os.path.exists(telemetry_file):
-            with open(telemetry_file, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-                telemetry_tail = "".join(lines[-15:])
-        else:
-            logger.warning(f"VLI: Telemetry file not found at {telemetry_file}")
-    except Exception as e:
-        logger.error(f"VLI: Error reading telemetry: {e}")
+            size = os.path.getsize(telemetry_file)
+            with open(telemetry_file, "r", encoding="utf-8", errors="ignore") as f:
+                f.seek(max(0, size - 16000)) 
+                telemetry_tail = f.read()
+        
+        # 3. Get Inbox Files
+        inbox_files = []
+        inbox_path = get_inbox_path()
+        if os.path.exists(inbox_path):
+            inbox_files = [f for f in os.listdir(inbox_path) if os.path.isfile(os.path.join(inbox_path, f))]
 
-    # 5. Read Persistent GUI Vibe
-    persistent_vibe = {}
-    try:
-        from src.config.vli import get_gui_vibe_path
-        vibe_path = get_gui_vibe_path()
-        if os.path.exists(vibe_path):
-            with open(vibe_path, "r", encoding="utf-8") as f:
-                persistent_vibe = json.load(f)
-    except Exception as e:
-        logger.error(f"VLI: Error loading persistent vibe: {e}")
+        # 4. Filter Alerts for UI
+        ui_alerts = []
+        for a in _vli_extracted_alerts:
+            clean_a = a.copy()
+            clean_a["symbol"] = a["symbol"].replace("^", "").replace("=F", "").replace("-USD", "")
+            ui_alerts.append(clean_a)
 
-    # 6. Read Inbox Filing Proposals
-    inbox_proposals = []
-    try:
-        from src.config.vli import inbox_rule_engine
-        inbox_rule_engine.rules_enabled = _vli_rules_enabled
-        inbox_proposals = inbox_rule_engine.get_inbox_proposals(inbox_files)
+        return {
+            "macros": json.loads(json.dumps(_get_vli_macro_snapshot(), default=str)),
+            "last_macro_update": os.path.getmtime(get_vli_path("vli_macro_snapshot.json")) if os.path.exists(get_vli_path("vli_macro_snapshot.json")) else time.time(),
+            "alerts": ui_alerts or [{"symbol": "SYS", "color": "green", "label": "VLI-IDLE"}],
+            "dynamic_panels": json.loads(json.dumps(_vli_dynamic_panels, default=str)),
+            "telemetry_tail": telemetry_tail,
+            "plan_markdown": plan_markdown,
+            "inbox_files": sorted(inbox_files, key=lambda x: os.path.getmtime(os.path.join(inbox_path, x)) if os.path.exists(os.path.join(inbox_path, x)) else 0, reverse=True),
+            "ux_card": json.loads(json.dumps(_vli_last_ux_card, default=str)),
+            "rules_enabled": _vli_rules_enabled,
+            "convergence_data": json.loads(json.dumps(_vli_convergence_history, default=str))
+        }
     except Exception as e:
-        logger.error(f"VLI: Error generating inbox proposals: {e}")
+        logger.error(f"VLI: Error in consolidated active-state endpoint: {e}", exc_info=True)
+        return {"error": str(e), "macros": [], "alerts": [], "telemetry_tail": "BACKEND_ERROR", "convergence_data": []}
 
-    return {
-        "plan_markdown": plan_markdown, 
-        "alerts": alerts,
-        "rules_enabled": _vli_rules_enabled,
-        "inbox_proposals": inbox_proposals,
-        "last_action": _vli_last_inbox_action,
-        "dynamic_panels": _vli_dynamic_panels,
-        "inbox_files": inbox_files,
-        "command_stream": command_stream,
-        "telemetry_tail": telemetry_tail,
-        "gui_overrides": {**persistent_vibe, **(thread_state.values.get("gui_overrides", {}) if thread_state else {})},
-        "convergence_data": _vli_convergence_history,
-        "ux_card": _vli_last_ux_card or get_latest_ux_data("VIX"), # Fallback to latest VIX if empty
-    }
+# --- VLI SESSION CONFIGURATION ---
+
+def _update_vli_session_config(updates: dict):
+    config_path = get_vli_path("vli_session_config.json")
+    config = {}
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r") as f:
+                config = json.load(f)
+        except: pass
+    config.update(updates)
+    with open(config_path, "w") as f:
+        json.dump(config, f, indent=4)
+
+@app.post("/api/vli/macro/toggle/{state}")
+async def toggle_vli_macro(state: str):
+    enabled = state.lower() == "on"
+    _update_vli_session_config({"macro_enabled": enabled})
+    logger.info(f"VLI Session: Macro background scraping toggled to: {enabled}")
+    return {"status": "success", "macro_enabled": enabled}
 
 # --- RULE EXECUTION ENDPOINTS ---
-
-@app.post("/api/vli/rule/toggle/{state}")
-async def toggle_vli_rules(state: str):
-    global _vli_rules_enabled
     _vli_rules_enabled = (state.lower() == "on" or state.lower() == "true")
     logger.info(f"VLI: Filing rules toggled to {_vli_rules_enabled}")
     return {"status": "success", "enabled": _vli_rules_enabled}
@@ -454,7 +457,7 @@ async def report_vli_metric(metric: Dict[str, Any]):
     """Receives and stores convergence metrics from diagnostic tests."""
     global _vli_convergence_history
     _vli_convergence_history.append({
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now().strftime("%H:%M:%S"),
         "iteration": metric.get("iteration", 0),
         "latency": metric.get("latency", 0),
         "accuracy": metric.get("accuracy", 0),
@@ -534,7 +537,7 @@ async def open_vli_inbox_file_editor(filename: str):
         logger.error(f"VLI: Failed to open editor: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-async def _invoke_vli_agent(text: str, image: Optional[str] = None) -> str:
+async def _invoke_vli_agent(text: str, image: Optional[str] = None, direct_mode: bool = False) -> str:
     """Invoke the agent graph in a non-streaming way for the VLI dashboard."""
     global _vli_session_id
     thread_id = _vli_session_id
@@ -553,15 +556,20 @@ async def _invoke_vli_agent(text: str, image: Optional[str] = None) -> str:
         log_vli_metric = lambda *args, **kwargs: None
     # [FAST-PATH TRIGGERS] Deterministic bypass for low-latency situation awareness
     # Exclusion: Technical keywords (Sortino, Sharpe, etc.) should use the full agent graph
-    tech_keywords = ["SORTINO", "SHARPE", "RISK", "VOLATILITY", "ANALYSIS", "REPORT"]
+    tech_keywords = ["SORTINO", "SHARPE", "RISK", "VOLATILITY", "ANALYSIS", "REPORT", "ANALYZE"]
     is_technical = any(kw in text.upper() for kw in tech_keywords)
 
     is_macro = "MACRO" in text.upper() and ("LIST" in text.upper() or "PRICE" in text.upper())
     is_price_list = ("SYMBOL" in text.upper() or "PORTFOLIO" in text.upper()) and "PRICE" in text.upper()
     is_vix = "VIX" in text.upper() and len(text) < 30
-    is_ticker_query = ("$" in text) and len(text) < 20
     
-    is_fast_track = (is_macro or is_price_list or is_vix or is_ticker_query) and not is_technical
+    # 2. Refined Ticker Query: Qualified vs Unqualified vs Analyze
+    qualifiers = ["PRICE", "VOLUME", "OHLC", "VALUE", "MA", "RSI", "MACD"]
+    is_qualified = any(q in text.upper() for q in qualifiers)
+    is_analyze = "ANALYZE" in text.upper() or "ANALYSIS" in text.upper()
+    is_ticker_query = ("$" in text or "GET " in text.upper() or is_analyze) and len(text) < 40 and not is_analyze # [STRICT] Exclude analyze from ticker queries
+    
+    is_fast_track = (is_macro or is_price_list or is_vix or is_ticker_query) and not is_technical and not is_analyze
     
     if is_fast_track:
         ticker = ""
@@ -616,7 +624,7 @@ async def _invoke_vli_agent(text: str, image: Optional[str] = None) -> str:
                     log_vli_metric("fastpath_macro_batch", duration, status="pass")
                     
                     _vli_convergence_history.append({
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now().strftime("%H:%M:%S"),
                         "iteration": 1,
                         "latency": duration,
                         "accuracy": 100.0,
@@ -638,7 +646,7 @@ async def _invoke_vli_agent(text: str, image: Optional[str] = None) -> str:
                 "*Tip: Type 'Get Macro Price list' for live situation awareness data.*"
             )
             _vli_convergence_history.append({
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now().strftime("%H:%M:%S"),
                 "iteration": 1,
                 "latency": 0.2,
                 "accuracy": 100.0,
@@ -650,27 +658,32 @@ async def _invoke_vli_agent(text: str, image: Optional[str] = None) -> str:
             try:
                 start_time = datetime.now()
                 # Call tool directly with Fast-Path enabled (Deterministic & Lock-Free)
-                # [FIX] Access the underlying coroutine/function of the LangChain tool
-                q_func = getattr(get_stock_quote, 'coroutine', getattr(get_stock_quote, 'func', None))
-                if not q_func:
-                     raise TypeError("VLI Fast-Path: Tool not correctly configured.")
-                     
-                q = await asyncio.wait_for(
-                    q_func(ticker=ticker, use_fast_path=True),
-                    timeout=7.0
-                )
+                # [SMC REWORK] Conditional fetch: Full SMC (OHLCV) for unqualified vs Atomic for qualified
+                if is_qualified:
+                    # Atomic Fetch: Price + Volume + Specific Qualifier
+                    q_func = getattr(get_stock_quote, 'coroutine', getattr(get_stock_quote, 'func', None))
+                    q = await asyncio.wait_for(q_func(ticker=ticker, use_fast_path=True), timeout=7.0)
+                else:
+                    # SMC-Grade Fetch: Full OHLCV
+                    from src.tools.finance import get_symbol_history_data
+                    h_func = getattr(get_symbol_history_data, 'coroutine', getattr(get_symbol_history_data, 'func', None))
+                    q_str = await asyncio.wait_for(h_func(symbols=[ticker], period="1d", interval="1h"), timeout=10.0)
+                    q = {"response": q_str, "type": "smc_full"}
+
                 duration = (datetime.now() - start_time).total_seconds()
-                
-                # [PERFORMANCE AUDIT] Log Fast-Path single ticker latency
                 log_vli_metric(f"fastpath_{ticker.lower()}", duration, status="pass")
                 
                 if isinstance(q, dict):
-                    # [STABILITY] Sync visual state for Fast-Path
+                    # Handle SMC-Grade response string
+                    if q.get("type") == "smc_full":
+                        return q["response"]
+                    
+                    # Atomic response handling
                     _vli_last_ux_card = get_latest_ux_data(ticker)
                     
                     # Report metric to trigger Resonance Chart
                     _vli_convergence_history.append({
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now().strftime("%H:%M:%S"),
                         "iteration": 1,
                         "latency": duration,
                         "accuracy": 100.0,
@@ -695,40 +708,45 @@ async def _invoke_vli_agent(text: str, image: Optional[str] = None) -> str:
     else:
         content = text
 
-    # Prepare workflow input
+    # [V10.5 CONTEXT PATCH]
+    # We pass only the CURRENT message. Because the graph is configured with a 
+    # thread_id checkpointer, LangGraph will automatically append this to the 
+    # existing history in the database rather than overwriting it.
     workflow_input = {
         "messages": [HumanMessage(content=content)],
         "plan_iterations": 0,
-        "steps_completed": 0,    # [CRITICAL] Reset traversal index to prevent coordinator short-circuiting on second query
+        "steps_completed": 0,    # [CRITICAL] Reset traversal index so coordinator doesn't think it's done
         "final_report": "",
         "current_plan": None,
         "observations": [],
-        "auto_accepted_plan": True, # VLI directives are usually auto-executed
-        "is_plan_approved": True, # [CRITICAL] Bypasses 'human_feedback' routing
-        "enable_background_investigation": False, # Faster for VLI directives
+        "auto_accepted_plan": True,
+        "is_plan_approved": True,
+        "enable_background_investigation": False,
         "research_topic": text[:100],
         "verbosity": 1,
+        "direct_mode": direct_mode,
     }
 
-    # [RESONANCE FLOOR] Minimum configuration for reliable "Check VIX" (sub-10% fail rate)
+    # [RESONANCE FLOOR] Configuration for reliable execution
     workflow_config = {
         "configurable": {
             "thread_id": thread_id,
             "max_plan_iterations": 0,    
-            "max_step_num": 5,           # Increased for complex specialists (Sortino/Risk)
-            "max_search_results": 2,      # Balanced for stability
+            "max_step_num": 5,
+            "max_search_results": 2,
             "report_style": "concise",   
+            "direct_mode": direct_mode,
         },
-        "recursion_limit": 50,           # Increased floor for complex specialist traversals
+        "recursion_limit": 50,
     }
 
     _vli_active_task = asyncio.current_task()
     
     try:
-        # [NEW] Kill switch check (Reset Signal Termination)
+        # [NEW] Kill switch check
         if _vli_reset_requested:
             logger.warning("VLI Agent: Reset requested. Terminating jobs.")
-            return {"messages": [AIMessage(content="Session Reset Signal Received. Execution Terminated.")], "final_report": "Session Terminated."}
+            return "Session Reset Signal Received. Execution Terminated."
 
         # Run the graph and get the final state with an extended timeout (Resonance Window)
         # 429 Resource Exhausted errors are now handled at the node level in common_vli.py
@@ -745,8 +763,23 @@ async def _invoke_vli_agent(text: str, image: Optional[str] = None) -> str:
         if "messages" in final_state and final_state["messages"]:
             for msg in reversed(final_state["messages"]):
                 if isinstance(msg, AIMessage) and msg.content:
-                    if not msg.content.startswith("Plan formulated:"):
-                        return msg.content
+                    if isinstance(msg.content, list):
+                        text_parts = []
+                        for item in msg.content:
+                            if isinstance(item, dict):
+                                if "text" in item:
+                                    text_parts.append(item["text"])
+                                elif "image_url" in item and isinstance(item["image_url"], dict) and "url" in item["image_url"]:
+                                    text_parts.append(f"\n![Captured Image]({item['image_url']['url']})\n")
+                            elif isinstance(item, str):
+                                text_parts.append(item)
+                        
+                        out_str = " ".join(text_parts).strip()
+                        if out_str and not out_str.startswith("Plan formulated:"):
+                            return out_str
+                    elif isinstance(msg.content, str):
+                        if not msg.content.startswith("Plan formulated:"):
+                            return msg.content
         
         return "Directive processed. No specific output generated."
         
@@ -761,6 +794,17 @@ async def _invoke_vli_agent(text: str, image: Optional[str] = None) -> str:
 async def post_vli_action_plan(request: VLIActionPlanRequest):
     """Handle chat or action-plan updates from the VLI Sidebar."""
     plan_file = get_action_plan_path()
+    
+    # [NEW] Log Issued Command to Raw Telemetry for audit visibility
+    try:
+        telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
+        timestamp = datetime.now().strftime("[%H:%M:%S]")
+        with open(telemetry_file, "a", encoding="utf-8") as tf:
+            tf.write(f"\n{timestamp} **DIRECTIVE ISSUED:** {request.text}\n")
+            tf.flush()
+            os.fsync(tf.fileno())
+    except Exception as le:
+        logger.error(f"VLI: Failed to log command audit: {le}")
     
     # Extract logic and update global alerts/panels even for short directives
     new_alerts = extract_vli_logic(request.text)
@@ -784,7 +828,18 @@ async def post_vli_action_plan(request: VLIActionPlanRequest):
             
     # Real Agent Routing for Chat/Directives
     logger.info(f"VLI: Routing directive to Gemini Agent: {request.text[:50]}...")
-    response_text = await _invoke_vli_agent(request.text, request.image)
+    try:
+        response_text = await _invoke_vli_agent(request.text, request.image, request.direct_mode)
+    except Exception as e:
+        # [V10 AUDIT] Log structural failures to telemetry so the user sees WHY it failed
+        try:
+            with open(get_vli_path("VLI_Raw_Telemetry.md"), "a", encoding="utf-8") as tf:
+                timestamp = datetime.now().strftime("[%H:%M:%S]")
+                tf.write(f"\n{timestamp} **SYSTEM ERROR:** Agent Reasoning Failed - {str(e)}\n")
+                tf.flush()
+                os.fsync(tf.fileno())
+        except: pass
+        raise HTTPException(status_code=500, detail=str(e))
     
     return {"response": response_text}
 
@@ -1233,6 +1288,7 @@ async def _astream_workflow_generator(
         "obsidian_settings": obsidian_settings,
         "verbosity": verbosity,
         "test_mode": is_test_mode,
+        "direct_mode": getattr(request, "direct_mode", False),
     }
 
     if not auto_accepted_plan and interrupt_feedback:
@@ -1253,6 +1309,7 @@ async def _astream_workflow_generator(
             "enable_deep_thinking": enable_deep_thinking,
             "snaptrade_settings": snaptrade_settings,
             "obsidian_settings": obsidian_settings,
+            "direct_mode": getattr(request, "direct_mode", False),
         },
         "recursion_limit": get_recursion_limit(),
     }
@@ -1547,9 +1604,10 @@ async def config():
 app.include_router(research_router, prefix="/api/research", tags=["research"])
 app.include_router(studio_router)
 
-# Mount the current directory (backend) to serve the dashboard HTML
-# [IMPORTANT] Moved to the end to prevent shadowing /api routes
-app.mount("/", StaticFiles(directory=os.getcwd(), html=True), name="static")
+# Mount the backend directory to serve the dashboard HTML
+backend_dir = os.path.dirname(os.path.abspath(__file__)) # src/server
+backend_root = os.path.abspath(os.path.join(backend_dir, "..", "..")) # backend/
+app.mount("/", StaticFiles(directory=backend_root, html=True), name="static")
 
 # Trigger hot reload
 

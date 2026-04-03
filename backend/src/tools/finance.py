@@ -37,8 +37,16 @@ _GLOBAL_RESOURCE_CONTEXT = GLOBAL_CONTEXT
 # 4. Specialized Analysis Cache (Isolated from Scout)
 _ANALYSIS_CACHE: Dict[str, Any] = {}
 
-# Global lock to prevent slamming Yahoo Finance API
-_YF_THROTTLE_LOCK = threading.Lock()
+# Global semaphore to prevent slamming Yahoo Finance API
+# We limit to 3 concurrent network requests to prevent rate limiting and head-of-line blocking.
+_YF_SEMAPHORE: Optional[asyncio.Semaphore] = None
+
+def _get_yf_semaphore() -> asyncio.Semaphore:
+    """Lazy initialization of the semaphore in the correct event loop."""
+    global _YF_SEMAPHORE
+    if _YF_SEMAPHORE is None:
+        _YF_SEMAPHORE = asyncio.Semaphore(3)
+    return _YF_SEMAPHORE
 
 # Thread-local storage for sessions to avoid pickling/multiprocessing issues
 _thread_local = threading.local()
@@ -126,10 +134,19 @@ def _normalize_ticker(ticker: str) -> str:
     if t == "NDX": return "^NDX"
     if t == "DXY": return "DX-Y.NYB"
     if t == "TNX": return "^TNX"
+    if t == "TYX": return "^TYX"
+    if t == "FVX": return "^FVX"
+    if t == "BTC": return "BTC-USD"
+    if t == "ETH": return "ETH-USD"
+    if t == "GC" or t == "GOLD": return "GC=F"
+    if t == "SI" or t == "SILVER": return "SI=F"
+    if t == "EURUSD" or t == "EUR/USD": return "EURUSD=X"
+    if t == "GBPUSD" or t == "GBP/USD": return "GBPUSD=X"
     
     # Handle S&P 100 / Common Discrepancies (Dots to Hyphens)
     # e.g., BRK.B -> BRK-B, BF.B -> BF-B
-    if "." in t:
+    # EXCLUSION: DX-Y.NYB requires the dot to be preserved
+    if "." in t and t != "DX-Y.NYB":
         return t.replace(".", "-")
         
     return t
@@ -137,39 +154,38 @@ def _normalize_ticker(ticker: str) -> str:
 def _fetch_batch_history(tickers: List[str], period: str = "5d", interval: str = "1d") -> pd.DataFrame:
     """
     Centralized batched fetcher for Yahoo Finance data.
-    Ensures all requests are batched where possible and respects a 1-second throttle.
+    Ensures all requests are batched where possible.
+    Note: Throttling is now handled by the caller via the _YF_SEMAPHORE.
     """
-    with _YF_THROTTLE_LOCK:
-        logger.info(f"Executing batched fetch for {tickers} (p={period}, i={interval})")
-        # Automatic ticker mapping via normalizer
-        mapped_tickers = [_normalize_ticker(t) for t in tickers]
+    logger.info(f"Executing batched fetch for {tickers} (p={period}, i={interval})")
+    mapped_tickers = [_normalize_ticker(t) for t in tickers]
+    
+    logger.debug(f"[WEB REQUEST] Yahoo Finance fetching {len(mapped_tickers)} tickers: {mapped_tickers}")
+    start_time = time.time()
+    try:
+        data = yfinance.download(
+            tickers=mapped_tickers,
+            period=period,
+            interval=interval,
+            group_by='ticker',
+            session=_get_session(),
+            progress=False,
+            threads=False # Maintain throttle integrity
+        )
+        duration_ms = (time.time() - start_time) * 1000
         
-        logger.debug(f"[WEB REQUEST] Yahoo Finance fetching {len(mapped_tickers)} tickers: {mapped_tickers}")
-        start_time = time.time()
-        try:
-            data = yfinance.download(
-                tickers=mapped_tickers,
-                period=period,
-                interval=interval,
-                group_by='ticker',
-                session=_get_session(),
-                progress=False,
-                threads=False # Maintain throttle integrity
-            )
-            duration_ms = (time.time() - start_time) * 1000
-            
-            if data is not None and not data.empty:
-                logger.debug(f"[WEB RESPONSE] Yahoo Finance fetch successful in {duration_ms:.2f}ms for {mapped_tickers}")
-            else:
-                logger.warning(f"[WEB RESPONSE] Yahoo Finance returned empty data in {duration_ms:.2f}ms for {mapped_tickers}")
-        except Exception as e:
-            duration_ms = (time.time() - start_time) * 1000
-            logger.error(f"[ERROR] Yahoo Finance fetch failed after {duration_ms:.2f}ms for {mapped_tickers}: {e}", exc_info=True)
-            raise
-        
-        # Hard delay to prevent rate limiting
-        time.sleep(1.0)
-        return data
+        if data is not None and not data.empty:
+            logger.debug(f"[WEB RESPONSE] Yahoo Finance fetch successful in {duration_ms:.2f}ms for {mapped_tickers}")
+        else:
+            logger.warning(f"[WEB RESPONSE] Yahoo Finance returned empty data in {duration_ms:.2f}ms for {mapped_tickers}")
+    except Exception as e:
+        duration_ms = (time.time() - start_time) * 1000
+        logger.error(f"[ERROR] Yahoo Finance fetch failed after {duration_ms:.2f}ms for {mapped_tickers}: {e}", exc_info=True)
+        raise
+    
+    # Hard delay to prevent rate limiting
+    time.sleep(1.0)
+    return data
 
 def _extract_ticker_data(df: pd.DataFrame, ticker: str) -> pd.DataFrame:
     """
@@ -255,67 +271,60 @@ async def get_symbol_history_data(symbols: List[str], period: str = "1d", interv
         
         for m in mocks:
             results.append(f"### {m}\n- [MOCK DATA]: {m} retrieved from diagnostic seed.")
-            # cached_tickers_set update removed
         
-        # Handle generic MOCK_TICKER placeholder
-        if "MOCK_TICKER" in symbols_upper:
-            if verbosity >= 2:
-                results.append("### MOCK_TICKER\n- [MOCK DATA]: Generic placeholder retrieved.")
-            # cached_tickers_set update removed
-            if "MOCK_TICKER" in others: others.remove("MOCK_TICKER")
-
         if others:
             try:
-                # 15-second retrieval timeout to prevent VLI session hang
-                full_df = await asyncio.wait_for(
-                    asyncio.to_thread(_fetch_batch_history, others, period, interval),
-                    timeout=5.0
-                )
+                # Use semaphore for throttling
+                async with _get_yf_semaphore():
+                    full_df = await asyncio.wait_for(
+                        asyncio.to_thread(_fetch_batch_history, others, period, interval),
+                        timeout=15.0
+                    )
+                
                 for sym in others:
-                    ticker_df = full_df.dropna() if len(others) == 1 else _extract_ticker_data(full_df, sym)
+                    ticker_df = _extract_ticker_data(full_df, sym)
                     if ticker_df.empty:
-                        results.append(f"### {sym}\n- [ERROR]: No data found.")
+                        # Fallback to Finviz
+                        try:
+                            f_data = await fetch_finviz_quotes([sym])
+                            if sym.upper() in f_data:
+                                q = f_data[sym.upper()]
+                                data_str = f"### {sym}\n- **Price**: {q['price']:.2f}\n- **Volume**: {q['volume']:,}\n- **Source**: Finviz (Fallback)"
+                                results.append(data_str)
+                                history_cache[f"{sym}_{period}_{interval}"] = {"data": data_str, "last_updated": datetime.now(), "period": period, "interval": interval}
+                                continue
+                        except: pass
+                        results.append(f"### {sym}\n- [ERROR]: Data retrieval failed.")
                         continue
                         
-                    # Scout only writes to history_cache, never to the coordinate tracker
-                    logger.info(f"[SCOUT_FETCH] Successfully retrieved {sym}.")
-                    
                     last_row = ticker_df.iloc[-1]
-                    data_str = f"### {sym}\n- **Period**: {period} | **Interval**: {interval}\n- **Close**: {float(last_row['Close']):.2f}\n- **High**: {float(last_row['High']):.2f}\n- **Low**: {float(last_row['Low']):.2f}\n- **Volume**: {int(last_row['Volume']):,}\n"
+                    # Ensure full OHLCV and Symbol are cached together in shared memory
+                    raw_ohlcv = {
+                        "Symbol": sym,
+                        "Open": float(last_row.get("Open", 0)),
+                        "High": float(last_row.get("High", 0)),
+                        "Low": float(last_row.get("Low", 0)),
+                        "Close": float(last_row.get("Close", 0)),
+                        "Volume": int(last_row.get("Volume", 0))
+                    }
+                    data_str = f"### {sym}\n- **Period**: {period} | **Interval**: {interval}\n- **Open**: {raw_ohlcv['Open']:.2f}\n- **High**: {raw_ohlcv['High']:.2f}\n- **Low**: {raw_ohlcv['Low']:.2f}\n- **Close**: {raw_ohlcv['Close']:.2f}\n- **Volume**: {raw_ohlcv['Volume']:,}\n"
                     
                     history_cache[f"{sym}_{period}_{interval}"] = {
-                        "data": data_str,
-                        "last_updated": datetime.now(),
-                        "period": period,
+                        "data": data_str, 
+                        "raw": raw_ohlcv,
+                        "last_updated": datetime.now(), 
+                        "period": period, 
                         "interval": interval
                     }
                     results.append(data_str)
             except asyncio.TimeoutError:
-                logger.error(f"Timeout: Request for {others} timed out after 15s. Falling back to Finviz Screener...")
-                # Try Finviz as a batch fallback
-                try:
-                    finviz_data = await fetch_finviz_quotes(others)
-                    for sym, data in finviz_data.items():
-                        data_str = f"### {sym}\n- **Source**: Finviz Screener (Fallback)\n- **Close**: {data['price']:.2f}\n- **Volume**: {data['volume']:,}\n"
-                        results.append(data_str)
-                        history_cache[f"{sym}_{period}_{interval}"] = {
-                            "data": data_str,
-                            "last_updated": datetime.now(),
-                            "period": period,
-                            "interval": interval
-                        }
-                    # Check for anything still missing after Finviz
-                    still_missing = [s for s in others if s.upper() not in [k.upper() for k in finviz_data.keys()]]
-                    for sm in still_missing:
-                         results.append(f"### {sm}\n- [ERROR]: Data retrieval timed out (15s) AND Finviz fallback failed.")
-                except Exception as fe:
-                    logger.error(f"Finviz Batch Fallback failed: {fe}")
-                    return f"[ERROR]: Data retrieval timed out (15s) and Finviz fallback failed: {str(fe)}."
+                logger.error(f"Timeout: Fetch for {others} timed out.")
+                results.append(f"### {others}\n- [ERROR]: Timeout during data retrieval.")
             except Exception as e:
-                logger.error(f"Error: {e}")
-                return f"[ERROR]: Failed to fetch history batch (yfinance): {str(e)}"
+                logger.error(f"Fetch error: {e}")
+                results.append(f"### {others}\n- [ERROR]: {str(e)}")
             
-    report = f"# Stock History Report\nGenerated at {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+    report = f"# Stock History Report\nGenerated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
     report += "\n".join(results)
     return report.strip()
 
@@ -598,6 +607,7 @@ async def get_stock_quote(ticker: str, period: str = "1d", interval: str = "1m",
                     "symbol": norm_ticker,
                     "price": fast.last_price,
                     "change": ((fast.last_price / fast.previous_close) - 1) * 100 if fast.previous_close else 0.0,
+                    "volume": getattr(fast, 'last_volume', 0), # Fast retrieval
                     "is_fast_fetch": True
                 }
             except Exception as fe:
@@ -726,3 +736,185 @@ async def get_sortino_ratio(ticker: str) -> str:
         return f"Sortino Ratio ({ticker}): {sortino:.2f}"
     except Exception as e:
         return f"[ERROR]: {str(e)}"
+@tool
+async def run_smc_analysis(ticker: str, interval: str = "auto") -> str:
+    """
+    SMC Specialist Primitive: Executes a professional ICT-based analysis using Multi-Timeframe Alignment
+    by default (interval='auto'). If a specific interval is provided (e.g. '1h'), it will execute a 
+    single-pass isolated scanner.
+    """
+    import pandas as pd
+    import sys
+    import os
+    try:
+        old_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w', encoding='utf-8')
+        try:
+            from smartmoneyconcepts import smc
+        finally:
+            sys.stdout.close()
+            sys.stdout = old_stdout
+    except ImportError:
+        return "[ERROR]: The 'smartmoneyconcepts' library is required. Run 'pip install smartmoneyconcepts'."
+
+    # Load configuration
+    from src.config.smc_loader import load_smc_config
+    config = load_smc_config()
+    strategy = config.get("smc_strategy", {})
+
+    norm_ticker = _normalize_ticker(ticker)
+
+    # ==========================================
+    # FALLBACK: Isolated Single-Pass Execution
+    # ==========================================
+    if interval.lower() != "auto":
+        interval_norm = interval.lower()
+        if interval_norm in ["1m", "2m", "5m", "15m"]:
+            swing_length, period_needed = 20, "10d"
+        elif interval_norm in ["1h", "4h", "2h"]:
+            swing_length, period_needed = 10, "1mo"
+        elif interval_norm in ["1d", "1wk"]:
+            swing_length, period_needed = 5, "1y"
+        else:
+            swing_length, period_needed = 10, "1mo"
+
+        history_samples = max(swing_length * 3, 100)
+        logger.info(f"VLI SMC Analyst [CUSTOM OVERRIDE]: Executing {ticker} @ {interval}")
+        
+        try:
+            data = await asyncio.wait_for(
+                asyncio.to_thread(_fetch_batch_history, [norm_ticker], period_needed, interval),
+                timeout=10.0
+            )
+            full_df = _extract_ticker_data(data, norm_ticker)
+            if full_df.empty or len(full_df) < 10:
+                return f"### {ticker} Analysis @ {interval}\n- [ERROR]: Insufficient data."
+            
+            df = full_df.tail(history_samples).copy()
+            df.columns = [c.lower() for c in df.columns]
+            
+            swings = smc.swing_highs_lows(df, swing_length=swing_length)
+            fvg = smc.fvg(df)
+            ob = smc.ob(df, swings)
+            structure = smc.bos_choch(df, swings)
+            
+            fvg_count = len(fvg[fvg['FVG'] != 0]) if 'FVG' in fvg.columns else 0
+            ob_count = len(ob[ob['OB'] != 0]) if 'OB' in ob.columns else 0
+            
+            report = [f"## Custom Single-Pass SMC Analysis: {ticker} ({interval})", ""]
+            last_struct = structure.iloc[-1]
+            if last_struct.get('CHOCH') or last_struct.get('choch'):
+                report.append("- **State**: ⚡ **Change of Character (ChoCh)** detected.")
+            elif last_struct.get('BOS') or last_struct.get('bos'):
+                report.append("- **State**: 📈 **Break of Structure (BOS)** confirmed.")
+            else:
+                report.append("- **State**: ⚖️ Stable market structure.")
+            
+            report.append(f"- **Order Blocks**: {ob_count} mapped.")
+            report.append(f"- **FVGs**: {fvg_count} mapped.")
+            report.append(f"\n**Current Price**: `${df['close'].iloc[-1]:.2f}`")
+            return "\n".join(report)
+        except Exception as e:
+            return f"[ERROR]: Single-pass failed: {e}"
+
+    # ==========================================
+    # APEX 500 AUTONOMOUS MTF SCANNER
+    # ==========================================
+    logger.info(f"VLI SMC Analyst [MTF AUTONOMOUS SCAN]: Executing Apex 500 Alignment for {ticker}")
+    report = [f"## MTF SMC Alignment Scan: {ticker} (Apex 500 Scanner)", ""]
+    
+    # 1. Macro Map (Trend Direction)
+    macro_cfg = strategy.get("macro_map", {})
+    macro_tf = macro_cfg.get("timeframes", ["1d"])[0] 
+    macro_lookback = macro_cfg.get("lookback_bars", 200)
+    macro_period = "1y" if macro_tf in ("1d", "4h") else "6mo"
+    
+    macro_bias = "Neutral"
+    try:
+        mData = await asyncio.to_thread(_fetch_batch_history, [norm_ticker], macro_period, macro_tf)
+        mDF = _extract_ticker_data(mData, norm_ticker).tail(macro_lookback).copy()
+        if not mDF.empty:
+            mDF.columns = [c.lower() for c in mDF.columns]
+            mSwings = smc.swing_highs_lows(mDF, swing_length=15)
+            mStruct = smc.bos_choch(mDF, mSwings)
+            
+            latest_bos = mStruct[mStruct['BOS'] != 0].tail(1)
+            latest_choch = mStruct[mStruct['CHOCH'] != 0].tail(1)
+            
+            # Simple bias heuristic based on the latest structural event
+            if not latest_choch.empty:
+                macro_bias = "Bullish" if latest_choch['CHOCH'].iloc[-1] == 1 else "Bearish"
+            elif not latest_bos.empty:
+                macro_bias = "Bullish" if latest_bos['BOS'].iloc[-1] == 1 else "Bearish"
+                
+        report.append(f"### 1. Macro Map ({macro_tf})")
+        report.append(f"- **Institutional Trend**: {macro_bias}")
+    except Exception as e:
+        report.append(f"### 1. Macro Map ({macro_tf})\n- [ERROR]: {e}")
+        macro_bias = "Error"
+
+    # 2. Tactical Map (Zones)
+    tactical_cfg = strategy.get("tactical_map", {})
+    tactical_tf = tactical_cfg.get("timeframes", ["1h"])[0]
+    tactical_lookback = tactical_cfg.get("lookback_bars", 100)
+    
+    tactical_ready = False
+    try:
+        tData = await asyncio.to_thread(_fetch_batch_history, [norm_ticker], "1mo", tactical_tf)
+        tDF = _extract_ticker_data(tData, norm_ticker).tail(tactical_lookback).copy()
+        if not tDF.empty:
+            tDF.columns = [c.lower() for c in tDF.columns]
+            tSwings = smc.swing_highs_lows(tDF, swing_length=10)
+            tOB = smc.ob(tDF, tSwings)
+            tFVG = smc.fvg(tDF)
+            
+            ob_c = len(tOB[tOB['OB'] != 0]) if 'OB' in tOB.columns else 0
+            fvg_c = len(tFVG[tFVG['FVG'] != 0]) if 'FVG' in tFVG.columns else 0
+            tactical_ready = (ob_c > 0 or fvg_c > 0)
+            
+            report.append(f"### 2. Tactical Map ({tactical_tf})")
+            report.append(f"- **Zones Mapped**: {ob_c} Order Blocks | {fvg_c} Fair Value Gaps.")
+        else:
+            report.append(f"### 2. Tactical Map ({tactical_tf})\n- Insufficient Data")
+    except Exception as e:
+        report.append(f"### 2. Tactical Map ({tactical_tf})\n- [ERROR]: {e}")
+
+    # 3. Execution Trigger (Liquidity)
+    trigger_cfg = strategy.get("execution_trigger", {})
+    trigger_tf = trigger_cfg.get("timeframes", ["5m"])[0]
+    trigger_lookback = trigger_cfg.get("lookback_bars", 50)
+    
+    sweep_aligned = False
+    try:
+        trData = await asyncio.to_thread(_fetch_batch_history, [norm_ticker], "5d", trigger_tf)
+        trDF = _extract_ticker_data(trData, norm_ticker).tail(trigger_lookback).copy()
+        if not trDF.empty:
+            trDF.columns = [c.lower() for c in trDF.columns]
+            trSwings = smc.swing_highs_lows(trDF, swing_length=5)
+            # liquidity is tracked against swings
+            trLiq = smc.liquidity(trDF, trSwings)
+            
+            liq_event = trLiq[trLiq['Liquidity'] != 0].tail(1)
+            if not liq_event.empty:
+                # 1 = Bullish Sweep (Sell-side liquidity grabbed), -1 = Bearish Sweep
+                sweep_dir = "Bullish" if liq_event['Liquidity'].iloc[-1] == 1 else "Bearish"
+                # Check MTF alignment
+                if sweep_dir == macro_bias:
+                    sweep_aligned = True
+                
+                report.append(f"### 3. Execution Trigger ({trigger_tf})")
+                report.append(f"- **Liquidity Sweep**: YES ({sweep_dir})")
+            else:
+                report.append(f"### 3. Execution Trigger ({trigger_tf})")
+                report.append(f"- **Liquidity Sweep**: NO (Accumulating)")
+    except Exception as e:
+        report.append(f"### 3. Execution Trigger ({trigger_tf})\n- [ERROR]: {e}")
+
+    # 4. Authorization Matrix
+    report.append("### 4. Apex Authorization Matrix")
+    if sweep_aligned and tactical_ready:
+        report.append("- **Status**: **[PASS]** Execution trigger aligns with MTF Institutional Macro trend.")
+    else:
+        report.append("- **Status**: **[FAIL]** Trigger does not align with Macro trend, or missing tactical structural zones.")
+        
+    return "\n".join(report)

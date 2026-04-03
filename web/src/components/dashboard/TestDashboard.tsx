@@ -56,6 +56,17 @@ type Scenario = {
 
 const SCENARIOS: Scenario[] = [
   {
+    id: 'direct_mode_reference_shield',
+    name: 'Direct Mode: Gold Reference (Shield Scan)',
+    description: 'Tests the Coordinator in Direct Mode to ensure it matches the depth and layout of the Gemini App Gold Reference.',
+    prompt: 'scan for shield setups this morning',
+    assertions: [
+      { id: '1', label: 'Bypasses multi-agent pipeline', status: 'pending' },
+      { id: '2', label: 'Matches Gold Reference tabular format', status: 'pending' },
+      { id: '3', label: 'Includes Paul Tudor Jones quote', status: 'pending' }
+    ]
+  },
+  {
     id: 'smc_full',
     name: 'High-Fidelity Stock Analysis',
     description: 'Tests the Coordinator -> Analyst pipeline for Smart Money Concepts logic.',
@@ -176,6 +187,7 @@ export default function TestDashboard() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [assertionState, setAssertionState] = useState<Record<string, 'pending' | 'passed' | 'failed'>>({});
   const [retrievedItems, setRetrievedItems] = useState<RetrievedItem[]>([]);
+  const [directMode, setDirectMode] = useState(false);
 
   const logsEndRef = useRef<HTMLDivElement>(null);
   const retrievedEndRef = useRef<HTMLDivElement>(null);
@@ -386,10 +398,11 @@ export default function TestDashboard() {
         body: JSON.stringify({
           messages: [{ role: 'user', content: scenario.prompt }],
           thread_id: `test_${Date.now()}`,
-          enable_background_investigation: true,
+          enable_background_investigation: !directMode,
           auto_accepted_plan: true,
-          verbosity: 2, // Medium verbosity for standard test runs
-          is_test_mode: true
+          verbosity: 2, 
+          is_test_mode: true,
+          direct_mode: directMode
         }),
         signal: abortControllerRef.current.signal
       });
@@ -766,11 +779,23 @@ export default function TestDashboard() {
       {/* MIDDLE COLUMN: LIVE TERMINAL */}
       <div className="col-span-6 flex flex-col bg-[#0d1117] rounded-xl border border-slate-800/80 shadow-2xl overflow-hidden relative group">
         <div className="bg-slate-900/80 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
             <Terminal className="w-4 h-4 text-slate-400" />
             <span className="text-[10pt] font-mono text-slate-300">VLI Test Stream Output</span>
+            {directMode && <span className="ml-2 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[8pt] rounded font-mono animate-pulse">DIRECT_MODE</span>}
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex items-center gap-4">
+             <button 
+               onClick={() => setDirectMode(!directMode)}
+               className={`flex items-center gap-2 px-3 py-1 rounded-full text-[9pt] font-medium transition-all border ${
+                 !directMode 
+                   ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]' 
+                   : 'bg-ruby-red/10 border-ruby-red/50 text-ruby-red shadow-[0_0_10px_rgba(248,81,73,0.1)]'
+               }`}
+             >
+               <div className={`w-2 h-2 rounded-full ${!directMode ? 'bg-emerald-400 animate-pulse' : 'bg-ruby-red shadow-[0_0_5px_currentColor]'}`} />
+               {!directMode ? 'Cobalt AI: ON' : 'Cobalt AI: OFF'}
+             </button>
+             <div className="flex gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
             <div className="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
             <div className="w-2.5 h-2.5 rounded-full bg-slate-700"></div>

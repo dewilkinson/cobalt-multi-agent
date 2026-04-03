@@ -1,0 +1,117 @@
+{
+    "last_updated": "03:08:50",
+    "macros": [
+        {
+            "symbol": "VIX",
+            "price": 25.85,
+            "change": 5.72,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "DXY",
+            "price": 99.89,
+            "change": 0.44,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "TNX",
+            "price": 4.318999767303467,
+            "change": 0.18556940950722467,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "SPY",
+            "price": 655.239990234375,
+            "change": 0.4599518941455605,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "QQQ",
+            "price": 584.3099975585938,
+            "change": 0.704904615248303,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "IWM",
+            "price": 249.55999755859375,
+            "change": 0.3377281917794184,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "GLD",
+            "price": 437.82000732421875,
+            "change": 1.5423167948184657,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "BTC",
+            "price": 66681.0078125,
+            "change": -2.0427835595811406,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "USO",
+            "price": 124.08999633789062,
+            "change": -2.444894738210779,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "CL",
+            "price": 106.24,
+            "change": 6.03,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "GC",
+            "price": 4622.7001953125,
+            "change": -1.7930339400637374,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "SPX",
+            "price": 6575.31982421875,
+            "change": 0.7168519697994258,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "NDX",
+            "price": 24019.990234375,
+            "change": 1.1785930709695247,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "TYX",
+            "price": 4.900000095367432,
+            "change": 0.18401761889488277,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "EUR/USD",
+            "price": 1.1531364917755127,
+            "change": -0.5419743238738728,
+            "volume": 0,
+            "color": "gray"
+        },
+        {
+            "symbol": "TEST",
+            "price": 44.762001037597656,
+            "change": -0.35173411042374036,
+            "volume": 0,
+            "color": "gray"
+        }
+    ]
+}

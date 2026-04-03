@@ -10,7 +10,7 @@ from langchain_core.runnables import RunnableConfig
 from src.tools import (
     get_smc_analysis, get_ema_analysis, get_stock_quote, get_rsi_analysis,
     get_macd_analysis, get_volatility_atr, get_volume_profile, get_bollinger_bands,
-    fetch_market_macros
+    fetch_market_macros, invalidate_market_cache
 )
 from src.tools.shared_storage import ANALYST_CONTEXT, GLOBAL_CONTEXT
 from ..types import State
@@ -34,7 +34,7 @@ async def analyst_node(state: State, config: RunnableConfig):
     tools = [
         get_smc_analysis, get_ema_analysis, get_stock_quote, get_rsi_analysis,
         get_macd_analysis, get_volatility_atr, get_volume_profile, get_bollinger_bands,
-        fetch_market_macros
+        fetch_market_macros, invalidate_market_cache
     ]
 
     instructions = f"Report verbosity={state.get('verbosity', 1)}. "

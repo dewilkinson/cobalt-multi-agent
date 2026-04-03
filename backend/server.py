@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 # which lacks add_reader/add_writer and can break libraries that expect selector-based I/O (e.g., some Uvicorn/Watchdog/stdio integrations).
 # For compatibility, this forces the selector loop.
 if os.name == "nt":
-    logger.info("Setting Windows event loop policy for asyncio")
+    logger.info("Setting Windows event loop policy for asyncio (Selector for Uvicorn stability)")
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
@@ -110,11 +110,12 @@ if __name__ == "__main__":
         
         # 3. USE DIRECT APP OBJECT INSTEAD OF STRING: No more context-less re-imports
         uvicorn.run(
-            app,
+            "src.server.app:app" if reload else app, # Use string for reload=True compatibility
             host=args.host,
             port=args.port,
             reload=reload,
             log_level=args.log_level,
+            access_log=False,
         )
     except Exception as e:
         logger.error(f"Failed to start server: {str(e)}")

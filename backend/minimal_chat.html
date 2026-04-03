@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minimal VLI Chat Test</title>
+</head>
+<body>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+    <input type="text" id="chat-input" placeholder="Enter message">
+    <button id="send-btn" onclick="sendMessage()">Send</button>
+
+    <script>
+        document.getElementById("status").innerText = "Ready";
+
+        async function sendMessage() {
+            const input = document.getElementById("chat-input");
+            const text = input.value;
+            input.value = "";
+
+            const messages = document.getElementById("messages");
+            messages.innerHTML += `<div><b>User:</b> ${text}</div>`;
+            messages.innerHTML += `<div id="loading"><i>Loading...</i></div>`;
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/vli/action-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        text: text,
+                        image: null,
+                        is_action_plan: false
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById("loading").remove();
+                
+                messages.innerHTML += `<div class="ai-message"><b>AI:</b> ${result.response || "No response field in JSON"}</div>`;
+            } catch (e) {
+                document.getElementById("loading").remove();
+                messages.innerHTML += `<div class="ai-message" style="color:red;"><b>Error:</b> ${e.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

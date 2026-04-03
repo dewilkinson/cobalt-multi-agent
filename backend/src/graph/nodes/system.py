@@ -40,16 +40,6 @@ _SYSTEM_RESOURCE_CONTEXT: Dict[str, Any] = {
 
 async def system_node(state: State, config: RunnableConfig):
     """System node implementation."""
-    logger.info("System Node: Initializing with elevated context privileges.")
-    
-    # 0. Definitive Node Branding for the Dashboard
-    if state.get("is_test_mode"):
-        from langchain_core.messages import AIMessage
-        state["messages"].append(AIMessage(
-            content="🚀 Node activated: SYSTEM (Administrative Tier). Preparing diagnostic stress test...",
-            name="system"
-        ))
-
     configurable = Configuration.from_runnable_config(config)
     
     # System has access to practically everything

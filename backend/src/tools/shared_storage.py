@@ -21,3 +21,6 @@ PPT_CONTEXT: Dict[str, Any] = {}
 # Global Shared Context (Visible to all agents of any type)
 GLOBAL_CONTEXT: Dict[str, Any] = {}
 GENERAL_CONTEXT = GLOBAL_CONTEXT # Alias for compatibility
+
+# Persisted Market Data Cache (Used by Hybrid Resolver)
+history_cache: Dict[str, Any] = {}

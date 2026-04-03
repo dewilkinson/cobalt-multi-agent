@@ -10,5 +10,7 @@
 			"path": "../../../obsidian-vault"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"powershell.cwd": "cobalt-multi-agent"
+	}
 }

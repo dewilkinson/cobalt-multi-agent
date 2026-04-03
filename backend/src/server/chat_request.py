@@ -78,6 +78,7 @@ class ChatRequest(BaseModel):
     )
     verbosity: Optional[int] = Field(1, description="The verbosity level of the agent logs")
     is_test_mode: Optional[bool] = Field(False, description="Whether the request is part of a test scenario")
+    direct_mode: Optional[bool] = Field(False, description="Whether to bypass the multi-agent pipeline and respond directly.")
 
 
 class TTSRequest(BaseModel):

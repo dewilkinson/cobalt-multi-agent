@@ -21,18 +21,28 @@ async def vision_specialist_node(state: State, config: RunnableConfig):
     logger.info("Vision Specialist Node: Initializing high-fidelity technical scan.")
     
     # 1. READ SPECIALIZATION CONTEXT
-    specialization_content = "Default indicator schema: 9/13/50/200 EMA."
+    specialization_content = ""
     special_file = get_vli_path(SPECIALIZATION_FILE)
     if os.path.exists(special_file):
         with open(special_file, "r", encoding="utf-8") as f:
             specialization_content = f.read()
+            
+    # 2. READ CHART SPECIFICATIONS (Optional Layout Context)
+    layout_content = ""
+    layout_file = get_vli_path("chart_specifications.md")
+    if os.path.exists(layout_file):
+        with open(layout_file, "r", encoding="utf-8") as f:
+            layout_content = f.read()
 
-    # 2. PREPARE INSTRUCTIONS
+    # 3. PREPARE INSTRUCTIONS
     instructions = (
-        f"You MUST use the following technical specialization context to parse all provided images.\n\n"
-        f"--- SPECIALIZATION CONTEXT ---\n"
+        f"You MUST use the following technical specialization and layout context to parse all provided images.\n\n"
+        f"--- CHART LAYOUT & SPECIFICATIONS ---\n"
+        f"{layout_content}\n"
+        f"--------------------------------------\n\n"
+        f"--- TECHNICAL INDICATOR SCHEMA ---\n"
         f"{specialization_content}\n"
-        f"-----------------------------\n"
+        f"----------------------------------\n"
     )
 
     # 3. EXECUTE VISION SCAN

@@ -1,0 +1,11 @@
+smc_strategy:
+  macro_map:
+    timeframes: ["1d", "4h"]
+    lookback_bars: 200
+  tactical_map:
+    timeframes: ["1h"]
+    lookback_bars: 100
+  execution_trigger:
+    timeframes: ["5m"]
+    lookback_bars: 50
+    alignment_required: true

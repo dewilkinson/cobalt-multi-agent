@@ -189,3 +189,95 @@ async def get_volume_profile(ticker: str, period: str = "60d", interval: str = "
         return f"### Volume Profile: {symbol.upper()} ({i})\n- **Highest Volume Node (POC):** {poc}\n"
 
     return await asyncio.to_thread(compute_vp, ticker, period, interval)
+
+def calculate_downside_deviation(returns: pd.Series, risk_free_rate: float = 0.0) -> float:
+    """Calculates downside deviation for Sortino Ratio."""
+    excess_returns = returns - risk_free_rate
+    downside_returns = excess_returns.copy()
+    downside_returns[excess_returns > 0] = 0.0
+    return np.sqrt(np.mean(downside_returns**2))
+
+@tool
+async def get_sharpe_ratio(ticker: str, target_price: float = 0.0, period: str = "20d", interval: str = "1d") -> str:
+    """
+    Primitive: Calculates the Sharpe Ratio for a ticker using the 10Y Yield (.TNX) as the risk-free rate.
+    Uses target_price for the Expected Return if provided > 0.0, otherwise calculates historical Sharpe.
+    """
+    def compute(symbol, t_price, p, i):
+        try:
+            df = _fetch_stock_history(symbol, p, i)
+            if df.empty: return f"Error: No data for {symbol}"
+            
+            # Risk free rate from TNX geometry or fallback 4.28%
+            import yfinance as yf
+            rf = 0.0428
+            try:
+                tnx = yf.Ticker("^TNX").history(period="1d")
+                if not tnx.empty: rf = tnx['Close'].iloc[-1] / 100.0
+            except:
+                pass
+                
+            df.columns = [str(c).lower() for c in df.columns]
+            current_price = df['close'].iloc[-1]
+            returns = df['close'].pct_change().dropna()
+            
+            if t_price and t_price > 0.0:
+                # Projected Sharpe: S = (Target_Return - Rf) / Realized_Volatility
+                target_return = (t_price - current_price) / current_price
+                vol = returns.std()
+                s = (target_return - rf) / (vol if vol > 0 else 0.0001)
+                return f"### Projected Sharpe Ratio: {symbol.upper()}\n- Target Price: ${t_price:.2f}\n- Current: ${current_price:.2f}\n- Projected Return: {target_return*100:.2f}%\n- Risk-Free (.TNX): {rf*100:.2f}%\n- Volatility (20-day σ): {vol*100:.2f}%\n- **Sharpe Ratio (S):** {s:.2f}"
+            else:
+                # Historical Annualized
+                avg_return = returns.mean()
+                vol = returns.std()
+                daily_rf = rf / 252.0
+                s_historical = ((avg_return - daily_rf) / vol) * np.sqrt(252)
+                return f"### Historical Sharpe Ratio: {symbol.upper()}\n- Historical Volatility: {vol*100:.2f}%\n- Risk-Free (.TNX): {rf*100:.2f}%\n- **Historical Sharpe:** {s_historical:.2f}"
+                
+        except Exception as e:
+            return f"Error computing Sharpe for {symbol}: {e}"
+            
+    return await asyncio.to_thread(compute, ticker, target_price, period, interval)
+
+@tool
+async def get_sortino_ratio(ticker: str, target_price: float = 0.0, period: str = "20d", interval: str = "1d") -> str:
+    """
+    Primitive: Calculates the Sortino Ratio for a ticker using the 10Y Yield (.TNX) as the risk-free rate.
+    Uses target_price for the Expected Return if provided > 0.0, otherwise calculates historical Sortino.
+    Preferred over Sharpe as it only penalizes downside volatility.
+    """
+    def compute(symbol, t_price, p, i):
+        try:
+            df = _fetch_stock_history(symbol, p, i)
+            if df.empty: return f"Error: No data for {symbol}"
+            
+            import yfinance as yf
+            rf = 0.0428
+            try:
+                tnx = yf.Ticker("^TNX").history(period="1d")
+                if not tnx.empty: rf = tnx['Close'].iloc[-1] / 100.0
+            except:
+                pass
+                
+            df.columns = [str(c).lower() for c in df.columns]
+            current_price = df['close'].iloc[-1]
+            returns = df['close'].pct_change().dropna()
+            downside_dev = calculate_downside_deviation(returns, rf / 252.0)
+            
+            if t_price and t_price > 0.0:
+                # Projected Sortino
+                target_return = (t_price - current_price) / current_price
+                s = (target_return - rf) / (downside_dev if downside_dev > 0 else 0.0001)
+                return f"### Projected Sortino Ratio: {symbol.upper()}\n- Target Price: ${t_price:.2f}\n- Current: ${current_price:.2f}\n- Projected Return: {target_return*100:.2f}%\n- Risk-Free (.TNX): {rf*100:.2f}%\n- Downside Dev (σ_d): {downside_dev*100:.2f}%\n- **Sortino Ratio (S_d):** {s:.2f}"
+            else:
+                # Historical Annualized
+                avg_return = returns.mean()
+                daily_rf = rf / 252.0
+                s_historical = ((avg_return - daily_rf) / downside_dev) * np.sqrt(252) if downside_dev > 0 else 0
+                return f"### Historical Sortino Ratio: {symbol.upper()}\n- Downside Dev: {downside_dev*100:.2f}%\n- Risk-Free (.TNX): {rf*100:.2f}%\n- **Historical Sortino:** {s_historical:.2f}"
+                
+        except Exception as e:
+            return f"Error computing Sortino for {symbol}: {e}"
+            
+    return await asyncio.to_thread(compute, ticker, target_price, period, interval)
