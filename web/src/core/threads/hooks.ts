@@ -130,7 +130,7 @@ export function useThreadStream({
     },
     onUpdateEvent(data) {
       const updates: Array<Partial<AgentThreadState> | null> = Object.values(
-        data || {},
+        data ?? {},
       );
       for (const update of updates) {
         if (update && "title" in update && update.title) {
@@ -264,7 +264,7 @@ export function useThreadStream({
 
                   // Create a File object from the blob
                   return new File([blob], fileUIPart.filename, {
-                    type: fileUIPart.mediaType || blob.type,
+                    type: fileUIPart.mediaType ?? blob.type,
                   });
                 } catch (error) {
                   console.error(

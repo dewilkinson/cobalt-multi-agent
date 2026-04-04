@@ -469,7 +469,7 @@ _vli_convergence_history: list[dict[str, Any]] = []
 
 @app.post("/api/vli/report-metric")
 async def report_vli_metric(metric: dict[str, Any]):
-    """Receives and stores convergence metrics from diagnostic tests."""
+    """Receives and stores convergence metrics."""
     global _vli_convergence_history
     _vli_convergence_history.append(
         {
@@ -513,12 +513,17 @@ async def reset_vli_session():
         logger.info("VLI_SYSTEM: Cleaning up background tool processes (msedge)...")
         subprocess.run(["taskkill", "/F", "/IM", "msedge.exe", "/T"], capture_output=True, check=False)
 
-        # Truncate the telemetry file with a Hard-Kill marker
+        # Truncate the telemetry file COMPLETELY for a clean session start
         timestamp = datetime.now().strftime("%H:%M:%S")
-        with open(telemetry_file, "w", encoding="utf-8") as f:
-            f.write("# VLI Session Telemetry Log\n")
-            f.write(f"### [{timestamp}] SYSTEM_NODE Hard-Kill Deployment\n")
-            f.write("- **Status**: `SHUTDOWN_EXECUTED`\n- **Action**: Preemptively terminated all active research agents and background processes.\n\n---\n")
+        try:
+            with open(telemetry_file, "w", encoding="utf-8") as f:
+                f.write("# VLI Session Telemetry Log\n")
+                f.write(f"### [{timestamp}] SYSTEM_NODE: NEW SESSION INITIALIZED\n")
+                f.write("- **Status**: `READY`\n- **Action**: All previous telemetry backlog and active processes have been cleared.\n\n---\n")
+                f.flush()
+                os.fsync(f.fileno())
+        except Exception as fe:
+            logger.error(f"VLI: Failed to truncate telemetry file: {fe}")
 
         # Reset global state flags
         # Already declared global at top
@@ -533,6 +538,7 @@ async def reset_vli_session():
         return {"status": "success"}
     except Exception as e:
         logger.error(f"VLI: Error resetting session: {e}")
+        return {"status": "error", "message": str(e)}
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -711,6 +717,20 @@ async def _invoke_vli_agent(text: str, image: str | None = None, direct_mode: bo
     else:
         content = text
 
+
+async def _invoke_vli_agent(text: str, image_data: str = None, direct_mode: bool = False):
+    """Main VLI agent orchestration logic using the LangGraph specialist swarm."""
+    global _vli_reset_requested, _vli_active_task, _vli_session_id
+    
+    # 1. Prepare Orchestration Context
+    content = text
+    if image_data:
+        # If we have an image, we can wrap it in a multimetal prompt if the agent supports it
+        # For now, we assume text-primary focus but the state allows vision expansion.
+        pass
+        
+    thread_id = _vli_session_id
+    
     # [V10.5 CONTEXT PATCH]
     # We pass only the CURRENT message. Because the graph is configured with a
     # thread_id checkpointer, LangGraph will automatically append this to the
@@ -744,21 +764,21 @@ async def _invoke_vli_agent(text: str, image: str | None = None, direct_mode: bo
     }
 
     _vli_active_task = asyncio.current_task()
-
+    
     try:
         # [NEW] Kill switch check
         if _vli_reset_requested:
             logger.warning("VLI Agent: Reset requested. Terminating jobs.")
-            return "Session Reset Signal Received. Execution Terminated."
+            return "Session Reset Signal Received. Execution Terminated.", {}
 
-        # Run the graph and get the final state with an extended timeout (Resonance Window)
-        # 429 Resource Exhausted errors are now handled at the node level in common_vli.py
-        # with exponential backoff for high-fidelity specialist recovery.
-        final_state = await asyncio.wait_for(graph.ainvoke(workflow_input, config=workflow_config), timeout=120.0)
+        # Run the graph and get the final state with an aggressive timeout (60s)
+        final_state = await asyncio.wait_for(graph.ainvoke(workflow_input, config=workflow_config), timeout=60.0)
+        
         # 1. Prioritize explicitly set 'final_report'
         if final_state.get("final_report"):
-            return final_state["final_report"]
+            return final_state["final_report"], final_state
 
+        out_str = ""
         # 2. Extract the last assistant message as a fallback
         if "messages" in final_state and final_state["messages"]:
             for msg in reversed(final_state["messages"]):
@@ -774,21 +794,26 @@ async def _invoke_vli_agent(text: str, image: str | None = None, direct_mode: bo
                             elif isinstance(item, str):
                                 text_parts.append(item)
 
-                        out_str = " ".join(text_parts).strip()
-                        if out_str and not out_str.startswith("Plan formulated:"):
-                            return out_str
+                        buffer = " ".join(text_parts).strip()
+                        if buffer and not buffer.startswith("Plan formulated:"):
+                            return buffer, final_state
                     elif isinstance(msg.content, str):
                         if not msg.content.startswith("Plan formulated:"):
-                            return msg.content
+                            return msg.content, final_state
 
-        return "Directive processed. No specific output generated."
+        if not out_str:
+            out_str = "Directive processed (No specific output generated)."
+            
+        return out_str, final_state
 
-    except TimeoutError:
-        logger.warning("VLI Agent: Master orchestration timed out (35s). Delegating retry to client UI.")
-        raise HTTPException(status_code=504, detail="Agent processing timed out. Please retry.")
+    except asyncio.TimeoutError:
+        logger.warning("VLI Agent: Master orchestration timed out (60s).")
+        error_msg = "Agent processing timed out (60s). Please check logs or retry."
+        return error_msg, {"messages": [AIMessage(content=error_msg, name="system")]}
     except Exception as e:
         logger.error(f"VLI Agent: Failed with error: {e}")
-        raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
+        error_msg = f"Agent reasoning encountered a structural failure: {str(e)}"
+        return error_msg, {"messages": [AIMessage(content=error_msg, name="system")]}
 
 
 @app.post("/api/vli/action-plan")
@@ -796,14 +821,14 @@ async def post_vli_action_plan(request: VLIActionPlanRequest):
     """Handle chat or action-plan updates from the VLI Sidebar."""
     plan_file = get_action_plan_path()
 
-    # [NEW] Log Issued Command to Raw Telemetry for audit visibility
+    # [NEW] Log Issued Command to Raw Telemetry
     try:
+        from src.config.vli import get_vli_path
         telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
         timestamp = datetime.now().strftime("[%H:%M:%S]")
         with open(telemetry_file, "a", encoding="utf-8") as tf:
             tf.write(f"\n{timestamp} **DIRECTIVE ISSUED:** {request.text}\n")
             tf.flush()
-            os.fsync(tf.fileno())
     except Exception as le:
         logger.error(f"VLI: Failed to log command audit: {le}")
 
@@ -829,19 +854,50 @@ async def post_vli_action_plan(request: VLIActionPlanRequest):
 
     # Real Agent Routing for Chat/Directives
     logger.info(f"VLI: Routing directive to Gemini Agent: {request.text[:50]}...")
+    final_vli_state = {} # Ensure initialization
     try:
-        response_text = await _invoke_vli_agent(request.text, request.image, request.direct_mode)
+        response_text, final_vli_state = await _invoke_vli_agent(request.text, request.image, request.direct_mode)
     except Exception as e:
-        # [V10 AUDIT] Log structural failures to telemetry so the user sees WHY it failed
+        # [V10 AUDIT] Log structural failures to telemetry
         try:
-            with open(get_vli_path("VLI_Raw_Telemetry.md"), "a", encoding="utf-8") as tf:
-                timestamp = datetime.now().strftime("[%H:%M:%S]")
+            from src.config.vli import get_vli_path
+            telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
+            timestamp = datetime.now().strftime("[%H:%M:%S]")
+            with open(telemetry_file, "a", encoding="utf-8") as tf:
+                # Distinguish between timeout and other errors
+                status_label = "FAILED : TIMEOUT" if "timed out" in str(e).lower() else "CRITICAL_FAIL"
                 tf.write(f"\n{timestamp} **SYSTEM ERROR:** Agent Reasoning Failed - {str(e)}\n")
-                tf.flush()
-                os.fsync(tf.fileno())
+                tf.write(f"- **Status**: `{status_label}`\n- **Action**: Execution aborted.\n\n---\n")
         except:
             pass
         raise HTTPException(status_code=500, detail=str(e))
+
+    # --- Final Telemetry Audit: Session COMPLETED (v10 Consolidated) ---
+    try:
+        telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
+        timestamp = datetime.now().strftime("[%H:%M:%S]")
+        
+        # Extract metadata from final state
+        agents_run = []
+        messages = final_vli_state.get("messages", [])
+        for m in messages:
+            if isinstance(m, AIMessage) and getattr(m, "name", None):
+                if m.name not in ["reporter", "coordinator", "vli_coordinator", "router", "vli_parser"] and m.name not in agents_run:
+                    agents_run.append(m.name)
+        
+        agent_list = "\n  - " + "\n  - ".join([f"**{a}**" for a in agents_run]) if agents_run else " None"
+        preview = response_text[:100].strip().replace("\n", " ")
+        
+        with open(telemetry_file, "a", encoding="utf-8") as tf:
+            tf.write(f"\n{timestamp} **VLI TRANSACTION RESOLVED**\n")
+            tf.write(f"- **Session Status**: `COMPLETED`\n")
+            tf.write(f"- **Agents Spun Up**: `{len(agents_run)}` {agent_list}\n")
+            tf.write(f"- **Directive**: `{request.text[:40]}...`\n")
+            tf.write(f"- **Response Preview**: {preview}...\n\n---\n")
+            tf.flush()
+            os.fsync(tf.fileno())
+    except Exception as le:
+        logger.error(f"VLI: Failed to log final completion audit: {le}")
 
     return {"response": response_text}
 

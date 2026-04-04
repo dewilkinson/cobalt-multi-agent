@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { BadgeInfo } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
 
 import { Markdown } from "~/components/cobalt-multi-agent/markdown";
 

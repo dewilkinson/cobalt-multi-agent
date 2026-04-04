@@ -1,6 +1,5 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -12,6 +11,7 @@ import {
   MarkerType,
 } from '@xyflow/react';
 import type { Node, Edge } from '@xyflow/react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import '@xyflow/react/dist/style.css';
 
 // Predefined layout map for standard nodes
@@ -56,9 +56,9 @@ export default function NetworkVisualizer() {
 
       if (data.type === 'init') {
         // Initialize graph nodes
-        const initialNodes = data.nodes.map((n: any) => ({
+        const initialNodes = data.nodes.map((n: { id: string; label: string; type: string }) => ({
           id: n.id,
-          position: layoutMap[n.id] || { x: Math.random() * 500, y: Math.random() * 500 },
+          position: layoutMap[n.id] ?? { x: Math.random() * 500, y: Math.random() * 500 },
           data: { label: n.label },
           style: {
             background: n.type === 'agent' ? '#3B82F6' : '#10B981',
@@ -92,7 +92,6 @@ export default function NetworkVisualizer() {
         addLog('Initialized Network Grid');
       } 
       else if (data.type === 'event') {
-        const timestamp = new Date().toLocaleTimeString();
         addLog(`[${data.action.toUpperCase()}] ${data.message}`);
 
         // Update Grid State if it's a folder-based operation
@@ -100,7 +99,7 @@ export default function NetworkVisualizer() {
         if (folderMatch) {
             const folder = folderMatch[0];
             const folderIndex = FOLDERS.indexOf(folder);
-            const slotMatch = data.message.match(/(update|segment|cache|final|Slot)_(\d+)/) || data.message.match(/Slot (\d+)/);
+            const slotMatch = data.message.match(/(update|segment|cache|final|Slot)_(\d+)/) ?? data.message.match(/Slot (\d+)/);
             const iteration = slotMatch ? parseInt(slotMatch[1] === 'Slot' ? slotMatch[2] : slotMatch[2]) : Math.floor(Math.random() * 50);
             const cellIndex = (folderIndex * 10) + (iteration % 10);
             
@@ -175,7 +174,7 @@ export default function NetworkVisualizer() {
       }
     };
 
-    eventSource.onerror = (err) => {
+    eventSource.onerror = (_err) => {
       addLog('Connection to Simulation Backend Lost.');
       eventSource.close();
       setIsSimulating(false);
@@ -223,7 +222,7 @@ export default function NetworkVisualizer() {
         >
           <Background color="#333" gap={16} />
           <Controls />
-          <MiniMap nodeColor={(n) => (n.style?.background as string) || '#fff'} />
+          <MiniMap nodeColor={(n) => (n.style?.background as string) ?? '#fff'} />
           
           {/* Activity Grid Overlay via Node Data or custom component */}
           <div className="absolute bottom-10 left-10 z-20 pointer-events-none">
@@ -241,7 +240,7 @@ export default function NetworkVisualizer() {
                         <div 
                             key={i} 
                             style={{ 
-                                background: gridState[i] || (residentCells.has(i) ? '#3f3f46' : '#18181b'),
+                                background: gridState[i] ?? (residentCells.has(i) ? '#3f3f46' : '#18181b'),
                                 border: residentCells.has(i) ? '1px solid #52525b' : '1px solid #27272a'
                             }}
                             className="w-6 h-6 rounded-md transition-all duration-700 shadow-inner"

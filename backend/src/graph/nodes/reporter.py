@@ -14,9 +14,15 @@ logger = logging.getLogger(__name__)
 
 
 async def reporter_node(state: State):
-    """Reporter node implementation with AI synthesis."""
-    logger.info("Reporter Node: Synthesizing final session briefing.")
-    # Telemetry logging has been moved to the bottom of the function to ensure the dashboard waits until synthesis is complete.
+    # 1. Telemetry Logging: Mark session as synthesizing
+    try:
+        from src.config.vli import get_vli_path
+        telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        with open(telemetry_file, "a", encoding="utf-8") as f:
+            f.write(f"### [{timestamp}] VLI Transaction Update\n- **Session Status**: `SYNTHESIZING`\n- **Action**: Generating final intelligence report...\n\n---\n")
+    except Exception as e:
+        logger.error(f"Failed to log synthesis start: {e}")
 
     # 2. Dynamic Synthesis
     if state.get("final_report"):
@@ -80,80 +86,8 @@ async def reporter_node(state: State):
         logger.error(f"Reporter Synthesis Error: {e}")
         final_report_text = "Analysis completed. (Synthesis failed, check logs)"
 
-    # Telemetry Logging: Mark session as complete ONLY AFTER synthesis is done
-    try:
-        from src.config.vli import get_vli_path
-
-        telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
-        os.makedirs(os.path.dirname(telemetry_file), exist_ok=True)
-
-        # Extract atomic metrics
-        messages_history = state.get("messages", [])
-        initial_command = "Unknown"
-        agent_sequence = []
-
-        current_plan = state.get("current_plan")
-        steps = []
-        if current_plan:
-            steps = getattr(current_plan, "steps", [])
-
-        step_idx = 0
-        last_name = None
-
-        for msg in reversed(messages_history):
-            if isinstance(msg, HumanMessage):
-                initial_command = str(msg.content)
-                break
-
-        for msg in messages_history:
-            if isinstance(msg, AIMessage) and getattr(msg, "name", None):
-                msg_name = msg.name
-
-                # Exclude administrative nodes
-                if msg_name in ["reporter", "coordinator", "vli_coordinator", "router"]:
-                    continue
-
-                # Strict Institutional Name Filter
-                valid_nodes = ["scout", "researcher", "analyst", "smc_analyst", "system", "terminal_specialist", "vision_specialist", "journaler"]
-                if msg_name not in valid_nodes:
-                    continue
-
-                # Deduplication
-                if msg_name != last_name:
-                    display_name = f"**<span style='color: #f0883e;'>{msg_name}</span>**"
-                    if step_idx < len(steps):
-                        step_title = steps[step_idx].title if hasattr(steps[step_idx], "title") else steps[step_idx].get("title", "Active Step")
-                        display_name += f" ({step_title}) "
-                        step_idx += 1
-                    elif msg_name == "vli_parser":
-                        display_name += " (Fast-Path Execution) "
-
-                    agent_sequence.append(display_name)
-                    last_name = msg_name
-
-        timestamp = datetime.now().strftime("%H:%M:%S")
-
-        agent_list_md = ""
-        if agent_sequence:
-            agent_list_md = "\n  - " + "\n  - ".join(agent_sequence)
-        else:
-            agent_list_md = " None"
-
-        final_response_preview = final_report_text[:500].strip().replace("\n", " ")
-
-        log_entry = (
-            f"### [{timestamp}] VLI Transaction\n"
-            f"- **Session Status**: `COMPLETED`\n"
-            f"- **Command**: `{initial_command}`\n"
-            f"- **Agents Spun Up**: `{len(agent_sequence)}`{agent_list_md}\n"
-            f"- **System Response Preview**: {final_response_preview}...\n\n"
-            "---\n"
-        )
-
-        with open(telemetry_file, "a", encoding="utf-8") as f:
-            f.write(log_entry)
-
     except Exception as e:
-        logger.error(f"Failed to write telemetry: {e}")
+        logger.error(f"Reporter Synthesis Error: {e}")
+        final_report_text = "Analysis completed. (Synthesis failed, check logs)"
 
     return {"final_report": final_report_text}

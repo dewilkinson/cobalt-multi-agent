@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  CreditCard, 
   ExternalLink, 
   RefreshCw, 
   Cpu, 
@@ -13,7 +12,7 @@ import {
   ChevronRight,
   TrendingUp
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 
 type CreditData = {
   monthly: string | number;
@@ -32,7 +31,7 @@ const CreditCardComponent = ({
 }: { 
   title: string; 
   value: string | number; 
-  icon: any; 
+  icon: React.ElementType; 
   colorClass: string;
   delay?: number;
 }) => (
@@ -45,7 +44,7 @@ const CreditCardComponent = ({
     <div className={`absolute inset-0 bg-gradient-to-br ${colorClass} opacity-10 blur-xl rounded-3xl transition-opacity group-hover:opacity-20`} />
     <div className="relative h-full p-8 rounded-3xl bg-white/[0.03] border border-white/10 backdrop-blur-xl flex flex-col justify-between overflow-hidden shadow-2xl">
       <div className="flex items-center justify-between mb-8">
-        <div className={`p-3 rounded-2xl bg-white/5 border border-white/10 ${(colorClass.split(' ')[1] || 'to-indigo-500').replace('to-', 'text-')}`}>
+        <div className={`p-3 rounded-2xl bg-white/5 border border-white/10 ${(colorClass.split(' ')[1] ?? 'to-indigo-500').replace('to-', 'text-')}`}>
           <Icon className="w-6 h-6" />
         </div>
         <div className="flex h-1.5 w-1.5 rounded-full bg-white/20" />
@@ -99,9 +98,9 @@ export default function StudioDashboard() {
     } catch (err) {
       console.error(err);
       setCredits(prev => ({ 
-        monthly: prev?.monthly || 'Error', 
-        additional: prev?.additional || 'Error', 
-        total: prev?.total || 'Error',
+        monthly: prev?.monthly ?? 'Error', 
+        additional: prev?.additional ?? 'Error', 
+        total: prev?.total ?? 'Error',
         error: "Sync Failed. Is the backend server running?"
       }));
     } finally {
@@ -121,11 +120,11 @@ export default function StudioDashboard() {
   };
 
   useEffect(() => {
-    fetchCredits();
+    void fetchCredits();
     
     // 15 minute refresh loop (900,000 ms)
     const interval = setInterval(() => {
-      fetchCredits();
+      void fetchCredits();
     }, 900000);
 
     // Progress bar animation interval (update every 1s for better performance over long periods)
@@ -227,21 +226,21 @@ export default function StudioDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           <CreditCardComponent 
             title="Monthly Credits"
-            value={credits?.monthly || '...'}
+            value={credits?.monthly ?? '...'}
             icon={Clock}
             colorClass="from-indigo-600 to-indigo-900"
             delay={0.1}
           />
           <CreditCardComponent 
             title="Additional Credits"
-            value={credits?.additional || '...'}
+            value={credits?.additional ?? '...'}
             icon={Zap}
             colorClass="from-purple-600 to-purple-900"
             delay={0.2}
           />
           <CreditCardComponent 
             title="Total Combined"
-            value={credits?.total || '...'}
+            value={credits?.total ?? '...'}
             icon={TrendingUp}
             colorClass="from-emerald-600 to-emerald-900"
             delay={0.3}
@@ -274,7 +273,7 @@ export default function StudioDashboard() {
                 </div>
 
                 <div className="flex flex-col items-end gap-2 text-right">
-                  <span className="text-4xl font-black text-white tracking-tight">{memory?.percent || 0}%</span>
+                  <span className="text-4xl font-black text-white tracking-tight">{memory?.percent ?? 0}%</span>
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Memory Consumed</span>
                 </div>
               </div>
@@ -282,7 +281,7 @@ export default function StudioDashboard() {
               <div className="mt-10 h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 p-0.5">
                 <motion.div 
                   initial={{ width: 0 }}
-                  animate={{ width: `${memory?.percent || 0}%` }}
+                  animate={{ width: `${memory?.percent ?? 0}%` }}
                   className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.5)]"
                 />
               </div>

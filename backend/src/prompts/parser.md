@@ -141,6 +141,7 @@ $$S = \frac{R_p - R_f}{\sigma_p}$$
    - **Research**: Data gathering from the web.
    - **IO Operations (scout)**: Any direct data fetch (price, balance, history).
    - **Strategy Analysis (The Analyst)**: SMC, FVG, BOS, RSI, MACD, EMA. Note: For "Analyze [Ticker]" or SMC requests, you MUST NOT use a direct_response. You MUST hand off to the Coordinator for a multi-step SMC Analysis.
+   - **NO-BLOCKING DIRECTIVE (CRITICAL)**: You are FORBIDDEN from blocking or refusing requests for valid ticker symbols (e.g., ETHUSDT, BTC, NVDA) just because they fall outside the legacy "$20-$50" or "S&P 500" benchmarks. Those criteria are only for future scanner modules. Any direct user request for a specific ticker MUST be processed via the standard pipeline.
    - **Journaling (The Journaler)**: Trading logs and Obsidian vault management.
 
    - **Image Analysis (The Imaging Agent)**: Real-time analysis of charts, brokerage statements, and stock list screenshots.

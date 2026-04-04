@@ -78,7 +78,7 @@ export function InputBox({
         if (trimmed.startsWith("/")) {
           const parts = trimmed.split(/\s+/);
           const cmd = parts[0].toLowerCase();
-          const scope = parts[1] || "global";
+          const scope = parts[1] ?? "global";
 
           if (cmd === "/snapshot") {
             onSend?.(`Please execute the 'snapshot_memory' tool for the scope: '${scope}'.`, { resources });

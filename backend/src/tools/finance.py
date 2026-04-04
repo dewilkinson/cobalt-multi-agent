@@ -149,10 +149,12 @@ def _normalize_ticker(ticker: str) -> str:
         return "^TYX"
     if t == "FVX":
         return "^FVX"
-    if t == "BTC":
+    if t == "BTC" or t == "BTCUSDT":
         return "BTC-USD"
-    if t == "ETH":
+    if t == "ETH" or t == "ETHUSDT":
         return "ETH-USD"
+    if t.endswith("USDT"):
+        return t.replace("USDT", "-USD")
     if t == "GC" or t == "GOLD":
         return "GC=F"
     if t == "SI" or t == "SILVER":

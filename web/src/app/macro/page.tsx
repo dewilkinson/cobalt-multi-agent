@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -14,7 +14,7 @@ import {
   BarChart3,
   Loader2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 
 type SparklinePoint = {
   v: number;
@@ -157,12 +157,16 @@ export default function MacroDashboard() {
   };
 
   useEffect(() => {
-    fetchMacros();
-    
-    // Auto-refresh every 15 minutes (900,000 ms)
-    const interval = setInterval(fetchMacros, 900000);
+    void fetchMacros();
 
-    return () => clearInterval(interval);
+    // Auto-refresh every 15 minutes (900,000 ms)
+    const interval = setInterval(() => {
+      void fetchMacros();
+    }, 900000);
+
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
   const SectorLink = ({ name, type }: { name: string, type: 'buyer' | 'seller' | 'vol' }) => (
@@ -519,7 +523,7 @@ export default function MacroDashboard() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-4">
                             <div className="flex-shrink-0 opacity-80 ring-1 ring-violet-500/20 rounded p-1 bg-violet-500/5">
-                              <Sparkline data={item.sparkline || []} color="#c084fc" />
+                              <Sparkline data={item.sparkline ?? []} color="#c084fc" />
                             </div>
                             <div className="flex flex-col min-w-0">
                               <span className="font-bold text-white text-lg tracking-tight group-hover:text-indigo-300 transition-colors uppercase leading-tight">
@@ -554,7 +558,7 @@ export default function MacroDashboard() {
                         <td className="px-6 py-4">
                           <div className="flex gap-2">
                             {['15m', '1h', '4h', '1d'].map(tf => {
-                              const trend = (item.trends || {})[tf];
+                              const trend = item.trends?.[tf];
                               const isBullish = trend === 'Bullish';
                               const isBearish = trend === 'Bearish';
                               
