@@ -35,8 +35,8 @@ def test_build_base_graph_adds_nodes_and_edges(MockStateGraph):
     builder_mod._build_base_graph()
 
     # Check that all nodes and edges are added
-    # We now have 16 nodes (including specialized vli agents)
-    assert mock_builder.add_node.call_count == 16
+    # We now have 17 nodes (including specialized vli agents)
+    assert mock_builder.add_node.call_count == 17
     assert mock_builder.add_edge.call_count == 16
 
     # Check conditional edges for the router
