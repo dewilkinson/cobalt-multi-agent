@@ -52,9 +52,9 @@ async def reporter_node(state: State):
                 if isinstance(m, HumanMessage):
                     compacted.append(m)
                 elif isinstance(m, AIMessage):
-                    name = getattr(m, "name", "")
-                    # Keep coordinator plans and the very last results
-                    if name in ["coordinator", "vli_coordinator"] or m == raw_messages[-2] or m == raw_messages[-1]:
+                    name = getattr(m, "name", "") or ""
+                    # Keep coordinator plans, analyst outputs, and the very last results
+                    if name in ["coordinator", "vli_coordinator"] or "analyst" in name.lower() or m == raw_messages[-2] or m == raw_messages[-1]:
                         # Ensure large message content is summarized, not just deleted
                         if m.content and len(str(m.content)) > 10000:
                             m.content = str(m.content)[:10000] + "\n... [Content Truncated for Efficiency]"

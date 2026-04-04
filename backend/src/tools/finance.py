@@ -241,13 +241,25 @@ def _extract_ticker_data(df: pd.DataFrame, ticker: str) -> pd.DataFrame:
     return df.dropna(how="all")
 
 
+_DF_CACHE = {}
+
 def _fetch_stock_history(ticker: str, period: str = "5d", interval: str = "1d") -> pd.DataFrame:
     """
     Standard single-ticker fetcher. Automatically flattens MultiIndex for the requested ticker.
-    Used by all analysis nodes (Analyst, SMC, EMA, etc.).
+    Used by all analysis nodes (Analyst, SMC, EMA, etc.). Heavily cached to prevent LangGraph sequential redundant fetching.
     """
+    norm_ticker = _normalize_ticker(ticker)
+    cache_key = f"{norm_ticker}_{period}_{interval}"
+    
+    if cache_key in _DF_CACHE:
+        logger.info(f"[_DF_CACHE HIT] Reusing data for {cache_key}")
+        return _DF_CACHE[cache_key].copy()
+        
     data = _fetch_batch_history([ticker], period, interval)
-    return _extract_ticker_data(data, ticker)
+    df = _extract_ticker_data(data, ticker)
+    
+    _DF_CACHE[cache_key] = df
+    return df.copy()
 
 
 @tool
@@ -835,10 +847,34 @@ async def run_smc_analysis(ticker: str, interval: str = "auto") -> str:
     macro_lookback = macro_cfg.get("lookback_bars", 200)
     macro_period = "1y" if macro_tf in ("1d", "4h") else "6mo"
 
+    # Pre-parse configs for concurrent fetch
+    tactical_cfg = strategy.get("tactical_map", {})
+    tactical_tf = tactical_cfg.get("timeframes", ["1h"])[0]
+    tactical_lookback = tactical_cfg.get("lookback_bars", 100)
+
+    trigger_cfg = strategy.get("execution_trigger", {})
+    trigger_tf = trigger_cfg.get("timeframes", ["5m"])[0]
+    trigger_lookback = trigger_cfg.get("lookback_bars", 50)
+
     macro_bias = "Neutral"
+
+    # === CONCURRENT FETCH PHASE ===
+    async def fetch_with_sem(period, tf):
+        async with _get_yf_semaphore():
+            return await asyncio.wait_for(asyncio.to_thread(_fetch_stock_history, norm_ticker, period, tf), timeout=12.0)
+
+    results = await asyncio.gather(
+        fetch_with_sem(macro_period, macro_tf),
+        fetch_with_sem("1mo", tactical_tf),
+        fetch_with_sem("5d", trigger_tf),
+        return_exceptions=True
+    )
+    mData_res, tData_res, trData_res = results
+
     try:
-        mData = await asyncio.to_thread(_fetch_batch_history, [norm_ticker], macro_period, macro_tf)
-        mDF = _extract_ticker_data(mData, norm_ticker).tail(macro_lookback).copy()
+        if isinstance(mData_res, Exception):
+            raise mData_res
+        mDF = mData_res.tail(macro_lookback).copy()
         if not mDF.empty:
             mDF.columns = [c.lower() for c in mDF.columns]
             mSwings = smc.swing_highs_lows(mDF, swing_length=15)
@@ -848,26 +884,28 @@ async def run_smc_analysis(ticker: str, interval: str = "auto") -> str:
             latest_choch = mStruct[mStruct["CHOCH"] != 0].tail(1)
 
             # Simple bias heuristic based on the latest structural event
+            m_struct_detail = ""
             if not latest_choch.empty:
                 macro_bias = "Bullish" if latest_choch["CHOCH"].iloc[-1] == 1 else "Bearish"
+                m_level = latest_choch["Level"].iloc[-1] if "Level" in latest_choch.columns else 0
+                m_struct_detail = f" (CHoCH at `{m_level:.4f}`)"
             elif not latest_bos.empty:
                 macro_bias = "Bullish" if latest_bos["BOS"].iloc[-1] == 1 else "Bearish"
+                m_level = latest_bos["Level"].iloc[-1] if "Level" in latest_bos.columns else 0
+                m_struct_detail = f" (BOS at `{m_level:.4f}`)"
 
         report.append(f"### 1. Macro Map ({macro_tf})")
-        report.append(f"- **Institutional Trend**: {macro_bias}")
+        report.append(f"- **Institutional Trend**: {macro_bias}{m_struct_detail}")
     except Exception as e:
         report.append(f"### 1. Macro Map ({macro_tf})\n- [ERROR]: {e}")
         macro_bias = "Error"
 
     # 2. Tactical Map (Zones)
-    tactical_cfg = strategy.get("tactical_map", {})
-    tactical_tf = tactical_cfg.get("timeframes", ["1h"])[0]
-    tactical_lookback = tactical_cfg.get("lookback_bars", 100)
-
     tactical_ready = False
     try:
-        tData = await asyncio.to_thread(_fetch_batch_history, [norm_ticker], "1mo", tactical_tf)
-        tDF = _extract_ticker_data(tData, norm_ticker).tail(tactical_lookback).copy()
+        if isinstance(tData_res, Exception):
+            raise tData_res
+        tDF = tData_res.tail(tactical_lookback).copy()
         if not tDF.empty:
             tDF.columns = [c.lower() for c in tDF.columns]
             tSwings = smc.swing_highs_lows(tDF, swing_length=10)
@@ -880,20 +918,27 @@ async def run_smc_analysis(ticker: str, interval: str = "auto") -> str:
 
             report.append(f"### 2. Tactical Map ({tactical_tf})")
             report.append(f"- **Zones Mapped**: {ob_c} Order Blocks | {fvg_c} Fair Value Gaps.")
+            
+            if ob_c > 0:
+                last_ob = tOB[tOB["OB"] != 0].iloc[-1]
+                dir_str = "Bullish (Demand)" if last_ob["OB"] == 1 else "Bearish (Supply)"
+                report.append(f"- **Active Order Block**: {dir_str} at `{last_ob['Bottom']:.4f}` - `{last_ob['Top']:.4f}`")
+                
+            if fvg_c > 0:
+                last_fvg = tFVG[tFVG["FVG"] != 0].iloc[-1]
+                dir_str = "Bullish (Imbalance)" if last_fvg["FVG"] == 1 else "Bearish (Imbalance)"
+                report.append(f"- **Active FVG**: {dir_str} at `{last_fvg['Bottom']:.4f}` - `{last_fvg['Top']:.4f}`")
         else:
             report.append(f"### 2. Tactical Map ({tactical_tf})\n- Insufficient Data")
     except Exception as e:
         report.append(f"### 2. Tactical Map ({tactical_tf})\n- [ERROR]: {e}")
 
     # 3. Execution Trigger (Liquidity)
-    trigger_cfg = strategy.get("execution_trigger", {})
-    trigger_tf = trigger_cfg.get("timeframes", ["5m"])[0]
-    trigger_lookback = trigger_cfg.get("lookback_bars", 50)
-
     sweep_aligned = False
     try:
-        trData = await asyncio.to_thread(_fetch_batch_history, [norm_ticker], "5d", trigger_tf)
-        trDF = _extract_ticker_data(trData, norm_ticker).tail(trigger_lookback).copy()
+        if isinstance(trData_res, Exception):
+            raise trData_res
+        trDF = trData_res.tail(trigger_lookback).copy()
         if not trDF.empty:
             trDF.columns = [c.lower() for c in trDF.columns]
             trSwings = smc.swing_highs_lows(trDF, swing_length=5)
@@ -908,8 +953,10 @@ async def run_smc_analysis(ticker: str, interval: str = "auto") -> str:
                 if sweep_dir == macro_bias:
                     sweep_aligned = True
 
+                swept_price = liq_event["Level"].iloc[-1] if "Level" in liq_event.columns else 0
+                
                 report.append(f"### 3. Execution Trigger ({trigger_tf})")
-                report.append(f"- **Liquidity Sweep**: YES ({sweep_dir})")
+                report.append(f"- **Liquidity Sweep**: YES ({sweep_dir}) at `{swept_price:.4f}`")
             else:
                 report.append(f"### 3. Execution Trigger ({trigger_tf})")
                 report.append("- **Liquidity Sweep**: NO (Accumulating)")

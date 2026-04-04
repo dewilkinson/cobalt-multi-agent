@@ -43,6 +43,7 @@ Your output MUST follow this exact strategic sequence:
 
 ### 5. Tactical Execution: The Sniper Path
 - **Recommendation**: Explicitly state **STRIKE (Authorized)**, **HOLD (Accumulation)**, or **WAIT (Apathy/Denied)** based on the Apex 500 criteria.
+- **Crypto Exception**: Note that SHORT trades ARE explicitly permitted on crypto assets if the structure is bearish.
 - Define precise execution targets based on the SMC structural blocks.
 - Detail the Current Price, Strike Zone (Entry), Hard Stop (Liquidity Sweep invalidation), and Risk Targets.
 

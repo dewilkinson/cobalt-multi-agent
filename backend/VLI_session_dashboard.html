@@ -48,7 +48,7 @@
         .grid-left {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: minmax(min-content, 33.33%) 1fr;
+            grid-template-rows: 1fr 2fr;
             gap: 15px;
             padding: 20px;
             overflow: hidden;
@@ -73,6 +73,7 @@
             flex-direction: column;
             overflow: hidden;
             position: relative;
+            min-height: 0;
         }
 
         .card-header {
@@ -735,6 +736,17 @@
                         const reportViewer = document.getElementById('analysis-report-viewer');
                         reportViewer.innerHTML = `<div class="analysis-report">${applyStatusFormatting(marked.parse(responseText))}</div>`;
                         reportViewer.scrollTop = 0;
+                        
+                        try {
+                            renderMathInElement(reportViewer, {
+                                delimiters: [
+                                    {left: '$$', right: '$$', display: true},
+                                    {left: '$', right: '$', display: false},
+                                    {left: '\\(', right: '\\)', display: false},
+                                    {left: '\\[', right: '\\]', display: true}
+                                ]
+                            });
+                        } catch(e) { console.error("KaTeX Report Error:", e); }
                         
                         // Keep Chat clean with a redirect message
                         aiMsg.innerHTML = `Analysis posted to <strong style="color: var(--emerald-green); font-weight: 700;">Reports</strong> window`;

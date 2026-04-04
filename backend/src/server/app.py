@@ -584,9 +584,12 @@ async def _invoke_vli_agent(text: str, image: str | None = None, direct_mode: bo
         get_stock_quote = None
         log_vli_metric = lambda *args, **kwargs: None
     # [FAST-PATH TRIGGERS] Deterministic bypass for low-latency situation awareness
+    is_smc = "SMC" in text.upper()
+    is_fast_override = any(kw in text.upper() for kw in ["FAST", "QUICK", "HIGH-LEVEL", "SHORTCUT", "RAPID"])
+
     # Exclusion: Technical keywords (Sortino, Sharpe, etc.) should use the full agent graph
     tech_keywords = ["SORTINO", "SHARPE", "RISK", "VOLATILITY", "ANALYSIS", "REPORT", "ANALYZE"]
-    is_technical = any(kw in text.upper() for kw in tech_keywords)
+    is_technical = any(kw in text.upper() for kw in tech_keywords) and not (is_smc and is_fast_override)
 
     is_macro = "MACRO" in text.upper() and ("LIST" in text.upper() or "PRICE" in text.upper())
     is_price_list = ("SYMBOL" in text.upper() or "PORTFOLIO" in text.upper()) and "PRICE" in text.upper()
@@ -595,23 +598,23 @@ async def _invoke_vli_agent(text: str, image: str | None = None, direct_mode: bo
     # 2. Refined Ticker Query: Qualified vs Unqualified vs Analyze
     qualifiers = ["PRICE", "VOLUME", "OHLC", "VALUE", "MA", "RSI", "MACD"]
     is_qualified = any(q in text.upper() for q in qualifiers)
-    is_analyze = "ANALYZE" in text.upper() or "ANALYSIS" in text.upper()
-    is_ticker_query = ("$" in text or "GET " in text.upper() or is_analyze) and len(text) < 40 and not is_analyze  # [STRICT] Exclude analyze from ticker queries
+    is_analyze = ("ANALYZE" in text.upper() or "ANALYSIS" in text.upper()) and not (is_smc and is_fast_override)
+    is_ticker_query = ("$" in text or "GET " in text.upper() or is_analyze or (is_smc and is_fast_override)) and len(text) < 65 and not is_analyze
 
     is_fast_track = (is_macro or is_price_list or is_vix or is_ticker_query) and not is_technical and not is_analyze
 
     if is_fast_track:
         ticker = ""
         # 1. Prioritize $TICKER format
-        sym_match = re.search(r"\$([A-Z]{1,5})", text.upper())
+        sym_match = re.search(r"\$([A-Z]{1,10})", text.upper())
         if sym_match:
             ticker = sym_match.group(1)
         elif is_vix:
             ticker = "VIX"
         else:
             # Fallback to general search but exclude stop-words
-            ticker_stop_words = ["GET", "STOCK", "PRICE", "LIST", "MARCO", "MARO", "VALUE", "PORT", "SYMBOL"]
-            words = re.findall(r"\b([A-Z]{1,5})\b", text.upper())
+            ticker_stop_words = ["GET", "STOCK", "PRICE", "LIST", "MARCO", "MARO", "VALUE", "PORT", "SYMBOL", "SMC", "FOR", "ANALYSIS", "REPORT", "ANALYZE", "FAST", "QUICK", "HIGH-LEVEL", "SHORTCUT", "RAPID", "HIGH", "LEVEL"]
+            words = re.findall(r"\b([A-Z]{1,10})\b", text.upper())
             for word in words:
                 if word not in ticker_stop_words:
                     ticker = word
@@ -653,7 +656,7 @@ async def _invoke_vli_agent(text: str, image: str | None = None, direct_mode: bo
                     log_vli_metric("fastpath_macro_batch", duration, status="pass")
 
                     _vli_convergence_history.append({"timestamp": datetime.now().strftime("%H:%M:%S"), "iteration": 1, "latency": duration, "accuracy": 100.0, "status": "pass"})
-                    return "### Global Macro Tickers (Atomic Fast-Path)\n" + "\n".join(results)
+                    return "### Global Macro Tickers (Atomic Fast-Path)\n" + "\n".join(results), {}
                 except Exception as be:
                     logger.warning(f"VLI Fast-Path: Batch retrieval failed: {be}")
                     # Fallback to text list if batch fails
@@ -669,12 +672,23 @@ async def _invoke_vli_agent(text: str, image: str | None = None, direct_mode: bo
                 "*Tip: Type 'Get Macro Price list' for live situation awareness data.*"
             )
             _vli_convergence_history.append({"timestamp": datetime.now().strftime("%H:%M:%S"), "iteration": 1, "latency": 0.2, "accuracy": 100.0, "status": "pass"})
-            return macro_report
+            return macro_report, {}
 
         if ticker and get_stock_quote:
             try:
                 start_time = datetime.now()
                 # Call tool directly with Fast-Path enabled (Deterministic & Lock-Free)
+                # [NEW] SMC Fast Path Intercept
+                if is_smc:
+                    from src.tools.finance import run_smc_analysis
+                    r_func = getattr(run_smc_analysis, "coroutine", getattr(run_smc_analysis, "func", None))
+                    report = await asyncio.wait_for(r_func(ticker=ticker, interval="auto"), timeout=15.0)
+                    
+                    duration = (datetime.now() - start_time).total_seconds()
+                    log_vli_metric(f"fastpath_smc_{ticker.lower()}", duration, status="pass")
+                    _vli_convergence_history.append({"timestamp": datetime.now().strftime("%H:%M:%S"), "iteration": 1, "latency": duration, "accuracy": 100.0, "status": "pass"})
+                    return report, {}
+
                 # [SMC REWORK] Conditional fetch: Full SMC (OHLCV) for unqualified vs Atomic for qualified
                 if is_qualified:
                     # Atomic Fetch: Price + Volume + Specific Qualifier
@@ -694,7 +708,7 @@ async def _invoke_vli_agent(text: str, image: str | None = None, direct_mode: bo
                 if isinstance(q, dict):
                     # Handle SMC-Grade response string
                     if q.get("type") == "smc_full":
-                        return q["response"]
+                        return q["response"], {}
 
                     # Atomic response handling
                     _vli_last_ux_card = get_latest_ux_data(ticker)
@@ -703,40 +717,25 @@ async def _invoke_vli_agent(text: str, image: str | None = None, direct_mode: bo
                     _vli_convergence_history.append({"timestamp": datetime.now().strftime("%H:%M:%S"), "iteration": 1, "latency": duration, "accuracy": 100.0, "status": "pass"})
 
                     p, c = q.get("price", 0), q.get("change", 0)
-                    return f"### {ticker} (Atomic Fast-Path)\n- **Price**: `${p:.2f}`\n- **Change**: `{'+' if c >= 0 else ''}{c:.2f}%`"
-                return str(q)
+                    return f"### {ticker} (Atomic Fast-Path)\n- **Price**: `${p:.2f}`\n- **Change**: `{'+' if c >= 0 else ''}{c:.2f}%`", {}
+                return str(q), {}
+            except Exception as fe:
+                logger.warning(f"VLI Fast-Path: Atomic resolution failed for '{ticker}': {fe}")
             except Exception as fe:
                 logger.warning(f"VLI Fast-Path: Atomic resolution failed for '{ticker}': {fe}")
 
-    # Prepare content
-
-    # Prepare content
+    # Prepare content for LangGraph Swarm if Fast Path is missed
     if image:
-        # Assuming image is base64 data URL
-        content = [{"type": "text", "text": text}, {"type": "image_url", "image_url": {"url": image}}]
+        content_obj = [{"type": "text", "text": text}, {"type": "image_url", "image_url": {"url": image}}]
     else:
-        content = text
-
-
-async def _invoke_vli_agent(text: str, image_data: str = None, direct_mode: bool = False):
-    """Main VLI agent orchestration logic using the LangGraph specialist swarm."""
-    global _vli_reset_requested, _vli_active_task, _vli_session_id
-    
-    # 1. Prepare Orchestration Context
-    content = text
-    if image_data:
-        # If we have an image, we can wrap it in a multimetal prompt if the agent supports it
-        # For now, we assume text-primary focus but the state allows vision expansion.
-        pass
+        content_obj = text
         
-    thread_id = _vli_session_id
-    
     # [V10.5 CONTEXT PATCH]
     # We pass only the CURRENT message. Because the graph is configured with a
     # thread_id checkpointer, LangGraph will automatically append this to the
     # existing history in the database rather than overwriting it.
     workflow_input = {
-        "messages": [HumanMessage(content=content)],
+        "messages": [HumanMessage(content=content_obj)],
         "plan_iterations": 0,
         "steps_completed": 0,  # [CRITICAL] Reset traversal index so coordinator doesn't think it's done
         "final_report": "",
@@ -886,7 +885,12 @@ async def post_vli_action_plan(request: VLIActionPlanRequest):
                     agents_run.append(m.name)
         
         agent_list = "\n  - " + "\n  - ".join([f"**{a}**" for a in agents_run]) if agents_run else " None"
-        preview = response_text[:100].strip().replace("\n", " ")
+        
+        if isinstance(response_text, list):
+            # Flatten LangChain multi-modal message content arrays
+            response_text = " ".join([item.get("text", "") if isinstance(item, dict) else str(item) for item in response_text])
+            
+        preview = str(response_text)[:100].strip().replace("\n", " ")
         
         with open(telemetry_file, "a", encoding="utf-8") as tf:
             tf.write(f"\n{timestamp} **VLI TRANSACTION RESOLVED**\n")
