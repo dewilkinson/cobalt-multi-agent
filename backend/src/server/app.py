@@ -890,7 +890,7 @@ async def post_vli_action_plan(request: VLIActionPlanRequest):
         
         with open(telemetry_file, "a", encoding="utf-8") as tf:
             tf.write(f"\n{timestamp} **VLI TRANSACTION RESOLVED**\n")
-            tf.write(f"- **Session Status**: `COMPLETED`\n")
+            tf.write("- **Session Status**: `COMPLETED`\n")
             tf.write(f"- **Agents Spun Up**: `{len(agents_run)}` {agent_list}\n")
             tf.write(f"- **Directive**: `{request.text[:40]}...`\n")
             tf.write(f"- **Response Preview**: {preview}...\n\n---\n")
