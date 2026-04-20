@@ -1640,11 +1640,11 @@
             const saved = localStorage.getItem(targetKey);
             if (!saved) {
                 if (targetKey === 'vli_wm_layout') {
-                    // First boot - rigid 40px geometric fallback
-                    UXManager.createCard('VLI_CHAT', {top: '40px', left: '1440px', width: '440px', height: '800px'}, 'coordinator');
-                    UXManager.createCard('MACRO_WL', {top: '40px', left: '40px', width: '640px', height: '400px'}, 'watchlist');
-                    UXManager.createCard('VLI_TELEMETRY', {top: '40px', left: '720px', width: '680px', height: '400px'}, 'telemetry');
-                    UXManager.createCard('ANALYSIS_REP', {top: '480px', left: '40px', width: '1360px', height: '600px'}, 'report');
+                    // First boot - fluid responsive percentage geometry
+                    UXManager.createCard('VLI_CHAT', {top: '2%', left: '66%', width: '33%', height: '96%'}, 'coordinator');
+                    UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '31%', height: '38%'}, 'watchlist');
+                    UXManager.createCard('VLI_TELEMETRY', {top: '2%', left: '33.5%', width: '31%', height: '38%'}, 'telemetry');
+                    UXManager.createCard('ANALYSIS_REP', {top: '42%', left: '1%', width: '63.5%', height: '56%'}, 'report');
                 } else {
                     alert('Workspace not found: ' + targetKey);
                 }
@@ -1681,6 +1681,24 @@
                         if (state.collapsed) card.classList.add('collapsed');
                         const z = parseInt(state.zIndex) || 100;
                         if (z > winManager.maxZ) winManager.maxZ = z;
+                        
+                        // [UI HARDENING] Enforce viewport bounds constraint for legacy saved layouts
+                        setTimeout(() => {
+                            const rect = card.getBoundingClientRect();
+                            if (state.typeGuid === 'VLI_CHAT') {
+                                // Clamp coordinator strictly to 1/3 viewport if missing bounds
+                                if (rect.right > (window.innerWidth + 5) || rect.bottom > (window.innerHeight + 5) || rect.width > window.innerWidth * 0.4) {
+                                    card.style.top = '2%';
+                                    card.style.left = '66%';
+                                    card.style.width = '33%';
+                                    card.style.height = '96%';
+                                }
+                            } else {
+                                // Auto-correct standard panels safely
+                                if (rect.right > window.innerWidth) card.style.width = Math.max(300, window.innerWidth - rect.left - 15) + 'px';
+                                if (rect.bottom > window.innerHeight) card.style.height = Math.max(200, window.innerHeight - rect.top - 15) + 'px';
+                            }
+                        }, 50);
                     }
                 }
             } catch(e) {}

@@ -340,11 +340,9 @@ async def get_sharpe_ratio(ticker: str, target_price: float = 0.0, period: str =
                 return f"Error: No data for {symbol}"
 
             # Risk free rate from TNX geometry or fallback 4.28%
-            import yfinance as yf
-
             rf = 0.0428
             try:
-                tnx = yf.Ticker("^TNX").history(period="1d")
+                tnx = _fetch_stock_history("^TNX", "1d", "1d")
                 if not tnx.empty:
                     rf = tnx["Close"].iloc[-1] / 100.0
             except:
@@ -397,10 +395,9 @@ async def get_sortino_ratio(ticker: str, target_price: float = 0.0, period: str 
             # 1. Determine Risk-Free Rate (MAR)
             rf = 0.0
             if m != "day_trading":
-                import yfinance as yf
                 rf = 0.0428 # Fallback
                 try:
-                    tnx = yf.Ticker("^TNX").history(period="1d")
+                    tnx = _fetch_stock_history("^TNX", "1d", "1d")
                     if not tnx.empty:
                         rf = tnx["Close"].iloc[-1] / 100.0
                 except: pass

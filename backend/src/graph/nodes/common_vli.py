@@ -72,7 +72,7 @@ async def _run_node_with_tiered_fallback(agent_type, state, config, tools=None, 
         remaining_global = 175.0 - elapsed_global # Use 175s to leave buffer for 180s master limit
         
         tier_timeouts = {
-            "reasoning": 60.0,
+            "reasoning": 120.0,
             "basic": 35.0,
             "legacy": 30.0
         }
@@ -309,12 +309,16 @@ async def _setup_and_execute_agent_step(state, config, agent_type, tools, agent_
              content_str = f"```json\n{json.dumps(content_val, indent=2)}\n```"
         elif isinstance(content_val, list):
              content_parts = []
-             for item in content_val:
-                 if isinstance(item, dict) and "text" in item:
-                     content_parts.append(str(item["text"]))
-                 else:
-                     content_parts.append(str(item))
-             content_str = "\n".join(content_parts)
+             # [FIX] Do not iterate over a list if it's actually a list of single characters
+             if all(isinstance(c, str) and len(c) == 1 for c in content_val):
+                 content_str = "".join(content_val)
+             else:
+                 for item in content_val:
+                     if isinstance(item, dict) and "text" in item:
+                         content_parts.append(str(item["text"]))
+                     else:
+                         content_parts.append(str(item))
+                 content_str = "\n".join(content_parts)
         else:
              content_str = str(content_val)
         

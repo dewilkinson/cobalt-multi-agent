@@ -1,0 +1,1 @@
+Agent reasoning encountered a failure: Error applying template synthesizer: 'SOCIAL_SOURCES' is undefined

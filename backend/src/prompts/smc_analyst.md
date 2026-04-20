@@ -39,7 +39,9 @@ Provide a clean summary of the institutional landscape. Use bullet points for hi
 - **Bias / Trend**: [Declare Bullish/Bearish/Neutral]
   - {{ higher_timeframe_context }}
   
-- **Market Structure**:
+- **Market Structure (Dual-Anchor Protocol)**:
+  - **Macro Ceiling (Absolute High)**: [Price] → [The ground-truth cycle/macro resistance peak]
+  - **Tactical DP (Displacement Pivot)**: [Price] → [The local Lower High where the CHoCH occurred]
   - **BOS/CHoCH**: [Symbol/Price] → [Confirmation Narrative]
   - **Zone**: [Discount/Premium] alignment.
 

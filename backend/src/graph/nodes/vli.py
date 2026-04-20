@@ -83,9 +83,22 @@ async def vli_node(
 
     # Layer 0: High-Priority Intent Tracking (Admin/Math/Direct)
     user_query = str(raw_messages[-1].content) if raw_messages else ""
-    force_direct_exit = "--direct" in user_query.lower()
     
-    stripped_query = user_query.lower().replace("--direct", "").strip()
+    # [HARDENING] Identify the ORIGINAL human query for this turn to prevent intent-drift
+    # on multi-node agent execution paths.
+    original_human_query = ""
+    for msg in reversed(raw_messages):
+        if isinstance(msg, (HumanMessage, ToolMessage)): # Use last human input or tool trigger
+            if isinstance(msg, HumanMessage):
+                original_human_query = str(msg.content)
+                break
+    
+    if not original_human_query:
+        original_human_query = user_query
+
+    force_direct_exit = "--direct" in original_human_query.lower()
+    
+    stripped_query = original_human_query.lower().replace("--direct", "").strip()
     is_admin = any(kw in stripped_query for kw in ["invalidate", "clear cache", "vli tick", "reset diagnostic", "heat map"])
     
     is_arithmetic = bool(re.match(r'^[\d\s\+\-\*\/\(\)\.]+$', stripped_query))
@@ -162,6 +175,15 @@ async def vli_node(
                         "metadata": state.get("metadata", {})
                     }, 
                     goto=END if is_direct_final or state.get("raw_data_mode") else "reporter"
+                )
+            elif current_plan and steps_completed < plan_len:
+                logger.info(f"[VLI_SPINE] Plan in progress ({steps_completed}/{plan_len}). Routing to next step.")
+                next_step = plan_steps[steps_completed]
+                # Handle dictionary representation of Step or Enum
+                next_node = next_step.step_type.value if hasattr(next_step, "step_type") else next_step.get("step_type", "analyst")
+                return Command(
+                    update={"steps_completed": steps_completed},
+                    goto=next_node
                 )
 
     # 2. Workspace & Metadata Synchronization
@@ -294,8 +316,8 @@ async def vli_node(
         raise e
 
     # Fast-Path Check
-    tech_keywords = ["analyze", "analysis", "smc", "sortino", "sharpe", "report", "markets", "outlook", "geopolitical", "likely", "happen", "explain", "recommend", "suggest", "does"]
-    is_technical = any(kw in user_query for kw in tech_keywords)
+    tech_keywords = ["compare", "vs", "versus", "analyze", "analysis", "calendar", "smc", "sortino", "sharpe", "report", "markets", "outlook", "geopolitical", "likely", "happen", "explain", "recommend", "suggest", "does"]
+    is_technical = any(kw in user_query.lower() for kw in tech_keywords)
     
     # Layer 1: Parser Early-Exit (Math / Admin / --DIRECT Override)
     # Whitelist of administrative tools that skip Phase B synthesis (One-sentence direct status)
@@ -363,7 +385,7 @@ async def vli_node(
             messages
             + [response]
             + t_msgs
-            + [HumanMessage(content="Synthesize these results. If this is a system command (like cache invalidation/reset), respond ONLY with a 1-sentence execution status, warning, or error. No conversational filler or persona.")]
+            + [HumanMessage(content="Synthesize these results. If this is a system or cache command, respond ONLY with a 1-sentence execution status (e.g. 'Status: OK'). Otherwise, provide a concise, high-fidelity conversational summary of the fetched data.")]
         )
         
         try:
@@ -384,15 +406,16 @@ async def vli_node(
         final_answer = f"{fallback_prefix}\n\n{extracted_text}" if fallback_prefix else extracted_text
 
         # Check for admin/direct intent (Hardened to use centralized Layer 0 flag)
-        should_bypass_reporter = is_direct or "direct" in str(state.get("intent", "")).lower()
+        # Fast-Path tool execution should always bypass the heavy reporter module
+        should_bypass_reporter = True
         
         return Command(
             update={
                 "messages": fb_msgs1 + [response] + t_msgs + fb_msgs2 + [AIMessage(content=final_answer, name="vli_coordinator")],
-                "intent": "EXECUTE_DIRECT" if should_bypass_reporter else state.get("intent", "MARKET_INSIGHT"),
+                "intent": "EXECUTE_DIRECT",
                 "metadata": state.get("metadata", {})
             }, 
-            goto=END if should_bypass_reporter else "reporter"
+            goto=END
         )
 
     # 5. Phase B: Planning & Coordination
@@ -460,26 +483,27 @@ async def vli_node(
 
     # 2. Conceptual/Strategy Detection
     QUESTION_WORDS = ["what", "how", "why", "describe", "define", "meaning", "mean", "explain", "info"]
-    ADVISORY_WORDS = ["recommend", "should i", "can i", "what if", "how about"]
+    ADVISORY_WORDS = ["recommend", "should i", "can i", "what if", "how about", "consider", "suggest", "watchlist"]
     STRATEGY_KEYWORDS = ["outlook", "strategy", "approach", "behavior", "macro", "scenario", "this week", "next week"]
     
-    is_question = user_query.endswith("?") or any(user_query.lower().startswith(w) for w in QUESTION_WORDS)
-    is_advisory = any(kw in user_query.lower() for kw in ADVISORY_WORDS)
-    is_strategy = any(kw in user_query.lower() for kw in STRATEGY_KEYWORDS)
+    is_question = original_human_query.endswith("?") or any(original_human_query.lower().startswith(w) for w in QUESTION_WORDS)
+    is_advisory = any(kw in original_human_query.lower() for kw in ADVISORY_WORDS)
+    is_strategy = any(kw in original_human_query.lower() for kw in STRATEGY_KEYWORDS)
+    is_sentiment = ("sentiment" in original_human_query.lower() or "news" in original_human_query.lower()) and not force_direct_exit
 
     # 3. Tactical/Command Detection (Imperatives)
     tactical_keywords = ["analyze", "analysis", "smc", "sortino", "sharpe", "report", "get", "run", "scan", "check", "calculate", "audit"]
-    is_tactical = any(user_query.lower().startswith(kw) for kw in ["get", "run", "analyze", "scan", "check", "calculate", "audit"]) or any(kw in user_query.lower() for kw in ["smc", "sortino", "sharpe"])
+    is_tactical = any(original_human_query.lower().startswith(kw) for kw in ["get", "run", "analyze", "scan", "check", "calculate", "audit"]) or any(kw in original_human_query.lower() for kw in ["smc", "sortino", "sharpe"])
 
     # 4. Admin/Fast-Path Detection (Diagnostics/Sync)
     # [v3 Hardening] is_admin is now detected at Layer 0 to fix scoping
 
     # Route Priority: Admin (Direct) -> Advisory (Tactical) -> Question/Strategy (Synthesis) -> Tactical (Audit)
     # [HARDENING] is_admin always forces specialist override to ensure correct tool access
-    is_hard_tactical = any(user_query.lower().startswith(kw) for kw in ["get", "run", "analyze", "scan", "check", "calculate", "audit"])
+    is_hard_tactical = any(original_human_query.lower().startswith(kw) for kw in ["get", "run", "analyze", "scan", "check", "calculate", "audit"])
     
     # We trigger the override if it's admin, or if the model failed to plan steps, or if it's an explicit advisory/question that lacks hard keywords
-    if (is_admin or ((is_question or is_advisory or is_strategy) and not is_hard_tactical) or not plan_obj.steps):
+    if (is_admin or is_sentiment or ((is_question or is_advisory or is_strategy) and not is_hard_tactical) or not plan_obj.steps):
         
         logger.warning(f"[VLI_SPINE] Guardrail: Intent detected (Q: {is_question}, Adv: {is_advisory}, S: {is_strategy}, T: {is_tactical}, A: {is_admin}). Forcing specialist node.")
         plan_obj.has_enough_context = False
@@ -490,6 +514,40 @@ async def vli_node(
             target_step_type = StepType.SMC_ANALYST
             step_title = "Institutional Execution Authorization"
             plan_obj.intent = "TACTICAL_EXECUTION"
+        elif is_sentiment:
+            plan_obj.intent = "SENTIMENT_REPORT"
+            plan_obj.title = "Institutional Sentiment Deep-Dive"
+            plan_obj.steps = [
+                Step(
+                    need_search=False,
+                    title="Price Behavior Scan",
+                    description="Fetch 30-day price history and provide a high-fidelity narrative summary of price drivers for " + user_query,
+                    step_type=StepType.ANALYST
+                ),
+                Step(
+                    need_search=True,
+                    title="Social Pulse and News Sentiment",
+                    description="Search specifically for sentiment on Twitter/X and RSS feeds, then dynamically expand to Reddit for " + user_query,
+                    step_type=StepType.SYNTHESIZER
+                ),
+                Step(
+                    need_search=True,
+                    title="Catalysts and Sector Context",
+                    description="Identify upcoming corporate catalysts and sector-wide news impact for " + user_query,
+                    step_type=StepType.SYNTHESIZER
+                )
+            ]
+            return Command(
+                update={
+                    "current_plan": plan_obj,
+                    "intent": "SENTIMENT_REPORT",
+                    "steps_completed": 0,
+                    "research_topic": plan_obj.title,
+                    "messages": fallback_msgs_all + [AIMessage(content=f"[VLI_SPINE] Orchestrating Sentiment Deep-Dive for {user_query}...", name="coordinator")],
+                    "metadata": state.get("metadata", {})
+                },
+                goto=plan_obj.steps[0].step_type.value
+            )
         elif (is_question or is_strategy) and not is_hard_tactical:
             target_step_type = StepType.SYNTHESIZER
             step_title = "Institutional Market Insight"
@@ -515,6 +573,10 @@ async def vli_node(
         if is_admin:
             plan_obj.intent = "EXECUTE_DIRECT"
 
+    # Robust Intent Check
+    plan_intent = getattr(plan_obj, "intent", "") if isinstance(plan_obj, Plan) else plan_obj.get("intent", "")
+    state_intent = state.get("intent", "")
+
     # Handle direct response from plan
     if plan_obj.has_enough_context or plan_obj.direct_response:
         resp = plan_obj.direct_response or f"Understood: {plan_obj.title}"
@@ -523,9 +585,6 @@ async def vli_node(
         fallback_prefix = "\n".join([f"**{str(m.content)}**" for m in fallback_msgs_all if getattr(m, 'name', '') == "system_fallback"])
         final_answer = f"{fallback_prefix}\n\n{resp}" if fallback_prefix else resp
         
-        # Robust Intent Check
-        plan_intent = getattr(plan_obj, "intent", "") if isinstance(plan_obj, Plan) else plan_obj.get("intent", "")
-        state_intent = state.get("intent", "")
         is_direct = (plan_intent == "EXECUTE_DIRECT") or (state_intent == "EXECUTE_DIRECT")
         
         return Command(
@@ -547,7 +606,7 @@ async def vli_node(
     cmd = Command(
         update={
             "current_plan": plan_obj, 
-            "intent": "EXECUTE_DIRECT" if is_admin else state.get("intent", "MARKET_INSIGHT"),
+            "intent": "EXECUTE_DIRECT" if is_admin else (plan_intent or state_intent or "MARKET_INSIGHT"),
             "steps_completed": 0, 
             "research_topic": plan_obj.title, 
             "locale": plan_obj.locale,

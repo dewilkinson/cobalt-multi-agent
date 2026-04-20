@@ -197,22 +197,16 @@ async def get_macro_prices(symbols: list[str]) -> list[dict[str, Any]]:
             # [FALLBACK] If price is missing or if it's a Bond Yield (TNX/TYX/FVX) or Currency (EURUSD)
             if price == 0 or sym.upper() in ["TNX", "TYX", "FVX", "EURUSD", "EUR/USD"]:
                 try:
-                    from .finance import _normalize_ticker
-
-                    norm = _normalize_ticker(sym)
-                    t_obj = yfinance.Ticker(norm)
-
-                    # Try fast_info first
-                    try:
-                        price = t_obj.fast_info.last_price
-                        change = ((t_obj.fast_info.last_price / t_obj.fast_info.previous_close) - 1) * 100 if t_obj.fast_info.previous_close else 0.0
-                    except:
-                        # [RESONANCE] Deep fallback for yields/currencies using historical data
-                        hist = t_obj.history(period="2d")
-                        if not hist.empty:
-                            price = hist["Close"].iloc[-1]
-                            if len(hist) > 1:
-                                change = ((price / hist["Close"].iloc[-2]) - 1) * 100
+                    from .finance import get_stock_quote
+                    
+                    norm = sym
+                    quote = get_stock_quote(sym)
+                    
+                    if "error" not in quote:
+                        price = quote.get("price", 0)
+                        change = quote.get("changePercent", 0)
+                    else:
+                        price, change = 0, 0
 
                     if price is not None and price != 0:
                         logger.info(f"VLI Scraper Fallback: {sym} -> {price:.2f} (via YFinance - {norm})")

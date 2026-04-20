@@ -12,11 +12,13 @@ from src.config.configuration import Configuration
 from src.tools import (
     crawl_tool,
     fetch_market_macros,
+    fetch_economic_calendar,
     get_bollinger_bands,
     get_ema_analysis,
     get_macd_analysis,
     get_rsi_analysis,
     get_smc_analysis,
+    get_batch_smc_analysis,
     get_stock_quote,
     get_symbol_history_data,
     get_volatility_atr,
@@ -48,15 +50,6 @@ async def synthesizer_node(state: State, config: RunnableConfig):
     """Synthesizer node implementation."""
     logger.info("Synthesizer Node: Initializing.")
 
-    # Example usage of private context (mimicking existing logic)
-    if not _NODE_RESOURCE_CONTEXT.get("macro_history"):
-        logger.info("Synthesizer Node: Initializing private macro history storage.")
-        try:
-            macro_data = await get_symbol_history_data.ainvoke({"symbols": RESEARCH_RULES["MACRO_SET"], "period": RESEARCH_RULES["DEFAULT_LOOKBACK"], "interval": RESEARCH_RULES["DEFAULT_INTERVAL"]})
-            _NODE_RESOURCE_CONTEXT["macro_history"] = macro_data
-        except Exception as e:
-            logger.error(f"Failed to initialize Synthesizer macro history: {e}")
-
     configurable = Configuration.from_runnable_config(config)
     tools = [
         # Researcher extended tools
@@ -66,7 +59,9 @@ async def synthesizer_node(state: State, config: RunnableConfig):
         # Analyst base tools
         get_stock_quote,
         fetch_market_macros,
+        fetch_economic_calendar,
         get_smc_analysis,
+        get_batch_smc_analysis,
         get_ema_analysis,
         get_rsi_analysis,
         get_macd_analysis,

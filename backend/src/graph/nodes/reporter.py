@@ -84,32 +84,53 @@ async def reporter_node(state: State, config: RunnableConfig):
         state_to_synthesize["messages"] = final_compacted
 
         # [NEW] Admin Fast-Path Bypass (Hardened for Dictionary Serialization)
-        plan_intent = getattr(current_plan, "intent", "") if isinstance(current_plan, Plan) else current_plan.get("intent", "")
+        plan_intent = getattr(current_plan, "intent", "") if isinstance(current_plan, Plan) else (current_plan.get("intent", "") if current_plan else "")
         state_intent = state.get("intent", "")
         
         if (plan_intent == "EXECUTE_DIRECT") or (state_intent == "EXECUTE_DIRECT"):
-            logger.info("Reporter: Admin Fast-Path detected. Bypassing narrative synthesis.")
-            # Use the last message content directly (the tool result)
-            if final_compacted:
-                final_report_text = str(final_compacted[-1].content)
-                return {"final_report": final_report_text, "messages": [AIMessage(content=final_report_text, name="reporter_finalize")]}
+            # [HARDENING] Never allow the Fast-Path bypass for specialized institutional reports
+            if plan_intent == "SENTIMENT_REPORT" or state_intent == "SENTIMENT_REPORT":
+                logger.info("Reporter: Sentiment Deep-Dive detected. Overriding Fast-Path bypass to ensure synthesis.")
+            else:
+                logger.info("Reporter: Admin Fast-Path detected. Bypassing narrative synthesis.")
+                # Use the last message content directly (the tool result)
+                if final_compacted:
+                    final_report_text = str(final_compacted[-1].content)
+                    return {"final_report": final_report_text, "messages": [AIMessage(content=final_report_text, name="reporter_finalize")]}
         
-        # Use the standard template applicator (returns a list of messages)
-        # Note: apply_prompt_template appends .md internally
-        messages = apply_prompt_template("reporter", state_to_synthesize)
+
+        # Format the history for the LLM to understand the trajectory, with strict truncation
+        history_parts = []
+        for m in final_compacted:
+            content_str = str(m.content)
+            # Hard limit each message's content to prevent token explosion
+            if len(content_str) > 5000:
+                content_str = content_str[:5000] + "\n...[TRUNCATED TO PREVENT BLOAT]..."
+            role = m.name if hasattr(m, 'name') and m.name else m.type.upper()
+            history_parts.append(f"**{role}**: {content_str}")
+        
+        final_vli_history = "\n\n".join(history_parts)
+
+        # State to synthesize includes the human request and the compacted analyst findings
+        # BEFORE applying the template!
+        state_to_synthesize = state.copy()
+        state_to_synthesize["messages"] = [HumanMessage(content=f"RESEARCH AND FINDINGS:\n{final_vli_history}")]
+
+        # [NEW] Structural Match Routing based on Intent
+        active_intent = plan_intent or state_intent
+        
+        match active_intent:
+            case "SENTIMENT_REPORT":
+                template_name = "reporter_sentiment"
+            case "TACTICAL_EXECUTION":
+                template_name = "reporter_tactical"
+            case _:
+                template_name = "reporter_tactical"
+                
+        messages = apply_prompt_template(template_name, state_to_synthesize)
         
         # Add the explicit directive
         messages.append(HumanMessage(content=f"DIRECTIVE: {state.get('directive', 'Generate summary report.')}"))
-
-        # Compact the history to remove structural overhead
-        final_compacted = _compact_history(state.get("messages", []))
-        
-        # Format the history for the LLM to understand the trajectory
-        final_vli_history = "\n\n".join([f"**{m.name if hasattr(m, 'name') and m.name else m.type.upper()}**: {m.content}" for m in final_compacted])
-
-        # State to synthesize includes the human request and the compacted analyst findings
-        state_to_synthesize = state.copy()
-        state_to_synthesize["messages"] = final_compacted
         
         from src.graph.nodes.common_vli import _run_node_with_tiered_fallback
 
@@ -128,20 +149,30 @@ async def reporter_node(state: State, config: RunnableConfig):
         log_vli_metric("reporter", latency, True)
 
         # [STABILITY] Robust Content Extraction
-        if isinstance(response.content, str):
-            final_report_text = response.content
-        elif isinstance(response.content, list):
+        # Ensure we always deal with the raw content payload
+        _raw_content = getattr(response, "content", response)
+        
+        if isinstance(_raw_content, str):
+            final_report_text = _raw_content
+        elif isinstance(_raw_content, list):
             try:
-                final_report_text = "".join([str(c.get("text", "")) if isinstance(c, dict) else str(c) for c in response.content])
+                # [FIX] Do not iterate over a list if it's actually a list of single characters
+                if all(isinstance(c, str) and len(c) == 1 for c in _raw_content):
+                    final_report_text = "".join(_raw_content)
+                else:
+                    final_report_text = "".join([str(c.get("text", "")) if isinstance(c, dict) else str(c) for c in _raw_content])
             except Exception as e:
                 logger.error(f"List parse error: {e}")
-                final_report_text = str(response.content)
+                final_report_text = str(_raw_content)
+        elif hasattr(_raw_content, "decode"): # bytes mapping
+            final_report_text = _raw_content.decode('utf-8')
         else:
-            final_report_text = str(response.content)
+            final_report_text = str(_raw_content)
 
         if not final_report_text.strip() or final_report_text.strip() == "[]":
             logger.error(f"[VLI_REPORTER] Empty string/bracket returned. Metadata: {getattr(response, 'response_metadata', 'None')}")
             final_report_text = "Analysis completed. (Synthesis pipeline returned an empty payload. Deep evaluation was successfully processed but blocked natively by SDK context/safety rendering)."
+
         
         # [NEW] Final Sanitization & Re-synthesis Guardrail
         sanitized_text = _sanitize_final_content(final_report_text)
@@ -149,13 +180,24 @@ async def reporter_node(state: State, config: RunnableConfig):
             logger.info("Reporter: Structural data leak detected in final output. Forcing narrative recovery.")
             recovery_prompt = "MANDATORY: Your previous response contained raw JSON/data structures (expected_dict, etc). Rewrite this IMMEDIATELY as a professional Markdown narrative. NO raw braces, NO JSON tags."
             # Reuse the compacted history plus the correction demand
-            recovery_response = await llm.ainvoke(final_compacted + [HumanMessage(content=recovery_prompt)])
-            final_report_text = str(recovery_response.content)
+            recovery_response = await llm.ainvoke(messages + [HumanMessage(content=recovery_prompt)])
+            
+            if isinstance(recovery_response.content, list):
+                final_report_text = "".join([str(c.get("text", "")) if isinstance(c, dict) else str(c) for c in recovery_response.content])
+            else:
+                final_report_text = str(recovery_response.content)
         else:
             final_report_text = sanitized_text
 
     except Exception as e:
         logger.error(f"Reporter Synthesis Error: {str(e)}", exc_info=True)
+        # [DIAGNOSTIC] Provide visibility into the exact error triggering the recovery baseline
+        try:
+            with open(r"c:\github\cobalt-multi-agent\backend\template_debug.log", "a") as df:
+                import traceback
+                df.write(f"\n{datetime.now()}: REPORTER OUTAGE FATAL ERROR: {str(e)}\n{traceback.format_exc()}")
+        except:
+            pass
         final_report_text = "Analysis completed. (PHASE_SYNTHESIS_RECOVERY): The system has transitioned to a managed reporting baseline due to model constraints."
         fb_msgs = []
 

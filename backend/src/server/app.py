@@ -1121,7 +1121,7 @@ async def _invoke_vli_agent(
     # 2. Refined Ticker Query: Qualified vs Unqualified vs Analyze
     qualifiers = ["PRICE", "VOLUME", "OHLC", "VALUE", "MA", "RSI", "MACD"]
     is_qualified = any(q in text.upper() for q in qualifiers) or "GET " in text.upper() or len(text.split()) <= 2
-    is_analyze = ("ANALYZE" in text.upper() or "ANALYSIS" in text.upper()) and not (is_smc and is_fast_override)
+    is_analyze = ("ANALYZE" in text.upper() or "ANALYSIS" in text.upper() or "SENTIMENT" in text.upper() or "NEWS" in text.upper()) and not (is_smc and is_fast_override)
     is_ticker_query = ("$" in text or "GET " in text.upper() or is_fast_override) and len(text) < 65 and not is_analyze
 
     is_fast_track = ((is_macro or is_price_list or is_vix or is_ticker_query) and not is_technical and not is_analyze) or raw_data_mode
@@ -1163,6 +1163,8 @@ async def _invoke_vli_agent(
                 "RAW",
                 "DATA",
                 "VLI",
+                "NEWS",
+                "SENTIMENT",
             ]
             words = re.findall(r"\b([A-Z]{1,10})\b", text.upper())
             for word in words:
@@ -1431,8 +1433,8 @@ async def _invoke_vli_agent(
         # [DYNAMIC BUDGET] Inject absolute start time for per-node adaptive fallbacks
         workflow_config["configurable"]["execution_start_time"] = start_exec
 
-        # Run the graph and get the final state with an aggressive timeout (180s to respect AsyncRetries safely)
-        final_state = await asyncio.wait_for(graph.ainvoke(workflow_input, config=workflow_config), timeout=180.0)
+        # Run the graph and get the final state with an aggressive timeout (300s to respect AsyncRetries safely)
+        final_state = await asyncio.wait_for(graph.ainvoke(workflow_input, config=workflow_config), timeout=300.0)
 
         exec_duration = time.time() - start_exec
         logger.info(f"VLI Agent: Graph traversal completed in {exec_duration:.2f}s")
@@ -1468,8 +1470,8 @@ async def _invoke_vli_agent(
         return scrub_vli_output(final_output), final_state
 
     except asyncio.TimeoutError:
-        logger.warning("VLI Agent: Master orchestration timed out (180s).")
-        return "Agent processing timed out (180s).", {}
+        logger.warning("VLI Agent: Master orchestration timed out (300s).")
+        return "Agent processing timed out (300s).", {}
     except Exception as e:
         logger.error(f"VLI Agent: Failed with error: {e}")
         return scrub_vli_output(f"Agent reasoning encountered a failure: {str(e)}"), {}
@@ -1721,6 +1723,8 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
                 "RAW",
                 "DATA",
                 "VLI",
+                "NEWS",
+                "SENTIMENT",
             ]
             words = re.findall(r"\b([A-Z]{1,10})\b", text.upper())
             for word in words:
@@ -1875,8 +1879,8 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     if response_text and len(response_text) > 50:
         _persist_vli_report(request.text, response_text)
         
-        # [NEW] Save to durable cache (TACTICAL ONLY)
-        if intent_mode == "TACTICAL_EXECUTION":
+        # [NEW] Save to durable cache (TACTICAL ONLY) - HARDENED against poison caching
+        if intent_mode == "TACTICAL_EXECUTION" and "[ERROR]" not in response_text and "timed out" not in response_text.lower():
             try:
                 with open(cache_file, "w", encoding="utf-8") as cf:
                     json.dump({"timestamp": time.time(), "response_text": response_text}, cf)

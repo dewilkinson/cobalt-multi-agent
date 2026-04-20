@@ -52,6 +52,14 @@ _RAW_DATA_LOCK = threading.Lock()
 _YF_SEMAPHORE: asyncio.Semaphore | None = None
 
 
+_AV_SEMAPHORE: asyncio.Semaphore | None = None
+
+def _get_av_semaphore() -> asyncio.Semaphore:
+    global _AV_SEMAPHORE
+    if _AV_SEMAPHORE is None:
+        _AV_SEMAPHORE = asyncio.Semaphore(15)
+    return _AV_SEMAPHORE
+
 def _get_yf_semaphore() -> asyncio.Semaphore:
     """Lazy initialization of the semaphore in the correct event loop."""
     global _YF_SEMAPHORE
@@ -163,11 +171,67 @@ def _bucket_sparkline_data(df: pd.DataFrame, ref_time: datetime, current_price: 
     return output_values
 
 
+def _fetch_av_history(ticker: str, period: str = "5d", interval: str = "1d") -> pd.DataFrame:
+    import os
+    import httpx
+    from io import StringIO
+    
+    api_key = os.environ.get("ALPHA_VANTAGE_API_KEY", "")
+    if not api_key:
+        raise ValueError("[STABILITY] ALPHA_VANTAGE_API_KEY is not defined in the environment!")
+        
+    mapped_interval = interval
+    endpoint = "TIME_SERIES_DAILY_ADJUSTED"
+    
+    if interval in ["1m", "5m", "15m", "30m", "60m"]:
+        mapped_interval = interval.replace("m", "min")
+        endpoint = "TIME_SERIES_INTRADAY"
+        
+    url = f"https://www.alphavantage.co/query?function={endpoint}&symbol={ticker}&datatype=csv&entitlement=delayed&apikey={api_key}"
+    
+    if endpoint == "TIME_SERIES_INTRADAY":
+        url += f"&interval={mapped_interval}"
+    else:
+        if period in ["1y", "2y", "5y", "10y", "max", "ytd"]:
+             url += "&outputsize=full"
+             
+    try:
+        resp = httpx.get(url, timeout=20.0)
+        resp.raise_for_status()
+        
+        if "Error Message" in resp.text or "Information" in resp.text:
+            logger.error(f"[AV_FETCH] API Error for {ticker}: {resp.text[:100]}")
+            return pd.DataFrame()
+            
+        df = pd.read_csv(StringIO(resp.text))
+        if df.empty or 'timestamp' not in df.columns:
+            return pd.DataFrame()
+            
+        df = df[::-1].reset_index(drop=True)
+        
+        col_map = {
+            "timestamp": "Date",
+            "open": "Open",
+            "high": "High",
+            "low": "Low",
+            "close": "Close",
+            "volume": "Volume"
+        }
+        df.rename(columns=col_map, inplace=True)
+        
+        if 'Date' in df.columns:
+            df['Date'] = pd.to_datetime(df['Date'])
+            df.set_index('Date', inplace=True)
+            
+        return df
+    except Exception as e:
+        logger.error(f"[AV_FETCH] Critical failure parsing CSV for {ticker}: {e}")
+        raise e
+
 def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str = "1d") -> pd.DataFrame:
     """
-    Centralized batched fetcher for Yahoo Finance data.
-    Ensures all requests are batched where possible.
-    Note: Throttling is now handled by the caller via the _YF_SEMAPHORE.
+    Centralized batched fetcher.
+    Dynamically routes to Alpha Vantage concurrent pipeline OR YFinance fallback pipeline.
     """
     logger.info(f"Executing batched fetch for {tickers} (p={period}, i={interval})")
     
@@ -194,10 +258,43 @@ def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str =
                 logger.debug(f"[RAW_CACHE_HIT] Reusing data for {mapped_tickers} ({period}/{interval})")
                 return cached_data
 
-    # Hand off to specific fetchers
+    import os
+    provider = os.environ.get("DATA_PROVIDER", "yfinance").lower()
+
     if is_replay:
         logger.info(f"VLI_REPLAY: Universal delegation for {tickers} (Target Origin: {ref_time})")
         data = _fetch_replay_history(tickers, period, interval, end_date=ref_time)
+    elif provider == "alpha_vantage":
+        logger.info(f"[AV PARALLEL ENGINE] Extracting {len(mapped_tickers)} tickers concurrently via Alpha Vantage")
+        
+        async def fetch_av_concurrently(t):
+            async with _get_av_semaphore():
+                try:
+                    df = await asyncio.to_thread(_fetch_av_history, t, period, interval)
+                    return t, df
+                except Exception as e:
+                    logger.error(f"[AV PARALLEL ENGINE] Task failed for {t}: {e}")
+                    return t, pd.DataFrame()
+
+        tasks = [fetch_av_concurrently(t) for t in mapped_tickers]
+        
+        async def run_tasks():
+            return await asyncio.gather(*tasks)
+            
+        try:
+            results = asyncio.run(run_tasks())
+        except RuntimeError:
+            import nest_asyncio
+            nest_asyncio.apply()
+            results = asyncio.get_event_loop().run_until_complete(run_tasks())
+
+        master_dict = {}
+        for t, df in results:
+            if not df.empty:
+                for col in df.columns:
+                    master_dict[(col, t)] = df[col]
+                    
+        data = pd.DataFrame(master_dict) if master_dict else pd.DataFrame()
     else:
         logger.debug(f"[WEB REQUEST] Yahoo Finance fetching {len(mapped_tickers)} tickers: {mapped_tickers}")
         start_time = time.time()
@@ -671,6 +768,11 @@ async def get_stock_quote(ticker: str, period: str = "1d", interval: str = "1m",
 
     DatastoreManager.ensure_worker_started()
     norm_ticker = _normalize_ticker(ticker)
+
+    # [HARDENING] Prevent LLM hallucination of 'NEWS' as a ticker
+    if norm_ticker == "NEWS":
+        return "Action Denied: 'NEWS' is not a valid stock symbol. Please infer the actual target asset from the context and try again, or use the search tool if you need to fetch news."
+
 
     logger.info(f"[DIAGNOSTIC] get_stock_quote called for {ticker} | force_refresh={force_refresh} | use_fast_path={use_fast_path}")
 

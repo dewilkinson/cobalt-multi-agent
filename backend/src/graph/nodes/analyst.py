@@ -4,11 +4,12 @@
 # License: PolyForm Noncommercial 1.0.0
 
 import logging
+import asyncio
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from src.tools import fetch_market_macros, get_bollinger_bands, get_ema_analysis, get_macd_analysis, get_rsi_analysis, run_smc_analysis, get_stock_quote, get_volatility_atr, get_volume_profile, invalidate_market_cache
+from src.tools import fetch_market_macros, get_bollinger_bands, get_ema_analysis, get_macd_analysis, get_rsi_analysis, run_smc_analysis, get_batch_smc_analysis, get_stock_quote, get_volatility_atr, get_volume_profile, invalidate_market_cache
 from src.tools.artifacts import read_session_artifact
 from src.tools.shared_storage import ANALYST_CONTEXT, GLOBAL_CONTEXT
 
@@ -31,7 +32,33 @@ async def analyst_node(state: State, config: RunnableConfig):
     """Analyst node implementation."""
     cached_list = ", ".join([str(t) for t in sorted(list(GLOBAL_CONTEXT.get("cached_tickers", set())))])
     logger.info(f"Analyst Node: Synthesizing technical indicators. GLOBAL_CACHE_VISIBILITY=[{cached_list}]")
-    tools = [run_smc_analysis, get_ema_analysis, get_stock_quote, get_rsi_analysis, get_macd_analysis, get_volatility_atr, get_volume_profile, get_bollinger_bands, fetch_market_macros, invalidate_market_cache, read_session_artifact]
+
+    # [PERFORMANCE] Proactive Pre-warming
+    # Fetch 30-day history immediately to ensure the Analyst has warm data for sentiment performance summaries.
+    try:
+        from src.tools.finance import _fetch_stock_history, _normalize_ticker
+        import re
+        last_msg = state.get("messages", [])[-1].content if state.get("messages") else ""
+        
+        # [HARDENING] Extract all potential tickers and filter out commands/stop words
+        potential_tickers = re.findall(r'\b[A-Z]{1,5}\b', str(last_msg))
+        stop_words = {"GET", "FOR", "NEWS", "THE", "PRICE", "STOCK", "AND", "WITH", "DATA", "SMC", "CHART", "REPORT"}
+        
+        ticker = next((t for t in potential_tickers if t not in stop_words), None)
+        
+        if ticker:
+            norm_t = _normalize_ticker(ticker)
+            logger.info(f"[PRE-WARM] Proactively fetching 30d history for {norm_t}...")
+            # Fetch common windows into shared Datastore/history_cache
+            await asyncio.gather(
+                asyncio.wait_for(asyncio.to_thread(_fetch_stock_history, norm_t, "30d", "1d"), timeout=15.0),
+                asyncio.wait_for(asyncio.to_thread(_fetch_stock_history, norm_t, "5d", "1h"), timeout=10.0),
+                return_exceptions=True
+            )
+    except Exception as e:
+        logger.warning(f"[PRE-WARM] Analyst node pre-warm skipped/failed: {e}")
+
+    tools = [run_smc_analysis, get_batch_smc_analysis, get_ema_analysis, get_stock_quote, get_rsi_analysis, get_macd_analysis, get_volatility_atr, get_volume_profile, get_bollinger_bands, fetch_market_macros, invalidate_market_cache, read_session_artifact]
 
     instructions = f"Report verbosity={state.get('verbosity', 1)}. "
     return await _setup_and_execute_agent_step(state, config, "analyst", tools, agent_instructions=instructions)

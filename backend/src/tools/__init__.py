@@ -13,13 +13,13 @@ from .finance import clear_vli_diagnostic, get_cache_heat_map, get_stock_quote, 
 from .datastore_tools import invalidate_market_cache, simulate_cache_volatility
 from .indicators import get_bollinger_bands, get_macd_analysis, get_rsi_analysis, get_sharpe_ratio, get_sortino_ratio, get_volatility_atr, get_volume_profile
 from .journal import get_journal_folder, list_journal_entries, read_journal_entry, set_journal_folder, write_daily_journal, log_feedback
-from .macros import fetch_market_macros, get_macro_data
+from .macros import fetch_market_macros, get_macro_data, fetch_economic_calendar
 from .portfolio import get_portfolio_balance_report, swap_watchlist_item, update_portfolio_ledger, update_watchlist
 from .python_repl import python_repl_tool
 from .retriever import get_retriever_tool
 from .screenshot import snapper
 from .search import get_web_search_tool
-from .smc import run_smc_analysis, get_raw_smc_tables, get_smc_analysis
+from .smc import run_smc_analysis, get_raw_smc_tables, get_smc_analysis, get_batch_smc_analysis
 from .scheduler import manage_scheduled_tasks
 from .tts import VolcengineTTS
 from .vision import get_image_from_local_path, get_image_from_url
@@ -49,6 +49,7 @@ __all__ = [
     "VolcengineTTS",
     "run_smc_analysis",
     "get_smc_analysis",
+    "get_batch_smc_analysis",
     "get_raw_smc_tables",
     "get_ema_analysis",
     "get_rsi_analysis",
@@ -64,6 +65,7 @@ __all__ = [
     "vli_cache_tick",
     "clear_vli_diagnostic",
     "fetch_market_macros",
+    "fetch_economic_calendar",
     "get_macro_data",
     "update_watchlist",
     "update_portfolio_ledger",

@@ -319,3 +319,47 @@ async def get_raw_smc_tables(ticker: str, interval: str = "1d", period: str = "1
 
 # Backward Compatibility Alias
 get_smc_analysis = run_smc_analysis
+
+@tool
+async def get_batch_smc_analysis(tickers_list: str) -> str:
+    """
+    SMC Specialist Primitive: Executes high-concurrency batch analysis for multiple tickers simultaneously.
+    tickers_list: Comma-separated list of tickers (e.g., "SPY, QQQ, AAPL").
+    Returns a unified, synthesized report of the macro structure for all tickers.
+    """
+    import asyncio
+    
+    tickers = [t.strip().upper() for t in tickers_list.split(",") if t.strip()]
+    if not tickers:
+        return "[ERROR] No valid tickers provided for batch analysis."
+        
+    if len(tickers) > 10:
+        tickers = tickers[:10] # Hard bound to prevent runaway LLM tool calls
+        
+    # Bound concurrency to prevent slamming yfinance or local memory limits
+    sem = asyncio.Semaphore(3)
+    
+    async def _safe_run(t: str):
+        async with sem:
+            try:
+                # Direct ainvoke on the tool primitive
+                res = await run_smc_analysis.ainvoke({"ticker": t, "interval": "auto"})
+                return f"## {t} SMC Analysis\n{res}\n"
+            except Exception as e:
+                logger.error(f"[BATCH_SMC] Error analyzing {t}: {e}")
+                return f"## {t} SMC Analysis\n[ERROR] Analysis failed: {str(e)}\n"
+                
+    logger.info(f"[BATCH_SMC] Starting concurrent analysis for {len(tickers)} assets: {tickers}")
+    tasks = [_safe_run(t) for t in tickers]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    final_out = []
+    for t, res in zip(tickers, results):
+        if isinstance(res, Exception):
+            final_out.append(f"## {t} SMC Analysis\n[ERROR] Task crashed catastrophically: {str(res)}\n")
+        else:
+            final_out.append(res)
+            
+    final_report = "# Global Batch SMC Sweep\n\n" + "\n---\n".join(final_out)
+    return final_report
+

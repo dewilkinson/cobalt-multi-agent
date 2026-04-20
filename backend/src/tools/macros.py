@@ -193,3 +193,61 @@ async def get_macro_data() -> list[dict[str, Any]]:
     _MACRO_CACHE["data"] = results
     _MACRO_CACHE["timestamp"] = now
     return results
+
+
+@tool
+async def fetch_economic_calendar() -> str:
+    """
+    Scraper Primitive: Fetches the forward-looking Macro Economic Calendar for this week.
+    Returns highly anticipated "Red Folder" macro events (like CPI, FOMC, Earnings)
+    that will drive volatility and sentiment.
+    """
+    import requests
+    import json
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    
+    url = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
+    ny_tz = ZoneInfo("America/New_York")
+    
+    try:
+        response = await asyncio.to_thread(requests.get, url, timeout=10)
+        
+        if response.status_code != 200:
+            return f"Failed to fetch economic calendar. Status code: {response.status_code}"
+            
+        data = response.json()
+        
+        high_impact_events = []
+        for event in data:
+            # We strictly want High impact for systemic events 
+            if event.get("impact") == "High":
+                event_date_str = event.get("date", "")
+                
+                try:
+                    dt = datetime.fromisoformat(event_date_str)
+                    formatted_date = dt.astimezone(ny_tz).strftime("%A, %I:%M %p EST")
+                except:
+                    formatted_date = event_date_str
+                
+                title = event.get("title", "Unknown Event")
+                country = event.get("country", "")
+                forecast = event.get("forecast", "")
+                previous = event.get("previous", "")
+                
+                info = f"- **{country}**: {title} | {formatted_date}"
+                if forecast or previous:
+                    info += f" (Forecast: {forecast}, Prev: {previous})"
+                high_impact_events.append(info)
+        
+        if not high_impact_events:
+            return "No high-impact 'Red Folder' events scheduled for this week."
+            
+        report = "## Forward-Looking Macro Calendar:\n"
+        report += "\n".join(high_impact_events)
+        return report
+        
+    except Exception as e:
+        logger.error(f"Error fetching economic calendar: {e}")
+        return f"[ERROR] Failed to fetch macroeconomic calendar: {e}"
+
