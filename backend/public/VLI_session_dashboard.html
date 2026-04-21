@@ -1122,9 +1122,9 @@
     <!-- SERVER HANDSHAKE OVERLAY -->
     <!-- SERVER HANDSHAKE OVERLAY -->
     <!-- SERVER HANDSHAKE OVERLAY -->
-    <div id="vli-handshake-overlay" style="position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; background: transparent; backdrop-filter: none; pointer-events: none;">
+    <div id="vli-handshake-overlay" style="position: fixed; inset: 0; z-index: 99999; display: none; align-items: center; justify-content: center; background: transparent; backdrop-filter: none; pointer-events: none;">
         <div id="vli-handshake-dialog" style="background: #0d111b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 32px; width: 400px; box-shadow: 0 0 40px rgba(0,0,0,0.8); text-align: center; transition: background 0.3s ease; pointer-events: auto;">
-            <div id="vli-handshake-title" style="font-size: 17px; font-weight: 700; margin-bottom: 24px; font-family: var(--font-main); letter-spacing: 0.3px; text-transform: uppercase; color: var(--text-muted);">Connecting to Server (0s)</div>
+            <div id="vli-handshake-title" style="font-size: 14px; font-weight: 700; margin-bottom: 24px; font-family: var(--font-main); letter-spacing: 0.3px; text-transform: uppercase; color: var(--text-muted);">Connecting to Server (0s)</div>
             
             <div id="vli-handshake-bar-container" style="position: relative; height: 4px; width: 100%; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-bottom: 16px;">
                 <div id="vli-handshake-bar" style="position: absolute; left: 0; top: 0; bottom: 0; width: 70%; background: linear-gradient(90deg, transparent 0%, var(--cobalt-blue) 50%, transparent 100%); box-shadow: 0 0 15px rgba(88, 166, 255, 0.4); animation: sweep 1.2s ease-in-out infinite; transition: width 0.3s ease, background 0.3s ease; transform: translateX(-100%);"></div>
@@ -1154,7 +1154,7 @@
             document.getElementById('vli-handshake-dialog').style.background = '#0d111b';
             
             document.getElementById('vli-handshake-title').innerText = message;
-            document.getElementById('vli-handshake-title').style.color = 'var(--ruby-red)';
+            document.getElementById('vli-handshake-title').style.color = '#ffffff';
             
             const bar = document.getElementById('vli-handshake-bar');
             bar.style.animation = 'none';
@@ -1194,7 +1194,7 @@
             handshakeInterval = setInterval(async () => {
                 handshakeSeconds++;
                 
-                if (handshakeSeconds >= 15) {
+                if (handshakeSeconds >= 20) {
                     window.showServerOffline('SERVER OFFLINE');
                     return;
                 }
@@ -1223,26 +1223,37 @@
                             // Trigger the restart in the background so the next retry succeeds
                             originalFetch('/api/system/restart', { method: 'POST' }).catch(e => console.error(e));
                         }
+                    } else {
+                        // Server returned an error (e.g. 502 Bad Gateway)
+                        if (handshakeSeconds >= 2) {
+                            window.showServerOffline('SERVER OFFLINE');
+                        }
                     }
                 } catch (err) {
                     // Search failed (server offline). If we've searched for at least 2 seconds, fail.
-                    if (handshakeSeconds >= 2) {
+                    if (handshakeSeconds >= 20) {
                         window.showServerOffline('SERVER OFFLINE');
                     }
                 }
             }, 1000);
         };
         
-        window.addEventListener('DOMContentLoaded', async () => {
-            // Check if server is offline on load
+        async function runOfflineCheck() {
             try {
                 const res = await originalFetch(`/api/health?_t=${Date.now()}`, { cache: 'no-store' });
-                // If it succeeds, do nothing (or we could start handshake if we wanted)
+                if (!res.ok) {
+                    window.vliStartHandshake();
+                }
             } catch(e) {
-                // If we get an error on initial load, server is offline immediately.
-                window.showServerOffline('SERVER OFFLINE');
+                window.vliStartHandshake();
             }
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', runOfflineCheck);
+        } else {
+            runOfflineCheck();
+        }
     </script>
     <!-- Error Overlay disabled to prevent layout integrity locks during audit sessions -->
     <!-- <div id="error-overlay">...</div> -->
@@ -3739,11 +3750,6 @@
             if (verSpan) verSpan.innerText = typeof VLI_CLIENT_VERSION !== 'undefined' ? VLI_CLIENT_VERSION : 'Unknown';
         });
     </script>
-    <!-- INJECTED TELEMETRY WINDOW (PERSISTENT OUTSIDE OVERLAY) -->
-    <div id="vli-test-telemetry" style="display: none; position: fixed; top: 10%; left: 50%; transform: translateX(-50%); width: 1200px; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.8); border: 1px solid var(--cobalt-blue); border-radius: 8px; padding: 20px; color: white; font-family: var(--font-mono); font-size: 14px; text-align: left; box-shadow: 0 0 20px rgba(88,166,255,0.2); pointer-events: auto; z-index: 100000;">
-        <div style="font-weight: bold; color: var(--cobalt-blue); margin-bottom: 12px; font-size: 16px;">VLI TEST TELEMETRY LOG</div>
-        <div id="vli-telemetry-log" style="display: flex; flex-direction: column; gap: 8px;"></div>
-    </div>
 </body>
 
 </html>

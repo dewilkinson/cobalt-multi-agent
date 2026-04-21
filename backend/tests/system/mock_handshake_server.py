@@ -26,8 +26,14 @@ CLIENT_VERSION = "00.000.0002"
 @app.get("/VLI_session_dashboard.html")
 async def get_dashboard():
     # Serve the actual dashboard file
-    file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "public", "VLI_session_dashboard.html"))
+    file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "VLI_session_dashboard.html"))
     return FileResponse(file_path)
+
+@app.get("/sw.js")
+async def get_sw():
+    # Serve the service worker file
+    file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "sw.js"))
+    return FileResponse(file_path, media_type="application/javascript")
 
 @app.get("/api/health")
 async def health():
