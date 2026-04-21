@@ -93,9 +93,11 @@ class CobaltScheduler:
             with open(self.registry_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 for task_data in data.get("tasks", []):
-                    # Only load if not already registered (to preserve internal callbacks)
                     t_id = task_data["task_id"]
-                    if t_id not in self.tasks:
+                    if t_id in self.tasks:
+                        self.tasks[t_id].last_run = task_data.get("last_run")
+                        self.tasks[t_id].current_run_count = task_data.get("current_run_count", 0)
+                    else:
                         task = ScheduledTask(**task_data)
                         self.tasks[t_id] = task
                         self._schedule_in_engine(task)
@@ -104,25 +106,22 @@ class CobaltScheduler:
 
     def _save_registry(self):
         os.makedirs(os.path.dirname(self.registry_path), exist_ok=True)
-        # We only save tasks that have a 'command' (external) or are part of the JSON
-        # Internal tasks with callbacks are managed by the code and not fully serialized
         serializable_tasks = []
         for task in self.tasks.values():
-            if task.command: # Only save persistent command tasks
-                t_dict = {
-                    "task_id": task.task_id,
-                    "name": task.name,
-                    "type": task.type,
-                    "priority": task.priority,
-                    "schedule": task.schedule,
-                    "period_unit": task.period_unit,
-                    "repeat_count": task.repeat_count,
-                    "command": task.command,
-                    "status": task.status,
-                    "last_run": task.last_run,
-                    "current_run_count": task.current_run_count
-                }
-                serializable_tasks.append(t_dict)
+            t_dict = {
+                "task_id": task.task_id,
+                "name": task.name,
+                "type": task.type,
+                "priority": task.priority,
+                "schedule": task.schedule,
+                "period_unit": task.period_unit,
+                "repeat_count": task.repeat_count,
+                "command": task.command,
+                "status": task.status,
+                "last_run": task.last_run,
+                "current_run_count": task.current_run_count
+            }
+            serializable_tasks.append(t_dict)
         
         try:
             with open(self.registry_path, "w", encoding="utf-8") as f:
@@ -346,6 +345,10 @@ class CobaltScheduler:
         # Start the prioritizer worker
         self._worker_task = asyncio.create_task(self._execution_worker())
         self.log("EVENT: Heartbeat Engine ONLINE.")
+        
+        # Check misfires for all scheduled tasks after boot
+        for t in self.tasks.values():
+            self._evaluate_misfire(t)
 
     def stop(self):
         self._is_running = False
@@ -353,6 +356,46 @@ class CobaltScheduler:
         if self._worker_task:
             self._worker_task.cancel()
         self.log("EVENT: Heartbeat Engine OFFLINE.")
+
+    def _evaluate_misfire(self, task: ScheduledTask):
+        if not task.last_run or task.status != "ACTIVE":
+            return
+            
+        try:
+            from apscheduler.triggers.cron import CronTrigger
+            from apscheduler.triggers.interval import IntervalTrigger
+            from datetime import datetime, timedelta
+            
+            # Reconstruct trigger
+            trigger = None
+            if task.type == "REPEAT":
+                kwargs = {task.period_unit: float(task.schedule)}
+                if task.period_unit == "milliseconds":
+                    kwargs = {"seconds": float(task.schedule) / 1000.0}
+                elif task.period_unit == "months":
+                    trigger = CronTrigger(month=f"*/{int(task.schedule)}")
+                if not trigger:
+                    trigger = IntervalTrigger(**kwargs)
+            elif task.type == "CALENDAR":
+                trigger = CronTrigger.from_crontab(task.schedule)
+                
+            if trigger:
+                last_run_dt = datetime.fromisoformat(task.last_run)
+                next_time = trigger.get_next_fire_time(None, last_run_dt)
+                
+                if next_time:
+                    now = datetime.now(next_time.tzinfo)
+                    if next_time < now:
+                        delta = now - next_time
+                        time_missed_str = f"MISSED by {(delta.total_seconds() / 3600):.1f}hrs"
+                        if delta <= timedelta(hours=24):
+                            self.log(f"🕒 MISFIRE DETECTED for {task.task_id} ({time_missed_str}). Executing CATCH-UP inside HIGH queue.")
+                            if self.loop:
+                                self.loop.call_soon_threadsafe(self.queues["HIGH"].put_nowait, task.task_id)
+                        else:
+                            self.log(f"⚠️ MISFIRE STALE for {task.task_id} ({time_missed_str}). Ignored because > 24 hours.")
+        except Exception as e:
+            self.log(f"Failed to evaluate misfire for {task.task_id}: {e}", level=logging.ERROR)
 
 # Singleton Instance
 cobalt_scheduler = CobaltScheduler()

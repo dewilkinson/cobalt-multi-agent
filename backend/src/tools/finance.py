@@ -228,7 +228,7 @@ def _fetch_av_history(ticker: str, period: str = "5d", interval: str = "1d") -> 
         logger.error(f"[AV_FETCH] Critical failure parsing CSV for {ticker}: {e}")
         raise e
 
-def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str = "1d") -> pd.DataFrame:
+def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str = "1d", force_yf: bool = False) -> pd.DataFrame:
     """
     Centralized batched fetcher.
     Dynamically routes to Alpha Vantage concurrent pipeline OR YFinance fallback pipeline.
@@ -259,7 +259,7 @@ def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str =
                 return cached_data
 
     import os
-    provider = os.environ.get("DATA_PROVIDER", "yfinance").lower()
+    provider = "yfinance" if force_yf else os.environ.get("DATA_PROVIDER", "yfinance").lower()
 
     if is_replay:
         logger.info(f"VLI_REPLAY: Universal delegation for {tickers} (Target Origin: {ref_time})")
@@ -1110,9 +1110,9 @@ async def get_macro_symbols(fast_update: bool = False) -> str:
             
             # Fallback: If batch fetch failed for this specific ticker, try individual fetch
             if ticker_df.empty:
-                logger.info(f"VLI: Batch fetch missing {ticker}, falling back to individual lookup.")
+                logger.info(f"VLI: Batch fetch missing {ticker}, falling back to individual yfinance lookup.")
                 try:
-                    ticker_df = await asyncio.to_thread(_fetch_batch_history, [ticker], "5d", "1d")
+                    ticker_df = await asyncio.to_thread(_fetch_batch_history, [ticker], "5d", "1d", True)
                     ticker_df = _extract_ticker_data(ticker_df, ticker)
                 except Exception as fe:
                     logger.error(f"VLI: Fallback fetch failed for {ticker}: {fe}")
@@ -1145,7 +1145,7 @@ async def get_macro_symbols(fast_update: bool = False) -> str:
             if sparkline_df.empty or sparkline_df.isna().all().all():
                 try:
                     logger.info(f"VLI: Batch 1m empty for {ticker}, fetching individually.")
-                    sdf = await asyncio.to_thread(yfinance.download, ticker, period="2d", interval="1m", prepost=True, progress=False, threads=False)
+                    sdf = await asyncio.to_thread(yfinance.download, ticker, period="5d", interval="1m", prepost=True, progress=False, threads=False)
                     if sdf is not None and not sdf.empty:
                         try:
                             sdf.index = pd.to_datetime(sdf.index, utc=True).tz_convert('America/New_York').tz_localize(None)
@@ -1161,6 +1161,13 @@ async def get_macro_symbols(fast_update: bool = False) -> str:
             sortino = 0.0
             if data_30d is not None:
                 ticker_30d = _extract_ticker_data(data_30d, ticker)
+                if ticker_30d.empty:
+                    logger.info(f"VLI: Sortino batch missing {ticker}, falling back to individual yfinance.")
+                    try:
+                        ticker_30d = await asyncio.to_thread(_fetch_batch_history, [ticker], "60d", "1d", force_yf=True)
+                        ticker_30d = _extract_ticker_data(ticker_30d, ticker)
+                    except Exception as fe:
+                        logger.error(f"VLI: Sortino Fallback failed for {ticker}: {fe}")
                 sortino = _calculate_sortino_ratio(ticker_30d)
 
             results[label] = {

@@ -11,12 +11,13 @@ from src.services.datastore import DatastoreManager
 logger = logging.getLogger(__name__)
 
 @tool
-async def get_ticker_news(ticker: str) -> str:
+async def get_ticker_news(subject: str) -> str:
     """
-    Scout Primitive: Fetches and categorizes the latest news for a specific ticker.
-    Implements Alpha Vantage Institutional Intelligence if enabled.
+    Scout Primitive: Fetches and categorizes the latest news for a specific stock ticker OR a general topic (e.g. 'Iran War').
+    Implements Alpha Vantage Institutional Intelligence if enabled, falling back to Web Search for generic subjects.
     """
-    t = ticker.upper()
+    t = subject.upper()
+    is_ticker = len(t) <= 6 and " " not in t
     
     cached = DatastoreManager.get_artifact(t, "news", "latest")
     if cached:
@@ -30,7 +31,7 @@ async def get_ticker_news(ticker: str) -> str:
     success = False
 
     try:
-        if provider == "alpha_vantage":
+        if is_ticker and provider == "alpha_vantage":
             api_key = os.environ.get("ALPHA_VANTAGE_API_KEY", "")
             if not api_key:
                 raise ValueError("[STABILITY] ALPHA_VANTAGE_API_KEY missing")
@@ -74,9 +75,9 @@ async def get_ticker_news(ticker: str) -> str:
                 logger.info(f"[NEWS] Successfully fetched Alpha Vantage Sentiment for {t}")
                 
     except Exception as e:
-        logger.warning(f"[NEWS] Alpha Vantage fetch for {t} failed, falling back to basic YFinance: {e}")
+        logger.warning(f"[NEWS] Alpha Vantage fetch for {t} failed or skipped, falling back: {e}")
         
-    if not success:
+    if not success and is_ticker:
         try:
             ticker_obj = yfinance.Ticker(t)
             news_items = ticker_obj.news[:5]
@@ -94,7 +95,22 @@ async def get_ticker_news(ticker: str) -> str:
                 report.append(f"  [Read More]({link})")
         except Exception as e:
             logger.error(f"YFinance fallback failed for {t}: {e}")
-            return f"[ERROR]: Failed to fetch news for {t}: {e}"
+
+    # Final fallback for generic subjects or failed ticker lookups
+    if not success:
+        try:
+            logger.info(f"[NEWS] Executing General Web Search for subject: {subject}")
+            from src.tools.search import get_web_search_tool
+            search_tool = get_web_search_tool(max_search_results=5)
+            # Use invoke to safely execute the LangChain tool
+            search_out = search_tool.invoke(f"{subject} latest breaking financial news")
+            
+            report.append(f"### Web Search Intelligence")
+            report.append(str(search_out))
+            success = True
+        except Exception as e:
+            logger.error(f"Web Search fallback failed for {subject}: {e}")
+            return f"[ERROR]: Failed to fetch any news for {subject}: {e}"
 
     full_report = "\\n".join([str(r) for r in report])
     

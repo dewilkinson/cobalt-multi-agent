@@ -367,6 +367,28 @@
             margin-bottom: 8px;
         }
 
+        /* Generated Markdown Tables */
+        .msg-ai table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .msg-ai th {
+            text-align: left;
+            padding: 12px 8px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .msg-ai td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            vertical-align: top;
+        }
+
         /* --- GEMINI THINKING ACCORDION --- */
         .thought-container {
             margin-bottom: 12px;
@@ -490,6 +512,11 @@
             color: #c9d1d9;
             margin: 10px 0;
             scrollbar-width: thin;
+        }
+        
+        tr.new-candidate-highlight {
+            background-color: rgba(255, 235, 59, 0.2) !important;
+            transition: background-color 0.3s ease-out;
         }
 
         .analysis-report pre::-webkit-scrollbar {
@@ -1211,7 +1238,8 @@
             'VLI_CHAT': { idPrefix: 'CI', title: 'Coordinator Interface', isSingleton: true },
             'VLI_TELEMETRY': { idPrefix: 'TM', title: 'Telemetry', isSingleton: true },
             'MACRO_WL': { idPrefix: 'WL', title: 'Macro Watchlist', isSingleton: false },
-            'ANALYSIS_REP': { idPrefix: 'AR', title: 'Analysis Report', isSingleton: false }
+            'ANALYSIS_REP': { idPrefix: 'AR', title: 'Analysis Report', isSingleton: false },
+            'SCAN_RES': { idPrefix: 'SR', title: 'Scanner Results', isSingleton: true }
         };
 
         class UXCardManager {
@@ -1321,6 +1349,10 @@
                     bodyContent = `
                         <div class="card-body terminal analysis-report-body analysis-report-viewer-instance" id="analysis-report-viewer-${instanceGuid}" data-guid="${instanceGuid}">
                             <div style="color:var(--text-muted); text-align:center; padding:40px;">No report active.</div>
+                        </div>`;
+                } else if (typeGuid === 'SCAN_RES') {
+                    bodyContent = `
+                        <div class="card-body" style="overflow-y: auto; padding: 10px;">
                         </div>`;
                 }
 
@@ -1643,7 +1675,29 @@
                     // First boot - fluid responsive percentage geometry
                     UXManager.createCard('VLI_CHAT', {top: '2%', left: '66%', width: '33%', height: '96%'}, 'coordinator');
                     UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '31%', height: '38%'}, 'watchlist');
-                    UXManager.createCard('VLI_TELEMETRY', {top: '2%', left: '33.5%', width: '31%', height: '38%'}, 'telemetry');
+                    UXManager.createCard('SCAN_RES', {top: '2%', left: '33.5%', width: '31%', height: '38%'}, 'scanner');
+                    
+                    // Add RUN button to Scanner Results header for backup
+                    setTimeout(() => {
+                        const scHeader = document.querySelector('.card[data-type-guid="SCAN_RES"] .card-header');
+                        if (scHeader && !document.getElementById('sr-run-btn')) {
+                            const btnContainer = document.createElement('div');
+                            btnContainer.style.display = 'flex';
+                            btnContainer.style.alignItems = 'center';
+                            btnContainer.style.gap = '6px';
+                            btnContainer.innerHTML = `
+                                <button id="sr-run-btn" onclick="initScannerSSE()" 
+                                        style="background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.4); 
+                                        color: var(--emerald-green); font-size: 9px; padding: 2px 6px; border-radius: 4px; 
+                                        cursor: pointer; font-weight: 700;">RUN</button>
+                                <button id="sr-stop-btn" onclick="stopScanner()" 
+                                        style="background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.4); 
+                                        color: var(--ruby-red); font-size: 9px; padding: 2px 6px; border-radius: 4px; 
+                                        cursor: pointer; font-weight: 700;">STOP</button>
+                            `;
+                            scHeader.insertBefore(btnContainer, scHeader.querySelector('.card-controls'));
+                        }
+                    }, 500);
                     UXManager.createCard('ANALYSIS_REP', {top: '42%', left: '1%', width: '63.5%', height: '56%'}, 'report');
                 } else {
                     alert('Workspace not found: ' + targetKey);
@@ -2072,8 +2126,7 @@
                 try {
                     renderMathInElement(msgDiv, {
                         delimiters: [
-                            { left: '$$', right: '$$', display: true },
-                            { left: '$', right: '$', display: false }
+                            { left: '$$', right: '$$', display: true }
                         ]
                     });
                 } catch (e) {
@@ -2174,7 +2227,6 @@
                 renderMathInElement(reportViewer, {
                     delimiters: [
                         { left: '$$', right: '$$', display: true },
-                        { left: '$', right: '$', display: false },
                         { left: '\\(', right: '\\)', display: false },
                         { left: '\\[', right: '\\]', display: true }
                     ]
@@ -2362,6 +2414,7 @@
                 renderWatchlist(data);
                 renderTelemetry(data);
                 renderReport(data);
+                renderScannerResults(data);
 
                 // --- CHAT PERSISTENCE SYNC ---
                 if (data.chat_history && Array.isArray(data.chat_history)) {
@@ -2504,6 +2557,319 @@
             }
         }
 
+        // 1c. Scanner State & SSE Logic
+        let scannerEventSource = null;
+        window.vliNewSymbols = window.vliNewSymbols || new Set();
+        let activeScannerCandidates = []; 
+        window.vliNewSymbols.clear();
+        
+        async function autoRefreshScannerResults() {
+            try {
+                const response = await fetch('/api/scanner/state');
+                if (!response.ok) return;
+                const data = await response.json();
+                const candidates = data.candidates || [];
+                
+                if (candidates.length > 0) {
+                    const existingSymbols = new Set(activeScannerCandidates.map(c => c.symbol));
+                    const newCandidates = candidates.filter(c => !existingSymbols.has(c.symbol));
+                    
+                    if (newCandidates.length > 0) {
+                        newCandidates.forEach(c => window.vliNewSymbols.add(c.symbol));
+                        activeScannerCandidates = [...activeScannerCandidates, ...newCandidates];
+                        updateScannerResultsUI();
+                        console.log(`[VLI_SCANNER] Auto-Refresh: ${newCandidates.length} new signals merged silently.`);
+                    }
+                }
+            } catch (e) {
+                console.warn('[VLI_SCANNER] Silent state poll failed.');
+            }
+        }
+        
+        setInterval(autoRefreshScannerResults, 60000);
+        setTimeout(autoRefreshScannerResults, 2000);
+
+        function initScannerSSE() {
+            if (scannerEventSource) {
+                console.warn("[VLI_SCANNER] Scanner already active. Terminating previous session.");
+                stopScanner();
+            }
+
+            console.log("[VLI_SCANNER] Initializing institutional scan via SSE...");
+            activeScannerCandidates = []; window.vliNewSymbols.clear();
+            
+            // Append initial system log to telemetry
+            appendSystemLog("INITIATING MARKET-WIDE SNIPER TRAWL...");
+            
+            scannerEventSource = new EventSource('/api/scanner/stream');
+
+            scannerEventSource.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.type === 'telemetry') {
+                    appendSystemLog(`[TELEMETRY] ${data.msg || data.message || 'Incoming pulse...'}`);
+                    if (data.msg === 'Pipeline execution finished cleanly.') {
+                        console.log("[VLI_SCANNER] Pipeline finished gracefully. Closing EventSource.");
+                        scannerEventSource.close();
+                        scannerEventSource = null;
+                        appendSystemLog("--- SCAN COMPLETED ---", 'var(--emerald-green)');
+                    }
+                } else if (data.type === 'phase0') {
+                    appendSystemLog(`[PHASE 0] Discovery Pool: ${data.msg || data.message || 'Processing raw universe...'}`, 'var(--cobalt-blue)');
+                } else if (data.type === 'phase1') {
+                    appendSystemLog(`[PHASE 1] Structural Verify: ${data.msg || data.message || 'Applying Sortino filters...'}`, 'rgba(0, 170, 255, 0.7)');
+                } else if (data.type === 'phase2') {
+                    const candidates = data.data || data.candidates || [];
+                    const existingSymbols = new Set(activeScannerCandidates.map(c => c.symbol));
+                    const newCandidates = candidates.filter(c => !existingSymbols.has(c.symbol));
+                    
+                    newCandidates.forEach(c => window.vliNewSymbols.add(c.symbol));
+                    activeScannerCandidates = [...activeScannerCandidates, ...newCandidates];
+                    
+                    newCandidates.forEach(c => {
+                        appendSystemLog(`[SELECTED] ${c.symbol} (Score: ${c.score || c.sortino || 'N/A'}) - Passing Pulse Filter.`, 'var(--emerald-green)');
+                    });
+                    
+                    updateScannerResultsUI();
+                }
+            };
+
+            scannerEventSource.addEventListener('telemetry', (e) => {
+                const data = JSON.parse(e.data);
+                appendSystemLog(`[TELEMETRY] ${data.msg || data.message}`, 'rgba(255, 255, 255, 0.7)');
+            });
+
+            scannerEventSource.addEventListener('phase0', (e) => {
+                const data = JSON.parse(e.data);
+                appendSystemLog(`[PHASE 0] Discovery Pool: ${data.msg || data.message || 'Processing raw universe...'}`, 'var(--cobalt-blue)');
+            });
+
+            scannerEventSource.addEventListener('phase1', (e) => {
+                const data = JSON.parse(e.data);
+                appendSystemLog(`[PHASE 1] Structural Verify: ${data.msg || data.message || 'Applying Sortino filters...'}`, 'rgba(0, 170, 255, 0.7)');
+            });
+
+            scannerEventSource.addEventListener('phase2', (e) => {
+                const data = JSON.parse(e.data);
+                const candidates = data.data || data.candidates || [];
+                if (candidates && candidates.length > 0) {
+                    // Filter duplicates and merge
+                    const existingSymbols = new Set(activeScannerCandidates.map(c => c.symbol));
+                    const newCandidates = candidates.filter(c => !existingSymbols.has(c.symbol));
+                    
+                    newCandidates.forEach(c => window.vliNewSymbols.add(c.symbol));
+                    activeScannerCandidates = [...activeScannerCandidates, ...newCandidates];
+                    
+                    newCandidates.forEach(c => {
+                        appendSystemLog(`[SELECTED] ${c.symbol} (Score: ${c.score || c.sortino || 'N/A'}) - Passing Pulse Filter.`, 'var(--emerald-green)');
+                    });
+                    
+                    updateScannerResultsUI();
+                }
+            });
+
+            scannerEventSource.onerror = (err) => {
+                console.error("[VLI_SCANNER] SSE Error:", err);
+                appendSystemLog("INTERNAL SERVER ERROR IN SCANNER PIPELINE.", 'var(--ruby-red)');
+                stopScanner();
+            };
+        }
+
+        function stopScanner() {
+            if (scannerEventSource) {
+                scannerEventSource.close();
+                scannerEventSource = null;
+                appendSystemLog("--- SCAN TERMINATED BY USER ---", 'var(--ruby-red)');
+            }
+        }
+
+        function appendSystemLog(msg, color = 'var(--cobalt-blue)') {
+            document.querySelectorAll('.telemetry-body-instance').forEach(tBody => {
+                const logContainer = tBody.closest('.terminal');
+                const wasAtBottom = logContainer.scrollHeight - logContainer.scrollTop <= logContainer.clientHeight + 50;
+
+                const line = document.createElement('div');
+                line.style.borderBottom = '1px solid rgba(255, 255, 255, 0.02)';
+                line.style.padding = '2px 0';
+                line.innerHTML = `<span style="color: ${color}; font-weight: bold; opacity: 0.5;">[${new Date().toLocaleTimeString()}]</span> <span style="color: ${color}">${msg}</span>`;
+                
+                tBody.appendChild(line);
+
+                if (wasAtBottom) {
+                    logContainer.scrollTo({ top: logContainer.scrollHeight, behavior: 'smooth' });
+                }
+            });
+        }
+
+        function updateScannerResultsUI() {
+            // Leverage existing function but with state
+            renderScannerResults({
+                scanner_results: {
+                    pulse_mode: 'InstitutionalPulse',
+                    candidates: activeScannerCandidates
+                }
+            });
+        }
+
+        // 1c. Scanner Results UI
+        function renderScannerResults(data) {
+            if (!data.scanner_results || !data.scanner_results.candidates) return;
+            const res = data.scanner_results;
+            
+            document.querySelectorAll('.card[data-type-guid="SCAN_RES"]').forEach(card => {
+                let body = card.querySelector('.card-body');
+                if (!body) {
+                    console.warn("[VLI_UI_HEALING] SCAN_RES missing .card-body. Auto-injecting structure.");
+                    body = document.createElement('div');
+                    body.className = 'card-body';
+                    body.style.overflowY = 'auto';
+                    body.style.padding = '10px';
+                    // Ensure the card correctly positions the newly injected body
+                    body.style.height = 'calc(100% - 30px)'; // Account for header
+                    card.appendChild(body);
+                }
+                
+                // Add Focus Highlight (Removed aggressive zIndex override that caused z-index popping against UX placement)
+                
+                let table = body.querySelector('table');
+                if (!table) {
+                    body.innerHTML = `
+                        <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+                            <div>Pulse Mode: <span style="color: var(--emerald-green); font-weight: 800;">${res.pulse_mode || 'InstitutionalPulse'}</span></div>
+                            <div style="font-family: var(--font-mono); font-size: 10px;">MATCHES: <span id="sr-match-count" style="color: var(--emerald-green); font-weight: 800;">${res.candidates.length}</span></div>
+                        </div>
+                        <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 13px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    <th style="padding: 8px 4px; text-align: left;">SYMBOL</th>
+                                    <th style="padding: 8px 4px; text-align: right;">PRICE</th>
+                                    <th style="padding: 8px 4px; text-align: right;">CHANGE</th>
+                                    <th style="padding: 8px 4px; text-align: right;">SORTINO</th>
+                                    <th style="padding: 8px 4px; text-align: center;">GRADE</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    `;
+                    table = body.querySelector('table');
+                } else {
+                    const countEl = body.querySelector('#sr-match-count');
+                    if (countEl) countEl.innerText = res.candidates.length;
+                }
+                
+                const tbody = table.querySelector('tbody');
+                tbody.innerHTML = '';
+                
+                if (res.candidates.length === 0) {
+                    tbody.innerHTML = `
+                        <tr style="border: none;">
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-style: italic; font-size: 12px;">Empty List: No candidates passed institutional criteria.</td>
+                        </tr>
+                    `;
+                }
+
+                // [FRONTEND CURVE GRADING] Re-grade the elite list relative to each other using raw_power
+                if (res.candidates.length > 0) {
+                    const validCandidates = res.candidates.filter(c => c.raw_power !== undefined);
+                    if (validCandidates.length > 0) {
+                        const maxPower = Math.max(...validCandidates.map(c => c.raw_power));
+                        const minPower = Math.min(...validCandidates.map(c => c.raw_power));
+                        
+                        res.candidates.forEach(c => {
+                            if (c.raw_power === undefined) return;
+                            
+                            let percentile = 1.0;
+                            if (maxPower > minPower) {
+                                percentile = (c.raw_power - minPower) / (maxPower - minPower);
+                            }
+                            
+                            // 40-100 UI visual sweep. S tier requires >= 95 (Top 8%)
+                            c.heat_score = Math.floor(40 + (percentile * 60));
+                            
+                            if (c.heat_score >= 95) c.grade = 'S';
+                            else if (c.heat_score >= 90) c.grade = 'A+';
+                            else if (c.heat_score >= 82) c.grade = 'A';
+                            else if (c.heat_score >= 75) c.grade = 'B+';
+                            else if (c.heat_score >= 65) c.grade = 'B';
+                            else if (c.heat_score >= 58) c.grade = 'C+';
+                            else if (c.heat_score >= 50) c.grade = 'C';
+                            else if (c.heat_score >= 35) c.grade = 'D';
+                            else c.grade = 'F';
+                        });
+                    }
+                }
+
+                // Autonomously sort candidates from strongest to weakest using the internal heat score
+                res.candidates.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
+
+                res.candidates.forEach(c => {
+                    let gradeColor = 'var(--text-muted)';
+                    let gradeBg = 'rgba(255,255,255,0.05)';
+                    let gradeBorder = 'rgba(255,255,255,0.2)';
+
+                    if (c.grade === 'S') { gradeColor = '#ffaa00'; gradeBg = 'rgba(255, 170, 0, 0.1)'; gradeBorder = 'rgba(255, 170, 0, 0.3)'; }
+                    else if (c.grade === 'A+' || c.grade === 'A') { gradeColor = '#d866ff'; gradeBg = 'rgba(216, 102, 255, 0.1)'; gradeBorder = 'rgba(216, 102, 255, 0.3)'; }
+                    else if (c.grade === 'B+' || c.grade === 'B') { gradeColor = '#00aaff'; gradeBg = 'rgba(0, 170, 255, 0.1)'; gradeBorder = 'rgba(0, 170, 255, 0.3)'; }
+                    else if (c.grade === 'C+' || c.grade === 'C') { gradeColor = '#3fb950'; gradeBg = 'rgba(63, 185, 80, 0.1)'; gradeBorder = 'rgba(63, 185, 80, 0.3)'; }
+                    else { gradeColor = 'var(--ruby-red)'; gradeBg = 'rgba(248, 81, 73, 0.1)'; gradeBorder = 'rgba(248, 81, 73, 0.3)'; }
+                    
+                    if (c.is_miss) {
+                        gradeBg = 'transparent';
+                        gradeBorder = 'rgba(255,255,255,0.05)';
+                    }
+                    
+                    c.isNew = window.vliNewSymbols.has(c.symbol);
+                    const tr = document.createElement('tr');
+                    tr.style.cursor = 'pointer';
+                    tr.className = c.isNew ? 'scanner-res-row new-candidate-highlight' : 'scanner-res-row';
+                    tr.style.transition = 'background 0.3s ease';
+                    
+                    if (c.is_miss) {
+                        tr.style.opacity = '0.35';
+                        tr.style.filter = 'grayscale(1)';
+                    }
+                    
+                    tr.onmouseenter = () => {
+                        if (window.vliNewSymbols.has(c.symbol)) {
+                            tr.classList.remove('new-candidate-highlight');
+                            window.vliNewSymbols.delete(c.symbol);
+                            c.isNew = false;
+                        }
+                        tr.style.background = 'rgba(255,255,255,0.02)';
+                        if (c.is_miss) {
+                            tr.style.opacity = '0.8';
+                            tr.style.filter = 'grayscale(0.5)';
+                        }
+                    };
+                    tr.onmouseleave = () => {
+                        tr.style.background = 'transparent';
+                        if (c.is_miss) {
+                            tr.style.opacity = '0.35';
+                            tr.style.filter = 'grayscale(1)';
+                        }
+                    };
+                    
+                    tr.onclick = () => insertCardIdIntoChat(`analyze ${c.symbol}`);
+                    
+                    const changeVal = parseFloat(c.change || c.gap || 0);
+                    const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
+                    
+                    tr.innerHTML = `
+                        <td style="padding: 10px 4px; color: #fff; font-weight: 700;">${c.symbol}</td>
+                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</td>
+                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
+                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: var(--emerald-green); font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
+                        <td style="padding: 10px 4px;">
+                            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                                <span style="display: inline-block; width: 30px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; padding: 2px 0; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid ${gradeBorder}">${c.grade || 'F'}</span>
+                                <span style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); opacity: 0.8; width: 25px; text-align: right;">${c.heat_score !== undefined ? c.heat_score : 0}%</span>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+
         // 2. Telemetry
         function renderTelemetry(data) {
             document.querySelectorAll('.telemetry-body-instance').forEach(tBody => {
@@ -2543,7 +2909,6 @@
                             renderMathInElement(reportViewer, {
                                 delimiters: [
                                     { left: '$$', right: '$$', display: true },
-                                    { left: '$', right: '$', display: false },
                                     { left: '\\(', right: '\\)', display: false },
                                     { left: '\\[', right: '\\]', display: true }
                                 ]
@@ -2716,82 +3081,88 @@
             try {
                 let requestText = rawText;
 
-                if (requestText.toUpperCase().startsWith("REFRESH")) {
-                    let targetCard = requestText.substring(7).trim().toUpperCase();
-                    if (!targetCard) targetCard = "ALL";
-                    console.log("[VLI_TRACE] " + new Date().toLocaleTimeString() + " - Intercepting UX refresh command for: " + targetCard);
-
-
-                    fetch('/api/vli/refresh-card', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ card_id: targetCard })
-                    });
-                    
-                    if (targetCard === "ALL" || targetCard === "CHAT" || targetCard === "CI") {
-                        resetVLI();
-                    }
-
-                    btn.classList.remove('processing');
-                    btn.innerText = "➤";
-                    isProcessing = false;
-                    return;
-                }
-
-                let rawDataMode = false;
-                if (rawText.toUpperCase().includes("--RAW") || (rawText.toUpperCase().includes("RAW") && (rawText.toUpperCase().includes("SMC") || rawText.toUpperCase().includes("DATA")))) {
-                    rawDataMode = true;
-                    requestText = rawText.replace(/--raw/ig, "").trim();
-                }
-
-                console.log("[VLI_TRACE] " + new Date().toLocaleTimeString() + " - Submitting command to backend: " + requestText);
-                const startTime = performance.now();
-                const res = await fetch('/api/vli/action-plan', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        text: requestText,
-                        direct_mode: directMode,
-                        raw_data_mode: rawDataMode,
-                        background_synthesis: asyncMode,
-                        thread_id: lastVliThreadId
-                    })
-                });
-                const data = await res.json();
-                if (data.thread_id) {
-                    lastVliThreadId = data.thread_id;
-                    console.log("[VLI_TRACE] Session thread pinned: " + lastVliThreadId);
-                }
-                const durationSec = ((performance.now() - startTime) / 1000).toFixed(2);
-                console.log("[VLI_TRACE] " + new Date().toLocaleTimeString() + ` - Command response received in ${durationSec}s.`);
-                
                 if (isProcessing) {
-                    if (isRegen) regenTargetAiMsg.innerHTML = "";
-                    
-                    const responseText = data.response || "No response generated.";
-                    
-                    // Unified AI Rendering if not in raw data mode
-                    if (!rawDataMode && !asyncMode) {
-                        // The server already added the message to history, 
-                        // so the poll() loop will pick it up. We do NOT append it here
-                        // to maintain a single source of truth from history.
-                        // However, we increment the pointer if we were to append it.
-                    } else if (rawDataMode) {
-                        const aiMsg = isRegen ? regenTargetAiMsg : document.createElement('div');
-                        if (!isRegen) aiMsg.className = 'msg msg-ai';
-                        try {
-                            const blob = new Blob([responseText], { type: 'application/json' });
-                            const url = URL.createObjectURL(blob);
-                            const artifactId = 'artifact_' + Date.now() + Math.floor(Math.random() * 1000);
-                            sessionArtifacts[artifactId] = responseText;
-                            aiMsg.innerHTML = `<div class="msg-ai-content"><strong>[HEADLESS DATA ENGINE - RAW JSON]:</strong><br>Returned <a href="${url}" download="vli_raw_payload.json" onclick="renderArtifactToReport(event, '${artifactId}')" style="color: #e5e7eb; font-weight: 700; text-decoration: underline; background: rgba(128, 128, 128, 0.25); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 10px; cursor: pointer;">vli_raw_payload.json</a><div style="font-size:10px; color:var(--text-muted); margin-top:8px;">⏱️ Latency: ${durationSec}s</div></div>`;
-                        } catch (e) {
-                            aiMsg.innerHTML = `<div class="msg-ai-content"><strong>[HEADLESS DATA ENGINE - RAW JSON]:</strong> Data array returned successfully.<div style="font-size:10px; color:var(--text-muted); margin-top:8px;">⏱️ Latency: ${durationSec}s</div></div>`;
+                    if (/^\s*(run|start)\s+(market\s+)?scan\s*[.!?]?\s*$/i.test(requestText)) {
+                        console.log("[VLI_TRACE] Intercepting Market Scan Command (Isolation Block)...");
+                        initScannerSSE();
+                        
+                        const sysMsg = document.createElement('div');
+                        sysMsg.className = 'msg msg-ai';
+                        sysMsg.style.borderColor = 'var(--emerald-green)';
+                        sysMsg.innerHTML = "<strong>SYSTEM:</strong> Initializing Institutional Market Scan. Monitoring Telemetry (TM) and Scanner Results (SR) cards for live findings.";
+                        msgBox.appendChild(sysMsg);
+                        
+                        btn.classList.remove('processing');
+                        btn.innerText = "➤";
+                        isProcessing = false;
+                        msgBox.scrollTop = msgBox.scrollHeight;
+                        return;
+                    } else if (/^\s*(stop|abort|kill)\s+(market\s+)?scan\s*[.!?]?\s*$/i.test(requestText)) {
+                        console.log("[VLI_TRACE] Intercepting Stop Scan Command (Isolation Block)...");
+                        stopScanner();
+                        
+                        btn.classList.remove('processing');
+                        btn.innerText = "➤";
+                        isProcessing = false;
+                        return;
+                    } else if (requestText.toUpperCase().startsWith("REFRESH")) {
+                        let targetCard = requestText.substring(7).trim().toUpperCase();
+                        if (!targetCard) targetCard = "ALL";
+                        fetch('/api/vli/refresh-card', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ card_id: targetCard }) });
+                        if (targetCard === "ALL" || targetCard === "CHAT" || targetCard === "CI") resetVLI();
+                        btn.classList.remove('processing');
+                        btn.innerText = "➤";
+                        isProcessing = false;
+                        return;
+                    } else {
+                        // Standard Agent Directive
+                        let rawDataMode = false;
+                        if (rawText.toUpperCase().includes("--RAW") || (rawText.toUpperCase().includes("RAW") && (rawText.toUpperCase().includes("SMC") || rawText.toUpperCase().includes("DATA")))) {
+                            rawDataMode = true;
+                            requestText = rawText.replace(/--raw/ig, "").trim();
                         }
-                        if (!isRegen) msgBox.appendChild(aiMsg);
-                        vliChatSyncPointer++;
+
+                        console.log("[VLI_TRACE] Forwarding command to backend: " + requestText);
+                        const startTime = performance.now();
+                        const res = await fetch('/api/vli/action-plan', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                text: requestText,
+                                direct_mode: directMode,
+                                raw_data_mode: rawDataMode,
+                                background_synthesis: asyncMode,
+                                thread_id: lastVliThreadId
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.thread_id) {
+                            lastVliThreadId = data.thread_id;
+                        }
+                        const durationSec = ((performance.now() - startTime) / 1000).toFixed(2);
+                        
+                        if (isProcessing) {
+                            if (isRegen) regenTargetAiMsg.innerHTML = "";
+                            const responseText = data.response || "No response generated.";
+                            
+                            if (rawDataMode) {
+                                const aiMsg = isRegen ? regenTargetAiMsg : document.createElement('div');
+                                if (!isRegen) aiMsg.className = 'msg msg-ai';
+                                try {
+                                    const blob = new Blob([responseText], { type: 'application/json' });
+                                    const url = URL.createObjectURL(blob);
+                                    const artifactId = 'artifact_' + Date.now() + Math.floor(Math.random() * 1000);
+                                    sessionArtifacts[artifactId] = responseText;
+                                    aiMsg.innerHTML = `<div class="msg-ai-content"><strong>[HEADLESS DATA ENGINE - RAW JSON]:</strong><br>Returned <a href="${url}" download="vli_raw_payload.json" onclick="renderArtifactToReport(event, '${artifactId}')" style="color: #e5e7eb; font-weight: 700; text-decoration: underline; background: rgba(128, 128, 128, 0.25); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 10px; cursor: pointer;">vli_raw_payload.json</a><div style="font-size:10px; color:var(--text-muted); margin-top:8px;">⏱️ Latency: ${durationSec}s</div></div>`;
+                                } catch (e) {
+                                    aiMsg.innerHTML = `<div class="msg-ai-content"><strong>[HEADLESS DATA ENGINE - RAW JSON]:</strong> Data array returned successfully.<div style="font-size:10px; color:var(--text-muted); margin-top:8px;">⏱️ Latency: ${durationSec}s</div></div>`;
+                                }
+                                if (!isRegen) msgBox.appendChild(aiMsg);
+                                vliChatSyncPointer++;
+                            }
+                            msgBox.scrollTop = msgBox.scrollHeight;
+                        }
                     }
-                    msgBox.scrollTop = msgBox.scrollHeight;
                 }
             } catch (e) {
                 if (isProcessing) {

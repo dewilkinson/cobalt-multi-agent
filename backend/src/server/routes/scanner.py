@@ -1,0 +1,311 @@
+from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+import os
+import json
+import logging
+import asyncio
+import aiohttp
+import numpy as np
+import pandas as pd
+import traceback
+import sys
+from datetime import datetime
+from typing import Dict, Any, List
+
+from src.tools.scanner import (
+    _build_session_watchlist_impl, 
+    _run_activity_pulse_impl,
+    build_session_watchlist,
+    run_activity_pulse
+)
+from src.tools.sortino_sniper_trawl import run_background_trawl
+
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
+def patch_json():
+    """Global process-level patch for NumPy serialization in standard json library."""
+    original_default = json.JSONEncoder.default
+    def new_default(self, obj):
+        if hasattr(obj, "item"):
+            return obj.item()
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return original_default(self, obj)
+    json.JSONEncoder.default = new_default
+
+patch_json()
+
+def inject_watchdog():
+    """Global watchdog to catch and trace JSON serialization failures to disk."""
+    log_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "SCANNER_TRACE.log"))
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    
+    original_dumps = json.dumps
+    def wrapped_dumps(obj, *args, **kwargs):
+        try:
+            return original_dumps(obj, *args, **kwargs)
+        except TypeError as e:
+            if "int64" in str(e) or "serializable" in str(e):
+                with open(log_path, "a", encoding="utf-8") as f:
+                    f.write("\n" + "!"*60 + "\n")
+                    f.write(f"!!! WATCHDOG TRACE: JSON SERIALIZATION FAILURE !!!\n")
+                    f.write(f"Time: {datetime.now().isoformat()}\n")
+                    f.write(f"Error: {e}\n")
+                    f.write(f"Context Class: {obj.__class__.__name__}\n")
+                    f.write(f"Context Start: {str(obj)[:500]}\n")
+                    f.write("\nStack Trace:\n")
+                    f.write(traceback.format_exc())
+                    f.write("!"*60 + "\n")
+                logger.error(f"JSON Watchdog caught failure. Trace written to {log_path}")
+            raise e
+    json.dumps = wrapped_dumps
+    
+    original_dump = json.dump
+    def wrapped_dump(obj, fp, *args, **kwargs):
+        try:
+            return original_dump(obj, fp, *args, **kwargs)
+        except TypeError as e:
+            if "int64" in str(e) or "serializable" in str(e):
+                with open(log_path, "a", encoding="utf-8") as f:
+                    f.write("\n" + "!"*60 + "\n")
+                    f.write(f"!!! WATCHDOG TRACE: JSON FILE WRITE FAILURE !!!\n")
+                    f.write(f"Time: {datetime.now().isoformat()}\n")
+                    f.write(f"Error: {e}\n")
+                    f.write("\nStack Trace:\n")
+                    f.write(traceback.format_exc())
+                    f.write("!"*60 + "\n")
+                logger.error(f"JSON Watchdog caught file failure. Trace written to {log_path}")
+            raise e
+    json.dump = wrapped_dump
+
+inject_watchdog()
+
+def sanitize_data(data):
+    """Hyper-aggressive recursive sanitizer for NumPy, Pandas, and Python structural types."""
+    if isinstance(data, dict):
+        return {k: sanitize_data(v) for k, v in data.items()}
+    elif isinstance(data, (list, tuple, set)):
+        return [sanitize_data(v) for v in data]
+    elif isinstance(data, pd.Timestamp):
+        return data.isoformat()
+    elif isinstance(data, (pd.Series, pd.DataFrame)):
+        return sanitize_data(data.to_dict())
+    elif isinstance(data, np.ndarray):
+        return data.tolist()
+    elif hasattr(data, "item") and not isinstance(data, (type, pd.Series, pd.DataFrame)): 
+        return data.item()
+    return data
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj, "item"): # Standard NumPy scalar conversion
+            return obj.item()
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
+
+@router.get("/trawl")
+async def trigger_scanner_trawl():
+    """Manual trigger for Layer A (The Background Trawl)."""
+    try:
+        results = await run_background_trawl()
+        return sanitize_data({"status": "success", "data": results})
+    except Exception as e:
+        logger.error(f"Trawl failed: {e}")
+        return {"status": "error", "message": str(e)}
+
+@router.get("/bunker")
+async def get_bunker_list():
+    """Retrieve the current persistent Combat List (Phase A)."""
+    combat_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SCANNER_COMBAT_LIST.json"))
+    if not os.path.exists(combat_list_path):
+        return {"status": "success", "data": []}
+    
+    try:
+        with open(combat_list_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return sanitize_data({"status": "success", "data": data.get("combat_list", [])})
+    except Exception as e:
+        logger.error(f"Failed to read bunker: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+async def fetch_av_gainers() -> List[Dict[str, Any]]:
+    api_key = os.getenv("ALPHAVANTAGE_API_KEY", "demo")
+    url = f"https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey={api_key}"
+    
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15)) as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    # Combine gainers, losers, and most active to form phase 0 universe
+                    universe = []
+                    for key in ["top_gainers", "top_losers", "most_actively_traded"]:
+                        items = data.get(key, [])
+                        for item in items:
+                            price = float(item.get("price", 0.0))
+                            if price < 1.0:
+                                continue
+                                
+                            universe.append({
+                                "symbol": item.get("ticker", ""),
+                                "price": price,
+                                "change": item.get("change_percentage", "0%"),
+                                "volume": item.get("volume", 0)
+                            })
+                    return universe
+    except Exception as e:
+        logger.error(f"Failed to fetch AV gainers: {e}")
+    return []
+
+@router.get("/state")
+async def get_scanner_state():
+    """Silently bridges the 5-minute Intraday Pulse cache specifically for UI Auto-refreshing."""
+    import os
+    import json
+    from src.config.vli import get_vli_path
+    
+    try:
+        transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "SCANNER_RES_state.json"))
+        if os.path.exists(transit_path):
+            with open(transit_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data
+    except Exception as e:
+        logger.error(f"[Scanner State API] Integrity fetch failed: {e}")
+    return {"candidates": []}
+
+@router.get("/stream")
+async def scanner_stream():
+    """Diagnostic endpoint to stream symbols progressively."""
+    
+    async def sse_generator():
+        try:
+            # Telemetry: Start
+            yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'Initializing Phase 0: Fetching AV Top Gainers...'}), cls=NpEncoder)}\n\n"
+            
+            # 1. Load Universe (Combat List + Discovery)
+            combat_list = []
+            combat_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SCANNER_COMBAT_LIST.json"))
+            if os.path.exists(combat_list_path):
+                try:
+                    with open(combat_list_path, "r", encoding="utf-8") as f:
+                        c_data = json.load(f)
+                        combat_list = c_data.get("combat_list", [])
+                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Combat List loaded: {len(combat_list)} swords in the bunker.'}), cls=NpEncoder)}\n\n"
+                except Exception as e:
+                    logger.warning(f"Failed to load combat list: {e}")
+
+            discovery_raw = await fetch_av_gainers()
+            if not discovery_raw:
+                 discovery_raw = [{"symbol": t, "price": 15.0, "change": "5%", "volume": 1000000} for t in ["CELH", "SYM", "IOT", "MDB", "CRWD", "RBLX"]]
+            
+            # Merge: Combat List results are enriched with discovery data if they overlap, 
+            # or we add discovery candidates to the tail.
+            phase0_symbols = {c["symbol"]: c for c in combat_list}
+            for d in discovery_raw:
+                if d["symbol"] not in phase0_symbols:
+                    phase0_symbols[d["symbol"]] = d
+            
+            # Discard stocks less than $1 and zeroed out entries
+            phase0_raw = sanitize_data([
+                {**r, "price": float(r.get("price", 0) or 0), "symbol": str(r.get("symbol", ""))}
+                for r in phase0_symbols.values() 
+                if float(r.get("price", 0) or 0) >= 1.0 and r.get("symbol")
+            ])
+            
+            yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Universe finalized: {len(phase0_raw)} symbols. Calculating Sortino...'}), cls=NpEncoder)}\n\n"
+            
+            # [NEW] Calculate Sortino for Phase 0 Universe with normalization
+            from src.tools.scanner import batch_fetch_sortino
+            # Normalize: discard .A, .PRO, etc for yfinance
+            all_symbols = [r["symbol"] for r in phase0_raw if r["symbol"]]
+            normalized_map = {s: s.split(".")[0].split("-")[0] for s in all_symbols}
+            search_symbols = list(set(normalized_map.values()))
+            
+            # Safety check: if too many symbols, yfinance might hang. We log this.
+            if len(search_symbols) > 50:
+                yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'High-density universe detected ({len(search_symbols)}). Phase 0 might take up to 30s...'}), cls=NpEncoder)}\n\n"
+
+            sortino_map_norm = await batch_fetch_sortino(search_symbols)
+            
+            for r in phase0_raw:
+                norm_s = normalized_map.get(r["symbol"])
+                r["sortino"] = sortino_map_norm.get(norm_s, 0.0)
+
+            
+            yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Sortino calculations complete for {len(phase0_raw)} symbols.'}), cls=NpEncoder)}\n\n"
+
+            yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'payload': phase0_raw[:5], 'msg': 'Phase 0 completed successfully.'}), cls=NpEncoder)}\n\n"
+            yield f"data: {json.dumps(sanitize_data({'type': 'phase0', 'data': phase0_raw}), cls=NpEncoder)}\n\n"
+                
+            symbols = [r["symbol"] for r in phase0_raw if r["symbol"]]
+            universe_csv = ",".join(symbols)
+            
+            # 2. Phase 1
+            yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'Initiating Phase 1: Applying Sortino static filters...'}), cls=NpEncoder)}\n\n"
+            try:
+                # Direct logic invocation to bypass StructuredTool wrapper
+                p1_res_str = await _build_session_watchlist_impl(strategy_config="{}", universe_csv=universe_csv)
+                p1_data = json.loads(p1_res_str)
+                p1_symbols = p1_data.get("watchlist", [])
+                p1_details = p1_data.get("detail", [])
+                
+                # Report details including rejects
+                for d in p1_details:
+                    if d["grade"] in ["C", "F"]:
+                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'REJECTED: {d['symbol']} - Grade {d['grade']} (Sortino: {d.get('sortino', 0.0)})'}), cls=NpEncoder)}\n\n"
+                    else:
+                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'PASSED: {d['symbol']} - Grade {d['grade']} (Sortino: {d.get('sortino', 0.0)})'}), cls=NpEncoder)}\n\n"
+                
+                yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Phase 1 complete. Surviving Candidates: {len(p1_symbols)}'}), cls=NpEncoder)}\n\n"
+            except Exception as e:
+                logger.error(f"Phase 1 error: {e}")
+                p1_symbols = []
+                yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Phase 1 failed: {str(e)}'}), cls=NpEncoder)}\n\n"
+                
+            p1_full = sanitize_data([])
+            for s in p1_symbols:
+                # Attach the grade and sortino from Phase 1 details
+                detail = next((d for d in p1_details if d["symbol"] == s), {"grade": "B", "sortino": 0.0})
+                match = next((x for x in phase0_raw if x["symbol"] == s), {"symbol": s, "price": 0, "change": "0%", "volume": 0})
+                p1_full.append(sanitize_data({**match, "grade": detail["grade"], "sortino": detail.get("sortino", 0.0)}))
+                
+            yield f"data: {json.dumps(sanitize_data({'type': 'phase1', 'data': p1_full}), cls=NpEncoder)}\n\n"
+
+            # 3. Phase 2
+            yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'Initiating Phase 2: Analyzing Pulse & RVOL...'}), cls=NpEncoder)}\n\n"
+            if not p1_symbols:
+                yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'Phase 2 skipped: Empty input from Phase 1.'}), cls=NpEncoder)}\n\n"
+                yield f"data: {json.dumps(sanitize_data({'type': 'phase2', 'data': []}), cls=NpEncoder)}\n\n"
+            else:
+                try:
+                    # Direct logic invocation to bypass StructuredTool wrapper
+                    p2_res_str = await _run_activity_pulse_impl(strategy_config="{}", watchlist=json.dumps(p1_symbols, cls=NpEncoder))
+                    p2_data = json.loads(p2_res_str)
+                    p2_candidates = p2_data.get("candidates", [])
+                    yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Phase 2 complete. High-probability Candidates: {len(p2_candidates)}'}), cls=NpEncoder)}\n\n"
+                except Exception as e:
+                    logger.error(f"Phase 2 error: {e}")
+                    p2_candidates = []
+                    tb_str = traceback.format_exc()
+                    yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Phase 2 failed: {str(e)} | Trace: {tb_str}'}), cls=NpEncoder)}\n\n"
+                    
+                p2_full = []
+                for p in p2_candidates:
+                    match = next((x for x in phase0_raw if x["symbol"] == p["symbol"]), {})
+                    merged = sanitize_data({**match, **p})
+                    p2_full.append(merged)
+                    
+                yield f"data: {json.dumps(sanitize_data({'type': 'phase2', 'data': p2_full}), cls=NpEncoder)}\n\n"
+
+                
+            yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'Pipeline execution finished cleanly.'}), cls=NpEncoder)}\n\n"
+        except Exception as outer_e:
+            logger.error(f"Scanner Generator CRITICAL FAILURE: {outer_e}")
+            yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'PIPELINE CRITICAL ERROR: {str(outer_e)}'}), cls=NpEncoder)}\n\n"
+        
+    return StreamingResponse(sse_generator(), media_type="text/event-stream")

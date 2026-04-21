@@ -117,7 +117,7 @@ async def coordinator_node(state: State, config: RunnableConfig) -> dict[str, An
 
     # [CONTEXT POISONING GUARDRAIL]
     if (not plan_obj.steps or plan_obj.has_enough_context) and not state.get("direct_mode", False):
-        tech_keywords = ["analyze", "analysis", "smc", "sortino", "sharpe", "report"]
+        tech_keywords = ["analyze", "analysis", "smc", "sortino", "sharpe", "report", "scan", "scanner", "watchlist"]
         user_query_content = str(state.get("messages", [])).lower()
         if any(kw in user_query_content for kw in tech_keywords):
             logger.warning("[COORD] Guardrail triggered: Coordinator hallucinated direct response for technical query. Forcing smc_analyst step.")

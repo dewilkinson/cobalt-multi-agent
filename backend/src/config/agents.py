@@ -10,22 +10,22 @@ LLMType = Literal["basic", "reasoning", "vision", "code", "core", "legacy"]
 
 # 1. Base dictionary for explicit mappings
 _BASE_AGENT_LLM_MAP: dict[str, LLMType] = {
-    "coordinator": "reasoning",
-    "parser": "basic",           # [REVERTED] Use standard Gemini 3 Flash
-    "planner": "reasoning",
+    "coordinator": "basic",
+    "parser": "basic",
+    "planner": "basic",
     "synthesizer": "basic",
     "coder": "basic",
-    "reporter": "reasoning",
+    "reporter": "basic",
     "podcast_script_writer": "basic",
     "ppt_composer": "basic",
     "prose_writer": "basic",
     "prompt_enhancer": "basic",
     "scout": "basic",
     "journaler": "basic",
-    "portfolio_manager": "basic", # [DOWNGRADE] Save reasoning quota
-    "risk_manager": "basic",      # [DOWNGRADE] Save reasoning quota
-    "analyst": "reasoning",
-    "smc_analyst": "reasoning",
+    "portfolio_manager": "basic",
+    "risk_manager": "basic",
+    "analyst": "basic",
+    "smc_analyst": "basic",
     "imaging": "vision",
     "vision_specialist": "vision",
     "system": "basic",

@@ -188,38 +188,13 @@ async def _run_node_with_tiered_fallback(agent_type, state, config, tools=None, 
             is_quota = any(x in e_str for x in ["RESOURCE_EXHAUSTED", "429", "QUOTA_EXHAUSTED", "RATE_LIMIT"])
             
             if is_quota:
-                try:
-                    tmp_llm = get_llm_by_type(tier)
-                    actual_model = getattr(tmp_llm, 'model_name', getattr(tmp_llm, 'model', f"Gemini {tier}"))
-                except Exception:
-                    actual_model = getattr(runnable, 'model_name', getattr(runnable, 'model', f"Gemini {tier}"))
-                
-                model_str = str(actual_model).lower()
-                
-                # [UI] Prettify the model name for the dashboard warning
-                if "gemini-3" in model_str:
-                    actual_model = "Gemini 3 Pro" if "pro" in model_str else "Gemini 3 Flash"
-                elif "3" in model_str and "flash" in model_str:
-                    actual_model = "Gemini 3 Flash"
-                elif "3.1" in model_str or "pro" in model_str:
-                    actual_model = "Gemini 3 Pro"
-                elif "flash" in model_str or tier in ["basic", "core", "reporter"]:
-                    actual_model = "Gemini Flash"
-                    
-                fail_msg = f"QUOTA_EXHAUSTED: Quota limit reached for {actual_model}."
+                fail_msg = f"QUOTA_EXHAUSTED: Quota limit reached for tier {tier}."
                 logger.warning(fail_msg)
                 
-                # [AUDIT] Log explicit failure to active telemetry file
-                try:
-                    from src.config.vli import get_vli_path
-                    telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
-                    timestamp = datetime.now().strftime("[%H:%M:%S]")
-                    with open(telemetry_file, "a", encoding="utf-8") as tf:
-                        tf.write(f"\n{timestamp} **QUOTA EXHAUSTED:** Agent `{agent_type}` (Tier: `{tier}`). Fallback loop specifically disabled by user.\n")
-                        tf.flush()
-                except:
-                    pass
- 
+                if i < len(TIERS) - 1:
+                    logger.info(f"[VLI_FALLBACK] Quota exhausted for tier {tier}. Rotating to next availability...")
+                    continue # Fallback to next tier
+                
                 if is_structured and structured_schema:
                     try:
                         error_res = structured_schema(

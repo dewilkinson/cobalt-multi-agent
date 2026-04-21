@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cobalt | Scanner Diagnostics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cobalt-blue: #2c3e50;
+            --emerald-green: #2ecc71;
+            --ruby-red: #e74c3c;
+            --amber-gold: #f39c12;
+            --obsidian-dark: #1a1a1a;
+            --text-muted: #95a5a6;
+            --text-light: #ecf0f1;
+            --grade-a: #2ecc71;
+            --grade-b: #3498db;
+            --grade-c: #f1c40f;
+            --grade-f: #e74c3c;
+        }
+
+        body {
+            background-color: var(--obsidian-dark);
+            color: var(--text-light);
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            height: 100vh;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* HEADER */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+        }
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* ACTIONS */
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        .vli-btn {
+            background: var(--cobalt-blue);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .vli-btn:hover { opacity: 0.8; }
+
+        /* GRID */
+        .scanner-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            flex-grow: 1;
+            min-height: 0;
+        }
+        .phase-card {
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .card-header {
+            background: #2c2c2c;
+            padding: 10px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .card-body {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        /* TABLE */
+        .macro-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .macro-table th {
+            position: sticky;
+            top: 0;
+            background: #2c2c2c;
+            text-align: left;
+            padding: 8px 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        .macro-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .symbol-bold { font-weight: 700; color: white; }
+        .metric-sub { color: var(--text-muted); font-size: 0.75rem; }
+
+        /* GRADES */
+        .grade-tag {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 800;
+            font-size: 0.7rem;
+            color: white;
+            display: inline-block;
+            min-width: 20px;
+            text-align: center;
+        }
+        .grade-a { background: var(--grade-a); }
+        .grade-b { background: var(--grade-b); }
+        .grade-c { background: var(--grade-c); }
+        .grade-f { background: var(--grade-f); }
+
+        .grade-scout { border: 1px solid #3498db; color: #3498db; background: transparent; }
+        .grade-strike { border: 1px solid #e74c3c; color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
+ 
+        /* HIGHLIGHTS */
+        .static-pass-row {
+            background: rgba(46, 204, 113, 0.18) !important;
+        }
+        .intersection-row {
+            outline: 2px solid var(--emerald-green);
+            outline-offset: -2px;
+        }
+
+        /* SORTINO */
+        .sortino-val { font-family: monospace; font-weight: 700; }
+        .sortino-high { color: var(--emerald-green); }
+        .sortino-mid { color: var(--amber-gold); }
+        .sortino-low { color: var(--ruby-red); }
+
+
+        /* TERMINAL */
+        .terminal-window {
+            background: black;
+            border: 1px solid #333;
+            border-radius: 6px;
+            height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            position: relative;
+        }
+        .term-log { margin-bottom: 4px; }
+        .term-time { color: var(--emerald-green); font-weight: bold; }
+        .term-payload { color: #f1c40f; margin-left: 20px; white-space: pre-wrap; font-size: 0.75rem; }
+
+        /* ANIMATIONS */
+        .sweeper-container {
+            height: 4px;
+            width: 100%;
+            background: #111;
+            overflow: hidden;
+            border-radius: 0 0 6px 6px;
+            border: 1px solid #333;
+            border-top: none;
+            display: none;
+        }
+        .scanner-bar {
+            height: 100%;
+            width: 30%;
+            background: linear-gradient(90deg, transparent, var(--emerald-green), transparent);
+            animation: sweep 2s infinite linear;
+        }
+        @keyframes sweep {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="header-title">COBALT | SCANNER FUNNEL</div>
+        <div class="controls">
+            <button id="trawl-btn" class="vli-btn" style="background: #34495e; border-right: 1px solid #222;" onclick="refreshBunker()">REFRESH BUNKER</button>
+            <button id="scan-toggle-btn" class="vli-btn" onclick="toggleScan()">START SCAN</button>
+        </div>
+
+    </div>
+    
+    <div class="scanner-grid">
+        <!-- PHASE A -->
+        <div class="phase-card">
+            <div class="card-header">
+                <div>PHASE A: BUNKER LIST</div>
+                <div id="count-pa" class="metric-sub">-</div>
+            </div>
+            <div class="card-body">
+                <table class="macro-table">
+                    <thead><tr><th>TICKER</th><th>PRICE</th><th>VOLUME</th><th>SORTINO</th><th>GRADE</th></tr></thead>
+
+                    <tbody id="tbody-pa">
+                        <tr><td colspan="5"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PHASE 0 -->
+        <div class="phase-card">
+            <div class="card-header">
+                <div>PHASE 0: TOP GAINERS</div>
+                <div id="count-p0" class="metric-sub">-</div>
+            </div>
+            <div class="card-body">
+                <table class="macro-table">
+                    <thead><tr><th>TICKER</th><th>PRICE</th><th>CHANGE %</th><th>VOLUME</th><th>SORTINO</th></tr></thead>
+
+                    <tbody id="tbody-p0">
+                        <tr><td colspan="4"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PHASE 1 -->
+        <div class="phase-card">
+            <div class="card-header">
+                <div>PHASE 1: SORTINO STATIC</div>
+                <div id="count-p1" class="metric-sub">-</div>
+            </div>
+            <div class="card-body">
+                <table class="macro-table">
+                    <thead><tr><th>TICKER</th><th>PRICE</th><th>CHANGE %</th><th>VOLUME</th><th>SORTINO</th><th>GRADE</th></tr></thead>
+
+                    <tbody id="tbody-p1">
+                        <tr><td colspan="5"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PHASE 2 -->
+        <div class="phase-card">
+            <div class="card-header">
+                <div>PHASE 2: ACTIVITY PULSE</div>
+                <div id="count-p2" class="metric-sub">-</div>
+            </div>
+            <div class="card-body">
+                <table class="macro-table">
+                    <thead><tr><th>TICKER</th><th>PRICE</th><th>CHANGE %</th><th>VOLUME</th><th>SORTINO</th><th>TIER / GRADE</th></tr></thead>
+
+                    <tbody id="tbody-p2">
+                        <tr><td colspan="5"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELEMETRY TERMINAL -->
+    <div class="terminal-window" id="terminal-body">
+        <div class="term-log"><span class="term-time">[SYSTEM]</span> READY: Standing by for pipeline execution.</div>
+    </div>
+    <div class="sweeper-container" id="global-sweeper" style="margin-top: 0; margin-bottom: 0px;">
+        <div class="scanner-bar"></div>
+    </div>
+
+    <script>
+        let currentStream = null;
+        
+        // Global tracking for cross-table highlights
+        let phase1Symbols = new Set();  // "Sortino Static" passers
+        let bunkerSymbols = new Set();  // "Bunker List" members
+        let phase0Symbols = new Set();  // "Top Gainers" candidates
+
+        let lastBunkerData = [];
+        let lastP0Data = [];
+        let lastP1Data = [];
+        let lastP2Data = [];
+
+        function getRowClass(symbol) {
+            let classes = [];
+            if (phase1Symbols.has(symbol)) classes.push('static-pass-row');
+            if (bunkerSymbols.has(symbol) && phase0Symbols.has(symbol)) classes.push('intersection-row');
+            return classes.join(' ');
+        }
+
+        function setTableState(phase, text, isError = false) {
+            const color = isError ? 'var(--ruby-red)' : 'var(--text-muted)';
+            let colspan = 5;
+            if (phase === 'a') colspan = 5;
+            else if (phase === 1 || phase === 2) colspan = 6;
+            
+            const tbodyId = phase === 'a' ? 'tbody-pa' : `tbody-p${phase}`;
+            const countId = phase === 'a' ? 'count-pa' : `count-p${phase}`;
+            
+            document.getElementById(tbodyId).innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; color: ${color}; font-style:italic;">${text}</td></tr>`;
+            document.getElementById(countId).innerText = '-';
+        }
+
+        function getSortinoClass(val) {
+            const s = parseFloat(val);
+            if (isNaN(s)) return '';
+            if (s >= 2.0) return 'sortino-high';
+            if (s >= 1.0) return 'sortino-mid';
+            return 'sortino-low';
+        }
+
+
+        function logTerminal(msg, payload = null) {
+            const term = document.getElementById('terminal-body');
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            let h = `<div class="term-log"><span class="term-time">[${time}]</span> ${msg}</div>`;
+            if (payload) {
+                h += `<div class="term-payload">${JSON.stringify(payload, null, 2)}</div>`;
+            }
+            term.innerHTML += h;
+            term.scrollTop = term.scrollHeight;
+        }
+
+        async function loadBunker() {
+            try {
+                const response = await fetch('/api/scanner/bunker');
+                const res = await response.json();
+                if (res.status === 'success') {
+                    const data = res.data || [];
+                    lastBunkerData = data;
+                    bunkerSymbols = new Set(data.map(c => c.symbol));
+                    
+                    renderBunkerUI();
+                    // Intersection check: re-render Phase 0 if it has data
+                    if (lastP0Data.length > 0) renderPhase0UI(lastP0Data);
+                }
+            } catch (err) {
+                console.error("Failed to load bunker", err);
+                setTableState('a', "Failed to load bunker", true);
+            }
+        }
+
+        function renderBunkerUI() {
+            const data = lastBunkerData;
+            document.getElementById('count-pa').innerText = data.length + ' SYMBOLS';
+            let html = '';
+            const sorted = [...data].sort((a, b) => (b.sortino || 0) - (a.sortino || 0));
+            sorted.forEach(c => {
+                const sVal = (c.sortino !== undefined && c.sortino !== null) ? parseFloat(c.sortino).toFixed(2) : '-';
+                const sClass = getSortinoClass(c.sortino);
+                const rClass = getRowClass(c.symbol);
+                const gradeClass = `grade-${(c.grade || 'C').toLowerCase()}`;
+                const price = parseFloat(c.price || 0).toFixed(2);
+                html += `<tr class="${rClass}">
+                    <td><span class="symbol-bold">${c.symbol}</span></td>
+                    <td>$${price}</td>
+                    <td class="metric-sub">${c.volume || '-'}</td>
+                    <td class="sortino-val ${sClass}">${sVal}</td>
+                    <td><span class="grade-tag ${gradeClass}">${c.grade || '-'}</span></td>
+                </tr>`;
+            });
+            document.getElementById('tbody-pa').innerHTML = html || '<tr><td colspan="5" style="text-align:center;">Empty bunker</td></tr>';
+        }
+
+        function renderPhase0UI(p0) {
+            lastP0Data = p0;
+            phase0Symbols = new Set(p0.map(c => c.symbol));
+            document.getElementById('count-p0').innerText = p0.length + ' SYMBOLS';
+            let html = '';
+            p0.forEach(c => {
+                const price = parseFloat(c.price || 0).toFixed(2);
+                const rClass = getRowClass(c.symbol);
+                let chgColor = String(c.change || '').includes('-') ? 'var(--ruby-red)' : 'var(--emerald-green)';
+                const sVal = (c.sortino !== undefined && c.sortino !== null) ? parseFloat(c.sortino).toFixed(2) : '-';
+                const sClass = getSortinoClass(c.sortino);
+                html += `<tr class="${rClass}">
+                    <td><span class="symbol-bold">${c.symbol}</span></td>
+                    <td>$${price}</td>
+                    <td style="color: ${chgColor}">${c.change || '-'}</td>
+                    <td class="metric-sub">${c.volume || '-'}</td>
+                    <td class="sortino-val ${sClass}">${sVal}</td>
+                </tr>`;
+            });
+            document.getElementById('tbody-p0').innerHTML = html || '<tr><td colspan="5" style="text-align:center;">No data</td></tr>';
+        }
+
+        function renderPhase1UI(p1) {
+            lastP1Data = p1;
+            phase1Symbols = new Set(p1.map(c => c.symbol));
+            document.getElementById('count-p1').innerText = p1.length + ' SYMBOLS';
+            let html = '';
+            p1.forEach(c => {
+                const price = parseFloat(c.price || 0).toFixed(2);
+                const rClass = getRowClass(c.symbol);
+                let chgColor = String(c.change || '').includes('-') ? 'var(--ruby-red)' : 'var(--emerald-green)';
+                const gradeClass = `grade-${(c.grade || 'C').toLowerCase()}`;
+                const sVal = (c.sortino !== undefined && c.sortino !== null) ? parseFloat(c.sortino).toFixed(2) : '-';
+                const sClass = getSortinoClass(c.sortino);
+                html += `<tr class="${rClass}">
+                    <td><span class="symbol-bold">${c.symbol}</span></td>
+                    <td>$${price}</td>
+                    <td style="color: ${chgColor}">${c.change || '-'}</td>
+                    <td class="metric-sub">${c.volume || '-'}</td>
+                    <td class="sortino-val ${sClass}">${sVal}</td>
+                    <td><span class="grade-tag ${gradeClass}">${c.grade || '-'}</span></td>
+                </tr>`;
+            });
+            document.getElementById('tbody-p1').innerHTML = html || '<tr><td colspan="6" style="text-align:center;">No data</td></tr>';
+            
+            // Critical Update: Re-render other tables now that Phase 1 passes are known
+            renderBunkerUI();
+            renderPhase0UI(lastP0Data);
+            if (lastP2Data.length > 0) renderPhase2UI(lastP2Data);
+        }
+
+        function renderPhase2UI(p2) {
+            lastP2Data = p2;
+            document.getElementById('count-p2').innerText = p2.length + ' SYMBOLS';
+            let html = '';
+            p2.forEach(c => {
+                const price = parseFloat(c.price || 0).toFixed(2);
+                const rClass = getRowClass(c.symbol);
+                let chgColor = String(c.change || '').includes('-') ? 'var(--ruby-red)' : 'var(--emerald-green)';
+                const tierClass = (c.tier || '').toLowerCase() === 'strike' ? 'grade-strike' : 'grade-scout';
+                const letterGrade = c.grade || 'B';
+                const gradeClass = `grade-${letterGrade.toLowerCase()}`;
+                const sVal = (c.sortino !== undefined && c.sortino !== null) ? parseFloat(c.sortino).toFixed(2) : '-';
+                const sClass = getSortinoClass(c.sortino);
+
+                html += `<tr class="${rClass}">
+                    <td><span class="symbol-bold">${c.symbol}</span></td>
+                    <td>$${price}</td>
+                    <td style="color: ${chgColor}">${c.change || '-'}</td>
+                    <td class="metric-sub">${c.volume || '-'}</td>
+                    <td class="sortino-val ${sClass}">${sVal}</td>
+                    <td>
+                        <span class="grade-tag ${tierClass}">${c.tier || 'SCOUT'}</span>
+                        <span class="grade-tag ${gradeClass}" style="margin-left:4px;">${letterGrade}</span>
+                    </td>
+                </tr>`;
+            });
+            document.getElementById('tbody-p2').innerHTML = html || '<tr><td colspan="6" style="text-align:center;">No candidates</td></tr>';
+        }
+
+        async function refreshBunker() {
+            const btn = document.getElementById('trawl-btn');
+            const originalText = btn.innerText;
+            btn.innerText = 'TRAWLING...';
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+
+            logTerminal("Initiating LAYER A: THE BACKGROUND TRAWL...");
+            try {
+                const response = await fetch('/api/scanner/trawl');
+                const res = await response.json();
+
+                
+                if (res.status === 'success') {
+                    const data = res.data;
+                    logTerminal(`Bunker synchronized successfully!`, data);
+                    logTerminal(`Verified ${data.verified_count} candidates meeting Pillar 1, 2, and 4 requirements.`);
+                    // Refresh the bunker list UI
+                    await loadBunker();
+                } else {
+                    logTerminal(`Bunker Trawl failed: ${res.message}`, null);
+                }
+            } catch (err) {
+                logTerminal(`Bunker Trawl error: ${err.message}`);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        }
+
+
+        async function toggleScan() {
+            const btn = document.getElementById('scan-toggle-btn');
+            const sweeper = document.getElementById('global-sweeper');
+            
+            if (btn.innerText.trim() === 'STOP') {
+                if (currentStream) currentStream.close();
+                currentStream = null;
+                btn.innerText = 'START SCAN';
+                btn.style.background = 'var(--cobalt-blue)';
+                sweeper.style.display = 'none';
+                setTableState(0, "Scan Terminated. Standing by.");
+                setTableState(1, "Scan Terminated. Standing by.");
+                setTableState(2, "Scan Terminated. Standing by.");
+                logTerminal("Pipeline execution ABORTED by user.");
+                return;
+            }
+
+            btn.innerText = 'STOP';
+            btn.style.background = 'var(--ruby-red)';
+            sweeper.style.display = 'block';
+            document.getElementById('terminal-body').innerHTML = ''; // clear log
+            logTerminal("Pipeline execution STARTED. Opening SSE stream...");
+
+            setTableState(0, "Connecting to stream...");
+            setTableState(1, "Awaiting Pipeline...");
+            setTableState(2, "Awaiting Pipeline...");
+
+            currentStream = new EventSource('/api/scanner/stream');
+
+            currentStream.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'telemetry') {
+                        if (data.msg) logTerminal(data.msg);
+                        if (data.payload) logTerminal("PAYLOAD CAPTURE:", data.payload);
+                        if (data.msg && data.msg.includes('finished cleanly')) {
+                            // cleanly finish
+                            currentStream.close();
+                            currentStream = null;
+                            btn.innerText = 'START SCAN';
+                            btn.style.background = 'var(--cobalt-blue)';
+                            sweeper.style.display = 'none';
+                        }
+                    } 
+                    if (data.type === 'phase0') {
+                        renderPhase0UI(data.data || []);
+                        // Trigger Bunker re-render to check for intersections
+                        renderBunkerUI();
+                    }
+                    else if (data.type === 'phase1') {
+                        renderPhase1UI(data.data || []);
+                    }
+                    else if (data.type === 'phase2') {
+                        renderPhase2UI(data.data || []);
+                    }
+
+                } catch(e) {
+                    console.error("SSE parsing error", e);
+                }
+            };
+
+            currentStream.onerror = (err) => {
+                logTerminal("STREAM ERROR: Connection lost.", err);
+                if (currentStream) currentStream.close();
+                currentStream = null;
+                btn.innerText = 'START SCAN';
+                btn.style.background = 'var(--cobalt-blue)';
+                sweeper.style.display = 'none';
+            };
+        }
+
+        // Initialize Bunker on load
+        window.addEventListener('DOMContentLoaded', loadBunker);
+    </script>
+</body>
+</html>

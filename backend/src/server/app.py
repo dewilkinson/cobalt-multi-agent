@@ -61,11 +61,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 
 # --- VLI GLOBAL STATE ---
+_vli_extracted_alerts = []  # [{symbol, label, color}]
+_vli_macro_worker_task = None
+_vli_last_macro_data = [] # Will be lazy-loaded
+_vli_session_id = f"vli-{datetime.now().strftime('%Y%m%d-%H%M%S')}"  # Unique per-server-run
+_vli_last_run_day = datetime.now().strftime("%Y-%m-%d")
+_vli_last_inbox_log_time = 0.0
+_vli_rules_enabled = False
 _vli_convergence_history = []
-_vli_dynamic_panels = {}
 _vli_last_async_report = ""
 _vli_last_ux_card = {}
-_vli_rules_enabled = True
+_vli_processed_draft_mtimes = {}  # [NEW] Tracking for inbox processing
+_vli_action_cache_data = {}  # [NEW] Short-term identical query cache
+_vli_reset_requested = False
+_vli_active_task = None
+_vli_fast_path_cooldown_until = datetime.now()
+_vli_last_inbox_action = None
+_vli_rules_active_since = datetime.now()
+_vli_last_thread_id = None
+_vli_dynamic_panels = []
 from fastapi.security import APIKeyHeader
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, HumanMessage, ToolMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -130,20 +144,9 @@ if not logger.handlers:
 from src.services.macro_registry import macro_registry
 
 # --- GLOBAL VLI STATE ---
-_vli_extracted_alerts = []  # [{symbol, label, color}]
-_vli_dynamic_panels = []  # [{id, title, content_html}]
-_vli_macro_worker_task = None
-_vli_last_macro_data = [{"symbol": k, "price": 0, "change": 0, "volume": 0, "color": "gray"} for k in macro_registry.get_macros().keys()]
-_vli_session_id = f"vli-{datetime.now().strftime('%Y%m%d-%H%M%S')}"  # Unique per-server-run
-_vli_last_run_day = datetime.now().strftime("%Y-%m-%d")
-_vli_last_inbox_log_time = 0.0
-_vli_rules_enabled = False
-_vli_convergence_history = []
-_vli_last_async_report = ""
-_vli_last_ux_card = {}
+# (Variables now moved to unified block above)
 from collections import defaultdict
 _vli_chat_history_store = defaultdict(list) # {client_id: [{role, content, thought, timestamp, thread_id}]}
-_vli_action_cache_data = {}  # [NEW] Short-term identical query cache
 
 def _append_to_vli_history(role: str, content: str, thought: str = "", thread_id: str = None):
     """Unified logger for VLI Chat history."""
@@ -349,6 +352,7 @@ INTERNAL_SERVER_ERROR_DETAIL = "Internal Server Error"
 app = FastAPI(title="Cobalt Multi-Agent (CMA) - VibeLink Interface", description="Institutional-grade agentic financial monitoring pipeline.", version="10.2.1")
 
 
+
 @app.get("/vli")
 async def vli_dashboard_redirect():
     from fastapi.responses import RedirectResponse
@@ -377,6 +381,105 @@ app.add_middleware(
 import os
 
 from fastapi.staticfiles import StaticFiles
+
+
+async def poll_5m_patterns():
+    """
+    Automated 5-minute watchdog tracing the SCANNER_COMBAT_LIST for
+    intraday Break of Structure (BOS) and Change of Character (CHOCH) patterns.
+    """
+    import json
+    from src.tools.smc import run_smc_analysis
+    
+    combat_list_path = os.path.join(os.getcwd(), "data", "SCANNER_COMBAT_LIST.json")
+    # Correcting dynamic pathing just in case
+    if not os.path.exists(combat_list_path):
+        combat_list_path = os.path.join(os.getcwd(), "backend", "data", "SCANNER_COMBAT_LIST.json")
+        if not os.path.exists(combat_list_path):
+            return
+
+    try:
+        with open(combat_list_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            
+        candidates = data.get("candidates", [])
+        if not candidates:
+            return
+            
+        for c in candidates:
+            symbol = c.get("symbol")
+            if not symbol: continue
+            
+            # Execute SMC Specialist primitive locally
+            report = await run_smc_analysis.ainvoke({"ticker": symbol, "interval": "5m"})
+            
+            # Scan output block for exact matches to BoS or CHoCH
+            if "Change of Character (ChoCh)" in report or "Break of Structure (BOS)" in report:
+                trigger_type = "CHoCH" if "Change of Character" in report else "Break of Structure"
+                msg = f"🚨 **[SMC ALERT]**: Just detected an Institutional **{trigger_type}** footprint printed on the **5m** structural timeframe for **{symbol}**."
+                
+                # Push organically to the Command Center UI via chat proxy
+                _append_to_vli_history("Analyst", msg)
+                logger.info(f"[SMC WATCHDOG] Trigger payload fired for {symbol} ({trigger_type})")
+                
+    except Exception as e:
+        logger.error(f"[SMC WATCHDOG] Internal polling failure: {e}")
+
+async def poll_market_pulse():
+    """
+    Automated execution of Phase 1 and Phase 2 algorithmic pulse tracking.
+    Refreshes the SCANNER_RES_state.json natively without broadcasting terminal SSEs.
+    """
+    import os
+    import json
+    from datetime import datetime
+    from src.config.vli import get_vli_path
+    from src.tools.scanner import _build_session_watchlist_impl, _run_activity_pulse_impl, sanitize_data, NpEncoder
+
+    try:
+        combat_list_path = os.path.join(os.getcwd(), "data", "SCANNER_COMBAT_LIST.json")
+        if not os.path.exists(combat_list_path):
+            combat_list_path = os.path.join(os.getcwd(), "backend", "data", "SCANNER_COMBAT_LIST.json")
+
+        phase0_raw = []
+        if os.path.exists(combat_list_path):
+            with open(combat_list_path, "r", encoding="utf-8") as f:
+                c_data = json.load(f)
+                phase0_raw = c_data.get("combat_list", [])
+                
+        symbols = [r["symbol"] for r in phase0_raw if r.get("symbol")]
+        universe_csv = ",".join(symbols)
+
+        if not universe_csv:
+            return
+            
+        p1_res_str = await _build_session_watchlist_impl(strategy_config="{}", universe_csv=universe_csv)
+        p1_data = json.loads(p1_res_str)
+        p1_symbols = p1_data.get("watchlist", [])
+        
+        if not p1_symbols:
+            return
+            
+        p2_res_str = await _run_activity_pulse_impl(strategy_config="{}", watchlist=json.dumps(p1_symbols, cls=NpEncoder))
+        p2_data = json.loads(p2_res_str)
+        p2_candidates = p2_data.get("candidates", [])
+        
+        p2_full = []
+        for p in p2_candidates:
+            match = next((x for x in phase0_raw if x.get("symbol") == p.get("symbol")), {})
+            merged = sanitize_data({**match, **p})
+            p2_full.append(merged)
+            
+        response_obj = sanitize_data({"candidates": p2_full})
+        transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "SCANNER_RES_state.json"))
+        os.makedirs(os.path.dirname(transit_path), exist_ok=True)
+        with open(transit_path, "w", encoding="utf-8") as f:
+            json.dump(response_obj, f, indent=4, cls=NpEncoder)
+            
+        logger.info(f"[PULSE TRACKER] Background cycle completely silently: {len(p2_full)} high probability targets cached.")
+        
+    except Exception as e:
+        logger.error(f"[PULSE TRACKER] Native cycle failed: {e}")
 
 
 @app.on_event("startup")
@@ -408,6 +511,47 @@ async def startup_event():
     )
     
     # Start the engine
+    from src.tools.sortino_sniper_trawl import run_background_trawl, run_intraday_trawl
+    
+    cobalt_scheduler.add_timer(
+        task_id="DAILY_COMBAT_TRAWL",
+        name="Daily Combat List Update",
+        type="CALENDAR",
+        schedule="15 7 * * *",
+        priority="HIGH",
+        callback=run_background_trawl
+    )
+    
+    cobalt_scheduler.add_timer(
+        task_id="INTRADAY_COMBAT_TRAWL",
+        name="Intraday Momentum Trawl Watchdog",
+        type="REPEAT",
+        schedule=60,
+        period_unit="minutes",
+        priority="LOW",
+        callback=run_intraday_trawl
+    )
+    
+    cobalt_scheduler.add_timer(
+        task_id="PULSE_TRACKER",
+        name="Phase 2 Pulse Signal Watchdog",
+        type="REPEAT",
+        schedule=5,
+        period_unit="minutes",
+        priority="LOW",
+        callback=poll_market_pulse
+    )
+    
+    cobalt_scheduler.add_timer(
+        task_id="SMC_5M_POLLER",
+        name="5-Minute Structure Alert Watchdog",
+        type="REPEAT",
+        schedule=5,
+        period_unit="minutes",
+        priority="NORMAL",
+        callback=poll_5m_patterns
+    )
+    
     cobalt_scheduler.start()
     
     # Note: Macro Sync is now handled by the standalone vli_macro_worker.py process.
@@ -748,11 +892,22 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                     macro_watchlist_content = json.load(f)
             except Exception as e:
                 logger.error(f"Failed to read MACRO_WATCHLIST_state.json: {e}")
+                
+        # 6. Read SCANNER_RES state
+        scanner_res_content = {}
+        scanner_bucket_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SCANNER_RES_state.json")
+        if os.path.exists(scanner_bucket_path):
+            try:
+                with open(scanner_bucket_path, encoding="utf-8") as f:
+                    scanner_res_content = json.load(f)
+            except Exception as e:
+                logger.error(f"Failed to read SCANNER_RES_state.json: {e}")
 
         logger.info(f"[VLI_TRACE] State compiled for return. Telemetry size: {len(telemetry_tail)} bytes.")
         return {
             "macros": json.loads(json.dumps(_get_vli_macro_snapshot(), default=str)),
             "macro_watchlist_content": macro_watchlist_content,
+            "scanner_results": scanner_res_content,
             "last_macro_update": os.path.getmtime(get_vli_path("vli_macro_snapshot.json")) if os.path.exists(get_vli_path("vli_macro_snapshot.json")) else time.time(),
             "alerts": ui_alerts or [{"symbol": "SYS", "color": "green", "label": "VLI-IDLE"}],
             "dynamic_panels": json.loads(json.dumps(_vli_dynamic_panels, default=str)),
@@ -2315,28 +2470,38 @@ async def _astream_workflow_generator(
         "row_factory": "dict_row",
         "prepare_threshold": 0,
     }
-    if checkpoint_saver and checkpoint_url != "":
-        if checkpoint_url.startswith("postgresql://"):
-            logger.info("start async postgres checkpointer.")
-            async with AsyncConnectionPool(checkpoint_url, kwargs=connection_kwargs) as conn:
-                checkpointer = AsyncPostgresSaver(conn)
-                await checkpointer.setup()
-                graph.checkpointer = checkpointer
-                graph.store = in_memory_store
-                async for event in _stream_graph_events(graph, workflow_input, workflow_config, thread_id, session_obj, project_obj):
-                    yield event
+    try:
+        if checkpoint_saver and checkpoint_url != "":
+            if checkpoint_url.startswith("postgresql://"):
+                logger.info("start async postgres checkpointer.")
+                async with AsyncConnectionPool(checkpoint_url, kwargs=connection_kwargs) as conn:
+                    checkpointer = AsyncPostgresSaver(conn)
+                    await checkpointer.setup()
+                    graph.checkpointer = checkpointer
+                    graph.store = in_memory_store
+                    async for event in _stream_graph_events(graph, workflow_input, workflow_config, thread_id, session_obj, project_obj):
+                        yield event
 
-        if checkpoint_url.startswith("mongodb://"):
-            logger.info("Starting native MongoDB checkpointer.")
-            async with NativeMongoDBSaver.from_conn_string(checkpoint_url) as checkpointer:
-                graph.checkpointer = checkpointer
-                graph.store = in_memory_store
-                async for event in _stream_graph_events(graph, workflow_input, workflow_config, thread_id, session_obj, project_obj):
-                    yield event
-    else:
-        # Use graph without MongoDB checkpointer
-        async for event in _stream_graph_events(graph, workflow_input, workflow_config, thread_id, session_obj, project_obj):
-            yield event
+            if checkpoint_url.startswith("mongodb://"):
+                logger.info("Starting native MongoDB checkpointer.")
+                async with NativeMongoDBSaver.from_conn_string(checkpoint_url) as checkpointer:
+                    graph.checkpointer = checkpointer
+                    graph.store = in_memory_store
+                    async for event in _stream_graph_events(graph, workflow_input, workflow_config, thread_id, session_obj, project_obj):
+                        yield event
+        else:
+            # Use graph without MongoDB checkpointer
+            async for event in _stream_graph_events(graph, workflow_input, workflow_config, thread_id, session_obj, project_obj):
+                yield event
+    except Exception as e:
+        emsg = str(e)
+        status_code = "TIMEOUT" if "timed out" in emsg.lower() else "ERROR"
+        if "429" in emsg or "resource_exhausted" in emsg.lower():
+            status_code = "QUOTA_EXHAUSTED"
+            emsg = "Gemini API Quota Exhausted. Transitioning to fallback or awaiting cooldown..."
+            
+        logger.error(f"[VLI_ASTREAM] Caught stream termination error: {emsg}")
+        yield f"data: {json.dumps({'type': 'error', 'msg': emsg, 'status': status_code})}\n\n"
 
 
 def _make_event(event_type: str, data: dict[str, any]):
@@ -2580,6 +2745,11 @@ async def config():
 app.include_router(research_router, prefix="/api/research", tags=["research"])
 app.include_router(studio_router)
 
+# Include scanner routes (integrated Layer A + Phase 1/2 stream)
+from src.server.routes.scanner import router as scanner_router
+app.include_router(scanner_router, prefix="/api/scanner", tags=["scanner"])
+
+
 # Trigger Telemetry Purge on Server Startup
 try:
     from src.config.vli import purge_stale_vli_sessions
@@ -2594,3 +2764,4 @@ public_dir = os.path.join(backend_root, "public")
 app.mount("/", StaticFiles(directory=public_dir, html=True), name="static")
 
 # Trigger hot reload
+# RELOAD_FLAG_2026_04_20_12_56

@@ -11,10 +11,23 @@ import {
   RefreshCw,
   Globe,
   Gauge,
-  BarChart3,
-  Loader2
+  BarChart3, 
+  Loader2,
+  Radar,
+  Square,
+  Activity,
+  Target,
+  Terminal as TerminalIcon
 } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Terminal, AnimatedSpan } from "@/components/ui/terminal";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 type SparklinePoint = {
   v: number;
@@ -137,6 +150,79 @@ export default function MacroDashboard() {
   const [syncCount, setSyncCount] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState(60); // 60s Institutional Refresh Cycle
+  const [isScanning, setIsScanning] = useState(false);
+  const [showConsole, setShowConsole] = useState(false);
+  const [scannerLogs, setScannerLogs] = useState<string[]>([]);
+  const [strikeCandidates, setStrikeCandidates] = useState<any[]>([]);
+  const eventSourceRef = useRef<EventSource | null>(null);
+
+  const stopScanner = () => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    setIsScanning(false);
+    setScannerLogs(prev => [...prev, "--- SCAN TERMINATED BY USER ---"]);
+  };
+
+  const startScanner = () => {
+    if (isScanning) return;
+    
+    setIsScanning(true);
+    setShowConsole(true);
+    setScannerLogs(["[SYSTEM] Initiating Market-Wide Sniper Trawl...", "[SYSTEM] Connecting to backend SSE pipeline..."]);
+    setStrikeCandidates([]);
+
+    const es = new EventSource('http://localhost:8000/api/scanner/stream');
+    eventSourceRef.current = es;
+
+    es.addEventListener('telemetry', (e) => {
+      const data = JSON.parse(e.data);
+      setScannerLogs(prev => [...prev, `[TELEMETRY] ${data.message}`]);
+    });
+
+    es.addEventListener('phase0', (e) => {
+      const data = JSON.parse(e.data);
+      setScannerLogs(prev => [...prev, `[PHASE 0] Discovery Pool: ${data.count} symbols identified.`]);
+    });
+
+    es.addEventListener('phase1', (e) => {
+      const data = JSON.parse(e.data);
+      setScannerLogs(prev => [...prev, `[PHASE 1] Sortino Static: ${data.pass_count}/${data.total_count} passing sniper hurdle.`]);
+    });
+
+    es.addEventListener('phase2', (e) => {
+      const data = JSON.parse(e.data);
+      if (data.candidates && data.candidates.length > 0) {
+        setStrikeCandidates(prev => {
+          const existing = new Set(prev.map(c => c.symbol));
+          const filtered = data.candidates.filter((c: any) => !existing.has(c.symbol));
+          return [...prev, ...filtered.map((c: any) => ({
+            ...c,
+            timestamp: new Date().toLocaleTimeString()
+          }))];
+        });
+        
+        data.candidates.forEach((c: any) => {
+          setScannerLogs(prev => [...prev, `[SELECTED] ${c.symbol} (Score: ${c.score || 'N/A'}) - Passing Pulse Filter.`]);
+        });
+      }
+    });
+
+    es.onerror = (err) => {
+      console.error("Scanner SSE Error:", err);
+      setScannerLogs(prev => [...prev, "[ERROR] Connection lost or server failed to respond."]);
+      stopScanner();
+    };
+
+    // Cleanup after 5 minutes if not stopped
+    setTimeout(() => {
+      if (eventSourceRef.current === es) {
+        setScannerLogs(prev => [...prev, "[SYSTEM] Scan timeout reached. Closing connection."]);
+        stopScanner();
+      }
+    }, 300000);
+  };
 
   const fetchMacros = async () => {
     setLoading(true);
@@ -486,14 +572,50 @@ export default function MacroDashboard() {
                 </div>
               </motion.div>
             )}
-            <button 
-              onClick={fetchMacros}
-              disabled={loading}
-              className="relative p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all active:scale-95 disabled:opacity-50 group"
-            >
-              <RefreshCw className={`w-5 h-5 text-indigo-400 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
-              {loading && <div className="absolute inset-0 bg-indigo-500/20 rounded-xl blur-md" />}
-            </button>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={isScanning ? stopScanner : startScanner}
+                className={`relative px-4 py-2.5 rounded-xl border transition-all active:scale-95 flex items-center gap-2 group font-mono text-sm tracking-tight ${
+                  isScanning 
+                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20' 
+                    : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20'
+                }`}
+              >
+                {isScanning ? (
+                  <>
+                    <div className="relative">
+                      <Square className="w-4 h-4 fill-current" />
+                      <div className="absolute inset-0 bg-rose-400/20 blur-sm rounded-full animate-pulse" />
+                    </div>
+                    STOP SCAN
+                  </>
+                ) : (
+                  <>
+                    <Radar className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
+                    RUN MARKET SCAN
+                  </>
+                )}
+              </button>
+
+              <button 
+                onClick={fetchMacros}
+                disabled={loading}
+                className="relative p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all active:scale-95 disabled:opacity-50 group"
+                title="Refresh Macro Data"
+              >
+                <RefreshCw className={`w-5 h-5 text-slate-400 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+              </button>
+              
+              {scannerLogs.length > 0 && !showConsole && (
+                <button 
+                   onClick={() => setShowConsole(true)}
+                   className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 active:scale-95 transition-all"
+                   title="View Scanner Console"
+                >
+                  <Activity className="w-5 h-5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -582,7 +704,9 @@ export default function MacroDashboard() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.05 }}
                         key={item.ticker}
-                        className="hover:bg-white/[0.02] transition-colors group"
+                        className={`hover:bg-white/[0.02] transition-colors group ${
+                          strikeCandidates.some(c => c.symbol === item.ticker) ? 'bg-emerald-500/[0.08] border-l-2 border-l-emerald-500' : ''
+                        }`}
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-4">
@@ -669,6 +793,134 @@ export default function MacroDashboard() {
              DATA SOURCE: YAHOO FINANCE & COBALT SMC ENGINE
           </div>
         </div>
+        {/* Scanner Console Sheet */}
+        <Sheet open={showConsole} onOpenChange={setShowConsole}>
+          <SheetContent side="right" className="bg-[#080808] border-white/10 w-[400px] sm:w-[500px] p-0 flex flex-col">
+            <SheetHeader className="p-6 border-b border-white/5">
+              <div className="flex items-center justify-between">
+                <SheetTitle className="text-white flex items-center gap-3 font-mono tracking-widest text-lg uppercase">
+                  <Radar className={`w-5 h-5 text-indigo-400 ${isScanning ? 'animate-spin' : ''}`} />
+                  Scanner Console
+                </SheetTitle>
+                <div className="flex items-center gap-2">
+                   <div className={`w-2 h-2 rounded-full ${isScanning ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
+                   <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
+                     {isScanning ? 'Scanning Live' : 'Scan Idle'}
+                   </span>
+                </div>
+              </div>
+            </SheetHeader>
+            
+            <Tabs defaultValue="console" className="flex-1 flex flex-col overflow-hidden">
+              <div className="px-6 border-b border-white/5 bg-white/[0.01]">
+                <TabsList className="bg-transparent border-none p-0 gap-6">
+                  <TabsTrigger value="console" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-indigo-500 data-[state=active]:bg-transparent text-xs uppercase tracking-widest font-bold">
+                    Console
+                  </TabsTrigger>
+                  <TabsTrigger value="strikes" className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent text-xs uppercase tracking-widest font-bold flex items-center gap-2">
+                    Strike List
+                    {strikeCandidates.length > 0 && (
+                      <span className="bg-emerald-500 text-black text-[9px] px-1.5 py-0.5 rounded-full">
+                        {strikeCandidates.length}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="console" className="flex-1 overflow-hidden p-4 m-0">
+                <Terminal className="h-full max-h-none max-w-none bg-black/40 border-white/5 shadow-inner">
+                  {scannerLogs.map((log, index) => {
+                    const isError = log.includes("[ERROR]");
+                    const isSelected = log.includes("[SELECTED]");
+                    const isSystem = log.includes("[SYSTEM]");
+                    
+                    let textColor = "text-slate-400";
+                    if (isSelected) textColor = "text-emerald-400 font-bold";
+                    if (isError) textColor = "text-rose-400";
+                    if (isSystem) textColor = "text-indigo-400 italic";
+
+                    return (
+                      <AnimatedSpan key={index} className={textColor}>
+                        <span className="font-bold opacity-30 mr-2 tabular-nums">{index + 1}</span>
+                        {log}
+                      </AnimatedSpan>
+                    );
+                  })}
+                  {isScanning && (
+                    <AnimatedSpan className="text-indigo-500/50 flex items-center gap-2">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Listening for pulse displacement...
+                    </AnimatedSpan>
+                  )}
+                </Terminal>
+              </TabsContent>
+
+              <TabsContent value="strikes" className="flex-1 overflow-auto p-0 m-0">
+                {strikeCandidates.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-4 opacity-50">
+                    <Target className="w-12 h-12 stroke-[1px]" />
+                    <div className="text-xs uppercase tracking-widest font-bold">No candidates identified yet</div>
+                  </div>
+                ) : (
+                  <div className="p-4">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/5">
+                          <th className="pb-3 text-[10px] uppercase text-slate-500 font-bold">Symbol</th>
+                          <th className="pb-3 text-[10px] uppercase text-slate-500 font-bold">Price</th>
+                          <th className="pb-3 text-[10px] uppercase text-slate-500 font-bold text-right">Score</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {strikeCandidates.map((c, i) => (
+                          <motion.tr 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            key={c.symbol + i} 
+                            className="group"
+                          >
+                            <td className="py-3">
+                              <div className="flex flex-col">
+                                <span className="text-emerald-400 font-bold text-sm">{c.symbol}</span>
+                                <span className="text-[9px] text-slate-600 font-mono">{c.timestamp}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 text-white font-mono text-xs">
+                              ${c.price?.toFixed(2) || '---'}
+                            </td>
+                            <td className="py-3 text-right">
+                              <span className="px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded text-emerald-400 text-[10px] font-bold font-mono">
+                                {c.score?.toFixed(2) || 'N/A'}
+                              </span>
+                            </td>
+                          </motion.tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+
+            <div className="p-6 border-t border-white/5 bg-white/[0.02]">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-slate-500 font-mono">
+                   SESSION STRIKES: <span className="text-emerald-400 font-bold">{strikeCandidates.length}</span>
+                </div>
+                <button 
+                  onClick={() => {
+                    setScannerLogs([]);
+                    setStrikeCandidates([]);
+                  }}
+                  className="text-[10px] text-slate-600 hover:text-slate-400 font-bold uppercase tracking-widest transition-colors"
+                >
+                  Clear Session
+                </button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );

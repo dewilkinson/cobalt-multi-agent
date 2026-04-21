@@ -43,7 +43,10 @@ async def run_smc_analysis(ticker: str, interval: str = "auto") -> str:
     single-pass isolated scanner.
     """
     try:
-        from smartmoneyconcepts import smc
+        import io
+        from contextlib import redirect_stdout
+        with redirect_stdout(io.StringIO()):
+            from smartmoneyconcepts import smc
     except ImportError:
         return "[ERROR]: The 'smartmoneyconcepts' library is required. Run 'pip install smartmoneyconcepts'."
 
@@ -280,7 +283,10 @@ async def get_raw_smc_tables(ticker: str, interval: str = "1d", period: str = "1
     Bypasses text synthesis and returns pure computational pandas structures as JSON.
     """
     try:
-        from smartmoneyconcepts import smc
+        import io
+        from contextlib import redirect_stdout
+        with redirect_stdout(io.StringIO()):
+            from smartmoneyconcepts import smc
     except ImportError:
         return json.dumps([{"error": "Library required"}])
 

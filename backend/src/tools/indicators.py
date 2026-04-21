@@ -9,6 +9,7 @@
 import asyncio
 import json
 import logging
+import os
 from typing import Any
 
 import numpy as np
@@ -68,13 +69,17 @@ def calculate_atr(df: pd.DataFrame, period: int = 14):
 
 
 @tool
-async def get_rsi_analysis(ticker: str, period: str = "60d", interval: str = "1d") -> str:
+async def get_rsi_analysis(ticker: str, period: str = "", interval: str = "") -> str:
     """
     Primitive: Retrieves the Relative Strength Index (RSI) for a ticker.
     Used for detecting overbought (>70) or oversold (<30) conditions.
     """
 
     def compute(symbol, p, i):
+        if not p:
+            is_day_trading = os.getenv("VLI_TRADING_STYLE", "day_trading") == "day_trading"
+            p, i = ("2d", "5m") if is_day_trading else ("60d", "1d")
+            
         df = _fetch_stock_history(symbol, p, i)
         if df.empty:
             return f"### RSI: {symbol.upper()}\nError: No data for p={p}, i={i}\n"
@@ -89,13 +94,17 @@ async def get_rsi_analysis(ticker: str, period: str = "60d", interval: str = "1d
 
 
 @tool
-async def get_macd_analysis(ticker: str, period: str = "60d", interval: str = "1d") -> str:
+async def get_macd_analysis(ticker: str, period: str = "", interval: str = "") -> str:
     """
     Primitive: Retrieves MACD history and crossover signals.
     Used for identifying momentum shifts and trend reversals.
     """
 
     def compute(symbol: str, p: str, i: str):
+        if not p:
+            is_day_trading = os.getenv("VLI_TRADING_STYLE", "day_trading") == "day_trading"
+            p, i = ("2d", "5m") if is_day_trading else ("60d", "1d")
+            
         df = _fetch_stock_history(symbol, p, i)
         if df.empty:
             return f"### MACD: {symbol.upper()}\nError: No data for p={p}, i={i}\n"
@@ -111,13 +120,17 @@ async def get_macd_analysis(ticker: str, period: str = "60d", interval: str = "1
 
 
 @tool
-async def get_volatility_atr(ticker: str, period: str = "60d", interval: str = "1d") -> str:
+async def get_volatility_atr(ticker: str, period: str = "", interval: str = "") -> str:
     """
     Primitive: Retrieves Average True Range (ATR).
     Used for determining stop-loss distances and market volatility.
     """
 
     def compute(symbol: str, p: str, i: str):
+        if not p:
+            is_day_trading = os.getenv("VLI_TRADING_STYLE", "day_trading") == "day_trading"
+            p, i = ("2d", "5m") if is_day_trading else ("60d", "1d")
+            
         df = _fetch_stock_history(symbol, p, i)
         if df.empty:
             return f"### Volatility (ATR): {symbol.upper()}\nError: No data for p={p}, i={i}\n"
@@ -135,13 +148,17 @@ async def get_volatility_atr(ticker: str, period: str = "60d", interval: str = "
 
 
 @tool
-async def get_bollinger_bands(ticker: str, period: str = "60d", interval: str = "1d") -> str:
+async def get_bollinger_bands(ticker: str, period: str = "", interval: str = "") -> str:
     """
     Calculate Bollinger Bands for a given ticker (20-day SMA +/- 2 std devs).
     Identifies overbought (price > upper) and oversold (price < lower) conditions.
     """
 
     def compute_bb(symbol: str, p: str, i: str):
+        if not p:
+            is_day_trading = os.getenv("VLI_TRADING_STYLE", "day_trading") == "day_trading"
+            p, i = ("2d", "5m") if is_day_trading else ("60d", "1d")
+            
         df = _fetch_stock_history(symbol, p, i)
 
         if df.empty:
@@ -373,7 +390,7 @@ async def get_sharpe_ratio(ticker: str, target_price: float = 0.0, period: str =
 
 
 @tool
-async def get_sortino_ratio(ticker: str, target_price: float = 0.0, period: str = "20d", interval: str = "1d", mode: str = "historical") -> str:
+async def get_sortino_ratio(ticker: str, target_price: float = 0.0, period: str = "20d", interval: str = "1d", mode: str = "") -> str:
     """
     Primitive: Calculates the Sortino Ratio for a ticker using the 10Y Yield (.TNX) as the risk-free rate.
     If mode='day_trading', it uses a 0% MAR and high-frequency data for tactical assessment.
@@ -382,6 +399,9 @@ async def get_sortino_ratio(ticker: str, target_price: float = 0.0, period: str 
 
     def compute(symbol, t_price, p, i, m):
         try:
+            if not m:
+                m = os.getenv("VLI_TRADING_STYLE", "day_trading")
+                
             # Use day trading defaults if specified
             if m == "day_trading":
                 # Ensure we have enough data points for a meaningful ratio
