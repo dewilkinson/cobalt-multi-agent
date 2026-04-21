@@ -1131,7 +1131,7 @@
             </div>
             
             <div id="vli-handshake-actions" style="display: none; gap: 12px; margin-top: 24px;">
-                <button onclick="document.getElementById('vli-handshake-overlay').style.display='none'" style="flex: 1; padding: 8px; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; cursor: pointer; font-family: var(--font-mono);">Cancel</button>
+                <button onclick="window.close()" style="flex: 1; padding: 8px; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; cursor: pointer; font-family: var(--font-mono);">Cancel</button>
                 <button id="vli-handshake-retry" onclick="window.vliStartHandshake()" style="flex: 1; padding: 8px; background: var(--cobalt-blue); border: none; color: black; font-weight: bold; border-radius: 6px; cursor: pointer; font-family: var(--font-mono);">Retry</button>
             </div>
         </div>
@@ -1147,6 +1147,31 @@
         let handshakeInterval = null;
         let handshakeRestartAttempted = false;
         
+        window.showServerOffline = function(message = 'SERVER OFFLINE') {
+            if (handshakeInterval) clearInterval(handshakeInterval);
+            
+            document.getElementById('vli-handshake-overlay').style.display = 'flex';
+            document.getElementById('vli-handshake-dialog').style.background = '#0d111b';
+            
+            document.getElementById('vli-handshake-title').innerText = message;
+            document.getElementById('vli-handshake-title').style.color = 'var(--ruby-red)';
+            
+            const bar = document.getElementById('vli-handshake-bar');
+            bar.style.animation = 'none';
+            bar.style.transform = 'translateX(0)';
+            bar.style.width = '100%';
+            bar.style.background = 'var(--ruby-red)';
+            bar.style.boxShadow = '0 0 15px rgba(248, 81, 73, 0.4)';
+            
+            setTimeout(() => {
+                document.getElementById('vli-handshake-bar-container').style.display = 'none';
+                
+                document.getElementById('vli-handshake-actions').style.display = 'flex';
+                document.getElementById('vli-handshake-retry').style.background = '#21262d';
+                document.getElementById('vli-handshake-retry').style.color = '#e6edf3';
+            }, 500);
+        }
+
         window.vliStartHandshake = function() {
             document.getElementById('vli-handshake-overlay').style.display = 'flex';
             document.getElementById('vli-handshake-dialog').style.background = '#0d111b';
@@ -1166,35 +1191,11 @@
             
             if (handshakeInterval) clearInterval(handshakeInterval);
             
-            function triggerErrorFlow(errorMessage) {
-                clearInterval(handshakeInterval);
-                
-                // Step 1: Text to error message, Bar turns red
-                document.getElementById('vli-handshake-title').innerText = errorMessage;
-                document.getElementById('vli-handshake-title').style.color = 'var(--ruby-red)';
-                
-                bar.style.animation = 'none';
-                bar.style.transform = 'translateX(0)';
-                bar.style.width = '100%';
-                bar.style.background = 'var(--ruby-red)';
-                bar.style.boxShadow = '0 0 15px rgba(248, 81, 73, 0.4)';
-                
-                // Step 2: Wait 500ms
-                setTimeout(() => {
-                    // Step 3: hide progress bar, show buttons
-                    document.getElementById('vli-handshake-bar-container').style.display = 'none';
-                    
-                    document.getElementById('vli-handshake-actions').style.display = 'flex';
-                    document.getElementById('vli-handshake-retry').style.background = '#21262d';
-                    document.getElementById('vli-handshake-retry').style.color = '#e6edf3';
-                }, 500);
-            }
-            
             handshakeInterval = setInterval(async () => {
                 handshakeSeconds++;
                 
                 if (handshakeSeconds >= 15) {
-                    triggerErrorFlow('FAILED: TIMEOUT');
+                    window.showServerOffline('SERVER OFFLINE');
                     return;
                 }
                 
@@ -1218,19 +1219,30 @@
                             }, 1000);
                         } else {
                             // Version mismatch
-                            triggerErrorFlow('FAILED: VERSION MISMATCH');
+                            window.showServerOffline('FAILED: VERSION MISMATCH');
                             // Trigger the restart in the background so the next retry succeeds
                             originalFetch('/api/system/restart', { method: 'POST' }).catch(e => console.error(e));
                         }
                     }
                 } catch (err) {
-                    // Ignore, keep polling
+                    // Search failed (server offline). If we've searched for at least 2 seconds, fail.
+                    if (handshakeSeconds >= 2) {
+                        window.showServerOffline('SERVER OFFLINE');
+                    }
                 }
             }, 1000);
         };
         
-        // To re-enable the handshake overlay on load, uncomment the line below:
-        // window.addEventListener('DOMContentLoaded', window.vliStartHandshake);
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Check if server is offline on load
+            try {
+                const res = await originalFetch(`/api/health?_t=${Date.now()}`, { cache: 'no-store' });
+                // If it succeeds, do nothing (or we could start handshake if we wanted)
+            } catch(e) {
+                // If we get an error on initial load, server is offline immediately.
+                window.showServerOffline('SERVER OFFLINE');
+            }
+        });
     </script>
     <!-- Error Overlay disabled to prevent layout integrity locks during audit sessions -->
     <!-- <div id="error-overlay">...</div> -->
