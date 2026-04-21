@@ -21,7 +21,7 @@ async def run_trace():
     }
     
     inputs = {
-        "messages": [HumanMessage(content="get news sentiment for TSLA")],
+        "messages": [HumanMessage(content="analyze mrvl")],
         "raw_data_mode": False
     }
     

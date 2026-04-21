@@ -265,7 +265,7 @@ async def run_smc_analysis(ticker: str, interval: str = "auto") -> str:
 
         # 4. Authorization Matrix
         report.append("### 4. Apex Authorization Matrix")
-        status = "**[PASS]**" if sweep_aligned and tactical_ready else "**[FAIL]**"
+        status = "**[PASS]**" if macro_bias == "Bullish" and tactical_ready else "**[FAIL]**"
         report.append(f"- **Status**: {status} Execution trigger aligns with MTF Institutional Macro trend.")
 
         final_report = "\n".join([str(r) for r in report])

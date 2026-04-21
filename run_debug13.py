@@ -1,25 +1,32 @@
 import asyncio, sys, os, json
 sys.path.append(os.path.abspath('backend'))
-from src.tools.finance import get_macro_symbols, _fetch_direct_sparkline, _extract_ticker_data
+from src.tools.scanner import _run_activity_pulse_impl, NpEncoder
 
 async def main():
-    data_5m = await _fetch_direct_sparkline(['GC=F'])
-    for col in data_5m.columns:
-        print(col)
-    
-    # Actually just print the head of GC_F
-    print("GC=F HEAD:")
-    print(data_5m.head(5))
-
-    # Print the very first valid row for Close
-    print("GC=F Close head:")
-    col = "Close" if "Close" in data_5m.columns else "close"
-    if col in data_5m.columns:
-        print(data_5m[col].dropna().head(5))
-    else:
-        # MultiIndex accessing
-        df_gc = _extract_ticker_data(data_5m, 'GC=F')
-        print(df_gc['Close'].head(5))
+    # Bypass the strategy config so everything passes
+    config = {
+        "price_min": 1.0,
+        "price_max": 2000.0,
+        "market_cap_min": 1,
+        "market_cap_max": 5000_000_000_000,
+        "float_min": 0,
+        "float_max": 5000_000_000_000,
+        "volume_hurdle": 0,
+        "gap_min": -100.0,
+        "gap_max": 100.0,
+        "rvol_scout_min": 0.0,
+        "rvol_strike_min": 0.0,
+        "rvol_veto_max": 100.0,
+        "sortino_hurdle": -100.0,
+        "rs_hurdle": 0,
+        "binary_veto_hours": 24
+    }
+    watchlist = json.dumps(["TSLA", "CELH", "NVDA", "MDB", "PLTR", "CRWD"])
+    res = await _run_activity_pulse_impl(json.dumps(config), watchlist)
+    data = json.loads(res)
+    print("Candidates passed:")
+    for c in data.get("candidates", []):
+        print(f"[{c['symbol']}] Heat: {c.get('heat_score')}% | Rvol: {c.get('rvol')} | Gap: {c.get('gap')}% | Sortino: {c.get('sortino')} | Grade: {c.get('grade')}")
 
 if __name__ == '__main__':
     asyncio.run(main())

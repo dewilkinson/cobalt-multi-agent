@@ -8,7 +8,7 @@ DeerFlow is a LangGraph-based AI super agent system with a full-stack architectu
 
 **Architecture**:
 - **LangGraph Server** (port 2024): Agent runtime and workflow execution
-- **Gateway API** (port 8001): REST API for models, MCP, skills, memory, artifacts, uploads, and local thread cleanup
+- **Gateway API** (port 8000): REST API for models, MCP, skills, memory, artifacts, uploads, and local thread cleanup
 - **Frontend** (port 3000): Next.js web interface
 - **Nginx** (port 2026): Unified reverse proxy entry point
 - **Provisioner** (port 8002, optional in Docker dev): Started only when sandbox is configured for provisioner/Kubernetes mode
@@ -87,7 +87,7 @@ make stop       # Stop all services
 ```bash
 make install    # Install backend dependencies
 make dev        # Run LangGraph server only (port 2024)
-make gateway    # Run Gateway API only (port 8001)
+make gateway    # Run Gateway API only (port 8000)
 make test       # Run all backend tests
 make lint       # Lint with ruff
 make format     # Format code with ruff
@@ -196,7 +196,7 @@ Configuration priority:
 
 ### Gateway API (`app/gateway/`)
 
-FastAPI application on port 8001 with health check at `GET /health`.
+FastAPI application on port 8000 with health check at `GET /health`.
 
 **Routers**:
 
@@ -317,8 +317,8 @@ Bridges external messaging platforms (Feishu, Slack, Telegram) to the DeerFlow a
 
 **Configuration** (`config.yaml` -> `channels`):
 - `langgraph_url` - LangGraph Server URL (default: `http://localhost:2024`)
-- `gateway_url` - Gateway API URL for auxiliary commands (default: `http://localhost:8001`)
-- In Docker Compose, IM channels run inside the `gateway` container, so `localhost` points back to that container. Use `http://langgraph:2024` / `http://gateway:8001`, or set `DEER_FLOW_CHANNELS_LANGGRAPH_URL` / `DEER_FLOW_CHANNELS_GATEWAY_URL`.
+- `gateway_url` - Gateway API URL for auxiliary commands (default: `http://localhost:8000`)
+- In Docker Compose, IM channels run inside the `gateway` container, so `localhost` points back to that container. Use `http://langgraph:2024` / `http://gateway:8000`, or set `DEER_FLOW_CHANNELS_LANGGRAPH_URL` / `DEER_FLOW_CHANNELS_GATEWAY_URL`.
 - Per-channel configs: `feishu` (app_id, app_secret), `slack` (bot_token, app_token), `telegram` (bot_token)
 
 ### Memory System (`packages/harness/deerflow/agents/memory/`)
@@ -438,7 +438,7 @@ This starts all services and makes the application available at `http://localhos
 
 **Nginx routing**:
 - `/api/langgraph/*` → LangGraph Server (2024)
-- `/api/*` (other) → Gateway API (8001)
+- `/api/*` (other) → Gateway API (8000)
 - `/` (non-API) → Frontend (3000)
 
 ### Running Backend Services Separately
@@ -455,7 +455,7 @@ make gateway
 
 Direct access (without nginx):
 - LangGraph: `http://localhost:2024`
-- Gateway: `http://localhost:8001`
+- Gateway: `http://localhost:8000`
 
 ### Frontend Configuration
 

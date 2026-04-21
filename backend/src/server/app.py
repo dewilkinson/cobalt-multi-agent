@@ -353,6 +353,26 @@ app = FastAPI(title="Cobalt Multi-Agent (CMA) - VibeLink Interface", description
 
 
 
+@app.get("/api/health")
+async def health_check():
+    try:
+        from src.version import SERVER_VERSION
+        return {"status": "ok", "version": SERVER_VERSION}
+    except ImportError:
+        return {"status": "ok", "version": "00.000.0000"}
+
+@app.post("/api/system/restart")
+async def system_restart():
+    logger.warning("VLI_SYSTEM: Received restart signal from client due to version mismatch.")
+    import os
+    import threading
+    def delay_exit():
+        import time
+        time.sleep(1)
+        os._exit(0)
+    threading.Thread(target=delay_exit).start()
+    return {"status": "restarting"}
+
 @app.get("/vli")
 async def vli_dashboard_redirect():
     from fastapi.responses import RedirectResponse
@@ -1628,6 +1648,9 @@ async def _invoke_vli_agent(
         logger.warning("VLI Agent: Master orchestration timed out (300s).")
         return "Agent processing timed out (300s).", {}
     except Exception as e:
+        import traceback
+        with open("C:\\github\\cobalt-multi-agent\\backend\\vli_error.txt", "w") as f:
+            f.write(traceback.format_exc())
         logger.error(f"VLI Agent: Failed with error: {e}")
         return scrub_vli_output(f"Agent reasoning encountered a failure: {str(e)}"), {}
 
@@ -1733,6 +1756,8 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     is_note = request.text.strip().upper().startswith("NOTE:")
     
     clean_req_text = request.text.strip().upper()
+    is_admin_cmd = any(word in clean_req_text for word in ["CLEAR", "PURGE", "RESET"])
+    
     import os, json, hashlib, time
     cache_dir = os.path.join(os.getcwd(), "data", "artifacts", "vli_cache")
     os.makedirs(cache_dir, exist_ok=True)
@@ -1740,7 +1765,7 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     cache_file = os.path.join(cache_dir, f"{cache_key}.json")
 
     # [HARDENING] Bypass cache lookup for Market Awareness or Notes to ensure real-time data
-    if not request.background_synthesis and not is_note and intent_mode == "TACTICAL_EXECUTION" and os.path.exists(cache_file):
+    if not request.background_synthesis and not is_note and not is_admin_cmd and intent_mode == "TACTICAL_EXECUTION" and os.path.exists(cache_file):
         try:
             with open(cache_file, "r", encoding="utf-8") as cf:
                 cached_data = json.load(cf)
@@ -1771,19 +1796,33 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     final_vli_state = {}  # Ensure initialization
 
     # [FAST-PATH] Shorthand Directive Bypass (Pre-Orchestration)
-    # Detects common patterns like "get aapl price", "price of nvda", etc.
     import re
     cleaned_input = request.text.strip().upper()
+    
+    # --- HOLISTIC INTENT CLASSIFICATION ---
+    QUERY_TOKENS = ["WHY", "WHAT", "HOW", "WHEN", "WHERE", "WHO", "CAN", "SHOULD", "IS", "ARE", "DID", "DO", "DOES", "EXPLAIN", "COMPARE", "ANALYZE"]
+    ADMIN_TOKENS = ["CLEAR", "RESET", "REBOOT", "START", "STOP", "PAUSE", "TOGGLE", "PURGE", "FLUSH", "RUN", "GENERATE"]
+    
+    first_word = cleaned_input.split()[0] if cleaned_input else ""
+    
+    global_intent = "COMMAND"
+    if first_word in QUERY_TOKENS:
+        global_intent = "QUERY"
+    elif first_word in ADMIN_TOKENS:
+        global_intent = "ADMIN"
+        
+    logger.info(f"VLI Intent Router: Input classified as [{global_intent}]")
+
     ticker = None
     fp_intent = None
     
-    # 1. Ticker price variants (AAPL price, get $BTC, price of ETH, etc.)
-    # [ULTRA-ROBUST] Catches tickers up to 20 chars with A-Z, 0-9, dots, hyphens, and underscores.
-    m = re.search(r"(?:^|GET\s+|PRICE\s+OF\s+)\$?([A-Z0-9.\-_=]{1,20})(?:\s+PRICE)?$", cleaned_input)
-    
-    if m:
-        ticker = m.group(1)
-        fp_intent = "Bypass-Matched"
+    # Only allow Bypass evaluating if the intent is natively COMMAND
+    if global_intent == "COMMAND":
+        # 1. Ticker price variants (AAPL price, get $BTC, price of ETH, etc.)
+        m = re.search(r"^(?:GET\s+|PRICE\s+OF\s+)?\$?([A-Z0-9.\-_=]{1,20})(?:\s+PRICE)?$", cleaned_input)
+        if m:
+            ticker = m.group(1)
+            fp_intent = "Bypass-Matched"
         
     if ticker and not request.raw_data_mode:
         logger.info(f"VLI: Fast-Path Hit detected: {ticker} (Intent: {fp_intent}). Bypassing AI Orchestration.")

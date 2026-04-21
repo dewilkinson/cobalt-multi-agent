@@ -36,7 +36,7 @@ def sanitize_data(data):
 
 # Constants
 COMBAT_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "SCANNER_COMBAT_LIST.json"
-FINVIZ_FILTERS = "f=cap_small,sh_float_u100,sh_price_10to50,ta_perf_13w20o"
+FINVIZ_FILTERS = "f=cap_smallover,sh_float_u100,sh_price_5to50,ta_perf_13w20o"
 
 async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     """
@@ -60,6 +60,10 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     # Macro Monitor logic: .TNX > 4.30% -> S >= 2.5
     base_hurdle = config.get("sortino_hurdle", 2.0)
     effective_hurdle = 2.5 if tnx_rate > 4.30 else base_hurdle
+    
+    if os.getenv("VLI_TRADING_STYLE", "day_trading") == "day_trading":
+        effective_hurdle *= 10.0
+        
     logger.info(f"Bunker Trawl: Effective Sortino Hurdle: {effective_hurdle}")
 
     candidates = []

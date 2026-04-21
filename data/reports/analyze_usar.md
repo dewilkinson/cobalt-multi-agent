@@ -1,0 +1,91 @@
+### 1. Execution Summary
+
+- **Status: SELECTIVE DEPLOYMENT (War Barbell Active)**
+
+
+- **Rationale**: The institutional audit of the current session scanner reveals a high-conviction rotation into small-cap growth and semiconductor "Swords." **$PLAB** and **$USAR** have cleared all mandatory mathematical and structural hurdles, including the elite **Sortino Ratio hurdle (S > 2.0)** and **Relative Strength (RS > 90)** requirements. We are deploying capital into these high-performance assets while strictly **WAITING** on legacy mega-caps like **$AAPL** and fintech laggards like **$SOFI**, which currently exhibit negative mathematical skew and bearish institutional footprints. 
+
+
+---
+
+
+### 2. Tactical Execution Matrix
+
+| **Ticker** | **Execution State** | **Sortino (S)** | **RS Rank** | **SMC Bias** | **Risk Unit** |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **$PLAB** | **STRIKE Authorized** | **5.66** | > 90 | Bullish Expansion | 1.0R ($250) |
+| **$USAR** | **SCOUT Authorized** | **3.17** | > 90 | Bullish Breaker | 0.5R ($125) |
+| **$IWM** | **STRIKE Authorized** | **2.66** | > 90 | Bullish BOS | 1.0R ($250) |
+| **$NEE** | **HOLD / WATCH** | 1.60 | Improving | Bullish CHoCH | 0R (Sidelined) |
+| **$AAPL** | **WAIT / AVOID** | -0.26 | < 90 | Bearish CHoCH | 0R (Sidelined) |
+| **$SOFI** | **WAIT / AVOID** | -2.16 | < 90 | Bearish CHoCH | 0R (Sidelined) |
+
+
+---
+
+
+### 3. High-Fidelity Ticker Audits
+
+
+#### **$PLAB (Photronics, Inc.) — S-TIER SWORD**
+- **Market Structure**: Trading in "Institutional Discovery" above the **Value Area High ($39.73)**. A 5-minute Bullish Liquidity Sweep at **$48.19** confirms algorithms are protecting the current bid.
+- **Mathematical Hurdle**: Sortino of **5.66** is the highest in the current universe, indicating extreme efficiency in upside capture.
+- **Execution**: **STRIKE (1.0R)**. Buy **79 shares** at market ($49.15). 
+- **Stop Loss**: **$46.00**. 
+- **Target**: **$58.60 (3R)**.
+
+
+#### **$USAR — A-TIER MOMENTUM**
+- **Market Structure**: Confirmed **Bullish BOS at $19.02**. The conversion of the $21.44 supply zone into a **Bullish Breaker** provides a structural floor for continuation.
+- **Mathematical Hurdle**: Sortino of **3.17** (PASS).
+- **Execution**: **SCOUT (0.5R)**. Buy **34 shares** at market ($22.62). 
+- **Stop Loss**: **$19.00**. 
+- **Target**: **$32.07 (Macro Ceiling)**.
+
+
+#### **$IWM (Russell 2000) — CORE GROWTH SWORD**
+- **Market Structure**: Institutional Trend is **Bullish** following the daily BOS at **$271.60**. Price is expanding away from the Point of Control ($250.41).
+- **Execution**: **STRIKE (1.0R)**. Buy **30 shares** at market ($276.27). 
+- **Stop Loss**: **$268.00**.
+
+
+---
+
+
+### 4. Position Sizing & Capital Commitment
+
+Based on Dave Wilkinson’s **CMA Risk Management Protocol** ($100k Account | $250 R-Unit):
+
+| **Ticker** | **Total Quantity** | **Entry Price** | **Stop Loss** | **Risk (R)** | **Capital Commitment** |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **$PLAB** | **79 Shares** | $49.15 | $46.00 | 1.0R | $3,882.85 |
+| **$IWM** | **30 Shares** | $276.27 | $268.00 | 1.0R | $8,288.10 |
+| **$USAR** | **34 Shares** | $22.62 | $19.00 | 0.5R | $769.08 |
+| **TOTAL** | | | | **2.5R** | **$12,940.03** |
+
+
+---
+
+
+### 5. Institutional Risk Guardrails & "War Barbell" Alignment
+
+- **The Sword Strategy**: $PLAB, $IWM, and $USAR serve as the "Sword" components, providing high-beta growth as interest rate sensitivity rotates out of mega-caps. 
+- **The Shield Strategy**: Maintain current cash balances from $AAPL and $SOFI sidelines. **$NEE** is the primary "Shield" candidate but remains on **HOLD** until the Sortino Ratio clears the 2.0 hurdle.
+- **Dual-Anchor Protocol**: All authorized entries are confirmed to be trading above their **Tactical Displacement Pivots**, ensuring we are buying institutional strength rather than retail "hope."
+- **Kill Switch**: If the VIX climbs above 26, execute the **MOC EXIT** protocol at 3:55 PM ET for all "Sword" positions to preserve capital.
+
+
+---
+
+
+### 6. Execution Order
+
+1.  **BUY 79 PLAB** at $49.15 (Limit). Set Hard Stop at $46.00.
+2.  **BUY 30 IWM** at $276.27 (Limit). Set Hard Stop at $268.00.
+3.  **BUY 34 USAR** at $22.62 (Limit). Set Hard Stop at $19.00.
+4.  **REJECT AAPL/SOFI**: Cancel all active buy orders; structural bias is bearish.
+5.  **MONITOR NEE**: Set alert for Sortino > 2.0 and Price > $95.46.
+
+**Institutional Authorization**: Root Institutional (Dave Wilkinson)
+**Status**: ACTIVE
+**System Date**: Mon Apr 20 2026 | 11:15:42 ET

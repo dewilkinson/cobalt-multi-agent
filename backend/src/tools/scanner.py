@@ -182,18 +182,18 @@ FDA_KEYWORDS = ["FDA", "clinical", "trial", "phase", "approval", "PDUFA", "clear
 def _get_strategy_config(strategy_config: str) -> Dict[str, Any]:
     """Parses strategy JSON string into a dict, with fallback defaults."""
     default_config = {
-        "price_min": 10.0,
+        "price_min": 5.0,
         "price_max": 50.0,
         "market_cap_min": 300_000_000,
         "market_cap_max": 2_000_000_000,
         "float_min": 20_000_000,
         "float_max": 100_000_000,
         "volume_hurdle": 50000,
-        "gap_min": 1.5,
-        "gap_max": 15.0,
+        "gap_min": -20.0,
+        "gap_max": 500.0,
         "rvol_scout_min": 1.0,
         "rvol_strike_min": 2.0,
-        "rvol_veto_max": 5.0,
+        "rvol_veto_max": 100.0,
         "sortino_hurdle": 2.0,
         "rs_hurdle": 90,
         "binary_veto_hours": 24
@@ -208,6 +208,10 @@ def _get_strategy_config(strategy_config: str) -> Dict[str, Any]:
             default_config.update(strategy_config)
     except Exception as e:
         logger.error(f"Failed to parse scanner strategy config: {e}. Using defaults.")
+        
+    if os.getenv("VLI_TRADING_STYLE", "day_trading") == "day_trading":
+        default_config["sortino_hurdle"] *= 10.0
+        
     return default_config
 
 
@@ -559,3 +563,28 @@ async def run_sensor_scope(strategy_config: str = "{}", candidates: str = "[]") 
         "message": "SMC execution targets acquired. (Delegated to smc.py via LLM reasoning)",
         "exit_strategy": "Hybrid Momentum: Trim 50% at 2R. Trail remainder with 5m 9EMA."
     })
+
+@tool
+async def clear_scanner_cache() -> str:
+    """Purges the entire scanner combat list and transit state cache."""
+    import os
+    from src.config.vli import get_vli_path
+    import json
+    combat_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "SCANNER_COMBAT_LIST.json"))
+    shield_combat_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "SHIELD_COMBAT_LIST.json"))
+    transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "SCANNER_RES_state.json"))
+    shield_transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "SHIELD_RES_state.json"))
+    purged = []
+    for path, name in [(combat_list_path, "SCANNER_COMBAT_LIST.json"), (shield_combat_list_path, "SHIELD_COMBAT_LIST.json")]:
+        try:
+            with open(path, "w", encoding="utf-8") as f: json.dump([], f)
+            purged.append(name)
+        except: pass
+    for path, name in [(transit_path, "SCANNER_RES_state.json"), (shield_transit_path, "SHIELD_RES_state.json")]:
+        try:
+            with open(path, "w", encoding="utf-8") as f: json.dump({"pulse_mode": "CLEARED", "total_pulsed": 0, "candidates_passed": 0, "candidates": []}, f)
+            purged.append(name)
+        except: pass
+    if not purged: return "Scanner cache is already empty."
+    return f"Successfully purged scanner cache files: {str(purged)}"
+

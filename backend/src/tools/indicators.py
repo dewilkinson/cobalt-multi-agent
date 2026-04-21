@@ -208,7 +208,7 @@ async def get_bollinger_bands(ticker: str, period: str = "", interval: str = "")
 
 
 @tool
-async def get_volume_profile(ticker: str, period: str = "60d", interval: str = "1d") -> str:
+async def get_volume_profile(ticker: str, period: str = "5d", interval: str = "5m") -> str:
     """
     Primitive: Institutional-grade Volume-at-Price (VP) profile.
     Calculates Point of Control (POC) and Value Area (VAH/VAL) containing 70% of total volume.

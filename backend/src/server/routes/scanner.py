@@ -20,6 +20,7 @@ from src.tools.scanner import (
     run_activity_pulse
 )
 from src.tools.sortino_sniper_trawl import run_background_trawl
+from src.tools.shield_scanner_trawl import run_shield_trawl
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -129,6 +130,31 @@ async def get_bunker_list():
             return sanitize_data({"status": "success", "data": data.get("combat_list", [])})
     except Exception as e:
         logger.error(f"Failed to read bunker: {e}")
+        return {"status": "error", "message": str(e)}
+
+@router.get("/shield-trawl")
+async def trigger_shield_trawl():
+    """Manual trigger for Layer A (The Defensive Background Trawl)."""
+    try:
+        results = await run_shield_trawl.ainvoke({})
+        return sanitize_data({"status": "success", "data": results})
+    except Exception as e:
+        logger.error(f"Shield Trawl failed: {e}")
+        return {"status": "error", "message": str(e)}
+
+@router.get("/shield-bunker")
+async def get_shield_bunker_list():
+    """Retrieve the current Shield Combat List."""
+    combat_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SHIELD_COMBAT_LIST.json"))
+    if not os.path.exists(combat_list_path):
+        return {"status": "success", "data": []}
+    
+    try:
+        with open(combat_list_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return sanitize_data({"status": "success", "data": data.get("combat_list", [])})
+    except Exception as e:
+        logger.error(f"Failed to read shield bunker: {e}")
         return {"status": "error", "message": str(e)}
 
 
@@ -283,11 +309,15 @@ async def scanner_stream():
                 yield f"data: {json.dumps(sanitize_data({'type': 'phase2', 'data': []}), cls=NpEncoder)}\n\n"
             else:
                 try:
-                    # Direct logic invocation to bypass StructuredTool wrapper
-                    p2_res_str = await _run_activity_pulse_impl(strategy_config="{}", watchlist=json.dumps(p1_symbols, cls=NpEncoder))
-                    p2_data = json.loads(p2_res_str)
-                    p2_candidates = p2_data.get("candidates", [])
-                    yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Phase 2 complete. High-probability Candidates: {len(p2_candidates)}'}), cls=NpEncoder)}\n\n"
+                    # [TEST MODE] Direct logic invocation to bypass StructuredTool wrapper
+                    # p2_res_str = await _run_activity_pulse_impl(strategy_config="{}", watchlist=json.dumps(p1_symbols, cls=NpEncoder))
+                    # p2_data = json.loads(p2_res_str)
+                    # p2_candidates = p2_data.get("candidates", [])
+                    
+                    # [TEST MODE] Inject Phase 1 straight into Phase 2 output
+                    yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'TEST MODE ENGAGED. Bypassing Phase 2 Activity Pulse...'}), cls=NpEncoder)}\n\n"
+                    p2_candidates = [{"symbol": d["symbol"], "sortino": d.get("sortino", 0.0), "heat_score": 100, "grade": d.get("grade", "A")} for d in p1_details]
+                    yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Phase 2 complete. Diagnostic Candidates Displayed: {len(p2_candidates)}'}), cls=NpEncoder)}\n\n"
                 except Exception as e:
                     logger.error(f"Phase 2 error: {e}")
                     p2_candidates = []
@@ -309,3 +339,14 @@ async def scanner_stream():
             yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'PIPELINE CRITICAL ERROR: {str(outer_e)}'}), cls=NpEncoder)}\n\n"
         
     return StreamingResponse(sse_generator(), media_type="text/event-stream")
+
+@router.delete("/purge")
+async def purge_scanner_cache():
+    """Purges the entire scanner combat list and transit state cache."""
+    try:
+        from src.tools.scanner import clear_scanner_cache
+        res = await clear_scanner_cache.ainvoke({})
+        return {"status": "success", "message": res}
+    except Exception as e:
+        logger.error(f"Failed to purge scanner cache: {e}")
+        return {"status": "error", "message": str(e)}
