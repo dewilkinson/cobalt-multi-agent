@@ -1239,7 +1239,8 @@
             'VLI_TELEMETRY': { idPrefix: 'TM', title: 'Telemetry', isSingleton: true },
             'MACRO_WL': { idPrefix: 'WL', title: 'Macro Watchlist', isSingleton: false },
             'ANALYSIS_REP': { idPrefix: 'AR', title: 'Analysis Report', isSingleton: false },
-            'SCAN_RES': { idPrefix: 'SR', title: 'Scanner Results', isSingleton: true }
+            'SCAN_RES': { idPrefix: 'SR', title: 'Satellite Scan', isSingleton: true },
+            'SHIELD_RES': { idPrefix: 'SH', title: 'Core Scan', isSingleton: true }
         };
 
         class UXCardManager {
@@ -1675,7 +1676,8 @@
                     // First boot - fluid responsive percentage geometry
                     UXManager.createCard('VLI_CHAT', {top: '2%', left: '66%', width: '33%', height: '96%'}, 'coordinator');
                     UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '31%', height: '38%'}, 'watchlist');
-                    UXManager.createCard('SCAN_RES', {top: '2%', left: '33.5%', width: '31%', height: '38%'}, 'scanner');
+                    UXManager.createCard('SCAN_RES', {top: '2%', left: '33.5%', width: '31%', height: '47%'}, 'scanner');
+                    UXManager.createCard('SHIELD_RES', {top: '51%', left: '33.5%', width: '31%', height: '47%'}, 'shield');
                     
                     // Add RUN button to Scanner Results header for backup
                     setTimeout(() => {
@@ -1803,6 +1805,14 @@
             if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'VLI_TELEMETRY')) {
                  viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('VLI_TELEMETRY')" style="color:var(--emerald-green);">[+] Spawn Telemetry</div>`;
             }
+            
+            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCAN_RES')) {
+                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES')" style="color:var(--emerald-green);">[+] Spawn Satellite Scanner</div>`;
+            }
+            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SHIELD_RES')) {
+                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SHIELD_RES')" style="color:var(--emerald-green);">[+] Spawn Core Scanner</div>`;
+            }
+
             if (keys.length > 0) viewMenu.innerHTML += '<div class="dropdown-divider"></div>';
 
             keys.forEach(guid => {
@@ -1823,7 +1833,15 @@
                         bringToFront(card);
                     }
                     saveLayout();
-                    updateViewMenu();
+    
+            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCAN_RES')) {
+                 UXManager.createCard('SCAN_RES', {top: '2%', left: '33.5%', width: '31%', height: '47%'}, 'scanner');
+            }
+            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SHIELD_RES')) {
+                 UXManager.createCard('SHIELD_RES', {top: '51%', left: '33.5%', width: '31%', height: '47%'}, 'shield');
+            }
+
+                updateViewMenu();
                 };
                 viewMenu.appendChild(el);
             });
@@ -2580,6 +2598,10 @@
                         updateScannerResultsUI();
                         console.log(`[VLI_SCANNER] Auto-Refresh: ${newCandidates.length} new signals merged silently.`);
                     }
+                } else if (candidates.length === 0 && activeScannerCandidates.length > 0) {
+                    activeScannerCandidates = [];
+                    updateScannerResultsUI();
+                    console.log(`[VLI_SCANNER] Auto-Refresh: Scanner state cleared.`);
                 }
             } catch (e) {
                 console.warn('[VLI_SCANNER] Silent state poll failed.');
@@ -2812,10 +2834,7 @@
                     else if (c.grade === 'C+' || c.grade === 'C') { gradeColor = '#3fb950'; gradeBg = 'rgba(63, 185, 80, 0.1)'; gradeBorder = 'rgba(63, 185, 80, 0.3)'; }
                     else { gradeColor = 'var(--ruby-red)'; gradeBg = 'rgba(248, 81, 73, 0.1)'; gradeBorder = 'rgba(248, 81, 73, 0.3)'; }
                     
-                    if (c.is_miss) {
-                        gradeBg = 'transparent';
-                        gradeBorder = 'rgba(255,255,255,0.05)';
-                    }
+
                     
                     c.isNew = window.vliNewSymbols.has(c.symbol);
                     const tr = document.createElement('tr');
@@ -2823,10 +2842,7 @@
                     tr.className = c.isNew ? 'scanner-res-row new-candidate-highlight' : 'scanner-res-row';
                     tr.style.transition = 'background 0.3s ease';
                     
-                    if (c.is_miss) {
-                        tr.style.opacity = '0.35';
-                        tr.style.filter = 'grayscale(1)';
-                    }
+
                     
                     tr.onmouseenter = () => {
                         if (window.vliNewSymbols.has(c.symbol)) {
@@ -2835,17 +2851,11 @@
                             c.isNew = false;
                         }
                         tr.style.background = 'rgba(255,255,255,0.02)';
-                        if (c.is_miss) {
-                            tr.style.opacity = '0.8';
-                            tr.style.filter = 'grayscale(0.5)';
-                        }
+
                     };
                     tr.onmouseleave = () => {
                         tr.style.background = 'transparent';
-                        if (c.is_miss) {
-                            tr.style.opacity = '0.35';
-                            tr.style.filter = 'grayscale(1)';
-                        }
+
                     };
                     
                     tr.onclick = () => insertCardIdIntoChat(`analyze ${c.symbol}`);
@@ -3082,7 +3092,7 @@
                 let requestText = rawText;
 
                 if (isProcessing) {
-                    if (/^\s*(run|start)\s+(market\s+)?scan\s*[.!?]?\s*$/i.test(requestText)) {
+                    if (/^\s*(run|start|generate)\s+(market\s+|full\s+)?scan\s*[.!?]?\s*$/i.test(requestText)) {
                         console.log("[VLI_TRACE] Intercepting Market Scan Command (Isolation Block)...");
                         initScannerSSE();
                         
@@ -3412,6 +3422,186 @@
                 // If shiftKey is true, allow default newline
             }
         }
+    
+        // 1d. Shield Results UI
+        let activeShieldCandidates = [];
+        window.vliNewShieldSymbols = new Set();
+        
+        function renderShieldResults(data) {
+            if (!data.scanner_results || !data.scanner_results.candidates) return;
+            const res = data.scanner_results;
+            
+            document.querySelectorAll('.card[data-type-guid="SHIELD_RES"]').forEach(card => {
+                let body = card.querySelector('.card-body');
+                if (!body) {
+                    body = document.createElement('div');
+                    body.className = 'card-body';
+                    body.style.overflowY = 'auto';
+                    body.style.padding = '10px';
+                    body.style.height = 'calc(100% - 30px)';
+                    card.appendChild(body);
+                }
+                
+                let table = body.querySelector('table');
+                if (!table) {
+                    body.innerHTML = `
+                        <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+                            <div>Pulse Mode: <span style="color: var(--emerald-green); font-weight: 800;">Defensive Shield</span></div>
+                            <div style="font-family: var(--font-mono); font-size: 10px;">MATCHES: <span id="sh-match-count" style="color: var(--emerald-green); font-weight: 800;">${res.candidates.length}</span></div>
+                        </div>
+                        <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 13px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    <th style="padding: 8px 4px; text-align: left;">SYMBOL</th>
+                                    <th style="padding: 8px 4px; text-align: right;">PRICE</th>
+                                    <th style="padding: 8px 4px; text-align: right;">CHANGE</th>
+                                    <th style="padding: 8px 4px; text-align: right;">SORTINO</th>
+                                    <th style="padding: 8px 4px; text-align: center;">GRADE</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    `;
+                    table = body.querySelector('table');
+                }
+                
+                const tbody = table.querySelector('tbody');
+                tbody.innerHTML = '';
+                
+                if (res.candidates.length === 0) {
+                    tbody.innerHTML = `<tr style="border: none;"><td colspan="6" style="text-align: center; padding: 30px 10px; color: var(--text-muted); font-style: italic;">Scanner cache cleared. Standing by...</td></tr>`;
+                }
+                
+                // ELITE GRADING LOGIC (Shield: Sortino Momentum vs Core)
+                const validCandidates = res.candidates.filter(c => c.sortino !== undefined);
+                if (validCandidates.length > 0) {
+                    validCandidates.forEach(c => {
+                        c.raw_power = c.sortino; // Promote using purely structural momentum
+                    });
+                    
+                    const maxPower = Math.max(...validCandidates.map(c => c.raw_power));
+                    const minPower = Math.min(...validCandidates.map(c => c.raw_power));
+                    
+                    res.candidates.forEach(c => {
+                        if (c.raw_power === undefined) return;
+                        
+                        let percentile = 1.0;
+                        if (maxPower > minPower) {
+                            percentile = (c.raw_power - minPower) / (maxPower - minPower);
+                        }
+                        
+                        c.heat_score = Math.floor(40 + (percentile * 60));
+                        
+                        if (c.heat_score >= 95) c.grade = 'S';
+                        else if (c.heat_score >= 90) c.grade = 'A+';
+                        else if (c.heat_score >= 82) c.grade = 'A';
+                        else if (c.heat_score >= 75) c.grade = 'B+';
+                        else if (c.heat_score >= 65) c.grade = 'B';
+                        else if (c.heat_score >= 58) c.grade = 'C+';
+                        else if (c.heat_score >= 50) c.grade = 'C';
+                        else if (c.heat_score >= 35) c.grade = 'D';
+                        else c.grade = 'F';
+                    });
+                }
+                
+                // Sort by elite heat_score
+                res.candidates.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
+
+                res.candidates.forEach(c => {
+                    let gradeColor = 'var(--text-muted)';
+                    let gradeBg = 'rgba(255,255,255,0.05)';
+                    let gradeBorder = 'rgba(255,255,255,0.2)';
+
+                    if (c.grade === 'S') { gradeColor = '#ffaa00'; gradeBg = 'rgba(255, 170, 0, 0.1)'; gradeBorder = 'rgba(255, 170, 0, 0.3)'; }
+                    else if (c.grade === 'A+' || c.grade === 'A') { gradeColor = '#d866ff'; gradeBg = 'rgba(216, 102, 255, 0.1)'; gradeBorder = 'rgba(216, 102, 255, 0.3)'; }
+                    else if (c.grade === 'B+' || c.grade === 'B') { gradeColor = '#00aaff'; gradeBg = 'rgba(0, 170, 255, 0.1)'; gradeBorder = 'rgba(0, 170, 255, 0.3)'; }
+                    else if (c.grade === 'C+' || c.grade === 'C') { gradeColor = '#3fb950'; gradeBg = 'rgba(63, 185, 80, 0.1)'; gradeBorder = 'rgba(63, 185, 80, 0.3)'; }
+                    else { gradeColor = 'var(--ruby-red)'; gradeBg = 'rgba(248, 81, 73, 0.1)'; gradeBorder = 'rgba(248, 81, 73, 0.3)'; }
+                    
+                    c.isNew = window.vliNewShieldSymbols.has(c.symbol);
+                    const tr = document.createElement('tr');
+                    tr.style.cursor = 'pointer';
+                    tr.className = c.isNew ? 'scanner-res-row new-candidate-highlight' : 'scanner-res-row';
+                    tr.style.transition = 'background 0.3s ease';
+                    
+                    tr.onmouseenter = () => {
+                        if (window.vliNewShieldSymbols.has(c.symbol)) {
+                            tr.classList.remove('new-candidate-highlight');
+                            window.vliNewShieldSymbols.delete(c.symbol);
+                            c.isNew = false;
+                        }
+                        tr.style.background = 'rgba(255,255,255,0.02)';
+                    };
+                    tr.onmouseleave = () => {
+                        tr.style.background = 'transparent';
+                    };
+                    
+                    // We keep the original onclick structure that existed in the core scanner
+                    tr.onclick = () => { document.getElementById('cli-input').value = 'analyze ' + c.symbol; document.getElementById('rt-btn').click(); };
+                    
+                    const changeVal = parseFloat(c.change || c.gap || 0);
+                    const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
+                    
+                    tr.innerHTML = `
+                        <td style="padding: 10px 4px; color: #fff; font-weight: 700;">${c.symbol}</td>
+                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</td>
+                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
+                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: var(--emerald-green); font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
+                        <td style="padding: 10px 4px; text-align: center;">
+                            <span class="pulse-badge" style="background: ${gradeBg}; color: ${gradeColor}; border: 1px solid ${gradeBorder}; font-size: 11px; padding: 2px 6px;">${c.grade}</span>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                
+                document.getElementById('sh-match-count').innerText = res.candidates.length;
+            });
+        }
+        
+        function updateShieldResultsUI() {
+            renderShieldResults({
+                scanner_results: {
+                    pulse_mode: "Defensive Shield",
+                    candidates: activeShieldCandidates
+                }
+            });
+        }
+        
+        async function autoRefreshShieldResults() {
+            try {
+                const response = await fetch('/api/scanner/shield-bunker');
+                if (!response.ok) return;
+                const data = await response.json();
+                
+                const candidates = data.data || [];
+                
+                if (candidates.length > 0) {
+                    const existingSymbols = new Set(activeShieldCandidates.map(c => c.symbol));
+                    const newCandidates = candidates.filter(c => !existingSymbols.has(c.symbol));
+                    
+                    if (newCandidates.length > 0) {
+                        newCandidates.forEach(c => window.vliNewShieldSymbols.add(c.symbol));
+                        activeShieldCandidates = [...activeShieldCandidates, ...newCandidates];
+                        updateShieldResultsUI();
+                    } else if (candidates.length > 0 && activeShieldCandidates.length === 0) {
+                        // Startup bypass
+                        activeShieldCandidates = [...candidates];
+                        updateShieldResultsUI();
+                    }
+                } else if (candidates.length === 0 && activeShieldCandidates.length > 0) {
+                    activeShieldCandidates = [];
+                    updateShieldResultsUI();
+                }
+            } catch (e) {
+                console.warn('[VLI_SHIELD] Silent state poll failed.', e);
+            }
+        }
+        
+        setInterval(autoRefreshShieldResults, 10000);
+        setTimeout(autoRefreshShieldResults, 1500); // Kickoff immediately on boot
+        
+        // --- End of Shield Logic ---
+
     </script>
 </body>
 
