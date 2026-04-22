@@ -502,6 +502,25 @@ async def poll_market_pulse():
         logger.error(f"[PULSE TRACKER] Native cycle failed: {e}")
 
 
+async def run_tv_sync():
+    """
+    Background wrapper for TradingView scanner synchronization.
+    Relying on the external TV engine for high-fidelity candidates.
+    """
+    import subprocess
+    import sys
+    try:
+        script_path = os.path.join(os.getcwd(), "scripts", "tv_scanner_sync.py")
+        if not os.path.exists(script_path):
+            script_path = os.path.join(os.getcwd(), "backend", "scripts", "tv_scanner_sync.py")
+            
+        logger.info(f"[TV SYNC] Launching TradingView extractor: {script_path}")
+        subprocess.run([sys.executable, script_path], check=True, capture_output=True)
+        logger.info("[TV SYNC] Synchronization cycle complete.")
+    except Exception as e:
+        logger.error(f"[TV SYNC] Synchronization failed: {e}")
+
+
 @app.on_event("startup")
 async def startup_event():
     logger.info("VLI_SYSTEM: API Server booting...")
@@ -530,38 +549,55 @@ async def startup_event():
         callback=vli_inbox_tick
     )
     
-    # Start the engine
-    from src.tools.sortino_sniper_trawl import run_background_trawl, run_intraday_trawl
-    
-    cobalt_scheduler.add_timer(
-        task_id="DAILY_COMBAT_TRAWL",
-        name="Daily Combat List Update",
-        type="CALENDAR",
-        schedule="15 7 * * *",
-        priority="HIGH",
-        callback=run_background_trawl
-    )
-    
-    cobalt_scheduler.add_timer(
-        task_id="INTRADAY_COMBAT_TRAWL",
-        name="Intraday Momentum Trawl Watchdog",
-        type="REPEAT",
-        schedule=60,
-        period_unit="minutes",
-        priority="LOW",
-        callback=run_intraday_trawl
-    )
-    
-    cobalt_scheduler.add_timer(
-        task_id="PULSE_TRACKER",
-        name="Phase 2 Pulse Signal Watchdog",
-        type="REPEAT",
-        schedule=5,
-        period_unit="minutes",
-        priority="LOW",
-        callback=poll_market_pulse
-    )
-    
+    # [HARDENING] Conditional Scanner Logic
+    scanner_engine = get_str_env("VLI_SCANNER_ENGINE", "cobalt").lower()
+    logger.info(f"VLI_SYSTEM: Using scanner engine: {scanner_engine.upper()}")
+
+    if scanner_engine == "tradingview":
+        # Register TradingView Sync Task (Bypasses internal Sortino/Pulse logic)
+        cobalt_scheduler.add_timer(
+            task_id="TV_SCANNER_SYNC",
+            name="TradingView Apex Scanner Sync",
+            type="REPEAT",
+            schedule=5,
+            period_unit="minutes",
+            priority="HIGH",
+            callback=run_tv_sync
+        )
+        logger.info("VLI_SYSTEM: Internal Cobalt scanner logic BYPASSED (Using TradingView Engine)")
+    else:
+        # Register Internal Cobalt Scanner Logic
+        from src.tools.sortino_sniper_trawl import run_background_trawl, run_intraday_trawl
+        
+        cobalt_scheduler.add_timer(
+            task_id="DAILY_COMBAT_TRAWL",
+            name="Daily Combat List Update",
+            type="CALENDAR",
+            schedule="15 7 * * *",
+            priority="HIGH",
+            callback=run_background_trawl
+        )
+        
+        cobalt_scheduler.add_timer(
+            task_id="INTRADAY_COMBAT_TRAWL",
+            name="Intraday Momentum Trawl Watchdog",
+            type="REPEAT",
+            schedule=60,
+            period_unit="minutes",
+            priority="LOW",
+            callback=run_intraday_trawl
+        )
+        
+        cobalt_scheduler.add_timer(
+            task_id="PULSE_TRACKER",
+            name="Phase 2 Pulse Signal Watchdog",
+            type="REPEAT",
+            schedule=5,
+            period_unit="minutes",
+            priority="LOW",
+            callback=poll_market_pulse
+        )
+
     cobalt_scheduler.add_timer(
         task_id="SMC_5M_POLLER",
         name="5-Minute Structure Alert Watchdog",

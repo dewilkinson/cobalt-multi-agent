@@ -2571,6 +2571,7 @@
                 renderTelemetry(data);
                 renderReport(data);
                 renderScannerResults(data);
+                renderShieldResults(data);
 
                 // --- CHAT PERSISTENCE SYNC ---
                 if (data.chat_history && Array.isArray(data.chat_history)) {
@@ -2719,35 +2720,7 @@
         let activeScannerCandidates = []; 
         window.vliNewSymbols.clear();
         
-        async function autoRefreshScannerResults() {
-            try {
-                const response = await fetch('/api/scanner/state');
-                if (!response.ok) return;
-                const data = await response.json();
-                const candidates = data.candidates || [];
-                
-                if (candidates.length > 0) {
-                    const existingSymbols = new Set(activeScannerCandidates.map(c => c.symbol));
-                    const newCandidates = candidates.filter(c => !existingSymbols.has(c.symbol));
-                    
-                    if (newCandidates.length > 0) {
-                        newCandidates.forEach(c => window.vliNewSymbols.add(c.symbol));
-                        activeScannerCandidates = [...activeScannerCandidates, ...newCandidates];
-                        updateScannerResultsUI();
-                        console.log(`[VLI_SCANNER] Auto-Refresh: ${newCandidates.length} new signals merged silently.`);
-                    }
-                } else if (candidates.length === 0 && activeScannerCandidates.length > 0) {
-                    activeScannerCandidates = [];
-                    updateScannerResultsUI();
-                    console.log(`[VLI_SCANNER] Auto-Refresh: Scanner state cleared.`);
-                }
-            } catch (e) {
-                console.warn('[VLI_SCANNER] Silent state poll failed.');
-            }
-        }
-        
-        setInterval(autoRefreshScannerResults, 60000);
-        setTimeout(autoRefreshScannerResults, 2000);
+        // Auto-refresh pollers removed in favor of unified VLI poll cycle
 
         function initScannerSSE() {
             if (scannerEventSource) {
@@ -2873,7 +2846,11 @@
         // 1c. Scanner Results UI
         function renderScannerResults(data) {
             if (!data.scanner_results || !data.scanner_results.candidates) return;
-            const res = data.scanner_results;
+            
+            // [HARDENING] Filter specifically for Satellite (SWORD) tier
+            const allCandidates = data.scanner_results.candidates;
+            const swordCandidates = allCandidates.filter(c => c.tier === 'SWORD' || !c.tier);
+            const res = { ...data.scanner_results, candidates: swordCandidates };
             
             document.querySelectorAll('.card[data-type-guid="SCAN_RES"]').forEach(card => {
                 let body = card.querySelector('.card-body');
@@ -3567,7 +3544,11 @@
         
         function renderShieldResults(data) {
             if (!data.scanner_results || !data.scanner_results.candidates) return;
-            const res = data.scanner_results;
+            
+            // [HARDENING] Filter specifically for Core (SHIELD) tier
+            const allCandidates = data.scanner_results.candidates;
+            const shieldCandidates = allCandidates.filter(c => c.tier === 'SHIELD');
+            const res = { ...data.scanner_results, candidates: shieldCandidates };
             
             document.querySelectorAll('.card[data-type-guid="SHIELD_RES"]').forEach(card => {
                 let body = card.querySelector('.card-body');
@@ -3705,38 +3686,7 @@
             });
         }
         
-        async function autoRefreshShieldResults() {
-            try {
-                const response = await fetch('/api/scanner/shield-bunker');
-                if (!response.ok) return;
-                const data = await response.json();
-                
-                const candidates = data.data || [];
-                
-                if (candidates.length > 0) {
-                    const existingSymbols = new Set(activeShieldCandidates.map(c => c.symbol));
-                    const newCandidates = candidates.filter(c => !existingSymbols.has(c.symbol));
-                    
-                    if (newCandidates.length > 0) {
-                        newCandidates.forEach(c => window.vliNewShieldSymbols.add(c.symbol));
-                        activeShieldCandidates = [...activeShieldCandidates, ...newCandidates];
-                        updateShieldResultsUI();
-                    } else if (candidates.length > 0 && activeShieldCandidates.length === 0) {
-                        // Startup bypass
-                        activeShieldCandidates = [...candidates];
-                        updateShieldResultsUI();
-                    }
-                } else if (candidates.length === 0 && activeShieldCandidates.length > 0) {
-                    activeShieldCandidates = [];
-                    updateShieldResultsUI();
-                }
-            } catch (e) {
-                console.warn('[VLI_SHIELD] Silent state poll failed.', e);
-            }
-        }
-        
-        setInterval(autoRefreshShieldResults, 10000);
-        setTimeout(autoRefreshShieldResults, 1500); // Kickoff immediately on boot
+        // Auto-refresh pollers removed in favor of unified VLI poll cycle
         
         // --- End of Shield Logic ---
 
