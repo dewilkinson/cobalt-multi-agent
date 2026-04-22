@@ -2631,6 +2631,12 @@
             }
         }
 
+        // --- HIGHLIGHT TRACKING STATE ---
+        let previousSwordSymbols = new Set();
+        let previousShieldSymbols = new Set();
+        window.vliNewSymbols = window.vliNewSymbols || new Set();
+        window.vliNewShieldSymbols = window.vliNewShieldSymbols || new Set();
+
         // 1. Macros (Handled only if overview elements are present)
         function renderMacros(data) {
             const m1 = document.getElementById('macro-list-1');
@@ -2850,6 +2856,18 @@
             // [HARDENING] Filter specifically for Satellite (SWORD) tier
             const allCandidates = data.scanner_results.candidates;
             const swordCandidates = allCandidates.filter(c => c.tier === 'SWORD' || !c.tier);
+
+            // [NEW CANDIDATE TRACKING] Determine differential highlights
+            const currentSwordSymbols = new Set(swordCandidates.map(c => c.symbol));
+            if (previousSwordSymbols.size > 0) {
+                currentSwordSymbols.forEach(sym => {
+                    if (!previousSwordSymbols.has(sym)) {
+                        window.vliNewSymbols.add(sym);
+                    }
+                });
+            }
+            previousSwordSymbols = currentSwordSymbols;
+
             const res = { ...data.scanner_results, candidates: swordCandidates };
             
             document.querySelectorAll('.card[data-type-guid="SCAN_RES"]').forEach(card => {
@@ -2871,7 +2889,7 @@
                 if (!table) {
                     body.innerHTML = `
                         <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
-                            <div>Pulse Mode: <span style="color: var(--emerald-green); font-weight: 800;">${res.pulse_mode || 'InstitutionalPulse'}</span></div>
+                            <div>Pulse Mode: <span style="color: var(--emerald-green); font-weight: 800;">${(res.pulse_mode || '').includes('TradingView') ? 'TradingView - Apex Sword Scan' : (res.pulse_mode || 'InstitutionalPulse')}</span></div>
                             <div style="font-family: var(--font-mono); font-size: 10px;">MATCHES: <span id="sr-match-count" style="color: var(--emerald-green); font-weight: 800;">${res.candidates.length}</span></div>
                         </div>
                         <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 13px;">
@@ -2982,7 +3000,7 @@
                         <td style="padding: 10px 4px; color: #fff; font-weight: 700;">${c.symbol}</td>
                         <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</td>
                         <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
-                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: var(--emerald-green); font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
+                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
                         <td style="padding: 10px 4px;">
                             <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
                                 <span style="display: inline-block; width: 30px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; padding: 2px 0; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid ${gradeBorder}">${c.grade || 'F'}</span>
@@ -3548,6 +3566,18 @@
             // [HARDENING] Filter specifically for Core (SHIELD) tier
             const allCandidates = data.scanner_results.candidates;
             const shieldCandidates = allCandidates.filter(c => c.tier === 'SHIELD');
+
+            // [NEW CANDIDATE TRACKING] Determine differential highlights
+            const currentShieldSymbols = new Set(shieldCandidates.map(c => c.symbol));
+            if (previousShieldSymbols.size > 0) {
+                currentShieldSymbols.forEach(sym => {
+                    if (!previousShieldSymbols.has(sym)) {
+                        window.vliNewShieldSymbols.add(sym);
+                    }
+                });
+            }
+            previousShieldSymbols = currentShieldSymbols;
+
             const res = { ...data.scanner_results, candidates: shieldCandidates };
             
             document.querySelectorAll('.card[data-type-guid="SHIELD_RES"]').forEach(card => {
@@ -3565,7 +3595,7 @@
                 if (!table) {
                     body.innerHTML = `
                         <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
-                            <div>Pulse Mode: <span style="color: var(--emerald-green); font-weight: 800;">Defensive Shield</span></div>
+                            <div>Pulse Mode: <span style="color: var(--emerald-green); font-weight: 800;">${(res.pulse_mode || '').includes('TradingView') ? 'TradingView - Apex Shield Scan' : 'Defensive Shield'}</span></div>
                             <div style="font-family: var(--font-mono); font-size: 10px;">MATCHES: <span id="sh-match-count" style="color: var(--emerald-green); font-weight: 800;">${res.candidates.length}</span></div>
                         </div>
                         <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 13px;">
@@ -3665,7 +3695,7 @@
                         <td style="padding: 10px 4px; color: #fff; font-weight: 700;">${c.symbol}</td>
                         <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</td>
                         <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
-                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: var(--emerald-green); font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
+                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
                         <td style="padding: 10px 4px; text-align: center;">
                             <span class="pulse-badge" style="background: ${gradeBg}; color: ${gradeColor}; border: 1px solid ${gradeBorder}; font-size: 11px; padding: 2px 6px;">${c.grade}</span>
                         </td>

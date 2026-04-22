@@ -1,8 +1,12 @@
 import json
 import os
 import sys
+import asyncio
 from datetime import datetime
 from tradingview_screener import Query, col
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from src.tools.scanner import batch_fetch_sortino
 
 def sync_vli_scanners():
     """
@@ -44,8 +48,13 @@ def sync_vli_scanners():
         shield_df = shield_query.get_scanner_data()[1]
         sword_df = sword_query.get_scanner_data()[1]
 
+        # Fetch Sortino for all candidates
+        all_symbols = shield_df['name'].tolist() + sword_df['name'].tolist()
+        print(f"Fetching localized Sortino ratios for {len(all_symbols)} candidates...")
+        sortino_map = asyncio.run(batch_fetch_sortino(all_symbols, period="20d"))
+
         # Process and map for VLI Dashboard
-        def map_candidate(row, tier):
+        def map_candidate(row, tier, sortino_map):
             return {
                 "symbol": row['name'],
                 "price": row['close'],
@@ -59,11 +68,12 @@ def sync_vli_scanners():
                 "volatility": row['Volatility.M'],
                 "tier": tier,
                 "grade": "S" if row['relative_volume_10d_calc'] > 3 else "A",
-                "heat_score": min(100, int(row['relative_volume_10d_calc'] * 20))
+                "heat_score": min(100, int(row['relative_volume_10d_calc'] * 20)),
+                "sortino": sortino_map.get(row['name'], 0.0)
             }
 
-        shield_candidates = [map_candidate(r, "SHIELD") for _, r in shield_df.iterrows()]
-        sword_candidates = [map_candidate(r, "SWORD") for _, r in sword_df.iterrows()]
+        shield_candidates = [map_candidate(r, "SHIELD", sortino_map) for _, r in shield_df.iterrows()]
+        sword_candidates = [map_candidate(r, "SWORD", sortino_map) for _, r in sword_df.iterrows()]
 
         # Final Dashboard State
         dashboard_state = {

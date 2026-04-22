@@ -559,7 +559,7 @@ async def startup_event():
             task_id="TV_SCANNER_SYNC",
             name="TradingView Apex Scanner Sync",
             type="REPEAT",
-            schedule=5,
+            schedule=1,
             period_unit="minutes",
             priority="HIGH",
             callback=run_tv_sync
