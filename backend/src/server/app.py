@@ -80,6 +80,7 @@ _vli_last_inbox_action = None
 _vli_rules_active_since = datetime.now()
 _vli_last_thread_id = None
 _vli_dynamic_panels = []
+_is_morning_scan_running = False
 from fastapi.security import APIKeyHeader
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, HumanMessage, ToolMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -143,13 +144,26 @@ if not logger.handlers:
 
 from src.services.macro_registry import macro_registry
 
-# --- GLOBAL VLI STATE ---
+from fastapi.responses import StreamingResponse
+
+# Global queue for pushing telemetry directly to the UI
+global_telemetry_queue = None
+
+def get_telemetry_queue():
+    global global_telemetry_queue
+    if global_telemetry_queue is None:
+        import asyncio
+        global_telemetry_queue = asyncio.Queue()
+    return global_telemetry_queue
 # (Variables now moved to unified block above)
 from collections import defaultdict
 _vli_chat_history_store = defaultdict(list) # {client_id: [{role, content, thought, timestamp, thread_id}]}
 
 def _append_to_vli_history(role: str, content: str, thought: str = "", thread_id: str = None):
     """Unified logger for VLI Chat history."""
+    if content and "[SILENT_LOG]" in str(content):
+        return
+        
     try:
         from src.config.vli_context import vli_client_id
         cid = vli_client_id.get("default")
@@ -236,14 +250,26 @@ def _persist_vli_report(request_text: str, content: str):
     """Saves a report to the data/reports/ directory for dashboard access."""
     if not content or len(content) < 50:
         return None
+        
+    # [HARDENING] Prevent error payloads from poisoning the cache
+    if "Agent reasoning encountered a failure" in content or "timed out" in content.lower():
+        logger.warning(f"VLI_SYSTEM: Blocked persistence of erroneous report for directive '{request_text}'")
+        return None
 
     filename = _get_report_filename(request_text, content)
     try:
         reports_dir = os.path.join(os.getcwd(), "data", "reports")
         os.makedirs(reports_dir, exist_ok=True)
         file_path = os.path.join(reports_dir, filename)
+        
+        # [SILENT_MODE] Strip prefix for clean persistence
+        clean_content = content.replace("[SILENT_LOG] ", "")
+        
+        generation_ts = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
+        header = f"> **Generated:** {generation_ts}\n\n"
+        
         with open(file_path, "w", encoding="utf-8") as rf:
-            rf.write(content)
+            rf.write(header + clean_content)
         return filename
     except Exception as e:
         logger.error(f"VLI_SYSTEM: Failed to persist report '{filename}': {e}")
@@ -351,6 +377,15 @@ INTERNAL_SERVER_ERROR_DETAIL = "Internal Server Error"
 
 app = FastAPI(title="Cobalt Multi-Agent (CMA) - VibeLink Interface", description="Institutional-grade agentic financial monitoring pipeline.", version="10.2.1")
 
+@app.get("/api/telemetry/stream")
+async def ui_telemetry_stream():
+    """Streams global telemetry events to the UI."""
+    async def event_generator():
+        while True:
+            msg = await get_telemetry_queue().get()
+            yield f"data: {json.dumps({'type': 'telemetry', 'msg': msg})}\n\n"
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
 
 
 @app.get("/api/health")
@@ -364,7 +399,6 @@ async def health_check():
 @app.post("/api/system/restart")
 async def system_restart():
     logger.warning("VLI_SYSTEM: Received restart signal from client due to version mismatch.")
-    import os
     import threading
     def delay_exit():
         import time
@@ -450,8 +484,6 @@ async def poll_market_pulse():
     Automated execution of Phase 1 and Phase 2 algorithmic pulse tracking.
     Refreshes the SCANNER_RES_state.json natively without broadcasting terminal SSEs.
     """
-    import os
-    import json
     from datetime import datetime
     from src.config.vli import get_vli_path
     from src.tools.scanner import _build_session_watchlist_impl, _run_activity_pulse_impl, sanitize_data, NpEncoder
@@ -507,7 +539,7 @@ async def run_tv_sync():
     Background wrapper for TradingView scanner synchronization.
     Relying on the external TV engine for high-fidelity candidates.
     """
-    import subprocess
+    import asyncio
     import sys
     try:
         script_path = os.path.join(os.getcwd(), "scripts", "tv_scanner_sync.py")
@@ -515,11 +547,299 @@ async def run_tv_sync():
             script_path = os.path.join(os.getcwd(), "backend", "scripts", "tv_scanner_sync.py")
             
         logger.info(f"[TV SYNC] Launching TradingView extractor: {script_path}")
-        subprocess.run([sys.executable, script_path], check=True, capture_output=True)
-        logger.info("[TV SYNC] Synchronization cycle complete.")
+        process = await asyncio.create_subprocess_exec(
+            sys.executable, script_path,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+        if process.returncode != 0:
+            logger.error(f"[TV SYNC] Sync returned non-zero code. Error output: {stderr.decode('utf-8', errors='ignore')}")
+
     except Exception as e:
         logger.error(f"[TV SYNC] Synchronization failed: {e}")
 
+async def run_idle_analysis(manual_trigger: bool = False):
+    """
+    Background orchestrator that diffs the scanner state against generated reports
+    and spawns analysis agents for any missing symbols with stagger logic.
+    """
+    import asyncio
+    from datetime import datetime
+    
+    target_path = os.path.join(os.getcwd(), 'data', 'SCANNER_COMBAT_LIST.json')
+    if not os.path.exists(target_path):
+        return
+        
+    try:
+        with open(target_path, 'r') as f:
+            state = json.load(f)
+            
+        candidates = state.get("candidates", [])
+        reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
+        os.makedirs(reports_dir, exist_ok=True)
+        
+        symbols_to_process = []
+        skipped_symbols = []
+        added_trace = []
+        skipped_trace = []
+        for c in candidates:
+            sym = c.get("symbol")
+            if not sym: continue
+            
+            r_path = os.path.join(reports_dir, f"analyze_{sym.lower()}.md")
+            needs_report = True
+            
+            if os.path.exists(r_path):
+                mtime = datetime.fromtimestamp(os.path.getmtime(r_path))
+                if mtime.date() == datetime.now().date():
+                    needs_report = False
+                    
+            if needs_report:
+                symbols_to_process.append(sym)
+                added_trace.append(f"   ➕ Added: **{sym}**")
+            else:
+                skipped_symbols.append(sym)
+                skipped_trace.append(f"   ⏩ Skipped: **{sym}** (Cached Report Active)")
+                
+        # [NEW] Telemetry Write for List Building
+        try:
+            from src.config.vli import get_vli_path
+            from datetime import datetime
+            telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
+            timestamp = datetime.now().strftime("[%H:%M:%S]")
+            trace_log = "\n".join(added_trace + skipped_trace)
+            if trace_log:
+                with open(telemetry_file, "a", encoding="utf-8") as tf:
+                    tf.write(f"\n{timestamp} 📋 **[ORCHESTRATOR]** Candidate Evaluation Trace:\n{trace_log}\n")
+                    tf.flush()
+        except Exception as e:
+            logger.error(f"Failed to write candidate trace: {e}")
+
+        if symbols_to_process:
+            logger.info(f"[BG_ANALYST] Missing/stale reports detected for: {symbols_to_process}. Beginning generation sequence.")
+            
+            try:
+                from src.config.vli import get_vli_path
+                telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
+                timestamp = datetime.now().strftime("[%H:%M:%S]")
+                with open(telemetry_file, "a", encoding="utf-8") as tf:
+                    tf.write(f"\n{timestamp} 🤖 **[ORCHESTRATOR]** Background LLM Analyst initiated deep-scan for {len(symbols_to_process)} missing candidates.\n")
+                    tf.flush()
+            except Exception:
+                pass
+
+            total = len(symbols_to_process)
+            for i, sym in enumerate(symbols_to_process, 1):
+                logger.info(f"[BG_ANALYST] Spawning background LangGraph for {sym}...")
+                
+                try:
+                    timestamp = datetime.now().strftime("[%H:%M:%S]")
+                    with open(telemetry_file, "a", encoding="utf-8") as tf:
+                        tf.write(f"\\n{timestamp} 🔄 **[ANALYST]** Spawning deep-dive intelligence for **{sym}** ({i}/{total})...\\n")
+                        tf.flush()
+                except Exception:
+                    pass
+                
+                result_text, _ = await _invoke_vli_agent(f"analyze {sym}", thread_id=f"bg_{sym}")
+                
+                # [HARDENING] Only persist valid reports. Prevent caching of LLM errors.
+                is_valid = True
+                if not result_text or len(result_text) < 50:
+                    is_valid = False
+                elif "Agent reasoning encountered a failure" in result_text or "timed out" in result_text.lower():
+                    is_valid = False
+                
+                if is_valid:
+                    try:
+                        r_path = os.path.join(os.getcwd(), 'data', 'reports', f"analyze_{sym.lower()}.md")
+                        os.makedirs(os.path.dirname(r_path), exist_ok=True)
+                        generation_ts = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
+                        header = f"> **Generated:** {generation_ts}\n\n"
+                        with open(r_path, "w", encoding="utf-8") as rf:
+                            rf.write(header + result_text)
+                    except Exception as e:
+                        logger.error(f"[BG_ANALYST] Failed to save report for {sym}: {e}")
+                else:
+                    logger.warning(f"[BG_ANALYST] Execution failed for {sym}. Artifact discarded to prevent cache poisoning.")
+                
+                try:
+                    timestamp = datetime.now().strftime("[%H:%M:%S]")
+                    with open(telemetry_file, "a", encoding="utf-8") as tf:
+                        tf.write(f"\\n{timestamp} ✅ **[ANALYST]** Report generated for **{sym}** (Rate limit stagger: 30s).\\n")
+                        tf.flush()
+                except Exception:
+                    pass
+                
+                logger.info(f"[BG_ANALYST] Generated report for {sym}. Sleeping 30s to respect API rate limits.")
+                await asyncio.sleep(30)
+                
+            try:
+                timestamp = datetime.now().strftime("[%H:%M:%S]")
+                with open(telemetry_file, "a", encoding="utf-8") as tf:
+                    tf.write(f"\\n{timestamp} ✨ **[ORCHESTRATOR]** Background LLM Analyst sequence complete.\\n")
+                    tf.flush()
+            except Exception:
+                pass
+                
+            logger.info("[BG_ANALYST] Background generation sequence complete.")
+            
+            # [NEW] Automatically spawn Meta-Analysis if all reports are ready
+            await run_meta_analysis(manual_trigger=False)
+    except Exception as e:
+        logger.error(f"[BG_ANALYST] Orchestrator failed: {e}")
+
+async def run_daily_morning_analysis():
+    """
+    Cron task running at 6:00 AM EDT. Pulls TV Sync and then triggers idle analysis.
+    """
+    global _is_morning_scan_running
+    if _is_morning_scan_running:
+        logger.warning("[BG_ANALYST] Morning Market Scan is already running. Ignoring duplicate trigger.")
+        return
+
+    _is_morning_scan_running = True
+    logger.info("[BG_ANALYST] Triggering 6:00 AM Morning Market Scan.")
+    try:
+        from src.config.vli import get_vli_path
+        from datetime import datetime
+        telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
+        timestamp = datetime.now().strftime("[%H:%M:%S]")
+        with open(telemetry_file, "a", encoding="utf-8") as tf:
+            tf.write(f"\n{timestamp} 📡 **[ORCHESTRATOR]** Running Daily Scanner...\n")
+            tf.flush()
+    except Exception:
+        pass
+        
+    try:
+        await run_tv_sync()
+        await run_idle_analysis(manual_trigger=True)
+    finally:
+        _is_morning_scan_running = False
+
+async def run_meta_analysis(manual_trigger: bool = False):
+    """
+    Synthesizes an Executive Morning Briefing from all generated reports.
+    Requires all scanner candidates to have a valid, day-of report.
+    """
+    import json
+    logger.info("[META_ANALYST] Initiating Executive Morning Briefing sequence.")
+    try:
+        from src.config.vli import get_vli_path, VAULT_ROOT
+        from datetime import datetime
+        
+        telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
+        timestamp = datetime.now().strftime("[%H:%M:%S]")
+        
+        scanner_bucket_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SCANNER_RES_state.json")
+        if not os.path.exists(scanner_bucket_path):
+            if manual_trigger: return "Error: SCANNER_RES_state.json not found."
+            return
+            
+        with open(scanner_bucket_path, encoding="utf-8") as f:
+            scanner_res_content = json.load(f)
+            
+        candidates = scanner_res_content.get("candidates", [])
+        if not candidates:
+            if manual_trigger: return "Error: No scanner candidates found."
+            return
+            
+        reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
+        os.makedirs(reports_dir, exist_ok=True)
+        
+        # [NEW] Check if already generated today
+        meta_path = os.path.join(reports_dir, "analyze_meta.md")
+        if not manual_trigger and os.path.exists(meta_path):
+            mtime = datetime.fromtimestamp(os.path.getmtime(meta_path))
+            if mtime.date() == datetime.now().date():
+                return
+                
+        compiled_reports = []
+        missing_reports = []
+        
+        for c in candidates:
+            sym = c.get("symbol")
+            if not sym: continue
+            
+            r_path = os.path.join(reports_dir, f"analyze_{sym.lower()}.md")
+            if os.path.exists(r_path):
+                mtime = datetime.fromtimestamp(os.path.getmtime(r_path))
+                if mtime.date() == datetime.now().date():
+                    with open(r_path, "r", encoding="utf-8") as rf:
+                        content = rf.read()
+                        if len(content) > 100:
+                            compiled_reports.append(f"### REPORT: {sym}\n{content}\n---\n")
+                            continue
+            missing_reports.append(sym)
+            
+        if missing_reports:
+            logger.warning(f"[META_ANALYST] Missing valid reports for: {missing_reports}. Triggering background generation.")
+            
+            import asyncio
+            # Trigger background generation
+            asyncio.create_task(run_idle_analysis(manual_trigger=True))
+            
+            if manual_trigger:
+                return f"Missing valid reports for {len(missing_reports)} candidates. Initiating background generation... You will be notified with a UX card when the Executive Briefing is ready."
+            return
+            
+        # Write to telemetry
+        try:
+            with open(telemetry_file, "a", encoding="utf-8") as tf:
+                tf.write(f"\n{timestamp} 🧠 **[META_ANALYST]** Synthesizing Executive Morning Briefing from {len(compiled_reports)} reports...\n")
+                tf.flush()
+        except Exception:
+            pass
+            
+        # Bundle for LLM
+        bundle = "\n".join(compiled_reports)
+        compiled_symbols = [c.get("symbol") for c in candidates if c.get("symbol")]
+        source_str = f"Source Scans: {', '.join(compiled_symbols)}"
+        
+        prompt = (
+            "You are the Chief Market Strategist for Blueshell Securities. "
+            "Synthesize an 'Executive Morning Briefing' from the following institutional reports. "
+            "Focus on: 1. Sector Concentration/Convergence, 2. Aggregate Risk Profile (Volatility/ATR), "
+            "and 3. The absolute best 2 high-conviction setups of the day. "
+            f"CRITICAL INSTRUCTION: You MUST include the exact following line at the end of your briefing to cite the source documents: '{source_str}'. "
+            "Be concise, tactical, and highly professional.\n\n"
+            f"{bundle}\n\n--FORCE-GRAPH"
+        )
+        
+        result_text, _ = await _invoke_vli_agent(prompt, thread_id="bg_meta_analysis")
+        
+        if result_text and "Agent reasoning encountered a failure" not in result_text and "timed out" not in result_text.lower():
+            meta_path = os.path.join(reports_dir, "analyze_meta.md")
+            generation_ts = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
+            header = f"> **Generated:** {generation_ts}\n\n"
+            
+            with open(meta_path, "w", encoding="utf-8") as mf:
+                mf.write(header + result_text)
+                
+            logger.info("[META_ANALYST] Executive Morning Briefing completed and cached.")
+            
+            # [NEW] Push to Analysis Report Card
+            global _vli_last_async_report
+            _vli_last_async_report = header + result_text
+            
+            try:
+                timestamp = datetime.now().strftime("[%H:%M:%S]")
+                with open(telemetry_file, "a", encoding="utf-8") as tf:
+                    tf.write(f"\n{timestamp} 🏆 **[META_ANALYST]** Executive Morning Briefing successfully compiled.\n")
+                    tf.flush()
+            except Exception:
+                pass
+                
+            if manual_trigger:
+                return "Meta-Analysis successfully generated. Executive Morning Briefing is now available."
+        else:
+            if manual_trigger:
+                return "Meta-Analysis execution failed due to an LLM timeout or reasoning error."
+                
+    except Exception as e:
+        logger.error(f"[META_ANALYST] Failed to run meta analysis: {e}")
+        if manual_trigger:
+            return f"System Error during Meta-Analysis: {e}"
 
 @app.on_event("startup")
 async def startup_event():
@@ -561,8 +881,29 @@ async def startup_event():
             type="REPEAT",
             schedule=1,
             period_unit="minutes",
-            priority="HIGH",
+            priority="LOW",
             callback=run_tv_sync
+        )
+        
+        # Register Background Idle Analyst (Runs every 10 minutes)
+        cobalt_scheduler.add_timer(
+            task_id="IDLE_ANALYST",
+            name="Background LLM Analyst Scanner",
+            type="REPEAT",
+            schedule=10,
+            period_unit="minutes",
+            priority="NORMAL",
+            callback=run_idle_analysis
+        )
+        
+        # Register 6:00 AM Full Generation Cron
+        cobalt_scheduler.add_timer(
+            task_id="DAILY_ANALYST",
+            name="6:00 AM Morning Analyst Prep",
+            type="CALENDAR",
+            schedule="0 6 * * *",
+            priority="HIGH",
+            callback=run_daily_morning_analysis
         )
         logger.info("VLI_SYSTEM: Internal Cobalt scanner logic BYPASSED (Using TradingView Engine)")
     else:
@@ -685,7 +1026,6 @@ class FeedbackRequest(BaseModel):
 
 @app.post("/api/v1/vli/feedback")
 async def handle_vli_feedback(req: FeedbackRequest):
-    import os
     from datetime import datetime
     base_dir = r"c:\github\obsidian-vault\_cobalt"
     path = os.path.join(base_dir, "feedback.md")
@@ -840,7 +1180,6 @@ async def update_trader_profile(update: TraderProfileUpdate):
 
 @app.get("/api/v1/trader-profile/file")
 async def get_trader_profile_file(name: str):
-    import os
     base_dir = r"c:\github\obsidian-vault\_cobalt"
     path = os.path.join(base_dir, os.path.basename(name))
     if not os.path.exists(path):
@@ -854,7 +1193,6 @@ class TraderProfileNewRequest(BaseModel):
 
 @app.post("/api/v1/trader-profile/new")
 async def new_trader_profile(req: TraderProfileNewRequest):
-    import os
     import re
     base_dir = r"c:\github\obsidian-vault\_cobalt"
     
@@ -956,27 +1294,45 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
             try:
                 with open(scanner_bucket_path, encoding="utf-8") as f:
                     scanner_res_content = json.load(f)
+                    
+                # Dynamically enrich the has_report status to ensure UI polling catches live background generation
+                from datetime import datetime
+                for cand in scanner_res_content.get("candidates", []):
+                    sym = cand.get("symbol", "")
+                    if sym:
+                        r_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
+                        cand["has_report"] = False
+                        if os.path.exists(r_path):
+                            mtime = datetime.fromtimestamp(os.path.getmtime(r_path))
+                            if mtime.date() == datetime.now().date():
+                                cand["has_report"] = True
+                                
             except Exception as e:
                 logger.error(f"Failed to read SCANNER_RES_state.json: {e}")
 
         logger.info(f"[VLI_TRACE] State compiled for return. Telemetry size: {len(telemetry_tail)} bytes.")
-        return {
-            "macros": json.loads(json.dumps(_get_vli_macro_snapshot(), default=str)),
-            "macro_watchlist_content": macro_watchlist_content,
-            "scanner_results": scanner_res_content,
-            "last_macro_update": os.path.getmtime(get_vli_path("vli_macro_snapshot.json")) if os.path.exists(get_vli_path("vli_macro_snapshot.json")) else time.time(),
-            "alerts": ui_alerts or [{"symbol": "SYS", "color": "green", "label": "VLI-IDLE"}],
-            "dynamic_panels": json.loads(json.dumps(_vli_dynamic_panels, default=str)),
-            "telemetry_tail": scrub_vli_output(telemetry_tail),
-            "plan_markdown": scrub_vli_output(plan_markdown),
-            "async_report": scrub_vli_output(_vli_last_async_report),
-            "inbox_files": sorted(inbox_files, key=lambda x: os.path.getmtime(os.path.join(inbox_path, x)) if os.path.exists(os.path.join(inbox_path, x)) else 0, reverse=True),
-            "ux_card": json.loads(json.dumps(_vli_last_ux_card, default=str)),
-            "rules_enabled": _vli_rules_enabled,
-            "convergence_data": json.loads(json.dumps(_vli_convergence_history, default=str)),
-            "chat_history": json.loads(json.dumps(_vli_chat_history_store.get(client_id, []), default=str)),
-            "client_id_echo": client_id
-        }
+        
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            content={
+                "macros": json.loads(json.dumps(_get_vli_macro_snapshot(), default=str)),
+                "macro_watchlist_content": macro_watchlist_content,
+                "scanner_results": scanner_res_content,
+                "last_macro_update": os.path.getmtime(get_vli_path("vli_macro_snapshot.json")) if os.path.exists(get_vli_path("vli_macro_snapshot.json")) else time.time(),
+                "alerts": ui_alerts or [{"symbol": "SYS", "color": "green", "label": "VLI-IDLE"}],
+                "dynamic_panels": json.loads(json.dumps(_vli_dynamic_panels, default=str)),
+                "telemetry_tail": scrub_vli_output(telemetry_tail),
+                "plan_markdown": scrub_vli_output(plan_markdown),
+                "async_report": scrub_vli_output(_vli_last_async_report),
+                "inbox_files": sorted(inbox_files, key=lambda x: os.path.getmtime(os.path.join(inbox_path, x)) if os.path.exists(os.path.join(inbox_path, x)) else 0, reverse=True),
+                "ux_card": json.loads(json.dumps(_vli_last_ux_card, default=str)),
+                "rules_enabled": _vli_rules_enabled,
+                "convergence_data": json.loads(json.dumps(_vli_convergence_history, default=str)),
+                "chat_history": json.loads(json.dumps(_vli_chat_history_store.get(client_id, []), default=str)),
+                "client_id_echo": client_id
+            },
+            headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"}
+        )
     except Exception as e:
         logger.error(f"VLI: Error in consolidated active-state endpoint: {e}", exc_info=True)
         return {
@@ -1054,8 +1410,6 @@ async def execute_vli_rule(original_name: str, suggested_name: str, target_folde
 @app.get("/api/vli/inbox/file-content")
 async def get_vli_inbox_file_content(filename: str):
     """Retrieve raw content of an inbox file for dashboard preview."""
-    import os
-
     from src.config.vli import get_inbox_path
 
     inbox_path = get_inbox_path()
@@ -1239,7 +1593,6 @@ async def reset_vli_state(client_id: str = Header("default", alias="X-VLI-Client
 @app.post("/api/vli/inbox/open-editor")
 async def open_vli_inbox_file_editor(filename: str):
     """Open an inbox file in the system's preferred editor (e.g. wordpad)."""
-    import os
     import subprocess
 
     from src.config.vli import PREFERRED_EDITOR, get_inbox_path
@@ -1266,7 +1619,6 @@ class OpenFileRequest(BaseModel):
 
 @app.post("/api/vli/open-file")
 async def open_vli_artifact_file(req: OpenFileRequest):
-    import os
     import subprocess
     import shutil
 
@@ -1338,6 +1690,7 @@ async def _invoke_vli_agent(
     is_fast_track = ((is_macro or is_price_list or is_vix or is_ticker_query) and not is_technical and not is_analyze) or raw_data_mode
     if "--FORCE-GRAPH" in text.upper():
         is_fast_track = False
+        is_macro = False
 
     if is_fast_track:
         ticker = ""
@@ -1522,7 +1875,7 @@ async def _invoke_vli_agent(
                     # [ARTIFACT CACHING] Persist the payload for session context
                     try:
                         # 1. Internal Ticker-based cache
-                        import os
+
 
                         artifacts_dir = os.path.join(os.getcwd(), "data", "artifacts")
                         os.makedirs(artifacts_dir, exist_ok=True)
@@ -1787,14 +2140,95 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
             f.write(request.text)
         return {"response": "Plan captured. Vault updated. Session Monitor is analyzing directives...", "status": "OK", "error_details": None}
 
+    # [NEW] TV_SYNC Direct Control Interception
+    import re
+    command_text = request.text.strip().lower()
+    
+    if re.match(r"^(suspend|pause|stop)\s+tv_?sync$", command_text):
+        from src.services.scheduler import cobalt_scheduler
+        cobalt_scheduler.remove_timer("TV_SCANNER_SYNC")
+        _append_to_vli_history("assistant", "TradingView Scanner Sync has been suspended.", thread_id=transaction_id)
+        return {"response": "TradingView Scanner Sync suspended.", "status": "OK", "error_details": None}
+        
+    if re.match(r"^(start|resume)\s+tv_?sync$", command_text):
+        from src.services.scheduler import cobalt_scheduler
+        cobalt_scheduler.remove_timer("TV_SCANNER_SYNC") # Ensure no duplicates
+        cobalt_scheduler.add_timer(
+            task_id="TV_SCANNER_SYNC",
+            name="TradingView Apex Scanner Sync",
+            type="REPEAT",
+            schedule=1,
+            period_unit="minutes",
+            priority="LOW",
+            callback=run_tv_sync
+        )
+        _append_to_vli_history("assistant", "TradingView Scanner Sync has been started.", thread_id=transaction_id)
+        return {"response": "TradingView Scanner Sync started.", "status": "OK", "error_details": None}
+
+    # [NEW] Meta-Analysis Interception
+    if request.text.strip().lower() == "run meta analysis":
+        res_msg = await run_meta_analysis(manual_trigger=True)
+        # Also persist this AI response to history so it shows up in the chat!
+        _append_to_vli_history("ai", res_msg, thread_id=transaction_id)
+        return {"response": res_msg, "status": "OK", "error_details": None, "thread_id": transaction_id}
+
+    # [NEW] Meta-Analysis Eviction Interception
+    req_lower = request.text.strip().lower()
+    verbs = ["delete", "remove", "invalidate", "scrub"]
+    targets = ["briefing", "daily briefing", "morning briefing"]
+    
+    if any(req_lower == f"{v} {t}" for v in verbs for t in targets):
+        reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
+        meta_path = os.path.join(reports_dir, "analyze_meta.md")
+        if os.path.exists(meta_path):
+            try:
+                os.remove(meta_path)
+                res_msg = "Executive Morning Briefing has been successfully evicted from the cache."
+            except Exception as e:
+                res_msg = f"Failed to evict Executive Morning Briefing: {e}"
+        else:
+            res_msg = "Executive Morning Briefing is not currently present in the cache."
+            
+        _append_to_vli_history("ai", res_msg, thread_id=transaction_id)
+        return {"response": res_msg, "status": "OK", "error_details": None, "thread_id": transaction_id}
+
     # [NEW] Check Durable Action Cache (Conditional on Intent)
     intent_mode = _get_vli_intent(request.text)
     is_note = request.text.strip().upper().startswith("NOTE:")
     
     clean_req_text = request.text.strip().upper()
-    is_admin_cmd = any(word in clean_req_text for word in ["CLEAR", "PURGE", "RESET"])
     
-    import os, json, hashlib, time
+    # [HARDENING] Absolute Graph Bypass for Administrative Directives
+    if clean_req_text == "RUN MORNING SCAN":
+        try:
+            import threading
+            import asyncio
+            
+            def bg_task():
+                try:
+                    asyncio.run(run_daily_morning_analysis())
+                except Exception as e:
+                    logger.error(f"DEBUG: bg_task crashed: {e}")
+                
+            bypass_resp = "Morning scan sequence successfully engaged. Background orchestration is running."
+            timestamp = datetime.now().strftime("[%H:%M:%S]")
+            
+            with open(telemetry_file, "a", encoding="utf-8") as tf:
+                tf.write(f"\n{timestamp} **ADMIN OVERRIDE (Graph Bypassed)**\n")
+                tf.write(f"- **Directive**: `{clean_req_text}`\n")
+                tf.write(f"- **Response Size**: {len(bypass_resp)} chars\n\n---\n")
+                tf.flush()
+                
+            threading.Thread(target=bg_task, daemon=True).start()
+                
+            _append_to_vli_history("ai", bypass_resp, thread_id=transaction_id)
+            return {"response": bypass_resp, "status": "OK", "error_details": None, "thread_id": transaction_id}
+        except Exception as e:
+            logger.error(f"Morning scan override failed: {e}")
+
+    is_admin_cmd = any(word in clean_req_text for word in ["CLEAR", "PURGE", "RESET", "SCAN", "FORCE", "RESTART"])
+    
+    import hashlib, time
     cache_dir = os.path.join(os.getcwd(), "data", "artifacts", "vli_cache")
     os.makedirs(cache_dir, exist_ok=True)
     cache_key = hashlib.md5(clean_req_text.encode()).hexdigest()
@@ -1982,6 +2416,13 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     try:
         response_text, final_vli_state = await _invoke_vli_agent(request.text, request.image, request.direct_mode, request.raw_data_mode, request.reporter_llm_type, request.vli_llm_type, thread_id=transaction_id)
         
+        # [FIX] Manually dispatch background regeneration if returned by non-streaming agent
+        if "[BACKGROUND_REGENERATE_DATA]" in response_text:
+            sym = response_text.replace("[BACKGROUND_REGENERATE_DATA]", "").strip()
+            import asyncio
+            asyncio.create_task(_background_regenerate_data(sym))
+            response_text = f"Cache cleared for {sym}. Asynchronously regenerating market data, volume, prices, and news."
+            
         timestamp = datetime.now().strftime("%H:%M:%S")
 
         if not response_text:
@@ -2364,10 +2805,128 @@ def _process_initial_messages(message, thread_id):
     chat_stream_message(thread_id, f"event: message_chunk\ndata: {json_data}\n\n", "none")
 
 
+async def _background_raw_news_fetch(targets: list[str]):
+    try:
+        from src.tools.news import get_ticker_news
+        from src.services.datastore import DatastoreManager
+        from datetime import datetime
+        import asyncio
+        
+        # Concurrently fetch
+        await asyncio.gather(*[get_ticker_news.ainvoke({"subject": t}) for t in targets])
+            
+        found_data = []
+        for t in targets:
+            cached = DatastoreManager.get_artifact(t, "news_raw", "latest")
+            if cached and "data" in cached:
+                found_data.append(f"## {t} News\n{cached['data']}")
+                
+        if found_data:
+            combined = "\n\n---\n\n".join(found_data)
+            global _vli_last_async_report
+            _vli_last_async_report = f"# Async Gathered News\n\n{combined}"
+            
+            from src.config.vli import get_vli_path
+            try:
+                tf_path = get_vli_path("VLI_Raw_Telemetry.md")
+                with open(tf_path, "a", encoding="utf-8") as f:
+                    ts = datetime.now().strftime("[%H:%M:%S]")
+                    f.write(f"\n{ts} 📡 **[BACKGROUND FETCH]** Raw news successfully gathered for {', '.join(targets)}. Sent to Analysis Window.\n")
+            except Exception:
+                pass
+    except Exception as e:
+        logger.error(f"Background raw news fetch failed: {e}")
+
+async def _background_regenerate_data(sym: str):
+    try:
+        from src.tools.news import get_ticker_news
+        from src.tools.finance import get_stock_quote
+        from datetime import datetime
+        import asyncio
+        import uuid
+        from src.config.vli import get_vli_path
+        
+        def write_telemetry(msg: str):
+            try:
+                tf_path = get_vli_path("VLI_Raw_Telemetry.md")
+                with open(tf_path, "a", encoding="utf-8") as f:
+                    ts = datetime.now().strftime("[%H:%M:%S]")
+                    f.write(f"\n{ts} [REGENERATE] {msg}\n")
+                
+                # Push to global UI queue
+                try:
+                    get_telemetry_queue().put_nowait(f"[REGENERATE] {msg}")
+                except Exception:
+                    pass
+            except Exception:
+                pass
+                
+        write_telemetry(f"Fetch has been called for {sym}")
+        write_telemetry(f"News is being gathered for {sym}")
+        
+        write_telemetry(f"Symbol data has been received for {sym}")
+        
+        # Concurrently fetch to warm the cache, ignoring errors to avoid crashing
+        await asyncio.gather(
+            get_ticker_news.ainvoke({"subject": sym, "refresh": True}),
+            get_stock_quote.ainvoke({"ticker": sym, "force_refresh": True}),
+            return_exceptions=True
+        )
+        
+        write_telemetry(f"Analysis report is in progress for {sym}")
+        
+        # Dispatch the full graph to synthesize the new report at HIGH priority
+        from src.services.scheduler import cobalt_scheduler
+        
+        async def high_priority_synthesis():
+            await _background_synthesis_task(
+                text=f"analyze {sym}",
+                image=None,
+                direct_mode=False,
+                reporter_llm_type="reasoning",
+                vli_llm_type="reasoning",
+                thread_id=f"regen_{uuid.uuid4().hex[:8]}"
+            )
+            write_telemetry(f"Update complete for {sym}")
+            
+        cobalt_scheduler.add_timer(
+            task_id=f"REGEN_{sym}_{uuid.uuid4().hex[:4]}",
+            name=f"High Priority Regeneration: {sym}",
+            type="ONE_SHOT",
+            schedule=0,
+            period_unit="seconds",
+            priority="HIGH",
+            callback=high_priority_synthesis
+        )
+            
+    except Exception as e:
+        logger.error(f"Background data regeneration failed for {sym}: {e}")
+
 async def _process_message_chunk(message_chunk, message_metadata, thread_id, agent, session_obj=None, project_obj=None):
     """Process a single message chunk and yield appropriate events."""
     agent_name = _get_agent_name(agent, message_metadata)
     event_stream_message = _create_event_stream_message(message_chunk, message_metadata, thread_id, agent_name)
+
+    from langchain_core.messages import AIMessage, AIMessageChunk
+    if isinstance(message_chunk, (AIMessage, AIMessageChunk)) and isinstance(message_chunk.content, str):
+        if message_chunk.content.startswith("[ANALYSIS_WINDOW_PUSH]"):
+            global _vli_last_async_report
+            _vli_last_async_report = message_chunk.content.replace("[ANALYSIS_WINDOW_PUSH]", "").strip()
+            message_chunk.content = "I have compiled the requested raw news and pushed it directly to your Analysis Window."
+            event_stream_message["content"] = message_chunk.content
+        elif message_chunk.content.startswith("[BACKGROUND_FETCH_NEWS]"):
+            targets_str = message_chunk.content.replace("[BACKGROUND_FETCH_NEWS]", "").strip()
+            targets = [t.strip() for t in targets_str.split(",") if t.strip()]
+            import asyncio
+            asyncio.create_task(_background_raw_news_fetch(targets))
+            message_chunk.content = f"Asynchronously fetching raw news for {targets_str}. It will be pushed to the Analysis Window once complete."
+            event_stream_message["content"] = message_chunk.content
+        elif message_chunk.content.startswith("[BACKGROUND_REGENERATE_DATA]"):
+            sym = message_chunk.content.replace("[BACKGROUND_REGENERATE_DATA]", "").strip()
+            import asyncio
+            asyncio.create_task(_background_regenerate_data(sym))
+            message_chunk.content = f"Cache cleared for {sym}. Asynchronously regenerating market data, volume, prices, and news."
+            event_stream_message["content"] = message_chunk.content
 
     # Save assistant messages to database
     if isinstance(message_chunk, (AIMessage, AIMessageChunk)) and message_chunk.content:
@@ -2395,6 +2954,21 @@ async def _process_message_chunk(message_chunk, message_metadata, thread_id, age
         except Exception:
             pass
 
+        # Log Tool Execution to Telemetry
+        try:
+            from src.config.vli import get_vli_path
+            from datetime import datetime
+            tf_path = get_vli_path("VLI_Raw_Telemetry.md")
+            with open(tf_path, "a", encoding="utf-8") as f:
+                ts = datetime.now().strftime("[%H:%M:%S]")
+                task_name = message_chunk.name if getattr(message_chunk, "name", None) else agent_name
+                if not task_name.endswith("_worker") and task_name not in ["vli_spine", "router", "coordinator"]:
+                    task_name = f"{task_name}_subtask_worker"
+                snippet = str(message_chunk.content)[:100].replace('\n', ' ')
+                f.write(f"\n{ts} [{task_name.upper()}] Execution Result: {snippet}...\n")
+        except Exception:
+            pass
+
         yield _make_event("tool_call_result", event_stream_message)
     elif isinstance(message_chunk, (AIMessage, AIMessageChunk)):
         # AI Message - Raw message tokens
@@ -2402,6 +2976,21 @@ async def _process_message_chunk(message_chunk, message_metadata, thread_id, age
             # AI Message - Tool Call
             event_stream_message["tool_calls"] = message_chunk.tool_calls
             event_stream_message["tool_call_chunks"] = _process_tool_call_chunks(message_chunk.tool_call_chunks)
+            
+            # Log Tool Initiation to Telemetry
+            try:
+                from src.config.vli import get_vli_path
+                from datetime import datetime
+                tf_path = get_vli_path("VLI_Raw_Telemetry.md")
+                with open(tf_path, "a", encoding="utf-8") as f:
+                    ts = datetime.now().strftime("[%H:%M:%S]")
+                    for tc in message_chunk.tool_calls:
+                        task_name = tc.get("name", "unknown")
+                        if not task_name.endswith("_worker") and task_name not in ["vli_spine", "router", "coordinator"]:
+                            task_name = f"{task_name}_subtask_worker"
+                        f.write(f"\n{ts} [{task_name.upper()}] Initiating Task Execution...\n")
+            except Exception:
+                pass
 
             # Save tool calls to database
             try:
@@ -2707,6 +3296,16 @@ async def generate_prose(request: GenerateProseRequest):
         logger.exception(f"Error occurred during prose generation: {str(e)}")
         raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR_DETAIL)
 
+@app.get("/api/vli/report/{symbol}")
+async def get_vli_report(symbol: str):
+    """Serve generated Markdown analysis report for a symbol."""
+
+    report_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{symbol.lower()}.md')
+    if os.path.exists(report_path):
+        with open(report_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return {"success": True, "content": content}
+    return {"success": False, "error": "Report not found or not yet generated."}
 
 @app.post("/api/prompt/enhance")
 async def enhance_prompt(request: EnhancePromptRequest):

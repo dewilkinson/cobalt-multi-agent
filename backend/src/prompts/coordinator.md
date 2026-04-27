@@ -164,7 +164,9 @@ You are operating in **REPLAY MODE**.
     - If `INTENT == EXECUTE_DIRECT`:
         - If the **Parser** has already provided a `direct_response` or tool result, do not reinvent the plan. Synthesize a concise confirmation or result. Set `has_enough_context: true`.
 - **LATEST INTENT PRIORITY (CRITICAL)**: You are performing a multi-turn session. However, each NEW `HumanMessage` at the end of the history represents the **Primary Objective**. 
-- **SMC / ICT Analysis**: For any request involving Smart Money Concepts (BOS, ChoCh, FVG, Order Blocks, Analyze ticker), you **MUST** use `step_type: smc_analyst`.
+- **SMC / ICT Analysis (CRITICAL)**: For any request involving Smart Money Concepts (BOS, ChoCh, FVG, Order Blocks) or a request to "Analyze [ticker]", you **MUST** plan a dual-specialist sequence:
+    1.  **Step 1**: `step_type: smc_analyst`. Instruction: "Perform full institutional SMC technical analysis, Sortino risk math, and structural audit for [Symbol]."
+    2.  **Step 2**: `step_type: synthesizer`. Instruction: "Fetch (with refresh=True) and summarize the latest 24h news, social media sentiment (Reddit/Twitter), and upcoming catalysts for [Symbol]. Factor these into the overall institutional narrative."
 - **SCANNER OPERATIONS (CRITICAL)**: If the user asks to "Run the scanner", "scan the market", or "build watchlist", you **MUST** use `step_type: smc_analyst`. Do NOT route this to synthesizer!
 - **NO-BLOCKING DIRECTIVE (CRITICAL)**: You are FORBIDDEN from blocking or refusing requests for valid ticker symbols (e.g., ETHUSDT, BTC, NVDA) just because they fall outside the legacy "$20-$50" or "S&P 500" benchmarks. Those criteria are only for future benchmarks. Any direct user request for a specific ticker MUST be processed via the standard pipeline.
 

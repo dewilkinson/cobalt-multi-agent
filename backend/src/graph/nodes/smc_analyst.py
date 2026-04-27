@@ -13,6 +13,7 @@ from src.tools.finance import get_stock_quote
 from src.tools.smc import get_raw_smc_tables, run_smc_analysis
 from src.tools.artifacts import read_session_artifact
 from src.tools.indicators import get_sharpe_ratio, get_sortino_ratio, get_volatility_atr, get_volume_profile
+from src.tools.scanner import trigger_morning_scan, trigger_manual_analysis_scan, clear_scanner_cache, build_session_watchlist, run_activity_pulse, run_sensor_scope
 from src.tools.shared_storage import ANALYST_CONTEXT, GLOBAL_CONTEXT
 
 from ..types import State
@@ -38,7 +39,7 @@ async def smc_analyst_node(state: State, config: RunnableConfig):
     cached_list = ", ".join([str(t) for t in sorted(list(GLOBAL_CONTEXT.get("cached_tickers", set())))])
     logger.info(f"SMC Analyst Node: Executing ICT Structural Analysis. GLOBAL_CACHE_VISIBILITY=[{cached_list}]")
 
-    tools = [run_smc_analysis, get_raw_smc_tables, get_stock_quote, get_volume_profile, get_volatility_atr, get_sortino_ratio, get_sharpe_ratio, read_session_artifact]
+    tools = [run_smc_analysis, get_raw_smc_tables, get_stock_quote, get_volume_profile, get_volatility_atr, get_sortino_ratio, get_sharpe_ratio, read_session_artifact, trigger_morning_scan, trigger_manual_analysis_scan, clear_scanner_cache, build_session_watchlist, run_activity_pulse, run_sensor_scope]
 
     # [PERFORMANCE] Node-level Pre-warming
     # Fetch all common data windows concurrently before starting the LLM to ensure tool hits are instant.

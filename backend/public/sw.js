@@ -36,7 +36,9 @@ self.addEventListener('fetch', event => {
   if (event.request.url.includes('VLI_session_dashboard.html')) {
     event.respondWith(
       fetch(event.request).catch(() => {
-        return caches.match('/VLI_session_dashboard.html');
+        return caches.match('/VLI_session_dashboard.html', { ignoreSearch: true }).then(response => {
+          return response || new Response('<html><body style="background:#000;color:#fff;text-align:center;padding:50px;">Dashboard Offline. Cache miss.</body></html>', { headers: { 'Content-Type': 'text/html' }});
+        });
       })
     );
     return;
@@ -51,7 +53,9 @@ self.addEventListener('fetch', event => {
       .catch(() => {
         // Fallback for offline if it's the root or dashboard
         if (event.request.mode === 'navigate') {
-          return caches.match('/VLI_session_dashboard.html');
+          return caches.match('/VLI_session_dashboard.html', { ignoreSearch: true }).then(response => {
+            return response || new Response('<html><body style="background:#000;color:#fff;text-align:center;padding:50px;">Dashboard Offline. Cache miss.</body></html>', { headers: { 'Content-Type': 'text/html' }});
+          });
         }
       })
   );

@@ -5,18 +5,9 @@
 
 import logging
 from typing import Any
-import os
-
 from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
-
-from src.config.agents import AGENT_LLM_MAP
-from src.config.analyst import get_analyst_keywords
-from src.llms.llm import get_llm_by_type
-from src.prompts.planner_model import Plan
-from src.prompts.template import apply_prompt_template
 from src.tools.shared_storage import GLOBAL_CONTEXT, ORCHESTRATOR_CONTEXT
-
 from ..types import State
 
 logger = logging.getLogger(__name__)
@@ -33,6 +24,13 @@ _GLOBAL_RESOURCE_CONTEXT = GLOBAL_CONTEXT
 
 async def coordinator_node(state: State, config: RunnableConfig) -> dict[str, Any]:
     """Coordinator node - Detailed multi-step planning."""
+    import os
+    from src.config.agents import AGENT_LLM_MAP
+    from src.config.analyst import get_analyst_keywords
+    from src.llms.llm import get_llm_by_type
+    from src.prompts.planner_model import Plan
+    from src.prompts.template import apply_prompt_template
+
     logger.info("VLI Coordinator is planning execution.")
     analyst_keywords = ", ".join([str(k) for k in get_analyst_keywords()])
 

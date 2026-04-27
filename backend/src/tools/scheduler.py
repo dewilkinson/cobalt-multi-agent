@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 @tool
 def manage_scheduled_tasks(
-    action: str, # REGISTER, PAUSE, RESUME, DELETE, PROMOTE, QUERY, LOG, EXECUTING, ADJUST
+    action: str, # REGISTER, PAUSE, RESUME, DELETE, PROMOTE, QUERY, LOG, EXECUTING, ADJUST, RECONCILE
     task_id: str,
     name: Optional[str] = None,
     task_type: Optional[str] = None, # REPEAT, ONE_SHOT, CALENDAR
@@ -22,7 +22,7 @@ def manage_scheduled_tasks(
     and monitoring rhythmic platform tasks.
     
     Args:
-        action: The operation to perform (REGISTER, PAUSE, RESUME, DELETE, PROMOTE, QUERY, LOG, EXECUTING, ADJUST).
+        action: The operation to perform (REGISTER, PAUSE, RESUME, DELETE, PROMOTE, QUERY, LOG, EXECUTING, ADJUST, RECONCILE).
         task_id: Unique identifier for the task.
         name: Human-readable name (required for REGISTER).
         task_type: Type of timing (REPEAT, ONE_SHOT, CALENDAR).
@@ -107,6 +107,9 @@ def manage_scheduled_tasks(
             if not logs:
                 return "No execution logs found."
             return "### Execution Log (Last 20 entries)\n" + "\n".join([f"- {l}" for l in logs])
+
+        elif action == "RECONCILE":
+            return cobalt_scheduler.reconcile_daily_tasks()
 
         else:
             return f"Error: Unknown action '{action}'."

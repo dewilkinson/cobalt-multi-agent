@@ -27,6 +27,8 @@ from src.tools import (
     simulate_cache_volatility,
     snapper,
     get_ticker_news,
+    get_macro_news,
+    get_sortino_ratio,
 )
 from src.tools.research import RULES as RESEARCH_RULES
 from src.tools.shared_storage import ANALYST_CONTEXT, GLOBAL_CONTEXT
@@ -59,6 +61,7 @@ async def synthesizer_node(state: State, config: RunnableConfig):
         snapper,
         # Analyst base tools
         get_ticker_news,
+        get_macro_news,
         get_stock_quote,
         fetch_market_macros,
         fetch_economic_calendar,
@@ -71,6 +74,7 @@ async def synthesizer_node(state: State, config: RunnableConfig):
         get_volume_profile,
         get_bollinger_bands,
         simulate_cache_volatility,
+        get_sortino_ratio,
     ]
 
     return await _setup_and_execute_agent_step(state, config, "synthesizer", tools)

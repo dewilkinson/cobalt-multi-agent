@@ -1,12 +1,14 @@
 import asyncio
+import sys
+import os
 
-from src.tools.finance import run_smc_analysis
+sys.path.append(os.path.dirname(__file__))
 
+from src.tools.smc import get_smc_analysis
 
-async def test():
-    f = getattr(run_smc_analysis, "coroutine", None)
-    print(await f("GLDM", "1h"))
+async def main():
+    print('LLM SMC STM:')
+    print(await get_smc_analysis.ainvoke({"ticker": "STM"}))
 
-
-if __name__ == "__main__":
-    asyncio.run(test())
+if __name__ == '__main__':
+    asyncio.run(main())

@@ -14,7 +14,7 @@ from .datastore_tools import invalidate_market_cache, simulate_cache_volatility
 from .indicators import get_bollinger_bands, get_macd_analysis, get_rsi_analysis, get_sharpe_ratio, get_sortino_ratio, get_volatility_atr, get_volume_profile
 from .journal import get_journal_folder, list_journal_entries, read_journal_entry, set_journal_folder, write_daily_journal, log_feedback
 from .macros import fetch_market_macros, get_macro_data, fetch_economic_calendar
-from .news import get_ticker_news
+from .news import get_ticker_news, get_macro_news
 from .portfolio import get_portfolio_balance_report, swap_watchlist_item, update_portfolio_ledger, update_watchlist
 from .python_repl import python_repl_tool
 from .retriever import get_retriever_tool
@@ -77,6 +77,7 @@ __all__ = [
     "log_feedback",
     "manage_scheduled_tasks",
     "get_ticker_news",
+    "get_macro_news",
     "build_session_watchlist",
     "run_activity_pulse",
     "run_sensor_scope",

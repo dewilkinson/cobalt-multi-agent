@@ -9,7 +9,8 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from src.tools import fetch_market_macros, get_bollinger_bands, get_ema_analysis, get_macd_analysis, get_rsi_analysis, run_smc_analysis, get_batch_smc_analysis, get_stock_quote, get_volatility_atr, get_volume_profile, invalidate_market_cache
+from src.tools import fetch_market_macros, get_bollinger_bands, get_ema_analysis, get_macd_analysis, get_rsi_analysis, run_smc_analysis, get_batch_smc_analysis, get_stock_quote, get_volatility_atr, get_volume_profile, invalidate_market_cache, get_sortino_ratio
+from src.tools.news import get_ticker_news
 from src.tools.scanner import build_session_watchlist, run_activity_pulse, run_sensor_scope, clear_scanner_cache
 from src.tools.shield_scanner_trawl import run_shield_trawl
 from src.tools.artifacts import read_session_artifact
@@ -60,7 +61,7 @@ async def analyst_node(state: State, config: RunnableConfig):
     except Exception as e:
         logger.warning(f"[PRE-WARM] Analyst node pre-warm skipped/failed: {e}")
 
-    tools = [run_smc_analysis, get_batch_smc_analysis, get_ema_analysis, get_stock_quote, get_rsi_analysis, get_macd_analysis, get_volatility_atr, get_volume_profile, get_bollinger_bands, fetch_market_macros, invalidate_market_cache, read_session_artifact, build_session_watchlist, run_activity_pulse, run_sensor_scope, clear_scanner_cache, run_shield_trawl]
+    tools = [run_smc_analysis, get_batch_smc_analysis, get_ema_analysis, get_stock_quote, get_rsi_analysis, get_macd_analysis, get_volatility_atr, get_volume_profile, get_bollinger_bands, fetch_market_macros, invalidate_market_cache, read_session_artifact, build_session_watchlist, run_activity_pulse, run_sensor_scope, clear_scanner_cache, run_shield_trawl, get_sortino_ratio, get_ticker_news]
 
     instructions = f"Report verbosity={state.get('verbosity', 1)}. "
     return await _setup_and_execute_agent_step(state, config, "analyst", tools, agent_instructions=instructions)

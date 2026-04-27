@@ -1,7 +1,7 @@
 # Project Guidelines: Cobalt Multiagent
 
 ## Design & Documentation Rules
-1. **Implementation Plans**: All final implementation plans must be stored in the `docs/design` folder.
+1. **Implementation Plans**: All final implementation plans must be stored in the `docs/design` folder. Don't keep multiple copies of implementation plans for the same feature.
 2. **Lifecycle States**:
    - Plans awaiting review or currently in-progress should be stored in `docs/design/pending/`.
    - Once a plan is fully approved and implemented, it should be moved to the root of `docs/design/`.
@@ -10,3 +10,7 @@
 5. **Preferred Standalone Testing**: Always prefer a simple standalone test to verify fixes over using the VLI dashboard. Exceptions include tests which rely on screen grabs or UX elements, or if the user specifically asks for the dashboard to be used.
 6. **Browser Test Freshness**: When testing new features via the browser on the live dashboard, ALWAYS ensure the backend server is running the latest code. Explicitly kill any existing background processes holding port 8000 and restart the server before triggering the UI test to prevent rogue ghost instances from executing outdated logic.
 7. **VLI Session Dashboard URL**: When requested to run tests on the 'VLI session dashboard', always target the dashboard at `http://localhost:8000/VLI_session_dashboard.html`.
+
+
+## MANDATORY FOR BUG FIXES
+Due to a high number of 'hallucinated fixes', all AI generated code changes must be fully tested before returning a 'fixed' summary to the user. To determine which test to run, refer to the local chat context to determine which one to run. If no valid test exists, then create one and ensure a passing result

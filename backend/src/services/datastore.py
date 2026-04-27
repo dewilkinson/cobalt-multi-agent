@@ -7,6 +7,7 @@ from src.tools.shared_storage import history_cache, df_cache, analysis_cache, GL
 from src.services.heat_manager import HeatManager
 from src.config.database import PersistentCache, get_session_local
 import json
+import os
 from src.utils.temporal import get_cache_segment_suffix
 
 logger = logging.getLogger(__name__)
@@ -105,6 +106,8 @@ class DatastoreManager:
             'analysis': analysis_cache,
             'smc_analysis': analysis_cache,
             'news': analysis_cache,
+            'news_raw': analysis_cache,
+            'news_raw': analysis_cache,
             'search': analysis_cache
         }
         cache = cache_map.get(resource_type)
@@ -173,6 +176,7 @@ class DatastoreManager:
             'analysis': analysis_cache,
             'smc_analysis': analysis_cache,
             'news': analysis_cache,
+            'news_raw': analysis_cache,
             'search': analysis_cache
         }
         
@@ -334,7 +338,24 @@ class DatastoreManager:
         if "vli_cache_diag" in GLOBAL_CONTEXT and t in GLOBAL_CONTEXT["vli_cache_diag"].get("cache", {}):
             del GLOBAL_CONTEXT["vli_cache_diag"]["cache"][t]
 
-        return f"Cache invalidated for {t} (RAM + DB + Context)."
+        # Phase 6: Delete physical analysis report file to immediately gray out the UI
+        try:
+            report_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{t.lower()}.md')
+            if os.path.exists(report_path):
+                os.remove(report_path)
+                logger.info(f"[CACHE] Deleted physical report file: {report_path}")
+                
+            # Also delete from Obsidian Vault
+            vault_path = os.environ.get("OBSIDIAN_VAULT_PATH")
+            if vault_path:
+                vault_report_path = os.path.join(vault_path, "_cobalt", "04_Analysis", f"{t.upper()}_Institutional_Brief.md")
+                if os.path.exists(vault_report_path):
+                    os.remove(vault_report_path)
+                    logger.info(f"[CACHE] Deleted vault report file: {vault_report_path}")
+        except Exception as e:
+            logger.warning(f"[CACHE] Failed to delete physical report for {t}: {e}")
+
+        return f"Cache invalidated for {t} (RAM + DB + Context + Files)."
 
     @classmethod
     def simulate_volatility(cls, force_invalid: bool = False):

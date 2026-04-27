@@ -24,16 +24,6 @@ def get_vli_path(subpath: str = "") -> str:
     """Get the full path to a Cobalt-related file or directory."""
     base = os.path.abspath(os.path.join(VAULT_ROOT, COBALT_DIR))
     if subpath:
-        # [NEW] Dynamic Session Isolation
-        if subpath == "VLI_Raw_Telemetry.md":
-            try:
-                from src.config.vli_context import vli_client_id
-                cid = vli_client_id.get()
-                if cid and cid != "default":
-                    subpath = f"VLI_Raw_Telemetry_{cid}.md"
-            except Exception:
-                pass
-
         return os.path.abspath(os.path.join(base, subpath))
     return base
 

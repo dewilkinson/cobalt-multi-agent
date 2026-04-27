@@ -190,7 +190,7 @@ def _fetch_av_history(ticker: str, period: str = "5d", interval: str = "1d") -> 
     url = f"https://www.alphavantage.co/query?function={endpoint}&symbol={ticker}&datatype=csv&entitlement=delayed&apikey={api_key}"
     
     if endpoint == "TIME_SERIES_INTRADAY":
-        url += f"&interval={mapped_interval}"
+        url += f"&interval={mapped_interval}&outputsize=full"
     else:
         if period in ["1y", "2y", "5y", "10y", "max", "ytd"]:
              url += "&outputsize=full"
@@ -973,23 +973,16 @@ async def get_sortino_ratio(ticker: str) -> str:
     Technical Analysis: Calculate the Sortino Ratio (downside risk-adjusted) for a given ticker.
     """
     try:
-        df = await asyncio.to_thread(_fetch_stock_history, ticker, "1y", "1d")
-        if df.empty:
+        from src.tools.scanner import batch_fetch_sortino
+        # Call the scanner's Sortino batcher to ensure exact pipeline parity
+        sortino_map = await batch_fetch_sortino([ticker])
+        if not sortino_map or ticker not in sortino_map:
             return f"[ERROR]: No data for {ticker}"
-
-        returns = df["Close"].pct_change().dropna()
-        if len(returns) < 20:
-            return "Insufficient data for Sortino calculation."
-
-        MAR = 0.0  # Minimum Acceptable Return (daily)
-        downside = returns - MAR
-        downside_squared = downside[downside < 0] ** 2
-        downside_deviation = (downside_squared.sum() / len(returns)) ** 0.5
-
-        if downside_deviation == 0:
-            return f"Sortino Ratio ({ticker}): N/A (No downside volatility)"
-
-        sortino = ((returns.mean() - MAR) / downside_deviation) * (252**0.5)
+            
+        sortino = sortino_map[ticker]
+        if sortino == 0.0:
+            return f"Sortino Ratio ({ticker}): 0.0 (Or N/A due to lack of downside volatility)"
+            
         return f"Sortino Ratio ({ticker}): {sortino:.2f}"
     except Exception as e:
         return f"[ERROR]: {str(e)}"
@@ -1088,12 +1081,12 @@ async def get_macro_symbols(fast_update: bool = False) -> str:
             _fetch_direct_sparkline()
         ]
         if not fast_update:
-            tasks.append(asyncio.to_thread(_fetch_batch_history, ticker_list, "60d", "1d"))
+            tasks.append(asyncio.to_thread(_fetch_batch_history, ticker_list, "1y", "1d"))
             
         results_raw = await asyncio.wait_for(asyncio.gather(*tasks), timeout=25.0)
         data_1d = results_raw[0]
         data_5m = results_raw[1]
-        data_30d = results_raw[2] if len(results_raw) > 2 else None
+        data_1y = results_raw[2] if len(results_raw) > 2 else None
         
         # [MEMORY_ANCHOR] Precise Slice for Sparkline Temporal Alignment
         try:
@@ -1104,6 +1097,21 @@ async def get_macro_symbols(fast_update: bool = False) -> str:
                 data_5m = data_5m[safe_index <= pd.Timestamp(ref_time).tz_localize(None)]
         except Exception as filter_err:
              logger.warning(f"VLI: In-memory anchor filter failed: {filter_err}")
+
+        # [INSTITUTIONAL SORTINO] Extract dynamic annual risk-free rate from ^TNX
+        dynamic_rf = 0.0428
+        if data_1y is not None:
+            tnx_df = _extract_ticker_data(data_1y, "^TNX")
+            if not tnx_df.empty:
+                c_col = "Close" if "Close" in tnx_df.columns else "close"
+                if c_col in tnx_df.columns:
+                    try:
+                        latest_tnx = float(tnx_df[c_col].dropna().iloc[-1])
+                        dynamic_rf = latest_tnx / 100.0
+                    except:
+                        pass
+
+        from src.tools.scanner import calculate_sortino_ratio
 
         for label, ticker in macros.items():
             ticker_df = _extract_ticker_data(data_1d, ticker)
@@ -1157,18 +1165,22 @@ async def get_macro_symbols(fast_update: bool = False) -> str:
 
             sparkline_values = _bucket_sparkline_data(sparkline_df, ref_time, price, num_points=32, span_minutes=240)
 
-            # [RISK_METRICS] Sortino Ratio (30d)
+            # [RISK_METRICS] Institutional Sortino Ratio (1y)
             sortino = 0.0
-            if data_30d is not None:
-                ticker_30d = _extract_ticker_data(data_30d, ticker)
-                if ticker_30d.empty:
+            if data_1y is not None:
+                ticker_1y = _extract_ticker_data(data_1y, ticker)
+                if ticker_1y.empty:
                     logger.info(f"VLI: Sortino batch missing {ticker}, falling back to individual yfinance.")
                     try:
-                        ticker_30d = await asyncio.to_thread(_fetch_batch_history, [ticker], "60d", "1d", force_yf=True)
-                        ticker_30d = _extract_ticker_data(ticker_30d, ticker)
+                        ticker_1y = await asyncio.to_thread(_fetch_batch_history, [ticker], "1y", "1d", force_yf=True)
+                        ticker_1y = _extract_ticker_data(ticker_1y, ticker)
                     except Exception as fe:
                         logger.error(f"VLI: Sortino Fallback failed for {ticker}: {fe}")
-                sortino = _calculate_sortino_ratio(ticker_30d)
+                
+                c_col = "Close" if "Close" in ticker_1y.columns else "close"
+                if not ticker_1y.empty and c_col in ticker_1y.columns:
+                    rets = ticker_1y[c_col].pct_change().dropna()
+                    sortino = calculate_sortino_ratio(rets, annual_rf=dynamic_rf, interval="1d")
 
             results[label] = {
                 "symbol": ticker,
@@ -1235,8 +1247,12 @@ async def get_macro_symbols(fast_update: bool = False) -> str:
 
     except Exception as e:
         import traceback
-        traceback.print_exc()
-        logger.error(f"Macro Tool Error: {e}")
+        try:
+            with open("macro_debug_error.txt", "w", encoding="utf-8") as df:
+                df.write(f"VLI_SYSTEM: Exception in get_macro_symbols: {e}\n{traceback.format_exc()}")
+        except Exception:
+            pass
+        return json.dumps({"error": str(e)})
         return f"[ERROR]: Failed to fetch macro indicators: {str(e)}"
 
 

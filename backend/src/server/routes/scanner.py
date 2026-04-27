@@ -220,14 +220,20 @@ async def scanner_stream():
                 try:
                     with open(combat_list_path, "r", encoding="utf-8") as f:
                         c_data = json.load(f)
-                        combat_list = c_data.get("combat_list", [])
+                        combat_list = c_data.get("candidates", c_data.get("combat_list", []))
+                        pulse_mode = c_data.get("pulse_mode", "")
                         yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Combat List loaded: {len(combat_list)} swords in the bunker.'}), cls=NpEncoder)}\n\n"
                 except Exception as e:
                     logger.warning(f"Failed to load combat list: {e}")
+                    pulse_mode = ""
 
-            discovery_raw = await fetch_av_gainers()
-            if not discovery_raw:
-                 discovery_raw = [{"symbol": t, "price": 15.0, "change": "5%", "volume": 1000000} for t in ["CELH", "SYM", "IOT", "MDB", "CRWD", "RBLX"]]
+            if "TradingView" in pulse_mode:
+                discovery_raw = []
+                yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'TradingView High-Fidelity Mode detected. Skipping Alpha Vantage Top Movers.'}), cls=NpEncoder)}\n\n"
+            else:
+                discovery_raw = await fetch_av_gainers()
+                if not discovery_raw:
+                     discovery_raw = [{"symbol": t, "price": 15.0, "change": "5%", "volume": 1000000} for t in ["CELH", "SYM", "IOT", "MDB", "CRWD", "RBLX"]]
             
             # Merge: Combat List results are enriched with discovery data if they overlap, 
             # or we add discovery candidates to the tail.

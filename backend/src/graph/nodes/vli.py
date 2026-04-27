@@ -4,26 +4,13 @@
 # License: PolyForm Noncommercial 1.0.0
 
 import logging
-import os
-import time
-import asyncio
-import re
 from typing import Any, Literal, cast
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 from langgraph.graph import END
 
-from src.config.agents import AGENT_LLM_MAP
-from src.config.analyst import get_analyst_keywords
-from src.config.configuration import Configuration
-from src.llms.llm import get_llm_by_type
-from src.prompts.planner_model import Plan, Step, StepType
-from src.prompts.template import apply_prompt_template
 from src.tools.shared_storage import GLOBAL_CONTEXT, ORCHESTRATOR_CONTEXT
-from src.services.macro_registry import macro_registry
-from src.utils.temporal import set_reference_time, parse_temporal_directive
-
 from ..types import State
 
 logger = logging.getLogger(__name__)
@@ -47,6 +34,20 @@ async def vli_node(
     Unified VLI Spine Node.
     Handles: Vibe Checking, Fast-Path, Multi-step Planning, and Execution Coordination.
     """
+    import os
+    import time
+    import asyncio
+    import re
+    import glob
+    from src.config.agents import AGENT_LLM_MAP
+    from src.config.analyst import get_analyst_keywords
+    from src.config.configuration import Configuration
+    from src.llms.llm import get_llm_by_type
+    from src.prompts.planner_model import Plan, Step, StepType
+    from src.prompts.template import apply_prompt_template
+    from src.services.macro_registry import macro_registry
+    from src.utils.temporal import set_reference_time, parse_temporal_directive
+
     logger.info("VLI Spine is processing context.")
 
     # 0. Configuration & Model Selection
@@ -96,9 +97,141 @@ async def vli_node(
     if not original_human_query:
         original_human_query = user_query
 
+    fallback_msgs_all = []
     force_direct_exit = "--direct" in original_human_query.lower()
     
     stripped_query = original_human_query.lower().replace("--direct", "").strip()
+
+    is_news_query = stripped_query in ["show news", "get macro news", "get market news"] or \
+                    stripped_query.startswith("get news for") or \
+                    stripped_query.startswith("show news for") or \
+                    (stripped_query.startswith("get ") and stripped_query.endswith(" news"))
+
+    # --- [RAW NEWS INTENT INTERCEPT] ---
+    if is_news_query:
+        from src.services.datastore import DatastoreManager
+        
+        is_show_all = stripped_query == "show news"
+        is_macro = stripped_query in ["get macro news", "get market news"]
+        
+        targets = []
+        if is_macro:
+            targets = list(macro_registry.get_macros().values())
+        elif is_show_all:
+            ac = DatastoreManager.get_analysis_cache()
+            for t, resources in ac.items():
+                if "news" in resources and "latest" in resources["news"]:
+                    targets.append(t)
+            
+            db_dir = os.path.join(os.getcwd(), "data", "db", "analysis")
+            if os.path.exists(db_dir):
+                for f in glob.glob(os.path.join(db_dir, "*_news_latest.json")):
+                    t = os.path.basename(f).split("_news_latest.json")[0].upper()
+                    if t not in targets:
+                        targets.append(t)
+        else:
+            # Handle "get news for amd", "show news for amd", "get amd news"
+            sym = stripped_query.replace("get news for", "").replace("show news for", "").replace("get ", "").replace(" news", "").strip().upper()
+            if sym:
+                targets.append(sym)
+                # Explicitly clear the cache
+                DatastoreManager.invalidate_cache(sym)
+                
+        missing = []
+        found_data = []
+        for t in targets:
+            cached = DatastoreManager.get_artifact(t, "news_raw", "latest")
+            if cached and "data" in cached:
+                found_data.append(f"## {t} News\n{cached['data']}")
+            else:
+                missing.append(t)
+                
+        if is_show_all:
+            if not found_data:
+                return Command(
+                    update={
+                        "messages": fallback_msgs_all + [AIMessage(content="[ANALYSIS_WINDOW_PUSH] # Gathered News\n\nNo news has been gathered for any targets yet.", name="vli_coordinator")],
+                        "intent": "EXECUTE_DIRECT",
+                        "metadata": state.get("metadata", {})
+                    },
+                    goto=END
+                )
+            else:
+                combined = "\n\n---\n\n".join(found_data)
+                return Command(
+                    update={
+                        "messages": fallback_msgs_all + [AIMessage(content=f"[ANALYSIS_WINDOW_PUSH] # All Gathered News\n\n{combined}", name="vli_coordinator")],
+                        "intent": "EXECUTE_DIRECT",
+                        "metadata": state.get("metadata", {})
+                    },
+                    goto=END
+                )
+        else:
+            if missing:
+                from src.tools.news import get_ticker_news
+                for m in missing:
+                    try:
+                        news_content = await get_ticker_news.ainvoke({"subject": m})
+                        found_data.append(f"## {m} News\n{news_content}")
+                    except Exception as e:
+                        found_data.append(f"## {m} News\nFailed to fetch news: {e}")
+
+            combined = "\n\n---\n\n".join(found_data)
+            title = "Macro News" if is_macro else f"News for {targets[0]}"
+            return Command(
+                update={
+                    "messages": fallback_msgs_all + [AIMessage(content=f"[ANALYSIS_WINDOW_PUSH] # {title}\n\n{combined}", name="vli_coordinator")],
+                    "intent": "EXECUTE_DIRECT",
+                    "metadata": state.get("metadata", {})
+                },
+                goto=END
+            )
+
+    # --- [DAILY RECONCILIATION INTENT] ---
+    is_daily_reconcile = bool(re.search(r'^(run|execute|update|sync)\s+(daily|dailies)$', stripped_query))
+    if is_daily_reconcile:
+        from src.services.scheduler import cobalt_scheduler
+        summary = cobalt_scheduler.reconcile_daily_tasks()
+        return Command(
+            update={
+                "messages": fallback_msgs_all + [AIMessage(content=f"# Scheduler Reconciliation\n\n{summary}", name="vli_coordinator")],
+                "intent": "EXECUTE_DIRECT",
+                "metadata": state.get("metadata", {})
+            },
+            goto=END
+        )
+
+    # --- [REGENERATE CACHE INTENT] ---
+    regen_match = re.match(r'^(regenerate|refresh|renew|update)\s+([a-zA-Z]+)$', stripped_query)
+    if regen_match:
+        from src.services.datastore import DatastoreManager
+        from src.prompts.planner_model import Plan, Step, StepType
+        sym = regen_match.group(2).upper()
+        
+        DatastoreManager.invalidate_cache(sym)
+        logger.info(f"[VLI_SPINE] Manual regeneration requested for {sym}. Engaging SILENT_MODE pipeline.")
+        
+        return Command(
+            update={
+                "intent": "EXECUTE_PLAN",
+                "directive": f"Regenerate and analyze {sym} silently.",
+                "silent_mode": True,
+                "steps_completed": 0,
+                "current_plan": Plan(
+                    locale="en-US",
+                    has_enough_context=False,
+                    thought=f"User requested a manual regeneration of {sym}. Executing technical fetch and silent synthesis.",
+                    title=f"Silent Regeneration: {sym}",
+                    steps=[
+                        Step(need_search=False, title=f"Fetch {sym}", description=f"Fetch technical indicators for {sym}", step_type=StepType.ANALYST),
+                        Step(need_search=True, title=f"Analyze {sym}", description=f"Perform market analysis and news synthesis for {sym}", step_type=StepType.SYNTHESIZER)
+                    ]
+                ),
+                "messages": fallback_msgs_all + [AIMessage(content=f"[BACKGROUND_REGENERATE_DATA] {sym}", name="vli_coordinator")]
+            },
+            goto=END
+        )
+
     is_admin = any(kw in stripped_query for kw in ["invalidate", "clear cache", "vli tick", "reset diagnostic", "heat map"])
     
     is_arithmetic = bool(re.match(r'^[\d\s\+\-\*\/\(\)\.]+$', stripped_query))
@@ -137,10 +270,11 @@ async def vli_node(
         # Inject into telemetry for dashboard visibility
         try:
             from src.config.vli import get_vli_path
+            from datetime import datetime
             telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
             timestamp = datetime.now().strftime("[%H:%M:%S]")
             with open(telemetry_file, "a", encoding="utf-8") as tf:
-                tf.write(f"\n{timestamp} ### 🕰️ [REPLAY_ENGINE_ACTIVE]\n> Origin shifted to: **{temporal_origin.strftime('%Y-%m-%d %H:%M:%S')}**\n> All subsequent analytical samples are relative to this origin.\n")
+                tf.write(f"\n{timestamp} ### \ud83d\udd70\ufe0f [REPLAY_ENGINE_ACTIVE]\n> Origin shifted to: **{temporal_origin.strftime('%Y-%m-%d %H:%M:%S')}**\n> All subsequent analytical samples are relative to this origin.\n")
                 tf.flush()
         except:
             pass
@@ -425,6 +559,8 @@ async def vli_node(
 
     # [NEW] Immediate Telemetry Injection for Visibility during long planning stalls
     try:
+        from src.config.vli import get_vli_path
+        from datetime import datetime
         telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
         timestamp = datetime.now().strftime("[%H:%M:%S]")
         with open(telemetry_file, "a", encoding="utf-8") as tf:

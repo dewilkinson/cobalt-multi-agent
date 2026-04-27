@@ -138,7 +138,7 @@ async def batch_fetch_sortino(tickers: List[str], period: str = "20d") -> Dict[s
         # Inject ^TNX to fetch the dynamic risk-free rate simultaneously
         fetch_list = tickers + ["^TNX"] if trading_style != "day_trading" else tickers
         data = await asyncio.wait_for(
-            asyncio.to_thread(yf.download, fetch_list, period=period, interval=interval, group_by='ticker', progress=False),
+            asyncio.to_thread(yf.download, fetch_list, period=period, interval=interval, group_by='ticker', progress=False, prepost=True),
             timeout=25.0
         )
         
@@ -501,6 +501,7 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
 
                 payload = {
                     "symbol": str(ticker),
+                    "updated_at": datetime.now().isoformat(),
                     "tier": tier,
                     "grade": letter_grade,
                     "sortino": sortino,
@@ -528,7 +529,8 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
         "pulse_mode": "AlphaVantage (PREMIUM)" if has_premium_av else "YFinance (FALLBACK)",
         "total_pulsed": int(len(t_list)),
         "candidates_passed": int(len(scanned_results)),
-        "candidates": scanned_results
+        "candidates": scanned_results,
+        "updated_at": datetime.now().isoformat()
     })
     
     # Synchronize to VLI Transit Bucket (Dashboard Feed)
@@ -588,3 +590,59 @@ async def clear_scanner_cache() -> str:
     if not purged: return "Scanner cache is already empty."
     return f"Successfully purged scanner cache files: {str(purged)}"
 
+
+@tool
+async def trigger_manual_analysis_scan() -> str:
+    """
+    Manually triggers the background idle analysis checker to process all missing or stale reports immediately.
+    """
+    from src.server.app import run_idle_analysis
+    import asyncio
+    
+    import threading
+    import asyncio
+    
+    def bg_task():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(run_idle_analysis(manual_trigger=True))
+        loop.close()
+        
+    threading.Thread(target=bg_task, daemon=True).start()
+    return "Status: OK. Background analysis orchestrator has been manually triggered. The system is scanning for missing or stale reports and generating them sequentially."
+
+@tool
+async def evict_analysis_report(ticker: str) -> str:
+    """
+    Manually deletes the cached analysis report for a specific ticker to force regeneration on the next scan.
+    """
+    import os
+    
+    report_path = os.path.join(os.getcwd(), "data", "reports", f"analyze_{ticker.lower()}.md")
+    if os.path.exists(report_path):
+        os.remove(report_path)
+        return f"Status: OK. Cached report for {ticker} evicted. It will be regenerated during the next analysis scan."
+    else:
+        return f"Status: OK. No cached report found for {ticker}."
+
+@tool
+async def trigger_morning_scan() -> str:
+    """
+    Manually triggers the 6:00 AM full 'morning scan'. This executes a fresh TradingView synchronization 
+    and then invokes the background analyst to generate missing reports. 
+    It respects the daily cache and will not reanalyze symbols already processed today.
+    """
+    from src.server.app import run_daily_morning_analysis
+    import asyncio
+    
+    import threading
+    import asyncio
+    
+    def bg_task():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(run_daily_morning_analysis())
+        loop.close()
+        
+    threading.Thread(target=bg_task, daemon=True).start()
+    return "SUCCESS: The morning scan has been successfully dispatched to the background orchestration thread. You do not need to wait for results. Please inform the user: 'Morning scan sequence successfully engaged. Background orchestration is running.'"

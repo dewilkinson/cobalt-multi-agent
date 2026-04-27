@@ -12,15 +12,16 @@
         sessionStorage.setItem('vli_client_id', VLI_CLIENT_ID);
         
         // Globally intercept fetch to attach Client-ID header to internal VLI requests
-        const originalFetch = window.fetch;
-        window.fetch = async function () {
-            let [resource, config] = arguments;
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = async function (...args) {
+            let [resource, config] = args;
             if(typeof resource === 'string' && resource.startsWith('/api/vli/')) {
-                if(config === undefined) { config = {}; }
-                if(config.headers === undefined) { config.headers = {}; }
+                config = config || {};
+                config.headers = config.headers || {};
                 config.headers['X-VLI-Client-ID'] = VLI_CLIENT_ID;
+                return originalFetch(resource, config);
             }
-            return await originalFetch(resource, config);
+            return originalFetch(...args);
         };
 
         const VLI_CLIENT_VERSION = "00.000.0002";
@@ -649,8 +650,8 @@
 
         /* TELEMETRY TAIL */
         .terminal {
-            font-family: var(--font-mono);
-            font-size: 11.5pt;
+            font-family: 'Courier New', Courier, monospace !important;
+            font-size: 12pt !important;
             /* Increased from 10pt */
             background: #05070a;
             color: #d1d5db;
@@ -1811,11 +1812,11 @@
             const saved = localStorage.getItem(targetKey);
             if (!saved) {
                 if (targetKey === 'vli_wm_layout') {
-                    // First boot - fluid responsive percentage geometry
+                    // Optimized High-Fidelity Workspace Layout
                     UXManager.createCard('VLI_CHAT', {top: '2%', left: '66%', width: '33%', height: '96%'}, 'coordinator');
-                    UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '31%', height: '38%'}, 'watchlist');
-                    UXManager.createCard('SCAN_RES', {top: '2%', left: '33.5%', width: '31%', height: '47%'}, 'scanner');
-                    UXManager.createCard('SHIELD_RES', {top: '51%', left: '33.5%', width: '31%', height: '47%'}, 'shield');
+                    UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '19%', height: '55%'}, 'watchlist');
+                    UXManager.createCard('SCAN_RES', {top: '2%', left: '21%', width: '21%', height: '55%'}, 'scanner');
+                    UXManager.createCard('SHIELD_RES', {top: '2%', left: '43%', width: '22%', height: '55%'}, 'shield');
                     
                     // Add RUN button to Scanner Results header for backup
                     setTimeout(() => {
@@ -1838,7 +1839,8 @@
                             scHeader.insertBefore(btnContainer, scHeader.querySelector('.card-controls'));
                         }
                     }, 500);
-                    UXManager.createCard('ANALYSIS_REP', {top: '42%', left: '1%', width: '63.5%', height: '56%'}, 'report');
+                    UXManager.createCard('ANALYSIS_REP', {top: '59%', left: '1%', width: '41%', height: '39%'}, 'report');
+                    UXManager.createCard('VLI_TELEMETRY', {top: '59%', left: '43%', width: '22%', height: '39%'}, 'telemetry');
                 } else {
                     alert('Workspace not found: ' + targetKey);
                 }
@@ -1899,6 +1901,8 @@
         }
 
         function loadLayout() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('popout')) return;
             loadWorkspace('vli_wm_layout');
         }
 
@@ -2040,6 +2044,13 @@
             if (popoutId) {
                 console.log("[VLI_ORCHESTRA] Satellite Mode Active for:", popoutId);
                 document.body.classList.add('standalone');
+                
+                const popoutType = urlParams.get('type');
+                if (popoutType) {
+                    const instanceGuid = popoutId.replace('win-', '');
+                    UXManager.createCard(popoutType, {}, instanceGuid);
+                }
+                
                 const target = document.getElementById(popoutId);
                 if (target) {
                     target.classList.add('popout-target');
@@ -2050,10 +2061,12 @@
                 bc.onmessage = (e) => {
                     if (e.data.type === 'STATE_UPDATE') {
                         const data = e.data.state;
-                        // Synchronize only the target card
-                        if (popoutId === 'win-telemetry') renderTelemetry(data);
-                        if (popoutId === 'win-watchlist') renderWatchlist(data);
-                        if (popoutId === 'win-report') renderReport(data);
+                        renderTelemetry(data);
+                        renderWatchlist(data);
+                        renderReport(data);
+                        renderMacros(data);
+                        renderScannerResults(data);
+                        renderShieldResults(data);
                         if (window.VLI_DEBUG) console.log("[VLI_ORCHESTRA] Satellite Node Re-Sync Successful.");
                     }
                 };
@@ -2066,11 +2079,13 @@
         const popoutId = urlParams.get('popout');
 
         function popoutWindow(id) {
+            const cardEl = document.getElementById(id);
+            const typeGuid = cardEl ? cardEl.dataset.typeGuid : '';
             const width = 800;
             const height = 600;
             const left = (screen.width - width) / 2;
             const top = (screen.height - height) / 2;
-            window.open(window.location.href.split('?')[0] + '?popout=' + id, id, 
+            window.open(window.location.href.split('?')[0] + '?popout=' + id + '&type=' + typeGuid, id, 
                 `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,status=no`);
         }
 
@@ -2120,10 +2135,8 @@
         }
 
         function resetLayout() {
-            if (confirm("Reset Institutional Workspace to factory geometry?")) {
-                localStorage.removeItem('vli_wm_layout');
-                location.reload();
-            }
+            localStorage.removeItem('vli_wm_layout');
+            location.reload();
         }
 
         function cascadeWindows() {
@@ -2240,6 +2253,9 @@
         // --- GEMINI MESSAGE RENDERING ENGINE ---
         function vliAppendMessage(container, msg) {
             try {
+                if (msg.content && String(msg.content).includes('[SILENT_LOG]')) {
+                    return;
+                }
                 if (window.VLI_DEBUG) console.log("[VLI_RENDER] Appending message:", msg);
                 const isAI = msg.role === 'ai';
             const msgDiv = document.createElement('div');
@@ -2542,7 +2558,8 @@
             console.log("[VLI_TRACE] " + new Date().toLocaleTimeString() + " - Starting poll check...");
             isPolling = true;
             try {
-                const res = await fetch('/api/vli/active-state');
+                // Cache-busting to prevent Chrome/Edge from freezing the telemetry stream
+                const res = await fetch(`/api/vli/active-state?t=${Date.now()}`);
                 const data = await res.json();
                 if (window.VLI_DEBUG) console.log("[VLI_TRACE] " + new Date().toLocaleTimeString() + " - Poll data received successfully.");
                 if (data.error) throw new Error(data.error);
@@ -2634,8 +2651,29 @@
         // --- HIGHLIGHT TRACKING STATE ---
         let previousSwordSymbols = new Set();
         let previousShieldSymbols = new Set();
+        // [UX] Tracking for symbols currently being refreshed (Map of symbol -> requestTime)
+        window.vliRefreshingSymbols = new Map();
         window.vliNewSymbols = window.vliNewSymbols || new Set();
         window.vliNewShieldSymbols = window.vliNewShieldSymbols || new Set();
+        
+        // [UX] Helper to update scanner row visual states immediately
+        function updateScannerRefreshUI() {
+            document.querySelectorAll('.scanner-res-row').forEach(tr => {
+                const symbolTd = tr.querySelector('td:first-child');
+                if (!symbolTd) return;
+                const symbol = symbolTd.innerText.trim().toUpperCase();
+                const isRefreshing = window.vliRefreshingSymbols.has(symbol);
+                if (isRefreshing) {
+                    tr.style.opacity = '0.3';
+                    tr.style.filter = 'grayscale(1)';
+                    tr.style.pointerEvents = 'none';
+                } else {
+                    tr.style.opacity = '1';
+                    tr.style.filter = 'none';
+                    tr.style.pointerEvents = 'auto';
+                }
+            });
+        }
 
         // 1. Macros (Handled only if overview elements are present)
         function renderMacros(data) {
@@ -2726,19 +2764,50 @@
         let activeScannerCandidates = []; 
         window.vliNewSymbols.clear();
         
+        // GLOBAL Telemetry Stream
+        const globalTelemetrySource = new EventSource('/api/telemetry/stream');
+        globalTelemetrySource.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.type === 'telemetry') {
+                appendSystemLog(data.msg, 'rgba(255, 255, 255, 0.9)');
+            }
+        };
+        
         // Auto-refresh pollers removed in favor of unified VLI poll cycle
+
+        function startScanner() {
+            if (isScannerRunning) return;
+            isScannerRunning = true;
+            const btn = document.getElementById('scanner-action-btn');
+            const btnText = document.getElementById('scanner-btn-text');
+            
+            btn.classList.add('stop-state');
+            btnText.innerText = 'STOP SCAN';
+            
+            console.log("[VLI_SCANNER] Initializing institutional scan via SSE...");
+            activeScannerCandidates = []; window.vliNewSymbols.clear();
+            
+            // Append initial system log to telemetry
+            appendSystemLog("INITIATING MARKET-WIDE SNIPER TRAWL...");
+
+            fetch('/api/vli/action-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: "RUN MORNING SCAN",
+                    direct_mode: true,
+                    raw_data_mode: false,
+                    background_synthesis: true,
+                    thread_id: "vli-" + Date.now()
+                })
+            });
+        }
 
         function initScannerSSE() {
             if (scannerEventSource) {
                 console.warn("[VLI_SCANNER] Scanner already active. Terminating previous session.");
                 stopScanner();
             }
-
-            console.log("[VLI_SCANNER] Initializing institutional scan via SSE...");
-            activeScannerCandidates = []; window.vliNewSymbols.clear();
-            
-            // Append initial system log to telemetry
-            appendSystemLog("INITIATING MARKET-WIDE SNIPER TRAWL...");
             
             scannerEventSource = new EventSource('/api/scanner/stream');
 
@@ -2889,8 +2958,8 @@
                 if (!table) {
                     body.innerHTML = `
                         <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
-                            <div>Pulse Mode: <span style="color: var(--emerald-green); font-weight: 800;">${(res.pulse_mode || '').includes('TradingView') ? 'TradingView - Apex Sword Scan' : (res.pulse_mode || 'InstitutionalPulse')}</span></div>
-                            <div style="font-family: var(--font-mono); font-size: 10px;">MATCHES: <span id="sr-match-count" style="color: var(--emerald-green); font-weight: 800;">${res.candidates.length}</span></div>
+                            <div style="color: var(--emerald-green); font-weight: 800;">${(res.pulse_mode || '').includes('TradingView') ? 'TradingView - Apex Sword Scan' : (res.pulse_mode || 'InstitutionalPulse')}</div>
+                            <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
                         <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 13px;">
                             <thead>
@@ -2907,8 +2976,8 @@
                     `;
                     table = body.querySelector('table');
                 } else {
-                    const countEl = body.querySelector('#sr-match-count');
-                    if (countEl) countEl.innerText = res.candidates.length;
+                    const timeEl = body.querySelector('#sr-updated-at');
+                    if (timeEl) timeEl.innerText = new Date().toLocaleTimeString();
                 }
                 
                 const tbody = table.querySelector('tbody');
@@ -2973,7 +3042,29 @@
                     const tr = document.createElement('tr');
                     tr.style.cursor = 'pointer';
                     tr.className = c.isNew ? 'scanner-res-row new-candidate-highlight' : 'scanner-res-row';
-                    tr.style.transition = 'background 0.3s ease';
+                    tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
+                    
+                    // [UX: TEMPORAL VERIFICATION] 
+                    // Auto-restore ONLY if we see a timestamp that is newer than our request time.
+                    const requestTime = window.vliRefreshingSymbols.get(c.symbol);
+                    if (requestTime) {
+                        const dataTime = c.updated_at ? new Date(c.updated_at).getTime() : 0;
+                        if (dataTime > requestTime) {
+                            console.log(`[VLI_UX] Symbol ${c.symbol} refetched and verified fresh. Restoring formatting.`);
+                            window.vliRefreshingSymbols.delete(c.symbol);
+                        }
+                    }
+
+                    const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
+                    if (isRefreshing) {
+                        tr.style.opacity = '0.3';
+                        tr.style.filter = 'grayscale(1)';
+                        tr.style.pointerEvents = 'none';
+                    } else {
+                        tr.style.opacity = '1';
+                        tr.style.filter = 'none';
+                        tr.style.pointerEvents = 'auto';
+                    }
                     
 
                     
@@ -3002,9 +3093,11 @@
                         <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
                         <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
                         <td style="padding: 10px 4px;">
-                            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
-                                <span style="display: inline-block; width: 30px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; padding: 2px 0; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid ${gradeBorder}">${c.grade || 'F'}</span>
-                                <span style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); opacity: 0.8; width: 25px; text-align: right;">${c.heat_score !== undefined ? c.heat_score : 0}%</span>
+                            <div style="display: flex; align-items: center; justify-content: flex-end;">
+                                <span style="display: inline-block; width: 32px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; padding: 2px 0; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid ${gradeBorder};">${c.grade || 'F'}</span>
+                                <div style="width: 24px; display: flex; justify-content: flex-end;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${c.symbol}')" title="Analysis Report"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                </div>
                             </div>
                         </td>
                     `;
@@ -3026,6 +3119,32 @@
                     if (leakKeywords.some(k => safeTelemetry.toUpperCase().includes(k))) {
                         safeTelemetry = "**⚠️ [VLI_MONITOR]: TECHNICAL STATE LEAKAGE SUPPRESSED.**";
                     }
+                    
+                    // Color code task prefixes
+                    let lines = safeTelemetry.split('\n');
+                    let processedLines = lines.map(line => {
+                        let match = line.match(/^(\[\d{2}:\d{2}:\d{2}\]\s*(?:.*?(?:\*\*|🤖|📋|📡|🔄|✅|❌|⚠️)\s*)?)?\[([A-Z0-9_ -]+)\](.*)/i);
+                        if (match) {
+                            let prefix = match[1] || '';
+                            let taskName = match[2];
+                            let rest = match[3];
+                            
+                            let color = '#8b949e';
+                            let tUpper = taskName.toUpperCase();
+                            if (tUpper.includes('SPINE') || tUpper.includes('ROUTER')) color = '#58a6ff'; // Blue
+                            else if (tUpper.includes('NEWS') || tUpper.includes('BACKGROUND')) color = '#ff7b72'; // Red
+                            else if (tUpper.includes('FINANCE') || tUpper.includes('QUOTE')) color = '#3fb950'; // Green
+                            else if (tUpper.includes('ORCHESTRATOR') || tUpper.includes('COORDINATOR')) color = '#d2a8ff'; // Purple
+                            else if (tUpper.includes('WORKER') || tUpper.includes('ANALYST')) color = '#f0ad4e'; // Yellow
+                            else if (tUpper.includes('TELEMETRY')) color = '#a5d6ff'; // Light Blue
+                            else if (tUpper.includes('TV_SYNC')) color = '#6e7681'; // Mid-Gray
+                            
+                            return `${prefix}<span style="color:${color}; font-weight:bold;">[${taskName}]</span>${rest}`;
+                        }
+                        return line;
+                    });
+                    safeTelemetry = processedLines.join('\n');
+
                     tBody.innerHTML = marked.parse(safeTelemetry);
                     tBody.dataset.lastContent = safeTelemetry;
 
@@ -3248,15 +3367,64 @@
                         btn.innerText = "➤";
                         isProcessing = false;
                         return;
-                    } else if (requestText.toUpperCase().startsWith("REFRESH")) {
-                        let targetCard = requestText.substring(7).trim().toUpperCase();
-                        if (!targetCard) targetCard = "ALL";
-                        fetch('/api/vli/refresh-card', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ card_id: targetCard }) });
-                        if (targetCard === "ALL" || targetCard === "CHAT" || targetCard === "CI") resetVLI();
+                    } else if (requestText.toUpperCase().startsWith("REFRESH") || requestText.toUpperCase().startsWith("UPDATE") || requestText.toUpperCase().startsWith("REGENERATE")) {
+                        let parts = requestText.split(/\s+/);
+                        let cmd = parts[0].toUpperCase();
+                        let target = parts.length > 1 ? parts[1].toUpperCase() : "ALL";
+
+                        if (target === "DAILY" || target === "DAILIES") {
+                            console.log("[VLI_UX] Batch refresh initiated. Targeting all visible scanner symbols.");
+                            const now = Date.now();
+                            document.querySelectorAll('.scanner-res-row td:first-child').forEach(td => {
+                                let sym = td.innerText.trim().toUpperCase();
+                                if (sym) window.vliRefreshingSymbols.set(sym, now);
+                            });
+                            updateScannerRefreshUI();
+                        } else if (target && target.length <= 6 && !["CI", "TM", "WL", "AR", "CHAT", "ALL"].includes(target)) {
+                            console.log(`[VLI_UX] Targeting symbol for refresh: ${target}`);
+                            window.vliRefreshingSymbols.set(target, Date.now());
+                            updateScannerRefreshUI();
+                        }
+
+                        if (cmd === "REFRESH" && ["CI", "TM", "WL", "AR", "CHAT", "ALL"].includes(target)) {
+                            fetch('/api/vli/refresh-card', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ card_id: target }) });
+                            if (target === "ALL" || target === "CHAT" || target === "CI") resetVLI();
+                            btn.classList.remove('processing');
+                            btn.innerText = "➤";
+                            isProcessing = false;
+                            return;
+                        }
+                        // Continue to standard action-plan for other refresh types
+                        console.log("[VLI_TRACE] Forwarding REGENERATE command to backend: " + rawText);
+                        const startTime = performance.now();
+                        const res = await fetch('/api/vli/action-plan', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                text: rawText,
+                                direct_mode: directMode,
+                                raw_data_mode: false,
+                                background_synthesis: asyncMode,
+                                thread_id: lastVliThreadId
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.thread_id) lastVliThreadId = data.thread_id;
+                        
+                        if (isProcessing) {
+                            const responseText = data.response || "No response generated.";
+                            const aiMsg = document.createElement('div');
+                            aiMsg.className = 'msg msg-ai';
+                            aiMsg.innerHTML = applyStatusFormatting(marked.parse(responseText));
+                            msgBox.appendChild(aiMsg);
+                            vliChatSyncPointer++;
+                            msgBox.scrollTop = msgBox.scrollHeight;
+                        }
                         btn.classList.remove('processing');
                         btn.innerText = "➤";
                         isProcessing = false;
                         return;
+
                     } else {
                         // Standard Agent Directive
                         let rawDataMode = false;
@@ -3595,8 +3763,8 @@
                 if (!table) {
                     body.innerHTML = `
                         <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
-                            <div>Pulse Mode: <span style="color: var(--emerald-green); font-weight: 800;">${(res.pulse_mode || '').includes('TradingView') ? 'TradingView - Apex Shield Scan' : 'Defensive Shield'}</span></div>
-                            <div style="font-family: var(--font-mono); font-size: 10px;">MATCHES: <span id="sh-match-count" style="color: var(--emerald-green); font-weight: 800;">${res.candidates.length}</span></div>
+                            <div style="color: var(--emerald-green); font-weight: 800;">${(res.pulse_mode || '').includes('TradingView') ? 'TradingView - Apex Shield Scan' : 'Defensive Shield'}</div>
+                            <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sh-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
                         <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 13px;">
                             <thead>
@@ -3612,6 +3780,9 @@
                         </table>
                     `;
                     table = body.querySelector('table');
+                } else {
+                    const timeEl = body.querySelector('#sh-updated-at');
+                    if (timeEl) timeEl.innerText = new Date().toLocaleTimeString();
                 }
                 
                 const tbody = table.querySelector('tbody');
@@ -3671,7 +3842,28 @@
                     const tr = document.createElement('tr');
                     tr.style.cursor = 'pointer';
                     tr.className = c.isNew ? 'scanner-res-row new-candidate-highlight' : 'scanner-res-row';
-                    tr.style.transition = 'background 0.3s ease';
+                    tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
+                    
+                    // [UX: TEMPORAL VERIFICATION]
+                    const requestTime = window.vliRefreshingSymbols.get(c.symbol);
+                    if (requestTime) {
+                        const dataTime = c.updated_at ? new Date(c.updated_at).getTime() : 0;
+                        if (dataTime > requestTime) {
+                            console.log(`[VLI_UX] Shield Symbol ${c.symbol} refetched and verified fresh. Restoring formatting.`);
+                            window.vliRefreshingSymbols.delete(c.symbol);
+                        }
+                    }
+
+                    const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
+                    if (isRefreshing) {
+                        tr.style.opacity = '0.3';
+                        tr.style.filter = 'grayscale(1)';
+                        tr.style.pointerEvents = 'none';
+                    } else {
+                        tr.style.opacity = '1';
+                        tr.style.filter = 'none';
+                        tr.style.pointerEvents = 'auto';
+                    }
                     
                     tr.onmouseenter = () => {
                         if (window.vliNewShieldSymbols.has(c.symbol)) {
@@ -3696,14 +3888,20 @@
                         <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</td>
                         <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
                         <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
-                        <td style="padding: 10px 4px; text-align: center;">
-                            <span class="pulse-badge" style="background: ${gradeBg}; color: ${gradeColor}; border: 1px solid ${gradeBorder}; font-size: 11px; padding: 2px 6px;">${c.grade}</span>
+                        <td style="padding: 10px 4px;">
+                            <div style="display: flex; align-items: center; justify-content: flex-end;">
+                                <span class="pulse-badge" style="display: inline-block; width: 32px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; border: 1px solid ${gradeBorder}; font-size: 11px; padding: 2px 0;">${c.grade}</span>
+                                <div style="width: 24px; display: flex; justify-content: flex-end;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${c.symbol}')" title="Analysis Report"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                </div>
+                            </div>
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
                 
-                document.getElementById('sh-match-count').innerText = res.candidates.length;
+                const matchCountEl = document.getElementById('sh-match-count');
+                if (matchCountEl) matchCountEl.innerText = res.candidates.length;
             });
         }
         
@@ -3720,7 +3918,48 @@
         
         // --- End of Shield Logic ---
 
+        // --- REPORT MODAL LOGIC ---
+        window.openReportModal = async function(symbol) {
+            const modal = document.getElementById('report-modal');
+            const titleSpan = document.getElementById('report-modal-title');
+            const contentDiv = document.getElementById('report-modal-content');
+            
+            titleSpan.innerText = symbol.toUpperCase();
+            contentDiv.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">Fetching Institutional Report...</div>';
+            modal.style.display = 'flex';
+            
+            try {
+                const res = await fetch(`/api/vli/report/${symbol}?t=${Date.now()}`);
+                const data = await res.json();
+                
+                if(data.success) {
+                    contentDiv.innerHTML = marked.parse(data.content);
+                } else {
+                    contentDiv.innerHTML = `<div style="color: var(--ruby-red); padding: 20px;">Report not yet generated for ${symbol}. Please wait for the background analyst or type <code>analyze ${symbol}</code> in the command center.</div>`;
+                }
+            } catch(e) {
+                contentDiv.innerHTML = `<div style="color: var(--ruby-red); padding: 20px;">Error fetching report: ${e}</div>`;
+            }
+        };
+
     </script>
+    
+    <!-- Analysis Report Modal -->
+    <div id="report-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; align-items: center; justify-content: center;">
+        <div style="background: var(--surface-bg, #0d111b); border: 1px solid var(--border-subtle, rgba(255,255,255,0.1)); border-radius: 8px; width: 80%; max-width: 900px; height: 85%; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <div style="padding: 12px 16px; border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.1)); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
+                <div style="display: flex; align-items: center; font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: var(--emerald-green);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> 
+                    INSTITUTIONAL ANALYSIS: <span id="report-modal-title" style="margin-left: 4px;"></span>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="cursor: pointer;" onclick="document.getElementById('report-modal').style.display='none'"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </div>
+            <div id="report-modal-content" style="padding: 30px; overflow-y: auto; flex-grow: 1; font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--text-primary);" class="markdown-body">
+                Loading report...
+            </div>
+        </div>
+    </div>
+
     <div id="vli-version-watermark" style="position: fixed; bottom: 12px; right: 16px; z-index: 999999; font-family: var(--font-mono); font-size: 11px; color: rgba(255,255,255,0.2); pointer-events: none; user-select: none;">
         Ver. <span id="vli-watermark-version"></span>
     </div>

@@ -298,6 +298,12 @@ async def _setup_and_execute_agent_step(state, config, agent_type, tools, agent_
              content_str = str(content_val)
         
         new_messages[-1] = AIMessage(content=content_str, name=f"{agent_type}_finalize")
+        
+    # [SILENT_MODE] Suppression prefix for UI
+    if state.get("silent_mode"):
+        for m in new_messages:
+            if hasattr(m, "content"):
+                m.content = f"[SILENT_LOG] {m.content}"
 
     return {"messages": fallback_messages + new_messages, "observations": observations, "current_plan": current_plan}
 
@@ -313,7 +319,7 @@ def _compact_history(messages: list) -> list:
     structural_nodes = ["vli_spine", "vli_parser", "vli_coordinator", "parser"]
     
     # [HARDENING] Specialist findings MUST be preserved
-    specialist_nodes = ["smc_analyst", "analyst", "portfolio_manager", "risk_manager", "coder", "journaler"]
+    specialist_nodes = ["smc_analyst", "analyst", "portfolio_manager", "risk_manager", "coder", "journaler", "synthesizer"]
     
     for m in messages:
         name = getattr(m, "name", "") or ""
@@ -341,6 +347,7 @@ def get_orchestrator_tools(config: RunnableConfig):
     """Returns a list of tools available to the Orchestrator for fast bypass."""
     from src.tools import get_brokerage_accounts, get_brokerage_balance, get_attribution_summary, get_daily_blotter, get_personal_risk_metrics, get_brokerage_statements, fetch_market_macros
     from src.tools.scheduler import manage_scheduled_tasks
+    from src.tools.scanner import trigger_manual_analysis_scan, evict_analysis_report, trigger_morning_scan
 
     configurable = Configuration.from_runnable_config(config)
     return [
@@ -358,6 +365,9 @@ def get_orchestrator_tools(config: RunnableConfig):
         fetch_market_macros,
         read_session_artifact,
         manage_scheduled_tasks,
+        trigger_manual_analysis_scan,
+        evict_analysis_report,
+        trigger_morning_scan,
     ]
 
 

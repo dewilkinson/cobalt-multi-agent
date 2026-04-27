@@ -1,1 +1,0 @@
-Agent reasoning encountered a failure: [Errno 22] Invalid argument

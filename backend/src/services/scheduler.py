@@ -60,6 +60,7 @@ class CobaltScheduler:
         
         self.tasks: Dict[str, ScheduledTask] = {}
         self.executing_tasks: Dict[str, ScheduledTask] = {}
+        self.pending_tasks: set[str] = set()
         self._is_running = False
         self._worker_task = None
         self.loop = None # Captured at start()
@@ -158,7 +159,8 @@ class CobaltScheduler:
                 trigger=trigger,
                 args=[task.task_id],
                 id=task.task_id,
-                replace_existing=True
+                replace_existing=True,
+                misfire_grace_time=3600
             )
 
     def _enqueue_task(self, task_id: str):
@@ -179,8 +181,13 @@ class CobaltScheduler:
             return
 
         # Add to prioritized queue
+        if task_id in self.pending_tasks:
+            logger.debug(f"[HEARTBEAT] Task {task_id} is already pending. Skipping enqueue.")
+            return
+
         queue = self.queues.get(task.priority, self.queues["NORMAL"])
         if self.loop:
+            self.pending_tasks.add(task_id)
             self.loop.call_soon_threadsafe(queue.put_nowait, task_id)
         else:
             logger.error("[HEARTBEAT] No event loop captured. Cannot enqueue task.")
@@ -198,6 +205,8 @@ class CobaltScheduler:
                     q = self.queues[p]
                     if not q.empty():
                         task_id = await q.get()
+                        if task_id in self.pending_tasks:
+                            self.pending_tasks.remove(task_id)
                         task_to_run = self.tasks.get(task_id)
                         if task_to_run:
                             break
@@ -207,6 +216,8 @@ class CobaltScheduler:
                     bq = self.queues["BACKGROUND"]
                     if not bq.empty():
                         task_id = await bq.get()
+                        if task_id in self.pending_tasks:
+                            self.pending_tasks.remove(task_id)
                         task_to_run = self.tasks.get(task_id)
 
                 if task_to_run:
@@ -220,43 +231,46 @@ class CobaltScheduler:
 
     async def _execute_task(self, task: ScheduledTask):
         self.log(f"[EXEC] {task.priority} Task: {task.name} ({task.task_id})")
-        task.start_time = time.time()
-        self.executing_tasks[task.task_id] = task
         
-        try:
-            if task.callback:
-                # Internal Callback
-                if asyncio.iscoroutinefunction(task.callback):
-                    await task.callback()
-                else:
-                    task.callback()
-            elif task.command:
-                # External Command
-                # Run in thread to avoid blocking the async worker
-                process = await asyncio.create_subprocess_shell(
-                    task.command,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
-                )
-                stdout, stderr = await process.communicate()
-                if process.returncode == 0:
-                    self.log(f"Status: COMPLETED {task.task_id}")
-                else:
-                    self.log(f"Status: FAILED {task.task_id}: {stderr.decode()}", level=logging.ERROR)
-
-            task.last_run = datetime.now().isoformat()
-            task.current_run_count += 1
+        async def _run_task():
+            task.start_time = time.time()
+            self.executing_tasks[task.task_id] = task
             
-            # Update registry if it's a persistent task
-            if task.command:
-                self._save_registry()
-                
-        except Exception as e:
-            self.log(f"⚠️ Runtime Error for {task.task_id}: {e}", level=logging.ERROR)
-        finally:
-            task.start_time = None
-            if task.task_id in self.executing_tasks:
-                del self.executing_tasks[task.task_id]
+            try:
+                if task.callback:
+                    # Internal Callback
+                    if asyncio.iscoroutinefunction(task.callback):
+                        await task.callback()
+                    else:
+                        task.callback()
+                    # If we got here, callback succeeded
+                    task.last_run = datetime.now().isoformat()
+                    task.current_run_count += 1
+                elif task.command:
+                    # External Command
+                    process = await asyncio.create_subprocess_shell(
+                        task.command,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+                    stdout, stderr = await process.communicate()
+                    if process.returncode == 0:
+                        self.log(f"Status: COMPLETED {task.task_id}")
+                        task.last_run = datetime.now().isoformat()
+                        task.current_run_count += 1
+                        self._save_registry()
+                    else:
+                        self.log(f"Status: FAILED {task.task_id}: {stderr.decode()}", level=logging.ERROR)
+                    
+            except Exception as e:
+                self.log(f"⚠️ Runtime Error for {task.task_id}: {e}", level=logging.ERROR)
+            finally:
+                task.start_time = None
+                if task.task_id in self.executing_tasks:
+                    del self.executing_tasks[task.task_id]
+                    
+        # Dispatch the task to the event loop so the scheduler worker isn't blocked
+        asyncio.create_task(_run_task())
 
     # --- Helper Functions API ---
 
@@ -327,7 +341,70 @@ class CobaltScheduler:
         if task_id in self.tasks:
             self.log(f"PROMOTING: {task_id} to CRITICAL queue.")
             if self.loop:
+                self.pending_tasks.add(task_id)
                 self.loop.call_soon_threadsafe(self.queues["CRITICAL"].put_nowait, task_id)
+
+    def reconcile_daily_tasks(self) -> str:
+        """
+        Manually triggers a check for all daily/periodic tasks.
+        Enqueues any missed tasks into the HIGH priority queue.
+        """
+        self.log("EVENT: Manual Daily Reconciliation Initiated.")
+        found_missed = []
+        already_pending = []
+        up_to_date = []
+        
+        now = datetime.now()
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        for task_id, task in self.tasks.items():
+            if task.status != "ACTIVE":
+                continue
+                
+            # Define "Daily" as CALENDAR tasks or REPEAT tasks with >= 12h periods
+            is_daily = False
+            if task.type == "CALENDAR":
+                is_daily = True
+            elif task.type == "REPEAT":
+                if task.period_unit == "hours" and float(task.schedule) >= 12:
+                    is_daily = True
+                elif task.period_unit in ["days", "weeks", "months"]:
+                    is_daily = True
+
+            if not is_daily:
+                continue
+
+            # Check if it has run today
+            has_run_today = False
+            if task.last_run:
+                try:
+                    last_run_dt = datetime.fromisoformat(task.last_run)
+                    if last_run_dt >= today_start:
+                        has_run_today = True
+                except:
+                    pass
+            
+            if has_run_today:
+                up_to_date.append(task_id)
+                continue
+
+            # Check if already in queue or running
+            if task_id in self.pending_tasks or task_id in self.executing_tasks:
+                already_pending.append(task_id)
+                continue
+
+            # It's a daily task, it hasn't run today, and it's not pending.
+            # We treat this as a misfire/miss and promote to HIGH.
+            found_missed.append(task_id)
+            if self.loop:
+                self.pending_tasks.add(task_id)
+                self.loop.call_soon_threadsafe(self.queues["HIGH"].put_nowait, task_id)
+        
+        summary = f"Reconciliation Complete. Missed: {len(found_missed)}, Pending: {len(already_pending)}, OK: {len(up_to_date)}."
+        if found_missed:
+            summary += f" Triggered catch-up for: {', '.join(found_missed)}"
+        self.log(summary)
+        return summary
 
     def start(self):
         if self._is_running:
