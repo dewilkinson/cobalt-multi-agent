@@ -309,7 +309,7 @@ def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str =
                 threads=False,
                 timeout=20.0,    # [HARDEN] Increased from 15.0
                 auto_adjust=False,
-                prepost=True,
+                prepost=False,
             )
             duration_ms = (time.time() - start_time) * 1000
             if data is not None and not data.empty:
