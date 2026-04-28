@@ -2115,6 +2115,10 @@ async def _background_synthesis_task(text: str, image: str | None, direct_mode: 
         global _vli_last_async_report
         _vli_last_async_report = response_text
 
+        # [PERSISTENCE FIX] Persist asynchronously generated markdown to disk
+        if response_text and len(response_text) > 50 and "[ERROR]" not in response_text:
+            _persist_vli_report(text, response_text)
+
     except Exception as e:
         logger.error(f"[ASYNC_SYNTHESIS] Background report failed: {e}")
 
