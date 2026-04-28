@@ -188,10 +188,21 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
             finally:
                 await browser.close()
 
-    if not candidates:
-        logger.warning("[SHIELD] Finviz headless scraper blocked. Injecting institutional Core baseline.")
-        baseline = ["EXTR", "MGY", "APA", "MSFT", "AMD", "PG", "JNJ", "PEP", "WM", "CL"]
-        for s in baseline:
+    # [UPDATED] Always inject institutional Core baseline to guarantee coverage of all major sectors
+    logger.info("[SHIELD] Injecting institutional Core baseline.")
+    baseline = [
+        # Major Sector ETFs (Macro Coverage)
+        "XLE", "XLK", "XLF", "XLV", "XLY", "XLI", "XLP", "XLU", "XLB", "XLRE", "XLC",
+        # Energy Rotation Favorites
+        "OXY", "APA", "XOM", "CVX", "HAL", "SLB", "VLO", "MPC", "COP",
+        # Defense / Aerospace
+        "ITA", "RTX", "LMT", "NOC", "GD",
+        # Core Utilities
+        "NEE", "DUK", "SO", "SRE"
+    ]
+    for s in baseline:
+        if s not in seen_symbols:
+            seen_symbols.add(s)
             candidates.append({
                 "symbol": s,
                 "price": 0.0,
@@ -216,19 +227,18 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
             try:
                 ticker_obj = yf.Ticker(ticker)
                 
+                info = await asyncio.to_thread(lambda: ticker_obj.info)
+                price = info.get("preMarketPrice") or info.get("postMarketPrice") or info.get("currentPrice") or info.get("regularMarketPrice") or 0.0
+                
                 try:
                     fast = ticker_obj.fast_info
-                    price = fast.last_price or fast.previous_close or 0.0
-                    volume = fast.last_volume or 0
-                    m_cap = fast.market_cap or 0
+                    volume = fast.last_volume or info.get("volume") or 0
+                    m_cap = fast.market_cap or info.get("marketCap") or 0
+                    if not price:
+                        price = fast.last_price or fast.previous_close or 0.0
                 except:
-                    # Fallback
-                    info = await asyncio.to_thread(lambda: ticker_obj.info)
-                    price = info.get("currentPrice") or info.get("regularMarketPrice") or 0.0
                     volume = info.get("volume") or 0
                     m_cap = info.get("marketCap") or 0
-                
-                info = await asyncio.to_thread(lambda: ticker_obj.info)
                 beta = info.get("beta") or 1.0
                 div_yield = info.get("dividendYield") or 0.0
                 f_shares = info.get("floatShares") or 0

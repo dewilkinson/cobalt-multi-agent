@@ -572,126 +572,135 @@ async def run_idle_analysis(manual_trigger: bool = False):
     from datetime import datetime
     
     target_path = os.path.join(os.getcwd(), 'data', 'SCANNER_COMBAT_LIST.json')
-    if not os.path.exists(target_path):
+    shield_path = os.path.join(os.getcwd(), 'data', 'SHIELD_COMBAT_LIST.json')
+    if not os.path.exists(target_path) and not os.path.exists(shield_path):
         return
         
+    candidates = []
     try:
-        with open(target_path, 'r') as f:
-            state = json.load(f)
+        if os.path.exists(target_path):
+            with open(target_path, 'r') as f:
+                state = json.load(f)
+            candidates.extend(state.get("candidates", []) or state.get("combat_list", []))
             
-        candidates = state.get("candidates", [])
-        reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
-        os.makedirs(reports_dir, exist_ok=True)
+        shield_path = os.path.join(os.getcwd(), 'data', 'SHIELD_COMBAT_LIST.json')
+        if os.path.exists(shield_path):
+            with open(shield_path, 'r') as f:
+                s_state = json.load(f)
+            candidates.extend(s_state.get("combat_list", []))
+    except Exception as e:
+        logger.error(f"[BG_ANALYST] Failed to read combat lists: {e}")
+
+    reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
+    os.makedirs(reports_dir, exist_ok=True)
         
-        symbols_to_process = []
-        skipped_symbols = []
-        added_trace = []
-        skipped_trace = []
-        for c in candidates:
-            sym = c.get("symbol")
-            if not sym: continue
-            
-            r_path = os.path.join(reports_dir, f"analyze_{sym.lower()}.md")
-            needs_report = True
-            
-            if os.path.exists(r_path):
-                mtime = datetime.fromtimestamp(os.path.getmtime(r_path))
-                if mtime.date() == datetime.now().date():
-                    needs_report = False
-                    
-            if needs_report:
-                symbols_to_process.append(sym)
-                added_trace.append(f"   ➕ Added: **{sym}**")
-            else:
-                skipped_symbols.append(sym)
-                skipped_trace.append(f"   ⏩ Skipped: **{sym}** (Cached Report Active)")
+    symbols_to_process = []
+    skipped_symbols = []
+    added_trace = []
+    skipped_trace = []
+    for c in candidates:
+        sym = c.get("symbol")
+        if not sym: continue
+        
+        r_path = os.path.join(reports_dir, f"analyze_{sym.lower()}.md")
+        needs_report = True
+        
+        if os.path.exists(r_path):
+            mtime = datetime.fromtimestamp(os.path.getmtime(r_path))
+            if mtime.date() == datetime.now().date():
+                needs_report = False
                 
-        # [NEW] Telemetry Write for List Building
+        if needs_report:
+            symbols_to_process.append(sym)
+            added_trace.append(f"   ➕ Added: **{sym}**")
+        else:
+            skipped_symbols.append(sym)
+            skipped_trace.append(f"   ⏩ Skipped: **{sym}** (Cached Report Active)")
+            
+    # [NEW] Telemetry Write for List Building
+    try:
+        from src.config.vli import get_vli_path
+        from datetime import datetime
+        telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
+        timestamp = datetime.now().strftime("[%H:%M:%S]")
+        trace_log = "\n".join(added_trace)
+        if trace_log:
+            with open(telemetry_file, "a", encoding="utf-8") as tf:
+                tf.write(f"\n{timestamp} 📋 **[ORCHESTRATOR]** Candidate Evaluation Trace:\n{trace_log}\n")
+                tf.flush()
+    except Exception as e:
+        logger.error(f"Failed to write candidate trace: {e}")
+
+    if symbols_to_process:
+        logger.info(f"[BG_ANALYST] Missing/stale reports detected for: {symbols_to_process}. Beginning generation sequence.")
+        
         try:
             from src.config.vli import get_vli_path
-            from datetime import datetime
             telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
             timestamp = datetime.now().strftime("[%H:%M:%S]")
-            trace_log = "\n".join(added_trace)
-            if trace_log:
-                with open(telemetry_file, "a", encoding="utf-8") as tf:
-                    tf.write(f"\n{timestamp} 📋 **[ORCHESTRATOR]** Candidate Evaluation Trace:\n{trace_log}\n")
-                    tf.flush()
-        except Exception as e:
-            logger.error(f"Failed to write candidate trace: {e}")
+            with open(telemetry_file, "a", encoding="utf-8") as tf:
+                tf.write(f"\n{timestamp} 🤖 **[ORCHESTRATOR]** Background LLM Analyst initiated deep-scan for {len(symbols_to_process)} missing candidates.\n")
+                tf.flush()
+        except Exception:
+            pass
 
-        if symbols_to_process:
-            logger.info(f"[BG_ANALYST] Missing/stale reports detected for: {symbols_to_process}. Beginning generation sequence.")
+        total = len(symbols_to_process)
+        for i, sym in enumerate(symbols_to_process, 1):
+            logger.info(f"[BG_ANALYST] Spawning background LangGraph for {sym}...")
             
-            try:
-                from src.config.vli import get_vli_path
-                telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
-                timestamp = datetime.now().strftime("[%H:%M:%S]")
-                with open(telemetry_file, "a", encoding="utf-8") as tf:
-                    tf.write(f"\n{timestamp} 🤖 **[ORCHESTRATOR]** Background LLM Analyst initiated deep-scan for {len(symbols_to_process)} missing candidates.\n")
-                    tf.flush()
-            except Exception:
-                pass
-
-            total = len(symbols_to_process)
-            for i, sym in enumerate(symbols_to_process, 1):
-                logger.info(f"[BG_ANALYST] Spawning background LangGraph for {sym}...")
-                
-                try:
-                    timestamp = datetime.now().strftime("[%H:%M:%S]")
-                    with open(telemetry_file, "a", encoding="utf-8") as tf:
-                        tf.write(f"\\n{timestamp} 🔄 **[ANALYST]** Spawning deep-dive intelligence for **{sym}** ({i}/{total})...\\n")
-                        tf.flush()
-                except Exception:
-                    pass
-                
-                result_text, _ = await _invoke_vli_agent(f"analyze {sym}", thread_id=f"bg_{sym}")
-                
-                # [HARDENING] Only persist valid reports. Prevent caching of LLM errors.
-                is_valid = True
-                if not result_text or len(result_text) < 50:
-                    is_valid = False
-                elif "Agent reasoning encountered a failure" in result_text or "timed out" in result_text.lower():
-                    is_valid = False
-                
-                if is_valid:
-                    try:
-                        r_path = os.path.join(os.getcwd(), 'data', 'reports', f"analyze_{sym.lower()}.md")
-                        os.makedirs(os.path.dirname(r_path), exist_ok=True)
-                        generation_ts = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
-                        header = f"> **Generated:** {generation_ts}\n\n"
-                        with open(r_path, "w", encoding="utf-8") as rf:
-                            rf.write(header + result_text)
-                    except Exception as e:
-                        logger.error(f"[BG_ANALYST] Failed to save report for {sym}: {e}")
-                else:
-                    logger.warning(f"[BG_ANALYST] Execution failed for {sym}. Artifact discarded to prevent cache poisoning.")
-                
-                try:
-                    timestamp = datetime.now().strftime("[%H:%M:%S]")
-                    with open(telemetry_file, "a", encoding="utf-8") as tf:
-                        tf.write(f"\\n{timestamp} ✅ **[ANALYST]** Report generated for **{sym}** (Rate limit stagger: 30s).\\n")
-                        tf.flush()
-                except Exception:
-                    pass
-                
-                logger.info(f"[BG_ANALYST] Generated report for {sym}. Sleeping 30s to respect API rate limits.")
-                await asyncio.sleep(30)
-                
             try:
                 timestamp = datetime.now().strftime("[%H:%M:%S]")
                 with open(telemetry_file, "a", encoding="utf-8") as tf:
-                    tf.write(f"\\n{timestamp} ✨ **[ORCHESTRATOR]** Background LLM Analyst sequence complete.\\n")
+                    tf.write(f"\\n{timestamp} 🔄 **[ANALYST]** Spawning deep-dive intelligence for **{sym}** ({i}/{total})...\\n")
                     tf.flush()
             except Exception:
                 pass
-                
-            logger.info("[BG_ANALYST] Background generation sequence complete.")
             
-            # [NEW] Automatically spawn Meta-Analysis if all reports are ready
-            await run_meta_analysis(manual_trigger=False)
-    except Exception as e:
-        logger.error(f"[BG_ANALYST] Orchestrator failed: {e}")
+            result_text, _ = await _invoke_vli_agent(f"analyze {sym}", thread_id=f"bg_{sym}")
+            
+            # [HARDENING] Only persist valid reports. Prevent caching of LLM errors.
+            is_valid = True
+            if not result_text or len(result_text) < 50:
+                is_valid = False
+            elif "Agent reasoning encountered a failure" in result_text or "timed out" in result_text.lower():
+                is_valid = False
+            
+            if is_valid:
+                try:
+                    r_path = os.path.join(os.getcwd(), 'data', 'reports', f"analyze_{sym.lower()}.md")
+                    os.makedirs(os.path.dirname(r_path), exist_ok=True)
+                    generation_ts = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
+                    header = f"> **Generated:** {generation_ts}\n\n"
+                    with open(r_path, "w", encoding="utf-8") as rf:
+                        rf.write(header + result_text)
+                except Exception as e:
+                    logger.error(f"[BG_ANALYST] Failed to save report for {sym}: {e}")
+            else:
+                logger.warning(f"[BG_ANALYST] Execution failed for {sym}. Artifact discarded to prevent cache poisoning.")
+            
+            try:
+                timestamp = datetime.now().strftime("[%H:%M:%S]")
+                with open(telemetry_file, "a", encoding="utf-8") as tf:
+                    tf.write(f"\\n{timestamp} ✅ **[ANALYST]** Report generated for **{sym}** (Rate limit stagger: 30s).\\n")
+                    tf.flush()
+            except Exception:
+                pass
+            
+            logger.info(f"[BG_ANALYST] Generated report for {sym}. Sleeping 30s to respect API rate limits.")
+            await asyncio.sleep(30)
+            
+        try:
+            timestamp = datetime.now().strftime("[%H:%M:%S]")
+            with open(telemetry_file, "a", encoding="utf-8") as tf:
+                tf.write(f"\\n{timestamp} ✨ **[ORCHESTRATOR]** Background LLM Analyst sequence complete.\\n")
+                tf.flush()
+        except Exception:
+            pass
+            
+        logger.info("[BG_ANALYST] Background generation sequence complete.")
+            
+    # [NEW] Automatically spawn Meta-Analysis if all reports are ready
+    await run_meta_analysis(manual_trigger=False)
 
 async def run_daily_morning_analysis():
     """
@@ -716,8 +725,28 @@ async def run_daily_morning_analysis():
         pass
         
     try:
-        await run_tv_sync()
+        from src.config.configuration import get_str_env
+        scanner_engine = get_str_env("VLI_SCANNER_ENGINE", "cobalt").lower()
+        if scanner_engine == "tradingview":
+            await run_tv_sync()
+        else:
+            from src.tools.sortino_sniper_trawl import run_background_trawl
+            from src.tools.shield_scanner_trawl import run_shield_trawl
+            await run_background_trawl()
+            try:
+                # shield trawl uses ainvoke since it is a Tool
+                await run_shield_trawl.ainvoke({})
+            except Exception as e:
+                logger.error(f"[BG_ANALYST] Shield Trawl failed during morning scan: {e}")
         await run_idle_analysis(manual_trigger=True)
+        
+        # [NEW] Force an immediate UI state refresh
+        try:
+            from src.server.app import poll_market_pulse
+            await poll_market_pulse()
+        except Exception as e:
+            logger.error(f"[BG_ANALYST] Failed to force pulse refresh: {e}")
+            
     finally:
         _is_morning_scan_running = False
 
@@ -1321,6 +1350,21 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
             try:
                 with open(scanner_bucket_path, encoding="utf-8") as f:
                     scanner_res_content = json.load(f)
+                    
+                # [NEW] Inject Shield Candidates from segregated pipeline
+                shield_path = os.path.join(os.getcwd(), "data", "SHIELD_COMBAT_LIST.json")
+                if os.path.exists(shield_path):
+                    try:
+                        with open(shield_path, encoding="utf-8") as sf:
+                            s_data = json.load(sf)
+                            s_list = s_data.get("combat_list", [])
+                            for c in s_list:
+                                c["tier"] = "SHIELD"
+                            if "candidates" not in scanner_res_content:
+                                scanner_res_content["candidates"] = []
+                            scanner_res_content["candidates"].extend(s_list)
+                    except Exception as e:
+                        logger.error(f"Failed to inject shield data: {e}")
                     
                 # Dynamically enrich the has_report status to ensure UI polling catches live background generation
                 from datetime import datetime

@@ -42,8 +42,7 @@ def sync_vli_scanners():
                 col('close') > col('SMA200'),
                 col('Volatility.M') > 2
             )
-            .order_by('relative_volume_10d_calc', ascending=False)
-            .limit(25))
+            .order_by('relative_volume_10d_calc', ascending=False))
 
         # --- 2. APEX SWORD SCAN (Satellite / High-Volatility Runners) ---
         sword_query = (Query()
@@ -64,8 +63,7 @@ def sync_vli_scanners():
                 col('change') > 3,
                 col('Recommend.All') >= 0.1
             )
-            .order_by('relative_volume_10d_calc', ascending=False)
-            .limit(20))
+            .order_by('relative_volume_10d_calc', ascending=False))
 
 
         # Execute Queries
@@ -151,8 +149,8 @@ def sync_vli_scanners():
         raw_shield = [finalize_candidate(r, "SHIELD", sortino_map) for r in clean_shield]
         raw_sword = [finalize_candidate(r, "SWORD", sortino_map) for r in clean_sword]
         
-        shield_candidates = [c for c in raw_shield if c is not None][:15]
-        sword_candidates = [c for c in raw_sword if c is not None][:10]
+        shield_candidates = [c for c in raw_shield if c is not None]
+        sword_candidates = [c for c in raw_sword if c is not None]
 
         # Final Dashboard State
         dashboard_state = {

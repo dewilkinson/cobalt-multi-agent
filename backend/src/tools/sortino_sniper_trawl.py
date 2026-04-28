@@ -252,16 +252,18 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                 # Precision Fundamental Verification
                 ticker_obj = yf.Ticker(ticker)
                 
-                # [NEW] Use fast_info for more reliable price/vol/cap data (avoids 401 crumb issues)
+                # [NEW] Use info first to check for premarket pricing
+                info = await asyncio.to_thread(lambda: ticker_obj.info)
+                price = info.get("preMarketPrice") or info.get("postMarketPrice") or info.get("currentPrice") or info.get("regularMarketPrice") or 0.0
+                
                 try:
                     fast = ticker_obj.fast_info
-                    price = fast.last_price or fast.previous_close or 0.0
-                    volume = fast.last_volume or 0
-                    m_cap = fast.market_cap or 0
+                    volume = fast.last_volume or info.get("volume") or 0
+                    m_cap = fast.market_cap or info.get("marketCap") or 0
+                    if not price:
+                        price = fast.last_price or fast.previous_close or 0.0
                 except:
                     # Fallback to standard info if fast_info fails
-                    info = await asyncio.to_thread(lambda: ticker_obj.info)
-                    price = info.get("currentPrice") or info.get("regularMarketPrice") or 0.0
                     volume = info.get("volume") or 0
                     m_cap = info.get("marketCap") or 0
                 
@@ -270,7 +272,6 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                     return None
                     
                 # Float still requires the full info object
-                info = await asyncio.to_thread(lambda: ticker_obj.info)
                 f_shares = info.get("floatShares") or 0
                 
                 # Check Pillar 1 Constraints

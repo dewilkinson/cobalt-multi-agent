@@ -1,4 +1,4 @@
-.PHONY: help lint format install-dev serve test coverage langgraph-dev lint-frontend
+.PHONY: help lint format install-dev serve test coverage langgraph-dev lint-frontend build-server
 
 help: ## Show this help message
 	@echo "Deer Flow - Available Make Targets:"
@@ -21,6 +21,10 @@ lint-frontend: ## Lint frontend code and check build
 	cd web && pnpm lint
 	cd web && pnpm typecheck
 	cd web && pnpm build
+
+build-server: ## Build server containers and increment version
+	python scripts/sync_version.py
+	docker compose -p deer-flow-dev -f docker/docker-compose-dev.yaml build
 
 serve: ## Start development server with reload
 	cd backend && uv run server.py --reload

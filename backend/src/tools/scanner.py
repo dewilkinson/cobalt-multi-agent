@@ -215,7 +215,7 @@ def _get_strategy_config(strategy_config: str) -> Dict[str, Any]:
     return default_config
 
 
-def calculate_static_grade(price: float, cap: int, float_shares: int, config: Dict[str, Any]) -> str:
+def calculate_static_grade(price: float, cap: int, float_shares: int, config: Dict[str, Any], q_type: str = "EQUITY") -> str:
     """
     Evaluates (Price, Cap, Float) against strategy constraints.
     Implements a 'Soft Veto' logic: a symbol can fail one metric if another is 'Excellent'.
@@ -236,10 +236,18 @@ def calculate_static_grade(price: float, cap: int, float_shares: int, config: Di
     # unless we want to allow 0-float (unlikely for equities)
     f_pass = f_min <= float_shares <= f_max
 
+    if q_type == "ETF":
+        c_pass = True
+        f_pass = True
+
     # 2. Excellence Checks
     p_exc = 15.0 <= price <= 35.0
     c_exc = 500_000_000 <= cap <= 1_200_000_000
     f_exc = 0 < float_shares < 40_000_000
+
+    if q_type == "ETF":
+        c_exc = True
+        f_exc = True
 
     passes = [p_pass, c_pass, f_pass]
     excs = [p_exc, c_exc, f_exc]
@@ -298,11 +306,11 @@ async def _build_session_watchlist_impl(strategy_config: str = "{}", universe_cs
                 return {"symbol": ticker, "grade": "F", "reason": "No info"}
             
             q_type = info.get("quoteType", "EQUITY")
-            price = float(info.get("regularMarketPrice") or info.get("currentPrice") or 0.0)
+            price = float(info.get("preMarketPrice") or info.get("postMarketPrice") or info.get("currentPrice") or info.get("regularMarketPrice") or 0.0)
             cap = int(info.get("marketCap") or 0)
             float_shares = int(info.get("floatShares") or 0)
             
-            if q_type != "EQUITY":
+            if q_type not in ["EQUITY", "ETF"]:
                 return {
                     "symbol": ticker, 
                     "grade": "F", 
@@ -312,7 +320,7 @@ async def _build_session_watchlist_impl(strategy_config: str = "{}", universe_cs
                     "reason": f"Non-Equity ({q_type})"
                 }
 
-            grade = calculate_static_grade(price, cap, float_shares, config)
+            grade = calculate_static_grade(price, cap, float_shares, config, q_type)
             
             news = info.get("news", [])
             for article in news[:5]:
@@ -443,10 +451,11 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
                 tier = "MISS"
                 
             if tier in ["SCOUT", "STRIKE", "MISS", "VETO_BLOWOFF"]:
-                price = float(info.get("regularMarketPrice") or info.get("currentPrice") or 0.0)
+                price = float(info.get("preMarketPrice") or info.get("postMarketPrice") or info.get("currentPrice") or info.get("regularMarketPrice") or 0.0)
                 cap = int(info.get("marketCap") or 0)
                 float_shares = int(info.get("floatShares") or 0)
-                letter_grade = calculate_static_grade(price, cap, float_shares, config)
+                q_type = info.get("quoteType", "EQUITY")
+                letter_grade = calculate_static_grade(price, cap, float_shares, config, q_type)
                 
                 trading_style = os.getenv("VLI_TRADING_STYLE", "day_trading")
                 period = "20d"
