@@ -8,6 +8,8 @@
         "snapper",
         "get_stock_quote", 
         "fetch_market_macros",
+        "get_ticker_news",
+        "get_macro_news",
         "get_smc_analysis", 
         "get_ema_analysis", 
         "get_rsi_analysis", 

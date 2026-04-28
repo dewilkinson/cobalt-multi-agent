@@ -132,6 +132,9 @@ async def reporter_node(state: State, config: RunnableConfig):
         # Add the explicit directive
         messages.append(HumanMessage(content=f"DIRECTIVE: {state.get('directive', 'Generate summary report.')}"))
         
+        with open(r'c:\github\cobalt-multi-agent\backend\reporter_prompt_debug.txt', 'w', encoding='utf-8') as f:
+            f.write("\n\n=== MESSAGE ===\n\n".join([str(m) for m in messages]))
+        
         from src.graph.nodes.common_vli import _run_node_with_tiered_fallback
 
         try:

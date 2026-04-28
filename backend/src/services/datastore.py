@@ -312,7 +312,27 @@ class DatastoreManager:
             if "vli_cache_diag" in GLOBAL_CONTEXT:
                 GLOBAL_CONTEXT["vli_cache_diag"] = {"cache": {}, "history": []}
                 
-            return "Datastore cache completely flushed (RAM + DB + Context)."
+            # Phase 6: Delete all physical analysis report files
+            try:
+                import glob
+                reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
+                if os.path.exists(reports_dir):
+                    for f in glob.glob(os.path.join(reports_dir, 'analyze_*.md')):
+                        os.remove(f)
+                    logger.info("[CACHE] Deleted all physical report files")
+                    
+                # Also delete from Obsidian Vault
+                vault_path = os.environ.get("OBSIDIAN_VAULT_PATH")
+                if vault_path:
+                    vault_reports_dir = os.path.join(vault_path, "_cobalt", "04_Analysis")
+                    if os.path.exists(vault_reports_dir):
+                        for f in glob.glob(os.path.join(vault_reports_dir, '*_Institutional_Brief.md')):
+                            os.remove(f)
+                        logger.info("[CACHE] Deleted all vault report files")
+            except Exception as e:
+                logger.warning(f"[CACHE] Failed to delete all physical reports: {e}")
+                
+            return "Datastore cache completely flushed (RAM + DB + Context + Files)."
 
         t = ticker.upper()
         for cache in caches:

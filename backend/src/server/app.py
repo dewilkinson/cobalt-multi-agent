@@ -398,11 +398,15 @@ async def health_check():
 
 @app.post("/api/system/restart")
 async def system_restart():
-    logger.warning("VLI_SYSTEM: Received restart signal from client due to version mismatch.")
+    logger.warning("VLI_SYSTEM: Received restart signal from client.")
     import threading
+    import sys
+    import subprocess
     def delay_exit():
         import time
         time.sleep(1)
+        # Re-launch the current process
+        subprocess.Popen([sys.executable] + sys.argv)
         os._exit(0)
     threading.Thread(target=delay_exit).start()
     return {"status": "restarting"}
@@ -608,7 +612,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
             from datetime import datetime
             telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
             timestamp = datetime.now().strftime("[%H:%M:%S]")
-            trace_log = "\n".join(added_trace + skipped_trace)
+            trace_log = "\n".join(added_trace)
             if trace_log:
                 with open(telemetry_file, "a", encoding="utf-8") as tf:
                     tf.write(f"\n{timestamp} 📋 **[ORCHESTRATOR]** Candidate Evaluation Trace:\n{trace_log}\n")
@@ -1284,6 +1288,29 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
             try:
                 with open(target_bucket_path, encoding="utf-8") as f:
                     macro_watchlist_content = json.load(f)
+                    
+                # Dynamically enrich the has_report status for macro rows
+                from datetime import datetime
+                for row in macro_watchlist_content.get("rows", []):
+                    if len(row) > 1:
+                        sym = row[1]
+                        sym_clean = sym.replace('^', '').replace('=', '').lower()
+                        r_path1 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
+                        r_path2 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym_clean}.md')
+                        has_report = os.path.exists(r_path1) or os.path.exists(r_path2)
+                        
+                        meta = {"has_report": has_report}
+                        if has_report:
+                            mtime = max(os.path.getmtime(r_path1) if os.path.exists(r_path1) else 0,
+                                        os.path.getmtime(r_path2) if os.path.exists(r_path2) else 0)
+                            meta["updated_at"] = datetime.fromtimestamp(mtime).isoformat()
+                            
+                        # Append the report status at the end of the row (or as the 7th element)
+                        if len(row) == 6:
+                            row.append(meta)
+                        elif len(row) >= 7 and isinstance(row[-1], dict):
+                            row[-1].update(meta)
+                            
             except Exception as e:
                 logger.error(f"Failed to read MACRO_WATCHLIST_state.json: {e}")
                 
@@ -1297,15 +1324,19 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                     
                 # Dynamically enrich the has_report status to ensure UI polling catches live background generation
                 from datetime import datetime
-                for cand in scanner_res_content.get("candidates", []):
-                    sym = cand.get("symbol", "")
-                    if sym:
-                        r_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
-                        cand["has_report"] = False
-                        if os.path.exists(r_path):
-                            mtime = datetime.fromtimestamp(os.path.getmtime(r_path))
-                            if mtime.date() == datetime.now().date():
+                for key in ["candidates", "sword_candidates", "shield_candidates"]:
+                    for cand in scanner_res_content.get(key, []):
+                        sym = cand.get("symbol", "")
+                        if sym:
+                            r_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
+                            cand["has_report"] = False
+                            if os.path.exists(r_path):
                                 cand["has_report"] = True
+                                mtime = os.path.getmtime(r_path)
+                                report_dt = datetime.fromtimestamp(mtime).isoformat()
+                                cand_dt = cand.get("updated_at", "")
+                                if not cand_dt or report_dt > cand_dt:
+                                    cand["updated_at"] = report_dt
                                 
             except Exception as e:
                 logger.error(f"Failed to read SCANNER_RES_state.json: {e}")
@@ -2044,7 +2075,7 @@ async def _invoke_vli_agent(
         return scrub_vli_output(f"Agent reasoning encountered a failure: {str(e)}"), {}
 
 
-async def _background_synthesis_task(text: str, image: str | None, direct_mode: bool, reporter_llm_type: str, vli_llm_type: str, thread_id: str):
+async def _background_synthesis_task(text: str, image: str | None, direct_mode: bool, reporter_llm_type: str, vli_llm_type: str, thread_id: str, silent: bool = False):
     """Executes the deep analysis graph asynchronously."""
     try:
         from src.config.vli import get_vli_path
@@ -2072,7 +2103,8 @@ async def _background_synthesis_task(text: str, image: str | None, direct_mode: 
             if hasattr(plan, "thought"): thought = plan.thought
             elif isinstance(plan, dict): thought = plan.get("thought", "")
 
-        _append_to_vli_history("ai", response_text, thought=thought, thread_id=thread_id)
+        if not silent:
+            _append_to_vli_history("ai", response_text, thought=thought, thread_id=thread_id)
 
         with open(telemetry_file, "a", encoding="utf-8") as tf:
             tf.write(f"\n{datetime.now().strftime('[%H:%M:%S]')} **VLI ASYNC TRANSACTION RESOLVED**\n")
@@ -2189,6 +2221,67 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
         else:
             res_msg = "Executive Morning Briefing is not currently present in the cache."
             
+        _append_to_vli_history("ai", res_msg, thread_id=transaction_id)
+        return {"response": res_msg, "status": "OK", "error_details": None, "thread_id": transaction_id}
+
+    # [NEW] Ticker Eviction Interception
+    evict_match = re.match(r"^(?:delete|remove|invalidate|scrub|evict)\s+([a-z0-9.-]+)$", req_lower)
+    if evict_match:
+        ticker_target = evict_match.group(1).upper()
+        if ticker_target in ["CACHE", "ALL", "EVERYTHING"]:
+            ticker_target = ""
+            
+        from src.services.datastore import DatastoreManager
+        res_msg = DatastoreManager.invalidate_cache(ticker_target)
+        _append_to_vli_history("ai", res_msg, thread_id=transaction_id)
+        return {"response": res_msg, "status": "OK", "error_details": None, "thread_id": transaction_id}
+
+    # [NEW] Regeneration Interception
+    if req_lower == "regenerate":
+        try:
+            scanner_targets = []
+            scanner_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SCANNER_RES_state.json")
+            if os.path.exists(scanner_path):
+                with open(scanner_path, "r", encoding="utf-8") as f:
+                    s_data = json.load(f)
+                    for c in s_data.get("candidates", []):
+                        if c.get("symbol"):
+                            scanner_targets.append(c["symbol"])
+                            
+            macro_targets = []
+            macro_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "MACRO_WATCHLIST_state.json")
+            if os.path.exists(macro_path):
+                with open(macro_path, "r", encoding="utf-8") as f:
+                    m_data = json.load(f)
+                    for r in m_data.get("rows", []):
+                        if len(r) > 1 and r[1]:
+                            macro_targets.append(r[1])
+                            
+            all_targets = list(set(scanner_targets + macro_targets))
+            
+            if not all_targets:
+                res_msg = "No assets found in any active watchlists to regenerate."
+            else:
+                import asyncio
+                for sym in all_targets:
+                    asyncio.create_task(_background_regenerate_data(sym))
+                res_msg = f"Initiated global regeneration for {len(all_targets)} assets across all watchlists."
+                
+            _append_to_vli_history("ai", res_msg, thread_id=transaction_id)
+            return {"response": res_msg, "status": "OK", "error_details": None, "thread_id": transaction_id}
+            
+        except Exception as e:
+            logger.error(f"Global regenerate failed: {e}")
+            res_msg = f"Error during global regeneration: {e}"
+            _append_to_vli_history("ai", res_msg, thread_id=transaction_id)
+            return {"response": res_msg, "status": "ERROR", "error_details": None, "thread_id": transaction_id}
+            
+    regen_match = re.match(r"^regenerate\s+([a-z0-9.-]+)$", req_lower)
+    if regen_match:
+        target = regen_match.group(1).upper()
+        import asyncio
+        asyncio.create_task(_background_regenerate_data(target))
+        res_msg = f"Initiated focused regeneration for {target}."
         _append_to_vli_history("ai", res_msg, thread_id=transaction_id)
         return {"response": res_msg, "status": "OK", "error_details": None, "thread_id": transaction_id}
 
@@ -2846,6 +2939,32 @@ async def _background_regenerate_data(sym: str):
         import uuid
         from src.config.vli import get_vli_path
         
+        import json
+        import os
+        from src.config.vli import VAULT_ROOT
+        
+        in_watchlist = False
+        try:
+            macro_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "MACRO_WATCHLIST_state.json")
+            if os.path.exists(macro_path):
+                with open(macro_path, encoding="utf-8") as f:
+                    macro_content = json.load(f)
+                    for row in macro_content.get("rows", []):
+                        if len(row) > 1 and row[1].upper() == sym:
+                            in_watchlist = True
+                            break
+                            
+            scanner_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SCANNER_RES_state.json")
+            if not in_watchlist and os.path.exists(scanner_path):
+                with open(scanner_path, encoding="utf-8") as f:
+                    scanner_content = json.load(f)
+                    for cand in scanner_content.get("candidates", []):
+                        if cand.get("symbol", "").upper() == sym:
+                            in_watchlist = True
+                            break
+        except Exception as e:
+            pass
+        
         def write_telemetry(msg: str):
             try:
                 tf_path = get_vli_path("VLI_Raw_Telemetry.md")
@@ -2854,10 +2973,11 @@ async def _background_regenerate_data(sym: str):
                     f.write(f"\n{ts} [REGENERATE] {msg}\n")
                 
                 # Push to global UI queue
-                try:
-                    get_telemetry_queue().put_nowait(f"[REGENERATE] {msg}")
-                except Exception:
-                    pass
+                if in_watchlist:
+                    try:
+                        get_telemetry_queue().put_nowait(f"[REGENERATE] {msg}")
+                    except Exception:
+                        pass
             except Exception:
                 pass
                 
@@ -2885,7 +3005,8 @@ async def _background_regenerate_data(sym: str):
                 direct_mode=False,
                 reporter_llm_type="reasoning",
                 vli_llm_type="reasoning",
-                thread_id=f"regen_{uuid.uuid4().hex[:8]}"
+                thread_id=f"regen_{uuid.uuid4().hex[:8]}",
+                silent=not in_watchlist
             )
             write_telemetry(f"Update complete for {sym}")
             

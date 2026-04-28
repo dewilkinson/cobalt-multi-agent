@@ -208,6 +208,19 @@ def sync_vli_scanners():
         except Exception:
             pass
 
+        # [MACRO WATCHLIST SYNC]
+        try:
+            from src.tools.finance import get_macro_symbols
+            print("Syncing Macro Watchlist...")
+            tool_fn = getattr(get_macro_symbols, "coroutine", getattr(get_macro_symbols, "func", None))
+            if tool_fn:
+                asyncio.run(tool_fn(fast_update=False))
+            else:
+                get_macro_symbols.invoke({"fast_update": False})
+            print("Macro Watchlist Sync Successful")
+        except Exception as e:
+            print(f"Macro Watchlist Sync Failed: {e}")
+
         print(f"Sync Successful: {summary}")
 
     except Exception as e:

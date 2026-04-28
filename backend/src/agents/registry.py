@@ -55,3 +55,4 @@ class AgentRegistry:
 _current_dir = Path(__file__).parent.resolve()
 _defs_path = _current_dir / "definitions"
 registry = AgentRegistry(str(_defs_path))
+# Trigger reload 4

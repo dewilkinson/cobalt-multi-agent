@@ -138,7 +138,7 @@ async def batch_fetch_sortino(tickers: List[str], period: str = "20d") -> Dict[s
         # Inject ^TNX to fetch the dynamic risk-free rate simultaneously
         fetch_list = tickers + ["^TNX"] if trading_style != "day_trading" else tickers
         data = await asyncio.wait_for(
-            asyncio.to_thread(yf.download, fetch_list, period=period, interval=interval, group_by='ticker', progress=False, prepost=True),
+            asyncio.to_thread(yf.download, fetch_list, period=period, interval=interval, group_by='ticker', progress=False, prepost=False),
             timeout=25.0
         )
         

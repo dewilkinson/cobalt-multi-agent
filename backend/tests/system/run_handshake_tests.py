@@ -157,7 +157,7 @@ async def main():
         ("success", "Connected!", None, 15),
         ("delayed_start", "Connected!", None, 30),
         ("mismatch_restart", "FAILED: VERSION MISMATCH", None, 20),
-        ("timeout", "SERVER OFFLINE", None, 30)
+        ("timeout", "SERVER OFFLINE", None, 75)
     ]
     
     # We must load the page initially. We will boot a dummy server to serve the page.

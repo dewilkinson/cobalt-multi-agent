@@ -13,7 +13,7 @@ _BASE_AGENT_LLM_MAP: dict[str, LLMType] = {
     "coordinator": "basic",
     "parser": "basic",
     "planner": "basic",
-    "synthesizer": "basic",
+    "synthesizer": "reasoning",
     "coder": "basic",
     "reporter": "basic",
     "podcast_script_writer": "basic",

@@ -17,7 +17,7 @@
             "tier": "SWORD",
             "grade": "S",
             "heat_score": 100,
-            "sortino": 25.83,
+            "sortino": 21.13,
             "has_report": true,
             "updated_at": "2026-04-27T00:08:57.322115"
         },
@@ -35,9 +35,9 @@
             "tier": "SWORD",
             "grade": "S",
             "heat_score": 100,
-            "sortino": 31.56,
+            "sortino": 18.21,
             "has_report": true,
-            "updated_at": "2026-04-27T00:10:00.143044"
+            "updated_at": "2026-04-27T08:19:57.036115"
         },
         {
             "symbol": "LPTH",
@@ -53,7 +53,7 @@
             "tier": "SWORD",
             "grade": "A",
             "heat_score": 49,
-            "sortino": 20.87,
+            "sortino": 14.39,
             "has_report": true,
             "updated_at": "2026-04-27T00:11:00.289320"
         },
@@ -71,7 +71,7 @@
             "tier": "SWORD",
             "grade": "A",
             "heat_score": 46,
-            "sortino": 15.59,
+            "sortino": 6.64,
             "has_report": true,
             "updated_at": "2026-04-27T00:12:02.916556"
         },
@@ -89,7 +89,7 @@
             "tier": "SWORD",
             "grade": "A",
             "heat_score": 43,
-            "sortino": 11.76,
+            "sortino": 10.46,
             "has_report": true,
             "updated_at": "2026-04-27T00:13:14.910319"
         },
@@ -107,7 +107,7 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 46,
-            "sortino": 21.27,
+            "sortino": 17.92,
             "has_report": true,
             "updated_at": "2026-04-27T00:14:17.466664"
         },
@@ -125,7 +125,7 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 44,
-            "sortino": 2.91,
+            "sortino": 0.69,
             "has_report": true,
             "updated_at": "2026-04-27T00:15:24.495632"
         },
@@ -143,7 +143,7 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 42,
-            "sortino": 5.02,
+            "sortino": 4.82,
             "has_report": true,
             "updated_at": "2026-04-27T00:16:33.455314"
         },
@@ -161,7 +161,7 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 37,
-            "sortino": 19.43,
+            "sortino": 16.84,
             "has_report": true,
             "updated_at": "2026-04-27T00:17:37.945334"
         },
@@ -179,7 +179,7 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 35,
-            "sortino": 10.56,
+            "sortino": 9.43,
             "has_report": true,
             "updated_at": "2026-04-27T00:18:55.525265"
         },
@@ -197,7 +197,7 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 33,
-            "sortino": 9.17,
+            "sortino": 8.69,
             "has_report": true,
             "updated_at": "2026-04-27T00:19:49.351899"
         },
@@ -215,7 +215,7 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 31,
-            "sortino": 6.38,
+            "sortino": 4.34,
             "has_report": true,
             "updated_at": "2026-04-27T00:20:59.496102"
         },
@@ -233,9 +233,9 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 30,
-            "sortino": 33.01,
+            "sortino": 32.44,
             "has_report": true,
-            "updated_at": "2026-04-27T00:22:04.449039"
+            "updated_at": "2026-04-27T08:43:03.334930"
         },
         {
             "symbol": "TSM",
@@ -251,7 +251,7 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 29,
-            "sortino": 33.55,
+            "sortino": 26.69,
             "has_report": true,
             "updated_at": "2026-04-27T00:23:10.335859"
         },
@@ -269,7 +269,7 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 28,
-            "sortino": 21.59,
+            "sortino": 20.03,
             "has_report": true,
             "updated_at": "2026-04-27T00:24:16.576111"
         },
@@ -287,7 +287,7 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 27,
-            "sortino": 11.69,
+            "sortino": 11.29,
             "has_report": true,
             "updated_at": "2026-04-27T00:25:25.535954"
         },
@@ -305,7 +305,7 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 27,
-            "sortino": 1.72,
+            "sortino": 4.36,
             "has_report": true,
             "updated_at": "2026-04-27T00:26:33.944616"
         },
@@ -323,7 +323,7 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 27,
-            "sortino": 9.53,
+            "sortino": 9.8,
             "has_report": true,
             "updated_at": "2026-04-27T00:27:39.317557"
         },
@@ -341,7 +341,7 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 26,
-            "sortino": 18.42,
+            "sortino": 15.36,
             "has_report": true,
             "updated_at": "2026-04-27T00:28:47.471874"
         },
@@ -359,13 +359,13 @@
             "tier": "SHIELD",
             "grade": "A",
             "heat_score": 23,
-            "sortino": 11.92,
+            "sortino": 10.81,
             "has_report": true,
             "updated_at": "2026-04-27T00:29:55.262382"
         }
     ],
     "metadata": {
-        "last_sync": "2026-04-27 05:47:26",
+        "last_sync": "2026-04-27 08:47:28",
         "shield_count": 15,
         "sword_count": 5,
         "status": "active"

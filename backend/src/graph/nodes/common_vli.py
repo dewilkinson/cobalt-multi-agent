@@ -46,7 +46,6 @@ async def _run_node_with_tiered_fallback(agent_type, state, config, tools=None, 
 
     for i in range(start_idx, len(TIERS)):
         tier = TIERS[i]
-        AGENT_LLM_MAP[agent_type] = tier
         
         # Re-initialize based on tier
         is_graph = False
@@ -55,7 +54,7 @@ async def _run_node_with_tiered_fallback(agent_type, state, config, tools=None, 
                 llm = get_llm_by_type(tier)
                 runnable = llm.bind_tools(tools).with_structured_output(structured_schema)
             else:
-                runnable = create_agent_from_registry(agent_type, tools)
+                runnable = create_agent_from_registry(agent_type, tools, override_tier=tier)
                 is_graph = True
         else:
             runnable = get_llm_by_type(tier)
@@ -122,10 +121,6 @@ async def _run_node_with_tiered_fallback(agent_type, state, config, tools=None, 
                 if hasattr(result, "content") and result.content is None:
                     result.content = ""
 
-            # Removed: We no longer arbitrarily flatten the tool execution dictionary into a single AIMessage.
-            # `result` natively maintains the full conversation history from inside the nested agent run.
-
-            
             # [PROMPT LEAKAGE GUARD] Detect if the model is echoing its own instructions/security protocol
             res_str = str(result).upper()
             if hasattr(result, "content") and result.content:
@@ -216,6 +211,16 @@ async def _run_node_with_tiered_fallback(agent_type, state, config, tools=None, 
                     continue # Fallback to next tier
                 else:
                     # [RELIABILITY] Final tier failure sentinel
+                    if isinstance(e, asyncio.TimeoutError):
+                        fail_msg = f"VLI System Alert: Agent `{agent_type}` exhausted all LLM tiers due to network timeouts."
+                        logger.error(fail_msg)
+                        if is_structured and structured_schema:
+                            try:
+                                return structured_schema(locale="en-US", thought=fail_msg, has_enough_context=False, direct_response=fail_msg, title="Timeout Failure", steps=[]), fallback_messages
+                            except Exception:
+                                return {"thought": fail_msg, "has_enough_context": False, "direct_response": fail_msg, "title": "Timeout Failure", "steps": []}, fallback_messages
+                        else:
+                            return AIMessage(content=fail_msg, name="system_timeout_error"), fallback_messages
                     raise e
     return result, fallback_messages
 

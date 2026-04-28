@@ -26,4 +26,9 @@ export const getLangGraphBaseURL = () => {
     return process.env.NEXT_PUBLIC_LANGGRAPH_URL || "http://127.0.0.1:2024";
 };
 
+export const getSystemMode = (): "LOCAL" | "REMOTE" => {
+    const mode = process.env.NEXT_PUBLIC_SYSTEM_MODE;
+    return (mode === "REMOTE") ? "REMOTE" : "LOCAL";
+};
+
 export * from "./types";

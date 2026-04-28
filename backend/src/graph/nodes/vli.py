@@ -232,6 +232,61 @@ async def vli_node(
             goto=END
         )
 
+    # --- [SHOW COMMAND INTENT] ---
+    show_match = re.match(r'^(show|display)\s+(?:(report|news|quote)\s+(?:for\s+)?)?([a-zA-Z\.\=\^]+)$', stripped_query)
+    if show_match:
+        from src.services.datastore import DatastoreManager
+        import os
+        import json
+        artifact_type = show_match.group(2)
+        sym = show_match.group(3).upper()
+        
+        found_content = None
+        
+        if artifact_type == "report":
+            r_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
+            if os.path.exists(r_path):
+                with open(r_path, encoding="utf-8") as f:
+                    found_content = f"# {sym} Resident Analysis Report\n\n" + f.read()
+        elif artifact_type == "news":
+            cached = DatastoreManager.get_artifact(sym, "news", "latest")
+            if cached and "data" in cached:
+                found_content = f"## {sym} Resident News\n\n" + cached["data"]
+        else: # default to quote or explicit quote
+            cached = DatastoreManager.get_artifact(sym, "history", "1m") or DatastoreManager.get_artifact(sym, "history", "1d")
+            if cached and "data" in cached:
+                if isinstance(cached["data"], dict):
+                    # Sometimes data contains raw OHLCV dictionaries
+                    data_str = cached["data"].get("data", str(cached["data"]))
+                    found_content = f"## Resident Quote for {sym}\n\n{data_str}"
+                else:
+                    found_content = f"## Resident Quote for {sym}\n\n{cached['data']}"
+
+        if found_content:
+            logger.info(f"[VLI_SPINE] Show requested for {sym} ({artifact_type}). Resident data found.")
+            return Command(
+                update={
+                    "messages": fallback_msgs_all + [AIMessage(content=found_content, name="vli_coordinator")],
+                    "intent": "EXECUTE_DIRECT",
+                    "metadata": state.get("metadata", {})
+                },
+                goto=END
+            )
+        else:
+            logger.info(f"[VLI_SPINE] Show requested for {sym} ({artifact_type}), but no resident data found. Triggering background generation.")
+            # Trigger silent generate
+            return Command(
+                update={
+                    "messages": fallback_msgs_all + [
+                        AIMessage(content=f"No resident data found for {sym} ({artifact_type or 'quote'}). Initiating background regeneration...", name="vli_coordinator"),
+                        AIMessage(content=f"[BACKGROUND_REGENERATE_DATA] {sym}", name="vli_coordinator")
+                    ],
+                    "intent": "EXECUTE_DIRECT",
+                    "metadata": state.get("metadata", {})
+                },
+                goto=END
+            )
+
     is_admin = any(kw in stripped_query for kw in ["invalidate", "clear cache", "vli tick", "reset diagnostic", "heat map"])
     
     is_arithmetic = bool(re.match(r'^[\d\s\+\-\*\/\(\)\.]+$', stripped_query))
@@ -738,6 +793,19 @@ async def vli_node(
 
     next_agent = plan_obj.steps[0].step_type.value
 
+    # [HARDENING] Inject raw news into context for any tactical analysis involving a ticker
+    # so the Synthesizer doesn't hallucinate or skip tool execution due to agent laziness.
+    if is_hard_tactical:
+        cache_check_match = re.match(r'^(analyze|scan|check|report on|run|get|audit)\s+([a-zA-Z\.\=\^]+)$', stripped_query)
+        if cache_check_match:
+            target_symbol = cache_check_match.group(2).upper()
+            from src.services.datastore import DatastoreManager
+            cached_news = DatastoreManager.get_artifact(target_symbol, "news_raw", "latest")
+            if cached_news and "data" in cached_news:
+                logger.info(f"[VLI_SPINE] Injecting resident news for {target_symbol} into context to prevent tool bypass.")
+                fallback_msgs_all.append(
+                    AIMessage(content=f"[SYSTEM_INJECTION] Resident News Data for {target_symbol}:\n\n{cached_news['data'][:15000]}", name="system_injector")
+                )
 
     cmd = Command(
         update={

@@ -44,7 +44,7 @@ When generating a Macro Performance Report:
     - **Volume Profile**: Mention the **Point of Control (POC)** and **Value Area** to identify where institutional volume is "clustering" and whether the price is currently accepted or rejected at those nodes.
 - **Contextual Advisement**: If portfolio data is present in the conversation history, analyze if current macro headwinds/tailwinds warrant adjustments to open positions.
 - **Zero Filler**: Do not start with "According to the latest data...". Start immediately with the regime assessment.
-- **News Integration MANDATE (IMPORTANT)**: You MUST pull in major economic and geopolitical news headlines to factor into your analysis. Use the `web_search` tool to fetch current breaking news impacting the overall market (e.g., jobs reports, CPI, geopolitical escalations, Federal Reserve statements), and integrate these headlines aggressively into your report using punchy bullets.
+- **News Integration MANDATE (IMPORTANT)**: You MUST pull in major economic and geopolitical news headlines to factor into your analysis. Use the `get_macro_news` tool to fetch current breaking institutional macro news impacting the overall market (e.g., jobs reports, CPI, geopolitical escalations). Supplement this with `web_search` if needed, and integrate these headlines aggressively into your report using punchy bullets.
 
 If you are operating under the `SENTIMENT_REPORT` intent:
 - **Primary Sources**: Your first research step MUST target the prioritized sources: **{{ SOCIAL_SOURCES | default('twitter.com, reddit.com') }}**. 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { getBackendBaseURL } from "@/core/config";
+import { getBackendBaseURL, getSystemMode } from "@/core/config";
 import { CLIENT_VERSION } from "@/core/config/version";
 
 export function ServerHealthGuard({ children }: { children: React.ReactNode }) {
@@ -21,14 +21,22 @@ export function ServerHealthGuard({ children }: { children: React.ReactNode }) {
     setVisible(true);
     restartAttempted.current = false;
 
+    if (getSystemMode() === "LOCAL") {
+      fetch("/api/system/startup", { method: "POST" }).catch(() => {});
+    }
+
     if (intervalRef.current) clearInterval(intervalRef.current);
 
     intervalRef.current = setInterval(async () => {
       setSeconds((s) => {
-        if (s >= 30) {
-          if (intervalRef.current) clearInterval(intervalRef.current);
-          setStatus("failed");
-          setReason(restartAttempted.current ? "Version Mismatch (Restart Failed)" : "Connection Timeout");
+        if (s >= 45) {
+          setStatus((prev) => {
+            if (prev !== "connected") {
+              setReason(restartAttempted.current ? "Version Mismatch (Restart Failed)" : "Connection Timeout");
+              return "failed";
+            }
+            return prev;
+          });
           return s;
         }
         return s + 1;

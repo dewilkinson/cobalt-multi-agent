@@ -1132,7 +1132,7 @@
             </div>
             
             <div id="vli-handshake-actions" style="display: none; gap: 12px; margin-top: 24px;">
-                <button onclick="window.close()" style="flex: 1; padding: 8px; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; cursor: pointer; font-family: var(--font-mono);">Cancel</button>
+                <button onclick="document.getElementById('vli-handshake-overlay').style.display='none'" style="flex: 1; padding: 8px; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; cursor: pointer; font-family: var(--font-mono);">Cancel</button>
                 <button id="vli-handshake-retry" onclick="window.vliStartHandshake()" style="flex: 1; padding: 8px; background: var(--cobalt-blue); border: none; color: black; font-weight: bold; border-radius: 6px; cursor: pointer; font-family: var(--font-mono);">Retry</button>
             </div>
         </div>
@@ -1148,8 +1148,11 @@
         let handshakeInterval = null;
         let handshakeRestartAttempted = false;
         
+        let hasTimedOutOnce = false;
+        
         window.showServerOffline = function(message = 'SERVER OFFLINE') {
-            if (handshakeInterval) clearInterval(handshakeInterval);
+            if (message === 'SERVER OFFLINE') hasTimedOutOnce = true;
+            // Removed clearInterval to allow continuous polling in background
             
             document.getElementById('vli-handshake-overlay').style.display = 'flex';
             document.getElementById('vli-handshake-dialog').style.background = '#0d111b';
@@ -1174,6 +1177,12 @@
         }
 
         window.vliStartHandshake = function() {
+            // Auto-launch the backend via the Next.js orchestrator immediately when the client starts
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '') {
+                originalFetch('http://127.0.0.1:3000/api/system/startup', { method: 'POST' }).catch(e => console.error("[VLI_LAUNCHER] Orchestrator unreachable:", e));
+                hasTimedOutOnce = false;
+            }
+
             document.getElementById('vli-handshake-overlay').style.display = 'flex';
             document.getElementById('vli-handshake-dialog').style.background = '#0d111b';
             document.getElementById('vli-handshake-title').innerText = `Connecting to Server (0s)`;
@@ -1189,18 +1198,21 @@
             bar.style.transform = 'translateX(-100%)';
             
             handshakeSeconds = 0;
+            isHandshakeFetching = false;
             
             if (handshakeInterval) clearInterval(handshakeInterval);
             
             handshakeInterval = setInterval(async () => {
                 handshakeSeconds++;
                 
-                if (handshakeSeconds >= 20) {
+                if (handshakeSeconds >= 60) {
                     window.showServerOffline('SERVER OFFLINE');
-                    return;
                 }
                 
                 document.getElementById('vli-handshake-title').innerText = `Connecting to Server (${handshakeSeconds}s)`;
+                
+                if (isHandshakeFetching) return;
+                isHandshakeFetching = true;
                 
                 try {
                     const res = await originalFetch(`/api/health?_t=${Date.now()}`, { cache: 'no-store' });
@@ -1208,6 +1220,7 @@
                         const data = await res.json();
                         if (data.version === VLI_CLIENT_VERSION) {
                             clearInterval(handshakeInterval);
+                            handshakeSeconds = 0;
                             document.getElementById('vli-handshake-title').innerText = 'Connected!';
                             document.getElementById('vli-handshake-title').style.color = 'var(--emerald-green)';
                             bar.style.animation = 'none';
@@ -1219,22 +1232,20 @@
                                 document.getElementById('vli-handshake-overlay').style.display = 'none';
                             }, 1000);
                         } else {
-                            // Version mismatch
                             window.showServerOffline('FAILED: VERSION MISMATCH');
-                            // Trigger the restart in the background so the next retry succeeds
                             originalFetch('/api/system/restart', { method: 'POST' }).catch(e => console.error(e));
                         }
                     } else {
-                        // Server returned an error (e.g. 502 Bad Gateway)
-                        if (handshakeSeconds >= 2) {
+                        if (handshakeSeconds >= 60) {
                             window.showServerOffline('SERVER OFFLINE');
                         }
                     }
                 } catch (err) {
-                    // Search failed (server offline). If we've searched for at least 2 seconds, fail.
-                    if (handshakeSeconds >= 20) {
+                    if (handshakeSeconds >= 60) {
                         window.showServerOffline('SERVER OFFLINE');
                     }
+                } finally {
+                    isHandshakeFetching = false;
                 }
             }, 1000);
         };
@@ -1445,7 +1456,21 @@
                 cardBox.style.height = defaultStyles.height || '360px';
                 cardBox.style.zIndex = ++winManager.maxZ;
 
-                const liveBadgeHTML = (typeGuid === 'VLI_CHAT' || typeGuid === 'VLI_TELEMETRY') ? `<span class="live-badge" id="conn-status-${instanceGuid}">LIVE</span>` : '';
+                cardBox.addEventListener('mousedown', (e) => {
+                    bringToFront(cardBox);
+                    if (e.target.closest('.card-header') && !e.target.classList.contains('win-btn')) {
+                        winManager.dragging = cardBox;
+                        winManager.startX = e.clientX;
+                        winManager.startY = e.clientY;
+                        winManager.startTop = cardBox.offsetTop;
+                        winManager.startLeft = cardBox.offsetLeft;
+                        
+                        document.addEventListener('mousemove', onMouseMove);
+                        document.addEventListener('mouseup', onMouseUp);
+                    }
+                });
+
+                const liveBadgeHTML = (typeGuid === 'VLI_CHAT' || typeGuid === 'VLI_TELEMETRY') ? `<span class="live-badge" id="conn-status-${instanceGuid}" style="cursor: pointer;" onclick="if(this.innerText==='OFFLINE') { window.vliStartHandshake(); }">LIVE</span>` : '';
                 
                 let bodyContent = '';
                 if (typeGuid === 'VLI_CHAT') {
@@ -1477,7 +1502,7 @@
                                         <th>PRICE</th>
                                         <th>CHANGE</th>
                                         <th>SORTINO</th>
-                                        <th>TREND (5M)</th>
+                                        <th style="text-align: right; padding-right: 16px;">TREND (5M)</th>
                                     </tr>
                                 </thead>
                                 <tbody class="macro-watchlist-body-instance" id="macro-watchlist-body-${instanceGuid}" data-guid="${instanceGuid}">
@@ -1601,26 +1626,10 @@
 
         function initWindowManager() {
             loadLayout();
-            document.querySelectorAll('.card-header').forEach(header => {
-                header.addEventListener('mousedown', (e) => {
-                    const card = header.closest('.card');
-                    bringToFront(card);
-                    
-                    if (e.target.classList.contains('win-btn')) return;
-                    
-                    winManager.dragging = card;
-                    winManager.startX = e.clientX;
-                    winManager.startY = e.clientY;
-                    winManager.startTop = card.offsetTop;
-                    winManager.startLeft = card.offsetLeft;
-                    
-                    document.addEventListener('mousemove', onMouseMove);
-                    document.addEventListener('mouseup', onMouseUp);
-                });
-            });
+            // Removed generic listener attachment, now handled dynamically per card in createCard
+        }
 
             // Removed generic resize bindings since UXCardManager injects them dynamically
-        }
 
         let snapModeEnabled = true;
 
@@ -2449,7 +2458,7 @@
             window.sparklineAuditState = {};
 
             try {
-                const tickers = Array.from(document.querySelectorAll('#macro-watchlist-body .symbol-bold'))
+                const tickers = Array.from(document.querySelectorAll('.macro-watchlist-body-instance .symbol-bold'))
                     .map(td => td.dataset.ticker)
                     .filter(t => t && t !== "Awaiting Data");
 
@@ -2479,7 +2488,7 @@
                                     window.sparklineAuditState[ticker] = audit.points.map(p => p.price);
 
                                     // [TARGETED_REDRAW] Update the UI immediately for this ticker
-                                    const row = document.querySelector(`#macro-watchlist-body tr td[data-ticker="${ticker}"]`)?.parentElement;
+                                    const row = document.querySelector(`.macro-watchlist-body-instance tr td[data-ticker="${ticker}"]`)?.parentElement;
                                     if (row && window.currentMacroData && window.currentMacroData.macros) {
                                         const macro = window.currentMacroData.macros.find(m => m.ticker === ticker);
                                         if (macro && macro.sparkline && macro.sparkline.value) {
@@ -2656,7 +2665,7 @@
         window.vliNewSymbols = window.vliNewSymbols || new Set();
         window.vliNewShieldSymbols = window.vliNewShieldSymbols || new Set();
         
-        // [UX] Helper to update scanner row visual states immediately
+        // [UX] Helper to update scanner row and macro row visual states immediately
         function updateScannerRefreshUI() {
             document.querySelectorAll('.scanner-res-row').forEach(tr => {
                 const symbolTd = tr.querySelector('td:first-child');
@@ -2664,12 +2673,47 @@
                 const symbol = symbolTd.innerText.trim().toUpperCase();
                 const isRefreshing = window.vliRefreshingSymbols.has(symbol);
                 if (isRefreshing) {
-                    tr.style.opacity = '0.3';
-                    tr.style.filter = 'grayscale(1)';
+                    tr.style.opacity = '1';
+                    tr.style.filter = 'none';
+                    Array.from(tr.children).forEach((td, idx) => {
+                        if (idx !== tr.children.length - 1) {
+                            td.style.opacity = '0.3';
+                            td.style.filter = 'grayscale(1)';
+                        }
+                    });
                     tr.style.pointerEvents = 'none';
                 } else {
                     tr.style.opacity = '1';
                     tr.style.filter = 'none';
+                    Array.from(tr.children).forEach(td => {
+                        td.style.opacity = '1';
+                        td.style.filter = 'none';
+                    });
+                    tr.style.pointerEvents = 'auto';
+                }
+            });
+            document.querySelectorAll('.macro-watchlist-body-instance tr').forEach(tr => {
+                const symbolTd = tr.querySelector('td:nth-child(1)');
+                if (!symbolTd || !symbolTd.dataset.ticker) return;
+                const symbol = symbolTd.dataset.ticker.toUpperCase();
+                const isRefreshing = window.vliRefreshingSymbols.has(symbol);
+                if (isRefreshing) {
+                    tr.style.opacity = '1';
+                    tr.style.filter = 'none';
+                    Array.from(tr.children).forEach((td, idx) => {
+                        if (idx !== tr.children.length - 1) {
+                            td.style.opacity = '0.3';
+                            td.style.filter = 'grayscale(1)';
+                        }
+                    });
+                    tr.style.pointerEvents = 'none';
+                } else {
+                    tr.style.opacity = '1';
+                    tr.style.filter = 'none';
+                    Array.from(tr.children).forEach(td => {
+                        td.style.opacity = '1';
+                        td.style.filter = 'none';
+                    });
                     tr.style.pointerEvents = 'auto';
                 }
             });
@@ -2720,6 +2764,9 @@
                     const priceNum = parseFloat(priceDisplay.replace(/[$,%]/g, ''));
                     const pctChange = changeObj.value;
 
+                    const metaObj = row.length >= 7 ? row[6] : {};
+                    const hasReport = metaObj.has_report || false;
+
                     let sortinoColor = '#ff4444';
                     if (sortino >= 2.0) sortinoColor = '#00ff88';
                     else if (sortino >= 1.0) sortinoColor = '#ff9900';
@@ -2731,20 +2778,96 @@
                         else if (priceNum < lastPrice) color = 'var(--price-down)';
                     }
                     
+                    function getMacroRowBackground(t, val) {
+                        if (t === '^TNX') {
+                            if (val >= 4.5) return 'rgba(255, 20, 20, 0.4)'; // Neon Red
+                            if (val >= 4.3) return 'rgba(255, 165, 0, 0.4)'; // Clear Orange
+                            if (val >= 4.0) return 'rgba(255, 230, 0, 0.35)'; // Bright Yellow
+                            return 'rgba(0, 255, 100, 0.3)'; // Mint Green
+                        }
+                        if (t === '^VIX') {
+                            if (val >= 25) return 'rgba(255, 20, 20, 0.4)';
+                            if (val >= 20) return 'rgba(255, 165, 0, 0.4)';
+                            if (val >= 15) return 'rgba(255, 230, 0, 0.35)';
+                            return 'rgba(0, 255, 100, 0.3)';
+                        }
+                        if (t === 'DX-Y.NYB' || t === 'DXY') {
+                            if (val >= 106.0) return 'rgba(255, 20, 20, 0.4)';
+                            if (val >= 104.0) return 'rgba(255, 165, 0, 0.4)';
+                            if (val >= 102.0) return 'rgba(255, 230, 0, 0.35)';
+                            return 'rgba(0, 255, 100, 0.3)';
+                        }
+                        return 'transparent';
+                    }
+                    
+                    const rowBg = getMacroRowBackground(ticker, priceNum);
+                    
+                    const mwTime = mw.timestamp ? new Date(mw.timestamp).getTime() : 0;
+                    const reportTime = metaObj.updated_at ? new Date(metaObj.updated_at).getTime() : 0;
+                    const dataTime = Math.max(mwTime, reportTime);
+                    
+                    const requestTime = window.vliRefreshingSymbols.get(ticker);
+                    if (requestTime) {
+                        if (dataTime > requestTime) {
+                            console.log(`[VLI_UX] Macro Symbol ${ticker} verified fresh. Restoring formatting.`);
+                            window.vliRefreshingSymbols.delete(ticker);
+                        } else if (Date.now() - requestTime > 60000) {
+                            console.log(`[VLI_UX] Macro Symbol ${ticker} refresh timed out.`);
+                            window.vliRefreshingSymbols.delete(ticker);
+                        }
+                    }
+                    
+                    const isRefreshing = window.vliRefreshingSymbols.has(ticker);
                     const tr = document.createElement('tr');
                     tr.style.fontSize = '14px';
+                    tr.style.cursor = 'pointer';
+                    tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
+                    tr.style.background = rowBg;
+                    
+                    if (isRefreshing) {
+                        tr.style.pointerEvents = 'none';
+                    }
+
+                    tr.onmouseenter = () => {
+                        tr.style.background = 'rgba(255,255,255,0.05)';
+                    };
+                    tr.onmouseleave = () => {
+                        tr.style.background = rowBg;
+                    };
+                    tr.onclick = () => insertCardIdIntoChat(`analyze ${ticker}`);
+
                     tr.innerHTML = `
                         <td class="symbol-bold" style="padding: 6px 0; vertical-align: middle; max-width: 110px;" data-ticker="${ticker}">
                             <div style="font-size: 11px; color: var(--text-muted); line-height: 1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${label}</div>
-                            <div style="line-height: 1;">${ticker}</div>
+                            <div style="line-height: 1; display: flex; align-items: center; gap: 4px;">
+                                ${ticker}
+                            </div>
                         </td>
                         <td class="val-mono" style="color: ${color}; transition: color 0.5s ease; padding: 6px 0; vertical-align: middle;">${priceDisplay}</td>
                         <td class="val-mono" style="color: ${pctChange >= 0 ? 'var(--price-up)' : 'var(--price-down)'}; padding: 6px 0; vertical-align: middle;">
                             ${pctChange >= 0 ? '▲' : '▼'} ${Math.abs(pctChange).toFixed(2)}%
                         </td>
                         <td class="val-mono" style="color: ${sortinoColor}; font-weight: 700; padding: 6px 0; vertical-align: middle;">${sortino}</td>
-                        <td style="padding: 6px 0; vertical-align: middle;">${drawSparkline(sparklineObj.value, ticker)}</td>
+                        <td style="padding: 6px 0; vertical-align: middle;">
+                            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding-right: 16px;">
+                                ${drawSparkline(sparklineObj.value, ticker)}
+                                <div style="width: 24px; display: flex; justify-content: center;">
+                                    ${isRefreshing ? 
+                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
+                                    : 
+                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${hasReport ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${ticker}')" title="Analysis Report"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
+                                </div>
+                            </div>
+                        </td>
                     `;
+                    if (isRefreshing) {
+                        Array.from(tr.children).forEach((td, idx) => {
+                            if (idx !== tr.children.length - 1) {
+                                td.style.opacity = '0.3';
+                                td.style.filter = 'grayscale(1)';
+                            }
+                        });
+                    }
                     tbody.appendChild(tr);
                 });
             });
@@ -3052,17 +3175,16 @@
                         if (dataTime > requestTime) {
                             console.log(`[VLI_UX] Symbol ${c.symbol} refetched and verified fresh. Restoring formatting.`);
                             window.vliRefreshingSymbols.delete(c.symbol);
+                        } else if (Date.now() - requestTime > 60000) {
+                            console.log(`[VLI_UX] Symbol ${c.symbol} refresh cancelled or interrupted.`);
+                            window.vliRefreshingSymbols.delete(c.symbol);
                         }
                     }
 
                     const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
                     if (isRefreshing) {
-                        tr.style.opacity = '0.3';
-                        tr.style.filter = 'grayscale(1)';
                         tr.style.pointerEvents = 'none';
                     } else {
-                        tr.style.opacity = '1';
-                        tr.style.filter = 'none';
                         tr.style.pointerEvents = 'auto';
                     }
                     
@@ -3096,11 +3218,24 @@
                             <div style="display: flex; align-items: center; justify-content: flex-end;">
                                 <span style="display: inline-block; width: 32px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; padding: 2px 0; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid ${gradeBorder};">${c.grade || 'F'}</span>
                                 <div style="width: 24px; display: flex; justify-content: flex-end;">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${c.symbol}')" title="Analysis Report"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                    ${isRefreshing ? 
+                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
+                                    : 
+                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${c.symbol}')" title="Analysis Report"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
                                 </div>
                             </div>
                         </td>
                     `;
+                    
+                    if (isRefreshing) {
+                        Array.from(tr.children).forEach((td, idx) => {
+                            if (idx !== tr.children.length - 1) {
+                                td.style.opacity = '0.3';
+                                td.style.filter = 'grayscale(1)';
+                            }
+                        });
+                    }
+                    
                     tbody.appendChild(tr);
                 });
             });
@@ -3367,7 +3502,7 @@
                         btn.innerText = "➤";
                         isProcessing = false;
                         return;
-                    } else if (requestText.toUpperCase().startsWith("REFRESH") || requestText.toUpperCase().startsWith("UPDATE") || requestText.toUpperCase().startsWith("REGENERATE")) {
+                    } else if (requestText.toUpperCase().startsWith("REFRESH") || requestText.toUpperCase().startsWith("UPDATE") || requestText.toUpperCase().startsWith("REGENERATE") || requestText.toUpperCase().startsWith("ANALYZE")) {
                         let parts = requestText.split(/\s+/);
                         let cmd = parts[0].toUpperCase();
                         let target = parts.length > 1 ? parts[1].toUpperCase() : "ALL";
@@ -3378,6 +3513,20 @@
                             document.querySelectorAll('.scanner-res-row td:first-child').forEach(td => {
                                 let sym = td.innerText.trim().toUpperCase();
                                 if (sym) window.vliRefreshingSymbols.set(sym, now);
+                            });
+                            updateScannerRefreshUI();
+                        } else if (target === "ALL" && cmd === "REGENERATE") {
+                            console.log("[VLI_UX] Global regenerate initiated. Targeting all visible symbols.");
+                            const now = Date.now();
+                            document.querySelectorAll('.scanner-res-row td:first-child').forEach(td => {
+                                let sym = td.innerText.trim().toUpperCase();
+                                if (sym) window.vliRefreshingSymbols.set(sym, now);
+                            });
+                            document.querySelectorAll('.macro-watchlist-body-instance tr').forEach(tr => {
+                                let symTd = tr.querySelector('td:nth-child(1)');
+                                if (symTd && symTd.dataset.ticker) {
+                                    window.vliRefreshingSymbols.set(symTd.dataset.ticker.toUpperCase(), now);
+                                }
                             });
                             updateScannerRefreshUI();
                         } else if (target && target.length <= 6 && !["CI", "TM", "WL", "AR", "CHAT", "ALL"].includes(target)) {
@@ -3851,13 +4000,16 @@
                         if (dataTime > requestTime) {
                             console.log(`[VLI_UX] Shield Symbol ${c.symbol} refetched and verified fresh. Restoring formatting.`);
                             window.vliRefreshingSymbols.delete(c.symbol);
+                        } else if (Date.now() - requestTime > 60000) {
+                            console.log(`[VLI_UX] Shield Symbol ${c.symbol} refresh cancelled or interrupted.`);
+                            window.vliRefreshingSymbols.delete(c.symbol);
                         }
                     }
 
                     const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
                     if (isRefreshing) {
-                        tr.style.opacity = '0.3';
-                        tr.style.filter = 'grayscale(1)';
+                        tr.style.opacity = '1';
+                        tr.style.filter = 'none';
                         tr.style.pointerEvents = 'none';
                     } else {
                         tr.style.opacity = '1';
@@ -3892,7 +4044,10 @@
                             <div style="display: flex; align-items: center; justify-content: flex-end;">
                                 <span class="pulse-badge" style="display: inline-block; width: 32px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; border: 1px solid ${gradeBorder}; font-size: 11px; padding: 2px 0;">${c.grade}</span>
                                 <div style="width: 24px; display: flex; justify-content: flex-end;">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${c.symbol}')" title="Analysis Report"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                    ${isRefreshing ? 
+                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
+                                    : 
+                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${c.symbol}')" title="Analysis Report"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
                                 </div>
                             </div>
                         </td>
