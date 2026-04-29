@@ -1,6 +1,6 @@
 import os
 
-path = r'c:\github\cobalt-multi-agent\backend\public\VLI_session_dashboard.html'
+path = r'c:\github\cobalt-multi-agent\backend\public\vli_dashboard.html'
 with open(path, 'r', encoding='utf-8') as f:
     content = f.read()
 

@@ -178,7 +178,7 @@ async def main():
         page = await browser.new_page()
         page.on("console", lambda msg: print(f"[BROWSER_LOG] {msg.text}"))
         
-        url = "http://127.0.0.1:8000/VLI_session_dashboard.html"
+        url = "http://127.0.0.1:8000/vli_dashboard.html"
         print(f"[INIT] Navigating to {url} ...")
         await page.goto(url)
         

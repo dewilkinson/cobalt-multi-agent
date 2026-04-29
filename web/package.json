@@ -1,6 +1,6 @@
 {
   "name": "cobalt-multi-agent-web",
-  "version": "00.000.0003",
+  "version": "00.000.0004",
   "private": true,
   "type": "module",
   "scripts": {

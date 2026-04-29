@@ -1,9 +1,9 @@
 import os
 
 # 1. Restore the file with git checkout
-os.system("git checkout backend/public/VLI_session_dashboard.html")
+os.system("git checkout backend/public/vli_dashboard.html")
 
-path = r'c:\github\cobalt-multi-agent\backend\public\VLI_session_dashboard.html'
+path = r'c:\github\cobalt-multi-agent\backend\public\vli_dashboard.html'
 with open(path, 'r', encoding='utf-8') as f:
     content = f.read()
 

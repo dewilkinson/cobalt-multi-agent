@@ -23,7 +23,7 @@ We need to add a visual, color-coded semitransparent background to the key macro
 
 ## Proposed Changes
 
-### `backend/public/VLI_session_dashboard.html`
+### `backend/public/vli_dashboard.html`
 - **[MODIFY]** `renderWatchlist(data)` function.
 - Introduce a helper function `getMacroRowBackground(ticker, value)` that applies the threshold logic and returns a semitransparent background color (`rgba`).
 - Apply this background color to the `tr.style.background` for the corresponding rows in the Macro Watchlist.

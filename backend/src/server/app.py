@@ -56,7 +56,7 @@ from datetime import datetime
 from typing import Annotated, Any, cast
 from uuid import uuid4
 
-from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query, Security
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query, Security, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 
@@ -415,13 +415,13 @@ async def system_restart():
 async def vli_dashboard_redirect():
     from fastapi.responses import RedirectResponse
 
-    return RedirectResponse(url="/VLI_session_dashboard.html")
+    return RedirectResponse(url="/vli_dashboard.html")
 
 
 # Add CORS middleware
 # It's recommended to load the allowed origins from an environment variable
 # for better security and flexibility across different environments.
-allowed_origins_str = get_str_env("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8089,http://127.0.0.1:8089,http://localhost:8000,http://127.0.0.1:8000")
+allowed_origins_str = get_str_env("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8089,http://127.0.0.1:8089,http://localhost:8000,http://127.0.0.1:8000,https://digital.fidelity.com")
 allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
 
 logger.info(f"Allowed origins: {allowed_origins}")
@@ -591,6 +591,18 @@ async def run_idle_analysis(manual_trigger: bool = False):
     except Exception as e:
         logger.error(f"[BG_ANALYST] Failed to read combat lists: {e}")
 
+    try:
+        from src.config.vli import get_vli_path
+        macro_path = get_vli_path(os.path.join("01_Transit", "Buckets", "MACRO_WATCHLIST_state.json"))
+        if os.path.exists(macro_path):
+            with open(macro_path, 'r', encoding='utf-8') as f:
+                macro_state = json.load(f)
+            for row in macro_state.get("rows", []):
+                if len(row) > 1:
+                    candidates.append({"symbol": row[1]})
+    except Exception as e:
+        logger.error(f"[BG_ANALYST] Failed to read macro watchlist: {e}")
+
     reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
     os.makedirs(reports_dir, exist_ok=True)
         
@@ -602,11 +614,19 @@ async def run_idle_analysis(manual_trigger: bool = False):
         sym = c.get("symbol")
         if not sym: continue
         
-        r_path = os.path.join(reports_dir, f"analyze_{sym.lower()}.md")
+        sym_clean = sym.replace('^', '').replace('=', '').lower()
+        r_path1 = os.path.join(reports_dir, f"analyze_{sym.lower()}.md")
+        r_path2 = os.path.join(reports_dir, f"analyze_{sym_clean}.md")
         needs_report = True
         
-        if os.path.exists(r_path):
-            mtime = datetime.fromtimestamp(os.path.getmtime(r_path))
+        active_path = None
+        if os.path.exists(r_path1):
+            active_path = r_path1
+        elif os.path.exists(r_path2):
+            active_path = r_path2
+            
+        if active_path:
+            mtime = datetime.fromtimestamp(os.path.getmtime(active_path))
             if mtime.date() == datetime.now().date():
                 needs_report = False
                 
@@ -882,7 +902,7 @@ async def startup_event():
     # Ensure backend_root is defined for the startup event
     b_dir = os.path.dirname(os.path.abspath(__file__))  # src/server
     b_root = os.path.abspath(os.path.join(b_dir, "..", ".."))  # backend/
-    dashboard_path = os.path.join(b_root, "public", "VLI_session_dashboard.html")
+    dashboard_path = os.path.join(b_root, "public", "vli_dashboard.html")
     if not os.path.exists(dashboard_path):
         logger.error(f"CRITICAL ERROR: VLI Dashboard file missing at {dashboard_path}")
     else:
@@ -1263,6 +1283,7 @@ class VLIActionPlanRequest(BaseModel):
     vli_llm_type: str = "core"
     background_synthesis: bool = False
     thread_id: str | None = None
+    snaptrade_settings: dict | None = None
 
 
 # --- VLI CONSOLIDATED STATE ENDPOINT ---
@@ -1714,6 +1735,367 @@ async def open_vli_artifact_file(req: OpenFileRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class SnapTradeRegisterRequest(BaseModel):
+    client_id: str = ""
+    consumer_key: str = ""
+    user_id: str = ""
+
+@app.post("/api/brokerage/register")
+async def register_snaptrade(req: SnapTradeRegisterRequest):
+    try:
+        import time
+        from snaptrade_client import SnapTrade
+        cid = req.client_id or os.getenv("SNAPTRADE_CLIENT_ID", "")
+        ckey = req.consumer_key or os.getenv("SNAPTRADE_CONSUMER_KEY", "")
+        client = SnapTrade(client_id=cid, consumer_key=ckey)
+        uid = req.user_id or os.getenv("SNAPTRADE_USER_ID") or f"vli-user-{int(time.time())}"
+        res = client.authentication.register_snap_trade_user(user_id=uid)
+        user_secret = getattr(res, 'user_secret', None)
+        if not user_secret and isinstance(res, dict):
+            user_secret = res.get('userSecret') or res.get('user_secret')
+        return JSONResponse({"user_id": uid, "user_secret": user_secret})
+    except Exception as e:
+        logger.error(f"SnapTrade registration error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+class SnapTradeLoginRequest(BaseModel):
+    client_id: str = ""
+    consumer_key: str = ""
+    user_id: str = ""
+    user_secret: str = ""
+
+@app.post("/api/brokerage/login")
+async def login_snaptrade(req: SnapTradeLoginRequest):
+    try:
+        from snaptrade_client import SnapTrade
+        cid = req.client_id or os.getenv("SNAPTRADE_CLIENT_ID", "")
+        ckey = req.consumer_key or os.getenv("SNAPTRADE_CONSUMER_KEY", "")
+        uid = req.user_id or os.getenv("SNAPTRADE_USER_ID", "")
+        usecret = req.user_secret or os.getenv("SNAPTRADE_USER_SECRET", "")
+        client = SnapTrade(client_id=cid, consumer_key=ckey)
+        res = client.authentication.login_snap_trade_user(user_id=uid, user_secret=usecret)
+        uri = getattr(res, 'login_redirect_uri', None)
+        if not uri and isinstance(res, dict):
+            uri = res.get('loginRedirectURI') or res.get('login_redirect_uri')
+        return JSONResponse({"redirect_uri": uri})
+    except Exception as e:
+        logger.error(f"SnapTrade login error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+@app.get("/api/brokerage/accounts")
+async def get_brokerage_accounts():
+    from fastapi.responses import JSONResponse
+    try:
+        from snaptrade_client import SnapTrade
+        cid = os.getenv("SNAPTRADE_CLIENT_ID", "")
+        ckey = os.getenv("SNAPTRADE_CONSUMER_KEY", "")
+        uid = os.getenv("SNAPTRADE_USER_ID", "")
+        usecret = os.getenv("SNAPTRADE_USER_SECRET", "")
+        if not (cid and ckey and uid and usecret):
+            return JSONResponse({"error": "Missing SnapTrade credentials"}, status_code=400)
+            
+        client = SnapTrade(client_id=cid, consumer_key=ckey)
+        res = client.account_information.list_user_accounts(user_id=uid, user_secret=usecret)
+        accounts = getattr(res, 'body', res)
+        # Ensure it's JSON serializable
+        if not isinstance(accounts, list):
+            accounts = []
+        parsed_accounts = []
+        for a in accounts:
+            if hasattr(a, 'to_dict'):
+                parsed_accounts.append(a.to_dict())
+            elif isinstance(a, dict):
+                parsed_accounts.append(a)
+        return JSONResponse({"accounts": parsed_accounts})
+    except Exception as e:
+        logger.error(f"SnapTrade accounts error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+@app.post("/api/fidelity/sync")
+async def sync_fidelity_payload(request: Request):
+    from fastapi.responses import JSONResponse
+    from src.services.brokerage_cache import BrokerageCache
+    try:
+        body = await request.json()
+        source_url = body.get('sourceUrl', '')
+        
+        # Pass the raw payload to the BrokerageCache for extraction and merging
+        result = BrokerageCache.ingest_fidelity_payload(body)
+        
+        return JSONResponse({"status": "success", "merged_count": result})
+    except Exception as e:
+        logger.error(f"Fidelity sync error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+@app.get("/api/brokerage/history")
+async def get_brokerage_history(account_id: str, start_date: str, end_date: str):
+    from fastapi.responses import JSONResponse
+    try:
+        from snaptrade_client import SnapTrade
+        from src.services.brokerage_cache import BrokerageCache
+        from datetime import datetime, timezone, timedelta
+        
+        cid = os.getenv("SNAPTRADE_CLIENT_ID", "")
+        ckey = os.getenv("SNAPTRADE_CONSUMER_KEY", "")
+        uid = os.getenv("SNAPTRADE_USER_ID", "")
+        usecret = os.getenv("SNAPTRADE_USER_SECRET", "")
+        if not (cid and ckey and uid and usecret):
+            return JSONResponse({"error": "Missing SnapTrade credentials"}, status_code=400)
+            
+        client = SnapTrade(client_id=cid, consumer_key=ckey)
+        
+        # We always fetch the last 3 days to catch delayed overnight syncs from Fidelity.
+        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        fetch_start_str = (datetime.now(timezone.utc) - timedelta(days=3)).strftime("%Y-%m-%d")
+        
+        # Force a deeper fetch if the requested start_date is older than the oldest date in our cache
+        cached_acts = BrokerageCache.get_activities(account_id)
+        oldest_cached_date = today_str
+        for act in cached_acts:
+            placed_time = act.get('trade_date') or act.get('time_placed') or act.get('trade_time') or act.get('timestamp') or act.get('time') or act.get('date') or ''
+            if placed_time:
+                date_only = str(placed_time)[:10]
+                if date_only < oldest_cached_date:
+                    oldest_cached_date = date_only
+                    
+        if start_date < oldest_cached_date:
+            fetch_start_str = start_date
+            
+        fetched_activities = []
+        try:
+            activities_res = client.transactions_and_reporting.get_activities(
+                user_id=uid, 
+                user_secret=usecret, 
+                accounts=account_id, 
+                start_date=fetch_start_str, 
+                end_date=today_str
+            )
+            fetched_activities = getattr(activities_res, 'body', activities_res)
+            if not isinstance(fetched_activities, list):
+                fetched_activities = []
+        except Exception as e:
+            logger.warning(f"Initial fetch to SnapTrade raised exception (likely background sync timeout): {e}")
+            fetched_activities = []
+            
+        # SnapTrade Background Sync Workaround:
+        # If we asked for deep history and got nothing (or timed out), SnapTrade might be asynchronously syncing with Fidelity.
+        # We poll a few times to give the background sync enough time to complete.
+        is_deep_fetch = fetch_start_str < (datetime.now(timezone.utc) - timedelta(days=3)).strftime("%Y-%m-%d")
+        if not fetched_activities and is_deep_fetch:
+            import asyncio
+            for attempt in range(3):
+                await asyncio.sleep(5)
+                try:
+                    activities_res2 = client.transactions_and_reporting.get_activities(
+                        user_id=uid, user_secret=usecret, accounts=account_id, 
+                        start_date=fetch_start_str, end_date=today_str
+                    )
+                    fetched_activities = getattr(activities_res2, 'body', activities_res2)
+                    if not isinstance(fetched_activities, list):
+                        fetched_activities = []
+                    
+                    if fetched_activities:
+                        break # Successfully retrieved data, exit retry loop
+                except Exception as e:
+                    logger.error(f"Failed to fetch SnapTrade activities on retry {attempt+1}: {e}")
+                    fetched_activities = []
+            
+        # Fetch live orders to catch today's executed trades before Fidelity's overnight batch settlement
+        try:
+            orders_res = client.account_information.get_user_account_orders(
+                user_id=uid, user_secret=usecret, account_id=account_id, state="all"
+            )
+            orders = getattr(orders_res, 'body', orders_res)
+            if isinstance(orders, list):
+                for o in orders:
+                    # Normalize Order schema to match Activity schema for the cache
+                    if 'id' not in o and 'brokerage_order_id' in o:
+                        o['id'] = str(o['brokerage_order_id'])
+                    if 'type' not in o and 'action' in o:
+                        o['type'] = str(o['action'])
+                    if 'units' not in o and 'filled_quantity' in o:
+                        o['units'] = float(o.get('filled_quantity', 0) or 0)
+                    if 'price' not in o and 'execution_price' in o:
+                        o['price'] = float(o.get('execution_price', 0) or 0)
+                    if 'trade_date' not in o and 'time_placed' in o:
+                        o['trade_date'] = str(o['time_placed'])
+                fetched_activities.extend(orders)
+        except Exception as e:
+            logger.warning(f"Failed to fetch live orders: {e}")
+            
+        # Merge fetched activities into our durable cache
+        activities = BrokerageCache.merge_activities(account_id, fetched_activities)
+        
+        # Reverse to oldest first for chronological timestamping
+        activities_chronological = list(reversed(activities))
+        
+        daily_counters = {}
+        results = []
+        active_symbols = {}
+        
+        for act in activities_chronological:
+            action = act.get('type', act.get('action', 'N/A')).upper()
+            if action not in ["BUY", "SELL", "BOUGHT", "SOLD", "BTO", "STC", "BTC", "STO", "REINVEST", "DIVIDEND"]:
+                continue
+                
+            # robust symbol extraction
+            if isinstance(act.get('symbol'), dict):
+                sym = act['symbol'].get('symbol', 'N/A')
+            elif isinstance(act.get('universal_symbol'), dict):
+                sym = act['universal_symbol'].get('symbol', act.get('symbol', 'N/A'))
+            else:
+                sym = act.get('symbol', 'N/A')
+                
+            if isinstance(sym, dict):
+                sym = sym.get('symbol', 'N/A')
+                
+            if sym == 'N/A': continue
+            sym_raw = str(sym).upper().replace('-USD', '').replace('*', '')
+            if sym_raw == 'SPAXX': continue
+            
+            qty = float(act.get('units', 0))
+            price = float(act.get('price', 0))
+            
+            if sym_raw not in active_symbols:
+                active_symbols[sym_raw] = {"quantity": 0, "total_cost": 0, "average_cost": 0.0}
+            
+            if action in ["BUY", "BOUGHT", "BTO", "BTC", "REINVEST", "DIVIDEND"]:
+                active_symbols[sym_raw]['quantity'] += qty
+                active_symbols[sym_raw]['total_cost'] += qty * price
+                if active_symbols[sym_raw]['quantity'] > 0:
+                    active_symbols[sym_raw]['average_cost'] = active_symbols[sym_raw]['total_cost'] / active_symbols[sym_raw]['quantity']
+            elif action in ["SELL", "SOLD", "STC", "STO"]:
+                active_symbols[sym_raw]['quantity'] -= qty
+                if active_symbols[sym_raw]['quantity'] <= 0.0001:
+                    active_symbols[sym_raw]['quantity'] = 0
+                    active_symbols[sym_raw]['total_cost'] = 0
+                    active_symbols[sym_raw]['average_cost'] = 0
+                else:
+                    active_symbols[sym_raw]['total_cost'] = active_symbols[sym_raw]['quantity'] * active_symbols[sym_raw]['average_cost']
+
+            # Extract real trade date for Order History log
+            placed_time = act.get('trade_date') or act.get('time_placed') or act.get('trade_time') or act.get('timestamp') or act.get('time') or act.get('date') or ''
+            date_only = str(placed_time)[:10] if placed_time else "Unknown"
+            
+            real_time = None
+            placed_time_str = str(placed_time) if placed_time else ""
+            if placed_time_str:
+                if 'T' in placed_time_str:
+                    real_time = placed_time_str.split('T')[1][:8]
+                elif ' ' in placed_time_str:
+                    real_time = placed_time_str.split(' ')[-1][:8]
+                    
+            # Check if it's a default SnapTrade midnight UTC/EDT time (which means no real execution time is known)
+            if real_time and (real_time.startswith('00:00') or real_time.startswith('04:00') or real_time.startswith('05:00')):
+                real_time = None
+            
+            if start_date <= date_only <= end_date or date_only == "Unknown":
+                if real_time:
+                    fmt_time = f"{date_only} {real_time}"
+                else:
+                    if date_only not in daily_counters:
+                        daily_counters[date_only] = 0
+                    
+                    daily_counters[date_only] += 1
+                    seconds = daily_counters[date_only]
+                    minutes = seconds // 60
+                    remaining_secs = seconds % 60
+                    synth_time = f"09:{30 + minutes:02d}:{remaining_secs:02d}"
+                    
+                    fmt_time = f"{date_only} {synth_time}" if date_only != "Unknown" else "Unknown"
+                
+                results.append({
+                    "time": fmt_time,
+                    "symbol": sym_raw,
+                    "action": action,
+                    "qty": qty,
+                    "price": price,
+                    "status": "Executed"
+                })
+        
+        results.reverse() # Newest first for UI log
+            
+        open_positions = {s: d for s, d in active_symbols.items() if d['quantity'] > 0.0001}
+        positions_payload = []
+        
+        import yfinance as yf
+        import math
+        
+        def safe_float(val, default=0.0):
+            try:
+                f = float(val)
+                return default if math.isnan(f) else f
+            except:
+                return default
+                
+        if open_positions:
+            tickers = list(open_positions.keys())
+            yf_to_raw = {}
+            yf_tickers = []
+            for t in tickers:
+                yf_t = t
+                if yf_t.startswith('/'):
+                    yf_t = yf_t[1:] + '=F'
+                yf_tickers.append(yf_t)
+                yf_to_raw[yf_t] = t
+                
+            try:
+                data = yf.download(yf_tickers, period="5d", group_by='ticker', threads=True, progress=False)
+                for yf_sym, sym in yf_to_raw.items():
+                    pdata = open_positions[sym]
+                    try:
+                        sym_data = data if len(yf_tickers) == 1 else data[yf_sym]
+                        last_price = safe_float(sym_data['Close'].iloc[-1])
+                        prev_close = safe_float(sym_data['Close'].iloc[-2]) if len(sym_data) > 1 else last_price
+                        
+                        last_time_obj = sym_data.index[-1]
+                        last_time_str = last_time_obj.strftime('%Y-%m-%d 16:00') if hasattr(last_time_obj, 'strftime') else 'Unknown'
+                        
+                        qty = safe_float(pdata['quantity'])
+                        avg_cost = safe_float(pdata['average_cost'])
+                        total_cost = safe_float(pdata['total_cost'])
+                        current_value = qty * last_price
+                        
+                        todays_gl_dol = (last_price - prev_close) * qty
+                        todays_gl_pct = ((last_price - prev_close) / prev_close * 100) if prev_close > 0 else 0.0
+                        
+                        total_gl_dol = current_value - total_cost
+                        total_gl_pct = (total_gl_dol / total_cost * 100) if total_cost > 0 else 0.0
+                        
+                        positions_payload.append({
+                            "symbol": sym,
+                            "last_price": last_price,
+                            "todays_gl_pct": todays_gl_pct,
+                            "todays_gl_dol": todays_gl_dol,
+                            "total_gl_pct": total_gl_pct,
+                            "total_gl_dol": total_gl_dol,
+                            "qty": qty,
+                            "average_cost": avg_cost,
+                            "current_value": current_value,
+                            "last_time": last_time_str
+                        })
+                    except Exception as e:
+                        logger.error(f"Failed extracting yf data for {sym}: {e}")
+                        positions_payload.append({
+                            "symbol": sym, "last_price": safe_float(pdata['average_cost']), "todays_gl_pct": 0, "todays_gl_dol": 0,
+                            "total_gl_pct": 0, "total_gl_dol": 0, "qty": safe_float(pdata['quantity']), 
+                            "average_cost": safe_float(pdata['average_cost']), "current_value": safe_float(pdata['total_cost']), "last_time": "Unknown"
+                        })
+            except Exception as e:
+                logger.error(f"yfinance overall fetch failed: {e}")
+                for sym, pdata in open_positions.items():
+                    positions_payload.append({
+                        "symbol": sym, "last_price": safe_float(pdata['average_cost']), "todays_gl_pct": 0, "todays_gl_dol": 0,
+                        "total_gl_pct": 0, "total_gl_dol": 0, "qty": safe_float(pdata['quantity']), 
+                        "average_cost": safe_float(pdata['average_cost']), "current_value": safe_float(pdata['total_cost']), "last_time": "Unknown"
+                    })
+            
+        return JSONResponse({"history": results, "positions": positions_payload})
+    except Exception as e:
+        logger.error(f"SnapTrade history error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
 async def _invoke_vli_agent(
     text: str,
     image: str | None = None,
@@ -1722,6 +2104,7 @@ async def _invoke_vli_agent(
     reporter_llm_type: str = "reasoning",
     vli_llm_type: str = "reasoning",
     thread_id: str | None = None,
+    snaptrade_settings: dict | None = None,
 ) -> tuple[str, dict]:
     logger.info(f"[VLI_TRACE] _invoke_vli_agent called with text: '{text}' (thread_id: {thread_id})")
     """Invoke the agent graph in a non-streaming way for the VLI dashboard."""
@@ -2053,6 +2436,7 @@ async def _invoke_vli_agent(
             "reporter_llm_type": reporter_llm_type,
             "vli_llm_type": vli_llm_type,
             "intent_mode": intent_mode,
+            "snaptrade_settings": snaptrade_settings if snaptrade_settings else {},
         },
         "recursion_limit": 50,
     }
@@ -2119,7 +2503,7 @@ async def _invoke_vli_agent(
         return scrub_vli_output(f"Agent reasoning encountered a failure: {str(e)}"), {}
 
 
-async def _background_synthesis_task(text: str, image: str | None, direct_mode: bool, reporter_llm_type: str, vli_llm_type: str, thread_id: str, silent: bool = False):
+async def _background_synthesis_task(text: str, image: str | None, direct_mode: bool, reporter_llm_type: str, vli_llm_type: str, thread_id: str, silent: bool = False, snaptrade_settings: dict | None = None):
     """Executes the deep analysis graph asynchronously."""
     try:
         from src.config.vli import get_vli_path
@@ -2138,6 +2522,7 @@ async def _background_synthesis_task(text: str, image: str | None, direct_mode: 
             reporter_llm_type=reporter_llm_type,
             vli_llm_type=vli_llm_type,
             thread_id=thread_id,
+            snaptrade_settings=snaptrade_settings,
         )
         
         # [NEW] Persist to Chat History with abstracted thoughts
@@ -2549,13 +2934,13 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
                 _persist_vli_report(clean_text, report)
 
                 # Dispatch deep learning agent to background
-                background_tasks.add_task(_background_synthesis_task, request.text, request.image, request.direct_mode, request.reporter_llm_type, request.vli_llm_type, transaction_id)
+                background_tasks.add_task(_background_synthesis_task, request.text, request.image, request.direct_mode, request.reporter_llm_type, request.vli_llm_type, transaction_id, False, request.snaptrade_settings)
                 return {"response": report, "status": "ASYNC_PENDING", "error_details": None, "state": {}}
             except Exception as fe:
                 logger.warning(f"VLI Async-Path: Atomic resolution failed for '{ticker}': {fe}")
 
     try:
-        response_text, final_vli_state = await _invoke_vli_agent(request.text, request.image, request.direct_mode, request.raw_data_mode, request.reporter_llm_type, request.vli_llm_type, thread_id=transaction_id)
+        response_text, final_vli_state = await _invoke_vli_agent(request.text, request.image, request.direct_mode, request.raw_data_mode, request.reporter_llm_type, request.vli_llm_type, thread_id=transaction_id, snaptrade_settings=request.snaptrade_settings)
         
         # [FIX] Manually dispatch background regeneration if returned by non-streaming agent
         if "[BACKGROUND_REGENERATE_DATA]" in response_text:
@@ -2687,7 +3072,7 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
         logger.error(f"VLI: Failed to log final completion audit: {le}")
 
     # [PERSISTENCE FIX] Persist generated markdown to disk for dashboard artifact links
-    # Note: Slugification logic matches VLI_session_dashboard.html exactly.
+    # Note: Slugification logic matches vli_dashboard.html exactly.
     if response_text and len(response_text) > 50:
         _persist_vli_report(request.text, response_text)
         

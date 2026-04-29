@@ -24,11 +24,11 @@
             return originalFetch(...args);
         };
 
-        const VLI_CLIENT_VERSION = "00.000.0003";
+        const VLI_CLIENT_VERSION = "00.000.0004";
     </script>
     
     <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Inter:wght@400;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;600;700&family=Inter:wght@400;700&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
@@ -106,6 +106,26 @@
             transition: opacity 0.2s ease, transform 0.1s ease;
         }
 
+        .vli-input {
+            background-color: #1a1a1a;
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color-scheme: dark;
+        }
+        .vli-input:focus {
+            outline: none;
+            border-color: var(--emerald-green);
+            background-color: #2a2a2a;
+        }
+        .vli-input option {
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+
         .card-header {
             height: 40px;
             padding: 0 15px;
@@ -115,12 +135,9 @@
             justify-content: space-between;
             align-items: center;
             font-weight: 700;
-            font-size: 17px;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            cursor: move;
-            user-select: none;
+            font-size: 11px;
+            border-radius: 0 !important;
+            z-index: 9999 !important;
         }
 
         .card-controls {
@@ -650,8 +667,8 @@
 
         /* TELEMETRY TAIL */
         .terminal {
-            font-family: 'Courier New', Courier, monospace !important;
-            font-size: 12pt !important;
+            font-family: 'JetBrains Mono', Consolas, monospace !important;
+            font-size: 11pt !important;
             /* Increased from 10pt */
             background: #05070a;
             color: #d1d5db;
@@ -1127,6 +1144,8 @@
         <div id="vli-handshake-dialog" style="background: #0d111b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 32px; width: 400px; box-shadow: 0 0 40px rgba(0,0,0,0.8); text-align: center; transition: background 0.3s ease; pointer-events: auto;">
             <div id="vli-handshake-title" style="font-size: 14px; font-weight: 700; margin-bottom: 24px; font-family: var(--font-main); letter-spacing: 0.3px; text-transform: uppercase; color: var(--text-muted);">Connecting to Server (0s)</div>
             
+            <div id="vli-handshake-details" style="display: none; margin-bottom: 24px; font-size: 11px; color: var(--ruby-red); background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.2); padding: 10px; border-radius: 4px; font-family: var(--font-mono); text-align: left; line-height: 1.5;"></div>
+            
             <div id="vli-handshake-bar-container" style="position: relative; height: 4px; width: 100%; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-bottom: 16px;">
                 <div id="vli-handshake-bar" style="position: absolute; left: 0; top: 0; bottom: 0; width: 70%; background: linear-gradient(90deg, transparent 0%, var(--cobalt-blue) 50%, transparent 100%); box-shadow: 0 0 15px rgba(88, 166, 255, 0.4); animation: sweep 1.2s ease-in-out infinite; transition: width 0.3s ease, background 0.3s ease; transform: translateX(-100%);"></div>
             </div>
@@ -1144,18 +1163,26 @@
                 navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed: ', err));
             });
         }
+        window.failedModules = new Set();
         let handshakeSeconds = 0;
         let handshakeInterval = null;
         let handshakeRestartAttempted = false;
         
         let hasTimedOutOnce = false;
         
-        window.showServerOffline = function(message = 'SERVER OFFLINE') {
+        window.showServerOffline = function(message = 'SERVER RESTARTING', details = '') {
             if (message === 'SERVER OFFLINE') hasTimedOutOnce = true;
             // Removed clearInterval to allow continuous polling in background
             
             document.getElementById('vli-handshake-overlay').style.display = 'flex';
             document.getElementById('vli-handshake-dialog').style.background = '#0d111b';
+            
+            if (details) {
+                document.getElementById('vli-handshake-details').style.display = 'block';
+                document.getElementById('vli-handshake-details').innerHTML = details;
+            } else {
+                document.getElementById('vli-handshake-details').style.display = 'none';
+            }
             
             document.getElementById('vli-handshake-title').innerText = message;
             document.getElementById('vli-handshake-title').style.color = '#ffffff';
@@ -1228,12 +1255,37 @@
                             bar.style.width = '100%';
                             bar.style.background = 'var(--emerald-green)';
                             bar.style.boxShadow = '0 0 15px rgba(63, 185, 80, 0.4)';
+                            
+                            // Self-healing: Re-trigger failed modules
+                            if (window.UXManager && window.UXManager.instances) {
+                                Object.values(window.UXManager.instances).forEach(card => {
+                                    if (card.dataset && card.dataset.typeGuid === 'ORDER_HIST') {
+                                        const guid = card.id.replace('win-', '');
+                                        if (window.populateSnaptradeAccounts) {
+                                            console.log(`[VLI_HEAL] Refreshing SnapTrade accounts for ORDER_HIST module ${guid}`);
+                                            window.populateSnaptradeAccounts(guid);
+                                        }
+                                    }
+                                });
+                            }
+                            if (window.failedModules && window.failedModules.size > 0) {
+                                console.log("[VLI_HEAL] Detected reconnection. Healing generic modules:", window.failedModules);
+                                window.failedModules.forEach(mod => {
+                                    // other modules handled here
+                                });
+                            }
+                            
                             setTimeout(() => {
                                 document.getElementById('vli-handshake-overlay').style.display = 'none';
                             }, 1000);
                         } else {
-                            window.showServerOffline('FAILED: VERSION MISMATCH');
-                            originalFetch('/api/system/restart', { method: 'POST' }).catch(e => console.error(e));
+                            if (!window.hasTriggeredVersionRestart) {
+                                window.hasTriggeredVersionRestart = true;
+                                window.showServerOffline('RESTARTING', 'Version mismatch detected. Booting updated backend instance...');
+                                try {
+                                    await originalFetch('/api/system/restart', { method: 'POST' });
+                                } catch (err) {}
+                            }
                         }
                     } else {
                         if (handshakeSeconds >= 60) {
@@ -1297,6 +1349,40 @@
         </div>
     </div>
 
+    <div id="snaptrade-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
+        <div class="modal-content" style="width: 500px; max-width: 90vw;">
+            <div class="modal-header">
+                <div>BROKER INTEGRATION (SNAPTRADE)</div>
+                <div style="cursor:pointer; color:var(--text-muted);" onclick="closeSnaptradeModal()">✕</div>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 15px;">
+                <p style="color: var(--text-muted); font-size: 13px;">Enter your SnapTrade API keys below to link your brokerage accounts (Fidelity, IBKR, TastyTrade) directly into the Portfolio Manager node.</p>
+                <div>
+                    <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 5px; display: block;">CLIENT ID (REQUIRED)</label>
+                    <input type="password" id="snaptrade-client-id" style="width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--card-border); color: #fff; padding: 8px; outline: none; border-radius: 4px;" placeholder="Your SnapTrade Client ID" />
+                </div>
+                <div>
+                    <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 5px; display: block;">CONSUMER KEY (REQUIRED)</label>
+                    <input type="password" id="snaptrade-client-secret" style="width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--card-border); color: #fff; padding: 8px; outline: none; border-radius: 4px;" placeholder="Your SnapTrade Consumer Key" />
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 5px; display: block;">GENERATED USER ID</label>
+                        <input type="text" id="snaptrade-user-id" style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: #fff; padding: 8px; outline: none; border-radius: 4px;" readonly placeholder="Auto-generated on Register" />
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 5px; display: block;">GENERATED USER SECRET</label>
+                        <input type="password" id="snaptrade-user-secret" style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: #fff; padding: 8px; outline: none; border-radius: 4px;" readonly placeholder="Auto-generated on Register" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: space-between;">
+                <button class="btn-action" style="background:transparent; border:1px solid var(--card-border);" onclick="registerSnaptrade()">1. Register Account</button>
+                <button class="btn-action" style="background:var(--emerald-green);" onclick="connectSnaptrade()">2. Connect Broker Portal</button>
+            </div>
+        </div>
+    </div>
+
     <div class="vli-menubar">
         <div class="menu-left">
             <div class="menu-item" accesskey="f"><u>F</u>ile
@@ -1305,7 +1391,8 @@
                         <div class="dropdown-item" style="cursor: default;"><span><u>N</u>ew Window</span> <span style="font-size: 10px; color: var(--text-muted); margin-left:25px;">▶</span></div>
                         <div class="menu-dropdown">
                             <div class="dropdown-item" onclick="UXManager.createCard('MACRO_WL')">Macro Watchlist Node</div>
-                            <div class="dropdown-item" onclick="UXManager.createCard('ANALYSIS_REP')">Analysis Report Node</div>
+                            <div class="dropdown-item" onclick="UXManager.createCard('STRUCTURAL_ANALY')">Structural Analysis Node</div>
+                            <div class="dropdown-item" onclick="UXManager.createCard('ORDER_HIST')">Order History Node</div>
                         </div>
                     </div>
                     <div class="dropdown-divider"></div>
@@ -1314,6 +1401,11 @@
                     <div class="dropdown-item" onclick="saveWorkspaceAs()"><span>Save Workspace <u>A</u>s...</span> <span style="color:var(--text-muted); font-size:11px; margin-left:20px;">Ctrl+Shift+S</span></div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-item" onclick="openTraderProfile()"><span><u>T</u>rader Profile...</span></div>
+                </div>
+            </div>
+            <div class="menu-item" accesskey="p"><u>P</u>ortfolio
+                <div class="menu-dropdown">
+                    <div class="dropdown-item" onclick="openSnaptradeModal()"><span>Broker Integration (SnapTrade)</span></div>
                 </div>
             </div>
             <div class="menu-item" onmouseenter="updateViewMenu()" accesskey="v"><u>V</u>iew
@@ -1368,6 +1460,75 @@
     <script>
         window.VLI_DEBUG = true;
         let refreshCountdown = 60;
+        
+        const getSnaptradeSettings = () => ({
+            SNAPTRADE_CLIENT_ID: localStorage.getItem('SNAPTRADE_CLIENT_ID') || '',
+            SNAPTRADE_CONSUMER_KEY: localStorage.getItem('SNAPTRADE_CONSUMER_KEY') || '',
+            SNAPTRADE_USER_ID: localStorage.getItem('SNAPTRADE_USER_ID') || '',
+            SNAPTRADE_USER_SECRET: localStorage.getItem('SNAPTRADE_USER_SECRET') || ''
+        });
+
+        function openSnaptradeModal() {
+            document.getElementById('snaptrade-modal').style.display = 'flex';
+            document.getElementById('snaptrade-client-id').value = localStorage.getItem('SNAPTRADE_CLIENT_ID') || '';
+            document.getElementById('snaptrade-client-secret').value = localStorage.getItem('SNAPTRADE_CONSUMER_KEY') || '';
+            document.getElementById('snaptrade-user-id').value = localStorage.getItem('SNAPTRADE_USER_ID') || '';
+            document.getElementById('snaptrade-user-secret').value = localStorage.getItem('SNAPTRADE_USER_SECRET') || '';
+        }
+
+        function closeSnaptradeModal() {
+            document.getElementById('snaptrade-modal').style.display = 'none';
+        }
+
+        async function registerSnaptrade() {
+            const clientId = document.getElementById('snaptrade-client-id').value.trim();
+            const consumerKey = document.getElementById('snaptrade-client-secret').value.trim();
+            const userId = document.getElementById('snaptrade-user-id').value.trim();
+            
+            if (clientId) localStorage.setItem('SNAPTRADE_CLIENT_ID', clientId);
+            if (consumerKey) localStorage.setItem('SNAPTRADE_CONSUMER_KEY', consumerKey);
+            
+            try {
+                const res = await fetch('/api/brokerage/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ client_id: clientId, consumer_key: consumerKey, user_id: userId })
+                });
+                const data = await res.json();
+                if(data.user_secret) {
+                    localStorage.setItem('SNAPTRADE_USER_ID', data.user_id);
+                    localStorage.setItem('SNAPTRADE_USER_SECRET', data.user_secret);
+                    document.getElementById('snaptrade-user-id').value = data.user_id;
+                    document.getElementById('snaptrade-user-secret').value = data.user_secret;
+                    alert('Registration Successful! You can now click Connect Broker Portal.');
+                } else {
+                    alert('Registration Failed: ' + JSON.stringify(data));
+                }
+            } catch(e) { alert(e); }
+        }
+
+        async function connectSnaptrade() {
+            const clientId = document.getElementById('snaptrade-client-id').value.trim();
+            const consumerKey = document.getElementById('snaptrade-client-secret').value.trim();
+            const userId = document.getElementById('snaptrade-user-id').value.trim();
+            const userSecret = document.getElementById('snaptrade-user-secret').value.trim();
+            
+            try {
+                const res = await fetch('/api/brokerage/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ client_id: clientId, consumer_key: consumerKey, user_id: userId, user_secret: userSecret })
+                });
+                const data = await res.json();
+                if(data.redirect_uri) {
+                    window.open(data.redirect_uri, '_blank');
+                    closeSnaptradeModal();
+                } else {
+                    alert('Connection Failed: ' + JSON.stringify(data));
+                }
+            } catch(e) { alert(e); }
+        }
+
         let activeWin = null;
         let winManager = {
             dragging: null,
@@ -1388,15 +1549,16 @@
             'VLI_CHAT': { idPrefix: 'CI', title: 'Coordinator Interface', isSingleton: true },
             'VLI_TELEMETRY': { idPrefix: 'TM', title: 'Telemetry', isSingleton: true },
             'MACRO_WL': { idPrefix: 'WL', title: 'Macro Watchlist', isSingleton: false },
-            'ANALYSIS_REP': { idPrefix: 'AR', title: 'Analysis Report', isSingleton: false },
+            'STRUCTURAL_ANALY': { idPrefix: 'AR', title: 'Structural Analysis', isSingleton: false },
             'SCAN_RES': { idPrefix: 'SR', title: 'Satellite Scan', isSingleton: true },
-            'SHIELD_RES': { idPrefix: 'SH', title: 'Core Scan', isSingleton: true }
+            'SHIELD_RES': { idPrefix: 'SH', title: 'Core Scan', isSingleton: true },
+            'ORDER_HIST': { idPrefix: 'OH', title: 'Order History', isSingleton: true }
         };
 
         class UXCardManager {
             constructor() {
                 this.instances = {};
-                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'ANALYSIS_REP': 0 };
+                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'STRUCTURAL_ANALY': 0 };
             }
 
             generateGUID() {
@@ -1510,7 +1672,7 @@
                                 </tbody>
                             </table>
                         </div>`;
-                } else if (typeGuid === 'ANALYSIS_REP') {
+                } else if (typeGuid === 'STRUCTURAL_ANALY') {
                     bodyContent = `
                         <div class="card-body terminal analysis-report-body analysis-report-viewer-instance" id="analysis-report-viewer-${instanceGuid}" data-guid="${instanceGuid}">
                             <div style="color:var(--text-muted); text-align:center; padding:40px;">No report active.</div>
@@ -1518,6 +1680,90 @@
                 } else if (typeGuid === 'SCAN_RES') {
                     bodyContent = `
                         <div class="card-body" style="overflow-y: auto; padding: 10px;">
+                        </div>`;
+                } else if (typeGuid === 'ORDER_HIST') {
+                    // Inject global tab switcher if not defined
+                    if (!window.switchOrderTab) {
+                        window.switchOrderTab = function(guid, tabId) {
+                            document.getElementById(`positions-view-${guid}`).style.display = (tabId === 'positions') ? 'block' : 'none';
+                            document.getElementById(`order-history-view-${guid}`).style.display = (tabId === 'history') ? 'block' : 'none';
+                            
+                            document.getElementById(`tab-btn-positions-${guid}`).style.background = (tabId === 'positions') ? 'var(--cobalt-blue)' : 'transparent';
+                            document.getElementById(`tab-btn-positions-${guid}`).style.color = (tabId === 'positions') ? 'white' : 'var(--text-muted)';
+                            
+                            document.getElementById(`tab-btn-history-${guid}`).style.background = (tabId === 'history') ? 'var(--cobalt-blue)' : 'transparent';
+                            document.getElementById(`tab-btn-history-${guid}`).style.color = (tabId === 'history') ? 'white' : 'var(--text-muted)';
+                        };
+                    }
+
+                    bodyContent = `
+                        <div class="card-body" style="overflow-y: hidden; padding: 10px; display: flex; flex-direction: column;">
+                            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px; border: 1px solid var(--border-color);">
+                                <div style="display:flex; gap: 10px; align-items:center;">
+                                    <select id="order-hist-account-${instanceGuid}" class="vli-input" style="flex:1;">
+                                        <option value="">Loading Accounts...</option>
+                                    </select>
+                                </div>
+                                <div style="display:flex; gap: 5px; align-items:center;">
+                                    <select class="vli-input" style="flex:1;" onchange="setOrderHistoryRange(this.value, '${instanceGuid}')">
+                                        <option value="today">Today</option>
+                                        <option value="week">Past Week</option>
+                                        <option value="month">Past Month</option>
+                                        <option value="ytd">Year-to-Date</option>
+                                        <option value="1y">Past Year</option>
+                                    </select>
+                                </div>
+                                <div style="display:flex; gap: 5px; align-items:center;">
+                                    <input type="date" id="order-hist-start-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other">
+                                    <input type="date" id="order-hist-end-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other">
+                                    <input type="text" id="order-hist-symbol-${instanceGuid}" class="vli-input" placeholder="Sym" style="width: 50px; text-transform: uppercase;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other">
+                                    <button id="order-hist-filter-btn-${instanceGuid}" class="vli-btn" onclick="fetchOrderHistory('${instanceGuid}')" style="background:var(--cobalt-blue); border:none; color:#fff; padding:6px 12px; border-radius:4px; font-weight:700; cursor:pointer;">Filter</button>
+                                </div>
+                            </div>
+                            
+                            <div style="display:flex; border-bottom: 1px solid var(--border-color); margin-bottom: 10px;">
+                                <button id="tab-btn-positions-${instanceGuid}" onclick="window.switchOrderTab('${instanceGuid}', 'positions')" style="background:var(--cobalt-blue); color:white; border:none; padding:8px 16px; cursor:pointer; font-weight:bold; font-size:11px;">Positions</button>
+                                <button id="tab-btn-history-${instanceGuid}" onclick="window.switchOrderTab('${instanceGuid}', 'history')" style="background:transparent; color:var(--text-muted); border:none; padding:8px 16px; cursor:pointer; font-weight:bold; font-size:11px;">Order History</button>
+                            </div>
+
+                            <div id="positions-view-${instanceGuid}" style="flex-grow: 1; overflow-y: auto; border: 1px solid var(--border-color);">
+                                <table class="macro-table ibkr-style-table" style="width:100%; border-collapse:collapse; font-size:11px;">
+                                    <thead style="position:sticky; top:0; background:#1e1e1e; z-index:1;">
+                                        <tr>
+                                            <th style="padding:4px; text-align:left; border-bottom:1px solid #444;">TIME</th>
+                                            <th style="padding:4px; text-align:left; border-bottom:1px solid #444;">SYM</th>
+                                            <th style="padding:4px; text-align:right; border-bottom:1px solid #444;">LAST</th>
+                                            <th style="padding:4px; text-align:right; border-bottom:1px solid #444;">DAY G/L%</th>
+                                            <th style="padding:4px; text-align:right; border-bottom:1px solid #444;">DAY G/L$</th>
+                                            <th style="padding:4px; text-align:right; border-bottom:1px solid #444;">TOT G/L%</th>
+                                            <th style="padding:4px; text-align:right; border-bottom:1px solid #444;">TOT G/L$</th>
+                                            <th style="padding:4px; text-align:right; border-bottom:1px solid #444;">QTY</th>
+                                            <th style="padding:4px; text-align:right; border-bottom:1px solid #444;">AVG COST</th>
+                                            <th style="padding:4px; text-align:right; border-bottom:1px solid #444;">VALUE</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="positions-body-${instanceGuid}" style="font-family: var(--font-mono);">
+                                        <tr><td colspan="10" style="text-align:center; padding:20px; color:var(--text-muted);">Select filters...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div id="order-history-view-${instanceGuid}" style="flex-grow: 1; overflow-y: auto; border: 1px solid var(--border-color); display:none;">
+                                <table class="macro-table ibkr-style-table" style="width:100%; border-collapse:collapse; font-size:11px;">
+                                    <thead style="position:sticky; top:0; background:#1e1e1e; z-index:1;">
+                                        <tr>
+                                            <th style="padding:4px; text-align:left; border-bottom:1px solid #444;">TIME</th>
+                                            <th style="padding:4px; text-align:left; border-bottom:1px solid #444;">SYM</th>
+                                            <th style="padding:4px; text-align:left; border-bottom:1px solid #444;">ACTION</th>
+                                            <th style="padding:4px; text-align:right; border-bottom:1px solid #444;">QTY</th>
+                                            <th style="padding:4px; text-align:right; border-bottom:1px solid #444;">PRICE</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="order-history-body-${instanceGuid}" style="font-family: var(--font-mono);">
+                                        <tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Select filters...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>`;
                 }
 
@@ -1553,6 +1799,21 @@
                     if (inputElement) {
                         inputElement.addEventListener('keydown', handleChatInputKeyDown);
                     }
+                } else if (typeGuid === 'ORDER_HIST') {
+                    populateSnaptradeAccounts(instanceGuid);
+                    setOrderHistoryRange('today', instanceGuid);
+                    // Live auto-update every 10 seconds
+                    setInterval(() => {
+                        const box = document.getElementById('win-' + instanceGuid);
+                        if(box && box.style.display !== 'none') {
+                            // Only auto-fetch if we are looking at 'today'
+                            const startVal = document.getElementById(`order-hist-start-${instanceGuid}`).value;
+                            const todayStr = new Date().toISOString().split('T')[0];
+                            if(startVal === todayStr) {
+                                fetchOrderHistory(instanceGuid, true);
+                            }
+                        }
+                    }, 10000);
                 }
                 
                 this.bindCardEvents(cardBox);
@@ -1848,7 +2109,7 @@
                             scHeader.insertBefore(btnContainer, scHeader.querySelector('.card-controls'));
                         }
                     }, 500);
-                    UXManager.createCard('ANALYSIS_REP', {top: '59%', left: '1%', width: '41%', height: '39%'}, 'report');
+                    UXManager.createCard('ORDER_HIST', {top: '59%', left: '1%', width: '41%', height: '39%'}, 'order_history');
                     UXManager.createCard('VLI_TELEMETRY', {top: '59%', left: '43%', width: '22%', height: '39%'}, 'telemetry');
                 } else {
                     alert('Workspace not found: ' + targetKey);
@@ -2205,15 +2466,15 @@
                 bringToFront(telemetry);
             }
             
-            const report = Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'ANALYSIS_REP');
-            if (report) {
-                report.style.display = '';
-                report.style.top = '40px';
-                report.style.left = '40px';
-                report.style.width = leftWidthGrid + 'px';
-                report.style.height = chatHeight + 'px';
-                // push report to back behind telemetry/watchlist if all are open
-                report.style.zIndex = Math.max(10, winManager.maxZ - 10); 
+            const history = Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'ORDER_HIST');
+            if (history) {
+                history.style.display = '';
+                history.style.top = '40px';
+                history.style.left = '40px';
+                history.style.width = leftWidthGrid + 'px';
+                history.style.height = chatHeight + 'px';
+                // push history to back behind telemetry/watchlist if all are open
+                history.style.zIndex = Math.max(10, winManager.maxZ - 10); 
             }
             
             saveLayout();
@@ -2364,7 +2625,7 @@
                 }
             }
             if (!reportViewer) {
-                const newCard = UXManager.createCard('ANALYSIS_REP');
+                const newCard = UXManager.createCard('STRUCTURAL_ANALY');
                 reportViewer = newCard.querySelector('.analysis-report-viewer-instance');
             }
 
@@ -2372,7 +2633,7 @@
             const t = text.trim();
             
             // Dynamic Title Bar Extraction setup
-            let dynamicTitle = "Analysis Report";
+            let dynamicTitle = "Structural Analysis";
             let lines = t.split('\n');
             let headerLine = lines.find(line => /^#{1,4}\s+/.test(line.trim()));
             if (headerLine) {
@@ -2474,7 +2735,8 @@
                         body: JSON.stringify({
                             text: prompt,
                             direct_mode: true,
-                            vli_llm_type: "core"
+                            vli_llm_type: "core",
+                            snaptrade_settings: getSnaptradeSettings()
                         })
                     });
                     const resData = await response.json();
@@ -2855,7 +3117,7 @@
                                     ${isRefreshing ? 
                                     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
                                     : 
-                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${hasReport ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${ticker}')" title="Analysis Report"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
+                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${hasReport ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${ticker}')" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
                                 </div>
                             </div>
                         </td>
@@ -2921,7 +3183,8 @@
                     direct_mode: true,
                     raw_data_mode: false,
                     background_synthesis: true,
-                    thread_id: "vli-" + Date.now()
+                    thread_id: "vli-" + Date.now(),
+                    snaptrade_settings: getSnaptradeSettings()
                 })
             });
         }
@@ -3221,7 +3484,7 @@
                                     ${isRefreshing ? 
                                     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
                                     : 
-                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${c.symbol}')" title="Analysis Report"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
+                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${c.symbol}')" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
                                 </div>
                             </div>
                         </td>
@@ -3293,6 +3556,7 @@
         // 3. Reports
         function renderReport(data) {
             document.querySelectorAll('.analysis-report-viewer-instance').forEach(reportViewer => {
+                if (reportViewer.dataset.isStatic === "true") return;
                 if (data.async_report && reportViewer.dataset.lastReport !== data.async_report) {
                     let safeReport = data.async_report;
                     const leakKeywords = ["# SECURITY OVERRIDE", "APEX 500 SYSTEM", "USER IDENTITY: DAVE", "OPERATIONAL MANDATE"];
@@ -3554,7 +3818,8 @@
                                 direct_mode: directMode,
                                 raw_data_mode: false,
                                 background_synthesis: asyncMode,
-                                thread_id: lastVliThreadId
+                                thread_id: lastVliThreadId,
+                                snaptrade_settings: getSnaptradeSettings()
                             })
                         });
                         const data = await res.json();
@@ -3592,7 +3857,8 @@
                                 direct_mode: directMode,
                                 raw_data_mode: rawDataMode,
                                 background_synthesis: asyncMode,
-                                thread_id: lastVliThreadId
+                                thread_id: lastVliThreadId,
+                                snaptrade_settings: getSnaptradeSettings()
                             })
                         });
                         const data = await res.json();
@@ -4047,7 +4313,7 @@
                                     ${isRefreshing ? 
                                     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
                                     : 
-                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${c.symbol}')" title="Analysis Report"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
+                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${c.symbol}')" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
                                 </div>
                             </div>
                         </td>
@@ -4072,50 +4338,251 @@
         // Auto-refresh pollers removed in favor of unified VLI poll cycle
         
         // --- End of Shield Logic ---
+        
+        // --- ORDER HISTORY LOGIC ---
+        window.populateSnaptradeAccounts = async function(instanceGuid) {
+            const selectEl = document.getElementById(`order-hist-account-${instanceGuid}`);
+            if(!selectEl) return;
+            try {
+                const baseUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://127.0.0.1:8000' : '';
+                const res = await fetch(`${baseUrl}/api/brokerage/accounts`);
+                const data = await res.json();
+                if(data.accounts && data.accounts.length > 0) {
+                    selectEl.innerHTML = '';
+                    data.accounts.forEach(acc => {
+                        const opt = document.createElement('option');
+                        opt.value = acc.id;
+                        opt.textContent = acc.name || acc.id;
+                        selectEl.appendChild(opt);
+                    });
+                    
+                    if (window.failedModules) window.failedModules.delete(`ACCOUNTS_${instanceGuid}`);
+                    
+                    // Fetch initial data after populating accounts if a date is set
+                    const startVal = document.getElementById(`order-hist-start-${instanceGuid}`).value;
+                    if(startVal) {
+                        fetchOrderHistory(instanceGuid);
+                    }
+                } else {
+                    selectEl.innerHTML = '<option value="">No Accounts Found</option>';
+                }
+            } catch (err) {
+                console.error("Failed to populate SnapTrade accounts:", err);
+                selectEl.innerHTML = '<option value="">Error Loading Accounts</option>';
+                if (window.failedModules) window.failedModules.add(`ACCOUNTS_${instanceGuid}`);
+            }
+        };
 
-        // --- REPORT MODAL LOGIC ---
-        window.openReportModal = async function(symbol) {
-            const modal = document.getElementById('report-modal');
-            const titleSpan = document.getElementById('report-modal-title');
-            const contentDiv = document.getElementById('report-modal-content');
+        window.setOrderHistoryRange = function(rangeStr, instanceGuid) {
+            const startEl = document.getElementById(`order-hist-start-${instanceGuid}`);
+            const endEl = document.getElementById(`order-hist-end-${instanceGuid}`);
+            if(!startEl || !endEl) return;
             
-            titleSpan.innerText = symbol.toUpperCase();
-            contentDiv.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">Fetching Institutional Report...</div>';
-            modal.style.display = 'flex';
+            const end = new Date();
+            let start = new Date();
+            
+            if(rangeStr === 'today') {
+                // start is already today
+            } else if (rangeStr === 'week') {
+                start.setDate(end.getDate() - 7);
+            } else if (rangeStr === 'month') {
+                start.setMonth(end.getMonth() - 1);
+            } else if (rangeStr === 'ytd') {
+                start = new Date(end.getFullYear(), 0, 1);
+            } else if (rangeStr === '1y') {
+                start.setFullYear(end.getFullYear() - 1);
+            }
+            
+            // Format to YYYY-MM-DD
+            startEl.value = start.toISOString().split('T')[0];
+            endEl.value = end.toISOString().split('T')[0];
+            
+            // Automatically fetch if account is already loaded
+            const accountVal = document.getElementById(`order-hist-account-${instanceGuid}`).value;
+            if(accountVal) {
+                fetchOrderHistory(instanceGuid);
+            }
+        };
+
+        window.fetchOrderHistory = async function(instanceGuid, isBackground = false) {
+            const accountId = document.getElementById(`order-hist-account-${instanceGuid}`).value;
+            const startVal = document.getElementById(`order-hist-start-${instanceGuid}`).value;
+            const endVal = document.getElementById(`order-hist-end-${instanceGuid}`).value;
+            const symbolFilter = document.getElementById(`order-hist-symbol-${instanceGuid}`).value.toUpperCase().trim();
+            const tbody = document.getElementById(`order-history-body-${instanceGuid}`);
+            const pbody = document.getElementById(`positions-body-${instanceGuid}`);
+            
+            if(!accountId || !startVal || !endVal) {
+                if (!isBackground) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Please select account and date range.</td></tr>';
+                    if (pbody) pbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--text-muted);">Please select account and date range.</td></tr>';
+                }
+                return;
+            }
+            
+            if (!isBackground) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Fetching...</td></tr>';
+                if (pbody) pbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--text-muted);">Fetching...</td></tr>';
+            }
+            
+            const filterBtn = document.getElementById(`order-hist-filter-btn-${instanceGuid}`);
+            if (filterBtn && !isBackground) {
+                filterBtn.disabled = true;
+                filterBtn.style.opacity = '0.5';
+                filterBtn.style.cursor = 'wait';
+            }
+            
+            try {
+                // Ensure we hit the Python backend directly
+                const baseUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://127.0.0.1:8000' : '';
+                const url = `${baseUrl}/api/brokerage/history?account_id=${encodeURIComponent(accountId)}&start_date=${startVal}&end_date=${endVal}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if(data.error) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--ruby-red);">Error: ${data.error}</td></tr>`;
+                    if (pbody) pbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--ruby-red);">Error: ${data.error}</td></tr>`;
+                    return;
+                }
+                
+                let history = data.history || [];
+                let positions = data.positions || [];
+                
+                if(symbolFilter) {
+                    history = history.filter(t => (t.symbol || '').toUpperCase() === symbolFilter);
+                    positions = positions.filter(p => (p.symbol || '').toUpperCase() === symbolFilter);
+                }
+                
+                if(history.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">No trades found for this range.</td></tr>';
+                } else {
+                    let html = '';
+                    history.forEach(t => {
+                        const actionUpper = (t.action || 'N/A').toUpperCase();
+                        const isBuy = actionUpper.includes('BUY');
+                        const isSell = actionUpper.includes('SELL');
+                        let actionHtml = actionUpper;
+                        if(isBuy) actionHtml = `<span style="color:var(--emerald-green); font-weight:bold;">${actionUpper}</span>`;
+                        else if (isSell) actionHtml = `<span style="color:var(--ruby-red); font-weight:bold;">${actionUpper}</span>`;
+                        
+                        html += `
+                            <tr>
+                                <td style="padding:4px; border-bottom:1px solid #333; color:var(--text-muted);">${t.time || ''}</td>
+                                <td style="padding:4px; border-bottom:1px solid #333; font-weight:bold;">${t.symbol || ''}</td>
+                                <td style="padding:4px; border-bottom:1px solid #333;">${actionHtml}</td>
+                                <td style="padding:4px; text-align:right; border-bottom:1px solid #333;">${t.qty || 0}</td>
+                                <td style="padding:4px; text-align:right; border-bottom:1px solid #333;">$${parseFloat(t.price || 0).toFixed(2)}</td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                }
+                
+                if (pbody) {
+                    if (positions.length === 0) {
+                        pbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--text-muted);">No open positions found.</td></tr>';
+                    } else {
+                        let pHtml = '';
+                        positions.forEach(p => {
+                            const dGlPct = parseFloat(p.todays_gl_pct || 0);
+                            const dGlDol = parseFloat(p.todays_gl_dol || 0);
+                            const tGlPct = parseFloat(p.total_gl_pct || 0);
+                            const tGlDol = parseFloat(p.total_gl_dol || 0);
+                            
+                            const dColor = dGlPct >= 0 ? 'var(--emerald-green)' : 'var(--ruby-red)';
+                            const tColor = tGlPct >= 0 ? 'var(--emerald-green)' : 'var(--ruby-red)';
+                            
+                            pHtml += `
+                                <tr>
+                                    <td style="padding:4px; border-bottom:1px solid #333; color:var(--text-muted);">${p.last_time || ''}</td>
+                                    <td style="padding:4px; border-bottom:1px solid #333; font-weight:bold;">${p.symbol || ''}</td>
+                                    <td style="padding:4px; text-align:right; border-bottom:1px solid #333;">$${parseFloat(p.last_price || 0).toFixed(2)}</td>
+                                    <td style="padding:4px; text-align:right; border-bottom:1px solid #333; color:${dColor};">${dGlPct > 0 ? '+':''}${dGlPct.toFixed(2)}%</td>
+                                    <td style="padding:4px; text-align:right; border-bottom:1px solid #333; color:${dColor};">${dGlDol > 0 ? '+$':'-$'}${Math.abs(dGlDol).toFixed(2)}</td>
+                                    <td style="padding:4px; text-align:right; border-bottom:1px solid #333; color:${tColor};">${tGlPct > 0 ? '+':''}${tGlPct.toFixed(2)}%</td>
+                                    <td style="padding:4px; text-align:right; border-bottom:1px solid #333; color:${tColor};">${tGlDol > 0 ? '+$':'-$'}${Math.abs(tGlDol).toFixed(2)}</td>
+                                    <td style="padding:4px; text-align:right; border-bottom:1px solid #333;">${Math.ceil(p.qty || 0)}</td>
+                                    <td style="padding:4px; text-align:right; border-bottom:1px solid #333;">$${parseFloat(p.average_cost || 0).toFixed(2)}</td>
+                                    <td style="padding:4px; text-align:right; border-bottom:1px solid #333;">$${parseFloat(p.current_value || 0).toFixed(2)}</td>
+                                </tr>
+                            `;
+                        });
+                        pbody.innerHTML = pHtml;
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch order history:", err);
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--ruby-red);">Failed to fetch order history.</td></tr>`;
+                if (pbody) pbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--ruby-red);">Failed to fetch positions.</td></tr>`;
+            } finally {
+                if (filterBtn && !isBackground) {
+                    filterBtn.disabled = false;
+                    filterBtn.style.opacity = '1';
+                    filterBtn.style.cursor = 'pointer';
+                }
+            }
+        };
+        // --- REPORT VIEWER LOGIC ---
+        window.openReportModal = async function(symbol) {
+            // Find a blank report viewer or spawn a new one via the UXManager
+            let reportViewer = null;
+            const viewers = document.querySelectorAll('.analysis-report-viewer-instance');
+            for (const v of viewers) {
+                if (v.innerText.includes("No report active.") || v.innerText.trim() === "") {
+                    reportViewer = v;
+                    break;
+                }
+            }
+            if (!reportViewer) {
+                const newCard = UXManager.createCard('STRUCTURAL_ANALY');
+                if (newCard) {
+                    reportViewer = newCard.querySelector('.analysis-report-viewer-instance');
+                }
+            }
+            
+            if (!reportViewer) return;
+            
+            const win = reportViewer.closest('.window');
+            if (win) {
+                const titleSpan = win.querySelector('.window-title span:first-child');
+                if (titleSpan) titleSpan.innerText = symbol.toUpperCase() + " Structural Analysis";
+                bringToFront(win);
+            }
+            
+            reportViewer.dataset.isStatic = "true";
+            reportViewer.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">Fetching Institutional Report...</div>';
             
             try {
                 const res = await fetch(`/api/vli/report/${symbol}?t=${Date.now()}`);
                 const data = await res.json();
                 
                 if(data.success) {
-                    contentDiv.innerHTML = marked.parse(data.content);
+                    let formattedText = data.content;
+                    let dynamicTitle = symbol.toUpperCase() + " Structural Analysis";
+                    
+                    let lines = formattedText.trim().split('\\n');
+                    let headerLine = lines.find(line => /^#{1,4}\\s+/.test(line.trim()));
+                    if (headerLine) {
+                        dynamicTitle = headerLine.replace(/^#{1,4}\\s+/, '').replace(/[\\*\\_`]/g, '').trim();
+                        if (dynamicTitle.length > 55) dynamicTitle = dynamicTitle.substring(0, 52) + "...";
+                    }
+                    
+                    reportViewer.innerHTML = marked.parse(formattedText);
+                    if (win) {
+                        const titleSpan = win.querySelector('.window-title span:first-child');
+                        if (titleSpan) titleSpan.innerText = dynamicTitle;
+                    }
                 } else {
-                    contentDiv.innerHTML = `<div style="color: var(--ruby-red); padding: 20px;">Report not yet generated for ${symbol}. Please wait for the background analyst or type <code>analyze ${symbol}</code> in the command center.</div>`;
+                    reportViewer.innerHTML = `<div style="color: var(--ruby-red); padding: 20px;">Report not yet generated for ${symbol}. Please wait for the background analyst or type <code>analyze ${symbol}</code> in the command center.</div>`;
                 }
             } catch(e) {
-                contentDiv.innerHTML = `<div style="color: var(--ruby-red); padding: 20px;">Error fetching report: ${e}</div>`;
+                reportViewer.innerHTML = `<div style="color: var(--ruby-red); padding: 20px;">Error fetching report: ${e}</div>`;
             }
         };
 
     </script>
-    
-    <!-- Analysis Report Modal -->
-    <div id="report-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; align-items: center; justify-content: center;">
-        <div style="background: var(--surface-bg, #0d111b); border: 1px solid var(--border-subtle, rgba(255,255,255,0.1)); border-radius: 8px; width: 80%; max-width: 900px; height: 85%; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-            <div style="padding: 12px 16px; border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.1)); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
-                <div style="display: flex; align-items: center; font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: var(--emerald-green);">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> 
-                    INSTITUTIONAL ANALYSIS: <span id="report-modal-title" style="margin-left: 4px;"></span>
-                </div>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="cursor: pointer;" onclick="document.getElementById('report-modal').style.display='none'"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </div>
-            <div id="report-modal-content" style="padding: 30px; overflow-y: auto; flex-grow: 1; font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: var(--text-primary);" class="markdown-body">
-                Loading report...
-            </div>
-        </div>
-    </div>
 
-    <div id="vli-version-watermark" style="position: fixed; bottom: 12px; right: 16px; z-index: 999999; font-family: var(--font-mono); font-size: 11px; color: rgba(255,255,255,0.2); pointer-events: none; user-select: none;">
+    <div id="vli-version-watermark" style="position: fixed; bottom: 12px; right: 16px; z-index: 999999; font-family: var(--font-mono); font-size: 11px; color: rgba(255,255,255,0.5); pointer-events: none; user-select: none;">
         Ver. <span id="vli-watermark-version"></span>
     </div>
     <script>

@@ -11,7 +11,7 @@ time.sleep(8) # Wait for server to start
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     page = browser.new_page()
-    page.goto("http://localhost:8000/VLI_session_dashboard.html")
+    page.goto("http://localhost:8000/vli_dashboard.html")
     print("Page loaded.")
     time.sleep(5)
     

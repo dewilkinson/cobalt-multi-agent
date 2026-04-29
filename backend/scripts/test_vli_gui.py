@@ -10,7 +10,7 @@ INBOX_DIR = "inbox"
 inbox_path = os.path.join(VAULT_ROOT, COBALT_DIR, INBOX_DIR)
 test_draft_file = os.path.join(inbox_path, "gui_test_draft.txt")
 
-DASHBOARD_URL = "http://127.0.0.1:8089/VLI_session_dashboard.html"
+DASHBOARD_URL = "http://127.0.0.1:8089/vli_dashboard.html"
 
 
 def cleanup():

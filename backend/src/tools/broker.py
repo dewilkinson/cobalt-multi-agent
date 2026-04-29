@@ -334,3 +334,127 @@ def get_brokerage_statements(account_id: str, config: RunnableConfig):
     except Exception as e:
         logger.error(f"SnapTrade API Error: {e}")
         return f"[ERROR]: Exception when calling list_user_account_statements: {e}\n"
+
+@tool
+def sync_brokerage_portfolio(config: RunnableConfig):
+    """
+    Synchronizes the internal Portfolio Ledger with the live Fidelity accounts.
+    Pulls Open Positions, Open Orders, and recent Executed Trades (Activities) from SnapTrade.
+    Writes the resulting ledger directly into the Obsidian vault.
+    """
+    client, user_id, user_secret, mock_broker = _get_client_and_creds(config)
+    
+    if not client or not user_id or not user_secret:
+        if str(mock_broker).lower() == "true":
+            return "Mock broker mode active. Skipping live synchronization."
+        return "[ERROR]: SnapTrade credentials missing. Cannot sync portfolio."
+        
+    logger.info("Syncing brokerage portfolio with internal ledger...")
+    
+    try:
+        accounts_res = client.account_information.list_user_accounts(user_id=user_id, user_secret=user_secret)
+        accounts = getattr(accounts_res, 'body', accounts_res)
+        if not accounts:
+            return "No connected brokerage accounts found on SnapTrade."
+            
+        ledger_sections = []
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        
+        for acc in accounts:
+            acc_id = acc.get('id')
+            acc_name = acc.get('name', 'Unknown Account')
+            if not acc_id:
+                continue
+                
+            ledger_sections.append(f"## Account: {acc_name}")
+            
+            # 1. Fetch Open Positions
+            try:
+                positions_res = client.account_information.get_user_account_positions(user_id=user_id, user_secret=user_secret, account_id=acc_id)
+                positions = getattr(positions_res, 'body', positions_res)
+                
+                ledger_sections.append("### Open Positions")
+                if positions:
+                    for pos in positions:
+                        sym = pos.get('symbol', {}).get('symbol', 'Unknown')
+                        qty = pos.get('units', 0)
+                        price = pos.get('price', 0)
+                        ledger_sections.append(f"- {sym}: {qty} units @ ${price}")
+                else:
+                    ledger_sections.append("- No open positions.")
+            except Exception as e:
+                ledger_sections.append(f"- Failed to fetch positions: {e}")
+                
+            # 2. Fetch Open Orders
+            try:
+                open_orders_res = client.account_information.get_user_account_orders(user_id=user_id, user_secret=user_secret, account_id=acc_id, state="open")
+                open_orders = getattr(open_orders_res, 'body', open_orders_res)
+                
+                ledger_sections.append("\n### Open Orders")
+                if open_orders:
+                    for order in open_orders:
+                        sym = order.get('symbol', {}).get('symbol', 'Unknown')
+                        action = order.get('action', 'Unknown')
+                        qty = order.get('total_quantity', 0)
+                        price = order.get('price') or order.get('stop_price') or 'MKT'
+                        ledger_sections.append(f"- {action} {qty} {sym} @ {price}")
+                else:
+                    ledger_sections.append("- No open orders.")
+            except Exception as e:
+                ledger_sections.append(f"- Failed to fetch open orders: {e}")
+                
+            # 3. Fetch Recent Filled Orders (Activities)
+            try:
+                activities_res = client.transactions_and_reporting.get_activities(
+                    user_id=user_id, 
+                    user_secret=user_secret, 
+                    accounts=acc_id, 
+                    start_date=today_str, 
+                    end_date=today_str
+                )
+                activities = getattr(activities_res, 'body', activities_res)
+                
+                ledger_sections.append("\n### Today's Executions")
+                if activities:
+                    # SnapTrade returns newest first. Reverse to oldest first for chronological timestamping.
+                    activities_chronological = list(reversed(activities))
+                    for i, act in enumerate(activities_chronological):
+                        sym = act.get('symbol', {}).get('symbol', 'Unknown')
+                        action = act.get('type', act.get('action', 'Unknown'))
+                        qty = act.get('units', 0)
+                        price = act.get('price', 0)
+                        
+                        raw_time = act.get('trade_date') or act.get('trade_time') or act.get('timestamp') or act.get('date') or act.get('time')
+                        timestamp = None
+                        if raw_time and isinstance(raw_time, str):
+                            if 'T' in raw_time:
+                                timestamp = raw_time.split('T')[1][:8]
+                            elif ':' in raw_time:
+                                timestamp = raw_time.split(' ')[-1]
+                                
+                        if not timestamp:
+                            # Assign sequential timestamps starting at market open (09:30:xx)
+                            seconds = i + 1
+                            minutes = seconds // 60
+                            remaining_secs = seconds % 60
+                            timestamp = f"09:{30 + minutes:02d}:{remaining_secs:02d}"
+                        
+                        ledger_sections.append(f"- [{timestamp}] {action} {qty} {sym} @ ${price}")
+                else:
+                    ledger_sections.append("- No executions today.")
+            except Exception as e:
+                ledger_sections.append(f"- Failed to fetch activities: {e}")
+                
+            ledger_sections.append("\n---")
+            
+        full_markdown = "\n".join(ledger_sections)
+        
+        # We invoke the portfolio update tool
+        from src.tools.portfolio import update_portfolio_ledger
+        update_res = update_portfolio_ledger.invoke({"position_data": full_markdown}, config=config)
+        
+        return f"Successfully synced Fidelity accounts. {update_res}"
+        
+    except Exception as e:
+        logger.error(f"Failed to sync brokerage portfolio: {e}")
+        return f"[ERROR]: Failed to sync brokerage portfolio: {e}"

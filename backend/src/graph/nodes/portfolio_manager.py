@@ -9,6 +9,7 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from src.tools import fetch_market_macros, get_portfolio_balance_report, get_smc_analysis, get_stock_quote, update_portfolio_ledger, update_watchlist, get_attribution_summary
+from src.tools.broker import sync_brokerage_portfolio
 from src.tools.shared_storage import GLOBAL_CONTEXT, PORTFOLIO_MANAGER_CONTEXT
 
 from ..types import State
@@ -32,10 +33,11 @@ async def portfolio_manager_node(state: State, config: RunnableConfig):
     logger.info("Portfolio Manager Node: Evaluating War Barbell balance and Watchlist integrity.")
 
     # Selection of tools for the Overseer
-    tools = [get_portfolio_balance_report, update_watchlist, update_portfolio_ledger, get_stock_quote, get_smc_analysis, fetch_market_macros, get_attribution_summary]
+    tools = [get_portfolio_balance_report, update_watchlist, update_portfolio_ledger, get_stock_quote, get_smc_analysis, fetch_market_macros, get_attribution_summary, sync_brokerage_portfolio]
 
     # Enforce objective reporting
     instructions = f"Report verbosity={state.get('verbosity', 1)}. "
-    instructions += "Your focus is the 'War Barbell' balance. Categorize all candidates as either 'Sword' (Tech/Growth) or 'Shield' (Energy/Defensive)."
+    instructions += "Your first priority is to run 'sync_brokerage_portfolio' to pull real-time SnapTrade data (positions, open orders, filled orders) from Fidelity into your Portfolio Ledger database. "
+    instructions += "After syncing, your focus is the 'War Barbell' balance. Categorize all candidates as either 'Sword' (Tech/Growth) or 'Shield' (Energy/Defensive)."
 
     return await _setup_and_execute_agent_step(state, config, "portfolio_manager", tools, agent_instructions=instructions)

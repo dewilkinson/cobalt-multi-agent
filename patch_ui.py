@@ -1,6 +1,6 @@
 import re
 
-with open("backend/public/VLI_session_dashboard.html", "r", encoding="utf-8") as f:
+with open("backend/public/vli_dashboard.html", "r", encoding="utf-8") as f:
     content = f.read()
 
 # 1. Initialize the set where activeScannerCandidates is defined
@@ -50,7 +50,7 @@ new_render_logic = """
 """
 content = content.replace(old_render_logic, new_render_logic)
 
-with open("backend/public/VLI_session_dashboard.html", "w", encoding="utf-8") as f:
+with open("backend/public/vli_dashboard.html", "w", encoding="utf-8") as f:
     f.write(content)
 
 print("Replaced!")

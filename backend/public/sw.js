@@ -1,6 +1,6 @@
-const CACHE_NAME = 'vli-dashboard-cache-v16';
+const CACHE_NAME = 'vli-dashboard-cache-v19';
 const URLS_TO_CACHE = [
-  '/VLI_session_dashboard.html'
+  '/vli_dashboard.html'
 ];
 
 self.addEventListener('install', event => {
@@ -33,10 +33,10 @@ self.addEventListener('fetch', event => {
   }
   
   // For the dashboard HTML, try network first, then fallback to cache
-  if (event.request.url.includes('VLI_session_dashboard.html')) {
+  if (event.request.url.includes('vli_dashboard.html')) {
     event.respondWith(
       fetch(event.request).catch(() => {
-        return caches.match('/VLI_session_dashboard.html', { ignoreSearch: true }).then(response => {
+        return caches.match('/vli_dashboard.html', { ignoreSearch: true }).then(response => {
           return response || new Response('<html><body style="background:#000;color:#fff;text-align:center;padding:50px;">Dashboard Offline. Cache miss.</body></html>', { headers: { 'Content-Type': 'text/html' }});
         });
       })
@@ -53,7 +53,7 @@ self.addEventListener('fetch', event => {
       .catch(() => {
         // Fallback for offline if it's the root or dashboard
         if (event.request.mode === 'navigate') {
-          return caches.match('/VLI_session_dashboard.html', { ignoreSearch: true }).then(response => {
+          return caches.match('/vli_dashboard.html', { ignoreSearch: true }).then(response => {
             return response || new Response('<html><body style="background:#000;color:#fff;text-align:center;padding:50px;">Dashboard Offline. Cache miss.</body></html>', { headers: { 'Content-Type': 'text/html' }});
           });
         }

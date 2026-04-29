@@ -11,7 +11,7 @@ with sync_playwright() as p:
     proc = subprocess.Popen(["python", "backend/server.py", "--port", "8000"])
     time.sleep(8)
     
-    page.goto("http://localhost:8000/VLI_session_dashboard.html")
+    page.goto("http://localhost:8000/vli_dashboard.html")
     print("Page loaded.")
     time.sleep(5)
     

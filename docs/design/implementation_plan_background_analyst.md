@@ -23,7 +23,7 @@ We will build an automated pipeline that ensures deep-dive LLM reports are pre-g
   - [MODIFY] Add a new REST endpoint: `GET /api/vli/report/{symbol}` which reads the requested markdown file from disk and serves it.
 
 ### 4. Frontend: Document Icon & Modal UI
-- **File**: `backend/public/VLI_session_dashboard.html`
+- **File**: `backend/public/vli_dashboard.html`
   - [MODIFY] In `renderScannerResults` and `renderShieldResults`, inject a document icon (`<i class="fas fa-file-alt"></i>`) next to the Grade badge.
   - If `c.has_report === true`, the icon will be green (`var(--emerald-green)`). If false, it will be gray.
   - [NEW] Add a hidden modal overlay (`#report-modal`) and an `openReportModal(symbol)` function triggered by clicking the icon. It will hit the new backend endpoint, parse the Markdown, and display the report cleanly.

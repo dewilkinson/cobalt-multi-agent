@@ -47,7 +47,7 @@ def update_package_json(version):
             f.write(content)
 
 def update_vli_dashboard(version):
-    dashboard_file = os.path.join(ROOT_DIR, 'backend', 'public', 'VLI_session_dashboard.html')
+    dashboard_file = os.path.join(ROOT_DIR, 'backend', 'public', 'vli_dashboard.html')
     if os.path.exists(dashboard_file):
         with open(dashboard_file, 'r', encoding='utf-8') as f:
             content = f.read()

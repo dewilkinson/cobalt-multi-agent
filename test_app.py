@@ -1,8 +1,11 @@
-import requests
-try:
-    print("Sending SMC Analysis for GOOGL to API...")
-    res = requests.post('http://localhost:8000/api/vli/action-plan', json={'text': 'SMC Analysis for GOOGL'})
-    print("STATUS:", res.status_code)
-    print("CONTENT:", res.text)
-except Exception as e:
-    print("FATAL ERROR:", e)
+import sys
+import os
+os.chdir('backend')
+sys.path.append(os.getcwd())
+from src.server.app import app
+from fastapi.testclient import TestClient
+
+client = TestClient(app)
+res = client.get('/api/brokerage/accounts')
+print(res.status_code)
+print(res.text)

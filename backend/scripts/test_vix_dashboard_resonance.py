@@ -4,7 +4,7 @@ import time
 from playwright.sync_api import sync_playwright
 
 # --- Configuration ---
-DASHBOARD_URL = "http://127.0.0.1:8089/VLI_session_dashboard.html"
+DASHBOARD_URL = "http://127.0.0.1:8089/vli_dashboard.html"
 ITERATIONS = 10
 TICKER = "VIX"
 

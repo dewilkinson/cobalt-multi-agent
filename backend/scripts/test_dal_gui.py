@@ -3,7 +3,7 @@ import time
 
 from playwright.sync_api import sync_playwright
 
-DASHBOARD_URL = "http://127.0.0.1:8000/VLI_session_dashboard.html"
+DASHBOARD_URL = "http://127.0.0.1:8000/vli_dashboard.html"
 
 def run_dal_gui_test():
     print("Starting VLI Dashboard DAL Verification...")

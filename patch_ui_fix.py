@@ -1,6 +1,6 @@
 import re
 
-with open("backend/public/VLI_session_dashboard.html", "r", encoding="utf-8") as f:
+with open("backend/public/vli_dashboard.html", "r", encoding="utf-8") as f:
     content = f.read()
 
 # Fix the bug
@@ -18,7 +18,7 @@ content = content.replace(
     'window.vliNewSymbols = window.vliNewSymbols || new Set();\n        window.vliNewSymbols.clear();'
 )
 
-with open("backend/public/VLI_session_dashboard.html", "w", encoding="utf-8") as f:
+with open("backend/public/vli_dashboard.html", "w", encoding="utf-8") as f:
     f.write(content)
 
 print("Fixed initialization order!")

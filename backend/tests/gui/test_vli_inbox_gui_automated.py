@@ -9,7 +9,7 @@ VAULT_ROOT = r"C:\github\obsidian-vault"
 INBOX_PATH = os.path.join(VAULT_ROOT, "_cobalt", "inbox")
 JOURNALS_PATH = os.path.join(VAULT_ROOT, "CMA journals")
 ARCHIVE_PATH = os.path.join(VAULT_ROOT, "_cobalt", "archives", "action_plans")
-DASHBOARD_URL = "http://127.0.0.1:8089/VLI_session_dashboard.html"
+DASHBOARD_URL = "http://127.0.0.1:8089/vli_dashboard.html"
 API_URL = "http://127.0.0.1:8000/api/vli"
 
 

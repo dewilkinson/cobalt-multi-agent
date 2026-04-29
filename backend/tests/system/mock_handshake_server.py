@@ -21,12 +21,12 @@ START_TIME = time.time()
 RESTART_TIME = None
 
 # Using the version we just generated
-CLIENT_VERSION = "00.000.0002"
+CLIENT_VERSION = "00.000.0004"
 
-@app.get("/VLI_session_dashboard.html")
+@app.get("/vli_dashboard.html")
 async def get_dashboard():
     # Serve the actual dashboard file
-    file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "VLI_session_dashboard.html"))
+    file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "public", "vli_dashboard.html"))
     return FileResponse(file_path)
 
 @app.get("/sw.js")

@@ -1,7 +1,7 @@
 import re
 
 def migrate():
-    fp = "c:/github/cobalt-multi-agent/backend/public/VLI_session_dashboard.html"
+    fp = "c:/github/cobalt-multi-agent/backend/public/vli_dashboard.html"
     with open(fp, "r", encoding="utf-8") as f:
         html = f.read()
 

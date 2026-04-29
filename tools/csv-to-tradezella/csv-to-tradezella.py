@@ -221,12 +221,18 @@ def generate_tradezella_csv(input_filename, output_filename, target_month=None, 
 
         for i, trade in enumerate(final_daily_trades):
 
-            # Assign sequential timestamps starting at market open (09:30:xx)
-            # This forces TradeZella to recognize entries before exits for day trades.
-            seconds = i + 1
-            minutes = seconds // 60
-            remaining_secs = seconds % 60
-            timestamp = f"09:{30 + minutes:02d}:{remaining_secs:02d}"
+            raw_time = trade.get('Time') or trade.get('Execution Time') or trade.get('Time ($)')
+            timestamp = None
+            if raw_time:
+                timestamp = str(raw_time).strip()
+                
+            if not timestamp:
+                # Assign sequential timestamps starting at market open (09:30:xx)
+                # This forces TradeZella to recognize entries before exits for day trades.
+                seconds = i + 1
+                minutes = seconds // 60
+                remaining_secs = seconds % 60
+                timestamp = f"09:{30 + minutes:02d}:{remaining_secs:02d}"
             
             action = trade['Action'].upper()
             is_buy = "BOUGHT" in action
