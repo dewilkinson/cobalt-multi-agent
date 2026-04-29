@@ -233,12 +233,12 @@ async def vli_node(
         )
 
     # --- [SHOW COMMAND INTENT] ---
-    show_match = re.match(r'^(show|display)\s+(?:(report|news|quote)\s+(?:for\s+)?)?([a-zA-Z\.\=\^]+)$', stripped_query)
+    show_match = re.match(r'^(show|display)\s+(?:(report|news|quote)\s+(?:for\s+)?)?([a-zA-Z\.\=\^]+)(?:\s+(report|news|quote))?$', stripped_query)
     if show_match:
         from src.services.datastore import DatastoreManager
         import os
         import json
-        artifact_type = show_match.group(2)
+        artifact_type = show_match.group(2) or show_match.group(4)
         sym = show_match.group(3).upper()
         
         found_content = None
