@@ -134,9 +134,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-family: var(--font-mono);
             font-weight: 700;
-            font-size: 11px;
+            font-size: 17px;
+            letter-spacing: 0.3px;
             border-radius: 0 !important;
             z-index: 9999 !important;
         }
@@ -2231,13 +2231,28 @@
             keys.forEach(guid => {
                 const card = UXManager.instances[guid];
                 const badge = card.dataset.badge;
-                const title = CARD_TYPES[card.dataset.typeGuid].title;
+                
+                let title = CARD_TYPES[card.dataset.typeGuid].title;
+                
+                // If it's an Analysis Report (UX Report), attempt to grab the descriptive dynamic title
+                if (card.dataset.typeGuid === 'STRUCTURAL_ANALY') {
+                    const titleElem = card.querySelector('.card-header > div:first-child > div:nth-child(2)');
+                    if (titleElem) {
+                        // Extract text and remove the LIVE badge if present
+                        let text = titleElem.innerText || '';
+                        text = text.replace('LIVE', '').trim();
+                        if (text && text.length > 0) {
+                            title = text;
+                        }
+                    }
+                }
+                
                 const isVisible = card.style.display !== 'none';
                 
                 const check = isVisible ? '☑' : '☐';
                 const el = document.createElement('div');
                 el.className = 'dropdown-item';
-                el.innerHTML = `<span>${title}</span> <span style="font-size:16px; margin-left: 20px;">${check}</span>`;
+                el.innerHTML = `<span>[${badge}] ${title}</span> <span style="font-size:16px; margin-left: 20px;">${check}</span>`;
                 el.onclick = () => {
                     if (isVisible) {
                         card.style.display = 'none';
