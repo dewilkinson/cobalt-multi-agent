@@ -3842,13 +3842,26 @@
                         if (data.thread_id) lastVliThreadId = data.thread_id;
                         
                         if (isProcessing) {
-                            const responseText = data.response || "No response generated.";
-                            const aiMsg = document.createElement('div');
-                            aiMsg.className = 'msg msg-ai';
-                            aiMsg.innerHTML = applyStatusFormatting(marked.parse(responseText));
-                            msgBox.appendChild(aiMsg);
-                            vliChatSyncPointer++;
-                            msgBox.scrollTop = msgBox.scrollHeight;
+                            if (data.metadata && data.metadata.action === "OPEN_REPORT") {
+                                if (data.metadata.artifact_type === "REPORT") {
+                                    window.openReportModal(data.metadata.symbol);
+                                }
+                                const aiMsg = document.createElement('div');
+                                aiMsg.className = 'msg msg-ai';
+                                aiMsg.style.borderColor = 'var(--emerald-green)';
+                                aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Opening ${data.metadata.artifact_type} UX Panel for **${data.metadata.symbol}**.`);
+                                msgBox.appendChild(aiMsg);
+                                vliChatSyncPointer++;
+                                msgBox.scrollTop = msgBox.scrollHeight;
+                            } else {
+                                const responseText = data.response || "No response generated.";
+                                const aiMsg = document.createElement('div');
+                                aiMsg.className = 'msg msg-ai';
+                                aiMsg.innerHTML = applyStatusFormatting(marked.parse(responseText));
+                                msgBox.appendChild(aiMsg);
+                                vliChatSyncPointer++;
+                                msgBox.scrollTop = msgBox.scrollHeight;
+                            }
                         }
                         btn.classList.remove('processing');
                         btn.innerText = "➤";

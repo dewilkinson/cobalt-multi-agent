@@ -3093,7 +3093,11 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
 
     _append_to_vli_history("ai", response_text, thought=thought, thread_id=transaction_id)
 
-    return {"response": response_text, "status": "OK", "error_details": None, "thread_id": transaction_id}
+    metadata = {}
+    if isinstance(final_vli_state, dict):
+        metadata = final_vli_state.get("metadata", {})
+
+    return {"response": response_text, "status": "OK", "error_details": None, "thread_id": transaction_id, "metadata": metadata}
 
 
 # --- VLI REACTIVE PIPELINE (INBOX WATCHER & ARCHIVER) ---

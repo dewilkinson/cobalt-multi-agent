@@ -233,7 +233,7 @@ async def vli_node(
         )
 
     # --- [SHOW COMMAND INTENT] ---
-    show_match = re.match(r'^(show|display)\s+(?:(report|news|quote)\s+(?:for\s+)?)?([a-zA-Z\.\=\^]+)(?:\s+(report|news|quote))?$', stripped_query)
+    show_match = re.match(r'^(show|display)\s+(?:(report|news|quote)\s+(?:for\s+)?)?([a-zA-Z\.\=\^]+)(?:\s+(report|news|quote))?$', stripped_query, re.IGNORECASE)
     if show_match:
         from src.services.datastore import DatastoreManager
         import os
@@ -268,7 +268,7 @@ async def vli_node(
                 update={
                     "messages": fallback_msgs_all + [AIMessage(content=found_content, name="vli_coordinator")],
                     "intent": "EXECUTE_DIRECT",
-                    "metadata": state.get("metadata", {})
+                    "metadata": {**state.get("metadata", {}), "action": "OPEN_REPORT", "symbol": sym, "artifact_type": artifact_type.upper() if artifact_type else "REPORT"}
                 },
                 goto=END
             )
