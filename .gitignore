@@ -64,3 +64,10 @@ data/reports/
 data/brokerage_cache*
 data/*.csv
 data/*.html
+
+# Telemetry & Temporary State
+temp.*
+vli_test.db
+test.log
+test_*.txt
+tmp/
