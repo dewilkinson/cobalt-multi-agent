@@ -1722,7 +1722,7 @@
                         <div class="card-body" style="overflow-y: hidden; padding: 10px; display: flex; flex-direction: column;">
                             <div style="display:flex; flex-direction:column; gap:8px; margin-bottom: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px; border: 1px solid var(--border-color);">
                                 <div style="display:flex; gap: 10px; align-items:center;">
-                                    <select id="order-hist-account-${instanceGuid}" class="vli-input" style="flex:1;">
+                                    <select id="order-hist-account-${instanceGuid}" class="vli-input" style="flex:1;" onchange="fetchOrderHistory('${instanceGuid}')">
                                         <option value="">Loading Accounts...</option>
                                     </select>
                                 </div>
@@ -1737,9 +1737,9 @@
                                     </select>
                                 </div>
                                 <div style="display:flex; gap: 5px; align-items:center;">
-                                    <input type="date" id="order-hist-start-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="document.getElementById('order-hist-range-${instanceGuid}').value='custom'">
-                                    <input type="date" id="order-hist-end-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="document.getElementById('order-hist-range-${instanceGuid}').value='custom'">
-                                    <input type="text" id="order-hist-symbol-${instanceGuid}" class="vli-input" placeholder="Sym" style="width: 50px; text-transform: uppercase;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other">
+                                    <input type="date" id="order-hist-start-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="document.getElementById('order-hist-range-${instanceGuid}').value='custom'; fetchOrderHistory('${instanceGuid}');">
+                                    <input type="date" id="order-hist-end-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="document.getElementById('order-hist-range-${instanceGuid}').value='custom'; fetchOrderHistory('${instanceGuid}');">
+                                    <input type="text" id="order-hist-symbol-${instanceGuid}" class="vli-input" placeholder="Sym" style="width: 50px; text-transform: uppercase;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="fetchOrderHistory('${instanceGuid}')" onkeydown="if(event.key === 'Enter') fetchOrderHistory('${instanceGuid}')">
                                     <button id="order-hist-filter-btn-${instanceGuid}" class="vli-btn" onclick="fetchOrderHistory('${instanceGuid}')" style="background:var(--cobalt-blue); border:none; color:#fff; padding:6px 12px; border-radius:4px; font-weight:700; cursor:pointer;">Filter</button>
                                 </div>
                             </div>
