@@ -64,10 +64,3 @@ data/reports/
 data/brokerage_cache*
 data/*.csv
 data/*.html
-
-# Telemetry & Scratch Files
-/test*.py
-/backend/test*.py
-temp.*
-vli_test.db
-test.log

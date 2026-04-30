@@ -1,0 +1,9 @@
+
+[INFO] User request logged to Obsidian. (ID: cma-86ebf997)
+Sending request to Cobalt Multiagent API (https://bluesec-multiagent-backend.up.railway.app/api/chat/stream)...
+
+
+
+----------------------------------------
+
+[WARNING] Received an empty response. Not logging response to Obsidian.
