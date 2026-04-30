@@ -1204,16 +1204,19 @@
             }, 500);
         }
 
-        window.vliStartHandshake = function() {
+        window.vliStartHandshake = function(isRestarting = false) {
             // Auto-launch the backend via the Next.js orchestrator immediately when the client starts
             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '') {
                 originalFetch('http://127.0.0.1:3000/api/system/startup', { method: 'POST' }).catch(e => console.error("[VLI_LAUNCHER] Orchestrator unreachable:", e));
                 hasTimedOutOnce = false;
             }
 
+            window._vliHandshakeIsRestarting = isRestarting;
+            let baseText = isRestarting ? "Launching Server" : "Connecting to Server";
+
             document.getElementById('vli-handshake-overlay').style.display = 'flex';
             document.getElementById('vli-handshake-dialog').style.background = '#0d111b';
-            document.getElementById('vli-handshake-title').innerText = `Connecting to Server (0s)`;
+            document.getElementById('vli-handshake-title').innerText = `${baseText} (0s)`;
             document.getElementById('vli-handshake-title').style.color = 'var(--text-muted)';
             document.getElementById('vli-handshake-actions').style.display = 'none';
             document.getElementById('vli-handshake-bar-container').style.display = 'block';
@@ -1237,7 +1240,8 @@
                     window.showServerOffline('SERVER OFFLINE');
                 }
                 
-                document.getElementById('vli-handshake-title').innerText = `Connecting to Server (${handshakeSeconds}s)`;
+                let baseText = window._vliHandshakeIsRestarting ? "Launching Server" : "Connecting to Server";
+                document.getElementById('vli-handshake-title').innerText = `${baseText} (${handshakeSeconds}s)`;
                 
                 if (isHandshakeFetching) return;
                 isHandshakeFetching = true;
@@ -1249,13 +1253,23 @@
                         if (data.version === VLI_CLIENT_VERSION) {
                             clearInterval(handshakeInterval);
                             handshakeSeconds = 0;
-                            document.getElementById('vli-handshake-title').innerText = 'Connected!';
-                            document.getElementById('vli-handshake-title').style.color = 'var(--emerald-green)';
-                            bar.style.animation = 'none';
-                            bar.style.transform = 'translateX(0)';
-                            bar.style.width = '100%';
-                            bar.style.background = 'var(--emerald-green)';
-                            bar.style.boxShadow = '0 0 15px rgba(63, 185, 80, 0.4)';
+                            
+                            const finishConnection = () => {
+                                document.getElementById('vli-handshake-title').innerText = 'Connected!';
+                                document.getElementById('vli-handshake-title').style.color = 'var(--emerald-green)';
+                                bar.style.animation = 'none';
+                                bar.style.transform = 'translateX(0)';
+                                bar.style.width = '100%';
+                                bar.style.background = 'var(--emerald-green)';
+                                bar.style.boxShadow = '0 0 15px rgba(63, 185, 80, 0.4)';
+                            };
+                            
+                            if (window._vliHandshakeIsRestarting) {
+                                document.getElementById('vli-handshake-title').innerText = 'Connecting to Server...';
+                                setTimeout(finishConnection, 800);
+                            } else {
+                                finishConnection();
+                            }
                             
                             // Self-healing: Re-trigger failed modules
                             if (window.UXManager && window.UXManager.instances) {
@@ -4727,7 +4741,7 @@
             // The server acknowledged the restart, so it is now starting its 1s shutdown delay + 2s wrapper delay.
             // Let's wait 2.5s so we are guaranteed to start the reconnecting workflow exactly when the server is dead.
             setTimeout(() => {
-                window.vliStartHandshake();
+                window.vliStartHandshake(true);
             }, 2500);
         }
 
