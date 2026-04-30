@@ -1,0 +1,49 @@
+﻿"Orders 
+All Accounts 
+as of 04/30/2026 at 04:52:27 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+SCHD,Sell,100,Market,Filled at $32.09,100 / 100,32.07,0.62,1.97,32.07,--,32.09,Day,None,FDLM,3:59:11 PM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1601XWDY,808524797,SCHWAB US DIVIDEND EQUITY ETF,--
+XLI,Sell,25,Trailing Stop Limit at $0.05 Based on Last,Filled at $174.51,25 / 25,174.58,4.65,2.74,173.46,--,175.61,Day,None,FDLM,3:51:18 PM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.05,D30KQNVQ,81369Y704,SELECT SECTOR SPDR TRUST STATE STREET INDUSTRIAL SELECT SECTOR SPDR ETF,--
+EDSA,Sell,11,Trailing Stop Limit at $1.00 Based on Last,Filled at $17.72,11 / 11,18.275,2.375,14.94,18.5,--,18.88,Day,None,FDLM,2:48:07 PM ET Apr-30-2026,Health Savings Account *6937,Cash,Shares,Standard,$1.00,D30HCZFL,27966L306,EDESA BIOTECH INC COM NEW ISIN #CA27966L3065,--
+EDSA,Sell,15,Trailing Stop Limit at $0.15 Based on Last,Filled at $17.86,15 / 15,18.275,2.375,14.94,18.5,--,18.88,Day,None,FDLM,1:40:32 PM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.15,D30GZQSB,27966L306,EDESA BIOTECH INC COM NEW ISIN #CA27966L3065,--
+EDSA,Buy,15,Limit at $18.20,Filled at $18.0689,15 / 15,18.275,2.375,14.94,18.5,--,18.88,Day,None,FDLM,1:39:37 PM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1601LD37,27966L306,EDESA BIOTECH INC COM NEW ISIN #CA27966L3065,--
+CARR,Sell,85,Trailing Stop Limit at $0.50 Based on Last,Filled at $68.54,85 / 85,67.17,5.43,8.79,67.18,--,67.37,Day,None,FDLM,12:28:19 PM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.50,D30FZSTV,14448C104,CARRIER GLOBAL CORPORATION COM,--
+CARR,Buy,35,Limit at $68.70,Filled at $68.58,35 / 35,67.17,5.43,8.79,67.18,--,67.37,Day,None,FDLM,12:25:48 PM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,160154NH,14448C104,CARRIER GLOBAL CORPORATION COM,--
+SCHD,Sell,400,Market,Filled at $31.9901,400 / 400,32.07,0.62,1.97,32.07,--,32.09,Day,None,FDLM,12:14:59 PM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1601BFN7,808524797,SCHWAB US DIVIDEND EQUITY ETF,--
+CARR,Sell,150,Market,Filled at $68.27,150 / 150,67.17,5.43,8.79,67.18,--,67.37,Day,None,FDLM,12:09:27 PM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,16017Q3K,14448C104,CARRIER GLOBAL CORPORATION COM,--
+XLI,Sell,75,Trailing Stop Limit at $0.50 Based on Last,Filled at $173.82,75 / 75,174.58,4.65,2.74,173.46,--,175.61,Day,None,FDLM,12:02:31 PM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.50,D30FQMDQ,81369Y704,SELECT SECTOR SPDR TRUST STATE STREET INDUSTRIAL SELECT SECTOR SPDR ETF,--
+XLU,Sell,125,Market,Filled at $46.435,125 / 125,46.85,1.17,2.56,46.84,--,46.9,Day,None,FDLM,11:15:28 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,16011X43,81369Y886,SELECT SECTOR SPDR TRUST STATE STREET UTILITIES SELECT SECTOR SPDR ETF,--
+XLU,Sell,125,Market,Filled at $46.485,125 / 125,46.85,1.17,2.56,46.84,--,46.9,Day,None,FDLM,11:14:17 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,16011729,81369Y886,SELECT SECTOR SPDR TRUST STATE STREET UTILITIES SELECT SECTOR SPDR ETF,--
+XLU,Buy,250,Limit at $46.80,Filled at $46.705,250 / 250,46.85,1.17,2.56,46.84,--,46.9,Day,None,FDLM,10:26:25 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600G7VX,81369Y886,SELECT SECTOR SPDR TRUST STATE STREET UTILITIES SELECT SECTOR SPDR ETF,--
+XLU,Sell,250,Limit at $46.20,Filled at $46.705,250 / 250,46.85,1.17,2.56,46.84,--,46.9,Day,None,FDLM,10:25:45 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600PM4W,81369Y886,SELECT SECTOR SPDR TRUST STATE STREET UTILITIES SELECT SECTOR SPDR ETF,--
+XLU,Buy,250,Limit at $46.75,Filled at $46.69,250 / 250,46.85,1.17,2.56,46.84,--,46.9,Day,None,FDLM,10:25:07 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600PLWN,81369Y886,SELECT SECTOR SPDR TRUST STATE STREET UTILITIES SELECT SECTOR SPDR ETF,--
+AMPX,Sell,450,Stop loss at $20.80,Filled at $20.80,450 / 450,21.06,0.72,3.54,21.01,--,21.15,Day,None,TWO SIGMA,10:24:12 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600LXBC,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+CARR,Buy,100,Limit at $66.30,Filled at $66.30,100 / 100,67.17,5.43,8.79,67.18,--,67.37,Day,None,FDLM,10:22:25 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600J675,14448C104,CARRIER GLOBAL CORPORATION COM,--
+SCHD,Buy,200,Limit at $31.90,Filled at $31.845,200 / 200,32.07,0.62,1.97,32.07,--,32.09,Day,None,FDLM,10:20:40 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600PK40,808524797,SCHWAB US DIVIDEND EQUITY ETF,--
+SCHD,Buy,150,Limit at $31.95,Filled at $31.845,150 / 150,32.07,0.62,1.97,32.07,--,32.09,Day,None,FDLM,10:19:29 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600Q66D,808524797,SCHWAB US DIVIDEND EQUITY ETF,--
+XLI,Buy,50,Limit at $173.50,Filled at $173.165,50 / 50,174.58,4.65,2.74,173.46,--,175.61,Day,None,FDLM,10:17:51 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600JSX0,81369Y704,SELECT SECTOR SPDR TRUST STATE STREET INDUSTRIAL SELECT SECTOR SPDR ETF,--
+XLI,Buy,50,Limit at $173.15,Filled at $173.15,50 / 50,174.58,4.65,2.74,173.46,--,175.61,Day,None,FDLM,10:17:24 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600GSFH,81369Y704,SELECT SECTOR SPDR TRUST STATE STREET INDUSTRIAL SELECT SECTOR SPDR ETF,--
+CARR,Buy,100,Limit at $66.20,Filled at $66.095,100 / 100,67.17,5.43,8.79,67.18,--,67.37,Day,None,FDLM,10:14:10 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600N3JG,14448C104,CARRIER GLOBAL CORPORATION COM,--
+USAR,Sell,200,Stop loss at $23.50,Filled at $23.47,200 / 200,25.97,3.94,17.88,25.73,--,25.77,Day,None,E*TRADE CAPITAL MARKETS EXEC SRVCS/CHXL TRADING,10:09:38 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600LQ76,91733P107,USA RARE EARTH INC COM,--
+SCHD,Buy,150,Limit at $31.75,Filled at $31.685,150 / 150,32.07,0.62,1.97,32.07,--,32.09,Day,None,FDLM,10:07:44 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600DMV0,808524797,SCHWAB US DIVIDEND EQUITY ETF,--
+AMPX,Buy,150,Limit at $21.30,Filled at $21.155,150 / 150,21.06,0.72,3.54,21.01,--,21.15,Day,None,FDLM,10:06:01 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600JMZ0,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+USAR,Buy,100,Limit at $24.50,Filled at $24.415,100 / 100,25.97,3.94,17.88,25.73,--,25.77,Day,None,FDLM,10:04:44 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600CY86,91733P107,USA RARE EARTH INC COM,--
+AMPX,Buy,150,Limit at $21.20,Filled at $21.17,150 / 150,21.06,0.72,3.54,21.01,--,21.15,Day,None,FDLM,10:03:18 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600M98Y,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+USAR,Buy,100,Limit at $24.50,Filled at $24.44,100 / 100,25.97,3.94,17.88,25.73,--,25.77,Day,None,FDLM,10:02:13 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600CX2F,91733P107,USA RARE EARTH INC COM,--
+AMPX,Buy,150,Limit at $21.10,Filled at $21.03,150 / 150,21.06,0.72,3.54,21.01,--,21.15,Day,None,FDLM,9:57:05 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600MVJR,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+AMPX,Sell,750,Limit at $20.65,Filled at $20.805,750 / 750,21.06,0.72,3.54,21.01,--,21.15,Day,None,FDLM,9:55:05 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600P5D7,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+AMPX,Buy,300,Limit at $21.50,Filled at $21.33,300 / 300,21.06,0.72,3.54,21.01,--,21.15,Day,None,FDLM,9:46:28 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600P0T7,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+AMPX,Buy,150,Limit at $21.10,Filled at $21.07,150 / 150,21.06,0.72,3.54,21.01,--,21.15,Day,None,FDLM,9:44:36 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1600GYD2,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+AMPX,Buy,150,Limit at $21.10,Filled at $21.06,150 / 150,21.06,0.72,3.54,21.01,--,21.15,Day,None,FDLM,9:43:45 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,16006Q15,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+AMPX,Buy,150,Limit at $20.95,Filled at $20.91,150 / 150,21.06,0.72,3.54,21.01,--,21.15,Day,None,FDLM,9:42:25 AM ET Apr-30-2026,Rollover IRA *5513,Cash,Shares,Standard,--,16008PD9,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

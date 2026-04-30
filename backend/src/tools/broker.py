@@ -453,8 +453,55 @@ def sync_brokerage_portfolio(config: RunnableConfig):
         from src.tools.portfolio import update_portfolio_ledger
         update_res = update_portfolio_ledger.invoke({"position_data": full_markdown}, config=config)
         
+        try:
+            export_to_tradezella.invoke({"timeframe": "day"}, config=config)
+        except Exception as e:
+            logger.error(f"TradeZella export failed during portfolio sync: {e}")
+        
         return f"Successfully synced Fidelity accounts. {update_res}"
         
     except Exception as e:
         logger.error(f"Failed to sync brokerage portfolio: {e}")
         return f"[ERROR]: Failed to sync brokerage portfolio: {e}"
+
+@tool
+def export_to_tradezella(timeframe: str = "day"):
+    """
+    Exports the brokerage order history to a TradeZella generic CSV format.
+    Args:
+        timeframe: The timeframe to export. Options are 'day', 'week', or 'ytd'. Defaults to 'day'.
+    """
+    logger.info(f"Exporting history to TradeZella format for timeframe: {timeframe}")
+    from src.services.tradezella_exporter import generate_tradezella_csv, get_todays_csv
+    import os
+    
+    try:
+        input_csv = get_todays_csv()
+        if not input_csv:
+            return "[ERROR]: No input file specified and no Orders CSV could be found automatically in data/dropzone."
+            
+        # Default output path points to the new data/exports directory
+        # Since this code runs from backend/ (or root), we use relative paths safely
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+        output_csv = os.path.join(project_root, "data", "exports", "tradezella-import.csv")
+        os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+        
+        today_only = timeframe == 'day'
+        week_only = timeframe == 'week'
+        args_ytd = timeframe == 'ytd'
+        
+        processed_rows = generate_tradezella_csv(
+            input_filename=input_csv, 
+            output_filename=output_csv, 
+            today_only=today_only,
+            week_only=week_only,
+            args_ytd=args_ytd
+        )
+        
+        if processed_rows is not None:
+            return f"Successfully exported {len(processed_rows)} trades to TradeZella format at {output_csv}."
+        else:
+            return "[ERROR]: Failed to export to TradeZella. See logs for details."
+            
+    except Exception as e:
+        return f"[ERROR]: Error executing TradeZella export: {e}"

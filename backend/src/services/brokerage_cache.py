@@ -64,7 +64,8 @@ class BrokerageCache:
         # Merge into cache
         cache = cls._load_cache()
         merged_count = 0
-        for account_id, activities in cache.items():
+        for account_id, acct_data in cache.items():
+            activities = acct_data.get("activities", []) if isinstance(acct_data, dict) else acct_data
             for act in activities:
                 snap_time = act.get('trade_date', '') or act.get('time_placed', '')
                 snap_sym = ''
@@ -88,18 +89,29 @@ class BrokerageCache:
         return merged_count
 
     @classmethod
-    def _load_cache(cls) -> Dict[str, List[Dict[str, Any]]]:
+    def _load_cache(cls) -> Dict[str, Any]:
         if not os.path.exists(CACHE_FILE):
             return {}
         try:
             with open(CACHE_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
+                
+            migrated = False
+            for key, value in data.items():
+                if isinstance(value, list):
+                    data[key] = {"activities": value, "positions": []}
+                    migrated = True
+                    
+            if migrated:
+                cls._save_cache(data)
+                
+            return data
         except Exception as e:
             logger.error(f"Failed to load brokerage cache: {e}")
             return {}
 
     @classmethod
-    def _save_cache(cls, data: Dict[str, List[Dict[str, Any]]]) -> None:
+    def _save_cache(cls, data: Dict[str, Any]) -> None:
         os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
         try:
             with open(CACHE_FILE, 'w', encoding='utf-8') as f:
@@ -108,10 +120,71 @@ class BrokerageCache:
             logger.error(f"Failed to save brokerage cache: {e}")
 
     @classmethod
+    def backup_cache(cls, is_weekly: bool = False) -> None:
+        """
+        Takes a scheduled backup of the current brokerage cache.
+        """
+        if not os.path.exists(CACHE_FILE):
+            return
+            
+        import shutil
+        from datetime import datetime
+        
+        base_dir = os.path.dirname(CACHE_FILE)
+        filename = os.path.basename(CACHE_FILE)
+        name, ext = os.path.splitext(filename)
+        
+        archive_dir = os.path.join(base_dir, "archive")
+        os.makedirs(archive_dir, exist_ok=True)
+        
+        if is_weekly:
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            backup_path = os.path.join(archive_dir, f"BrokerageCacheBackup_{date_str}{ext}")
+            shutil.copy2(CACHE_FILE, backup_path)
+            logger.info(f"Created weekly BrokerageCache backup: {backup_path}")
+        else:
+            backup_path = os.path.join(archive_dir, f"BrokerageCacheDailyBackup{ext}")
+            shutil.copy2(CACHE_FILE, backup_path)
+            logger.info(f"Created daily BrokerageCache backup: {backup_path}")
+
+    @classmethod
+    def backup_cache_daily(cls) -> None:
+        cls.backup_cache(is_weekly=False)
+
+    @classmethod
+    def backup_cache_weekly(cls) -> None:
+        cls.backup_cache(is_weekly=True)
+
+    @classmethod
     def get_activities(cls, account_id: str) -> List[Dict[str, Any]]:
         """Returns all cached activities for the given account ID."""
         cache = cls._load_cache()
-        return cache.get(account_id, [])
+        acct_data = cache.get(account_id, {})
+        if isinstance(acct_data, list):
+            return acct_data
+        return acct_data.get("activities", [])
+
+    @classmethod
+    def get_positions(cls, account_id: str) -> List[Dict[str, Any]]:
+        """Returns all cached explicit positions for the given account ID."""
+        cache = cls._load_cache()
+        acct_data = cache.get(account_id, {})
+        if isinstance(acct_data, list):
+            return []
+        return acct_data.get("positions", [])
+
+    @classmethod
+    def set_positions(cls, account_id: str, positions: List[Dict[str, Any]]) -> None:
+        """Sets explicit positions for the given account."""
+        cache = cls._load_cache()
+        acct_data = cache.get(account_id, {"activities": [], "positions": []})
+        if isinstance(acct_data, list):
+            acct_data = {"activities": acct_data, "positions": []}
+            
+        acct_data["positions"] = positions
+        cache[account_id] = acct_data
+        cls._save_cache(cache)
+        logger.info(f"Set {len(positions)} explicit positions for account {account_id}")
 
     @classmethod
     def merge_activities(cls, account_id: str, new_activities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -121,7 +194,11 @@ class BrokerageCache:
         Returns the FULL updated list of activities for the account.
         """
         cache = cls._load_cache()
-        existing_activities = cache.get(account_id, [])
+        acct_data = cache.get(account_id, {"activities": [], "positions": []})
+        if isinstance(acct_data, list):
+            acct_data = {"activities": acct_data, "positions": []}
+            
+        existing_activities = acct_data.get("activities", [])
         
         # Build a set of existing IDs for fast lookup
         existing_ids = {act['id'] for act in existing_activities if 'id' in act}
@@ -142,7 +219,8 @@ class BrokerageCache:
                 return act.get('trade_date', act.get('time_placed', ''))
                 
             existing_activities.sort(key=get_sort_key, reverse=True)
-            cache[account_id] = existing_activities
+            acct_data["activities"] = existing_activities
+            cache[account_id] = acct_data
             cls._save_cache(cache)
             logger.info(f"Merged {added} new activities into brokerage cache for account {account_id}")
             

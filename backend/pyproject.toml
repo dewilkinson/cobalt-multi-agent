@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cobalt-multi-agent"
-version = "0.1.0"
+version = "0.1.1"
 description = "Cobalt Multiagent project"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -61,6 +61,7 @@ dependencies = [
     "smartmoneyconcepts>=0.0.27",
     "pandas-ta>=0.4.71b0",
     "apscheduler>=3.11.2",
+    "nest-asyncio>=1.6.0",
 ]
 
 [project.optional-dependencies]

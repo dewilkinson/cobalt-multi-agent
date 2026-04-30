@@ -30,30 +30,48 @@ class QuotaProtectedLLM:
         config: Optional[Any] = None,
         **kwargs: Any,
     ) -> Any:
-        # 1. Estimate tokens (Roughly 4 chars per token fallback)
         input_str = str(input)
         estimated_input_tokens = len(input_str) // 4
-        # Multiplier to account for complexity (System prompt, tools, etc.)
-        total_estimate = estimated_input_tokens + 1000 # 1000 buffer for system/output
+        total_estimate = estimated_input_tokens + 1000 
         
-        # 2. Check Shield
-        if not quota_shield.allow_request(self.tier, total_estimate):
-            fail_msg = f"[QUOTA_SHIELD] Request blocked for tier '{self.tier}'. RPM/TPM limit reached."
-            logger.error(fail_msg)
-            raise VLIQuotaExhaustedError(fail_msg)
-
-        # 3. Execute with telemetry
-        try:
-            result = await self.llm.ainvoke(input, config, **kwargs)
-            
-            # 4. Optional: Extract usage metadata and update shield more accurately
-            # (In this simple version, we let the rotation handle it, 
-            # but we could call quota_shield.update_usage here).
-            
-            return result
-        except Exception as e:
-            # Re-raise. If it's a 429 from the actual provider, that reinforces the shield.
-            raise e
+        max_retries = 6
+        base_delay = 2.0
+        
+        for attempt in range(max_retries):
+            # 1. Check local shield
+            if not quota_shield.allow_request(self.tier, total_estimate):
+                if attempt == max_retries - 1:
+                    fail_msg = f"[QUOTA_SHIELD] Request blocked for tier '{self.tier}'. Local limit reached after backoff."
+                    logger.error(fail_msg)
+                    raise VLIQuotaExhaustedError(fail_msg)
+                delay = base_delay * (2 ** attempt)
+                logger.warning(f"[QUOTA_SHIELD] Local limit approached for '{self.tier}'. Backing off for {delay}s...")
+                import asyncio
+                await asyncio.sleep(delay)
+                continue
+                
+            # 2. Execute
+            try:
+                result = await self.llm.ainvoke(input, config, **kwargs)
+                return result
+            except Exception as e:
+                e_str = (str(e) + " " + e.__class__.__name__).upper()
+                is_quota = any(x in e_str for x in ["RESOURCE_EXHAUSTED", "429", "QUOTA_EXHAUSTED", "RATE_LIMIT", "TOO MANY REQUESTS"])
+                
+                if is_quota:
+                    if attempt == max_retries - 1:
+                        fail_msg = f"[QUOTA_SHIELD] Provider limit reached for tier '{self.tier}' after backoff: {e}"
+                        logger.error(fail_msg)
+                        raise VLIQuotaExhaustedError(fail_msg)
+                    
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning(f"[QUOTA_SHIELD] Provider 429 for '{self.tier}'. Backing off for {delay}s...")
+                    import asyncio
+                    await asyncio.sleep(delay)
+                else:
+                    raise e
+                    
+        raise VLIQuotaExhaustedError(f"[QUOTA_SHIELD] Exhausted retries for {self.tier}")
 
     def invoke(
         self,
@@ -61,14 +79,44 @@ class QuotaProtectedLLM:
         config: Optional[Any] = None,
         **kwargs: Any,
     ) -> Any:
-        # Sync version (same logic)
         input_str = str(input)
         total_estimate = (len(input_str) // 4) + 1000
         
-        if not quota_shield.allow_request(self.tier, total_estimate):
-             raise VLIQuotaExhaustedError(f"Quota exhausted for {self.tier}")
-             
-        return self.llm.invoke(input, config, **kwargs)
+        max_retries = 6
+        base_delay = 2.0
+        
+        for attempt in range(max_retries):
+            if not quota_shield.allow_request(self.tier, total_estimate):
+                if attempt == max_retries - 1:
+                    fail_msg = f"[QUOTA_SHIELD] Request blocked for tier '{self.tier}'. Local limit reached after backoff."
+                    logger.error(fail_msg)
+                    raise VLIQuotaExhaustedError(fail_msg)
+                delay = base_delay * (2 ** attempt)
+                logger.warning(f"[QUOTA_SHIELD] Local limit approached for '{self.tier}'. Sync backing off for {delay}s...")
+                import time
+                time.sleep(delay)
+                continue
+                
+            try:
+                return self.llm.invoke(input, config, **kwargs)
+            except Exception as e:
+                e_str = (str(e) + " " + e.__class__.__name__).upper()
+                is_quota = any(x in e_str for x in ["RESOURCE_EXHAUSTED", "429", "QUOTA_EXHAUSTED", "RATE_LIMIT", "TOO MANY REQUESTS"])
+                
+                if is_quota:
+                    if attempt == max_retries - 1:
+                        fail_msg = f"[QUOTA_SHIELD] Provider limit reached for tier '{self.tier}' after backoff: {e}"
+                        logger.error(fail_msg)
+                        raise VLIQuotaExhaustedError(fail_msg)
+                    
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning(f"[QUOTA_SHIELD] Provider 429 for '{self.tier}'. Sync backing off for {delay}s...")
+                    import time
+                    time.sleep(delay)
+                else:
+                    raise e
+                    
+        raise VLIQuotaExhaustedError(f"[QUOTA_SHIELD] Exhausted retries for {self.tier}")
 
     # Note: For full coverage, especially when used in LangGraph, 
     # we should also ensure stream() and astream() are covered if used.

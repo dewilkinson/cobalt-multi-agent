@@ -230,7 +230,20 @@ class CobaltScheduler:
                 await asyncio.sleep(1)
 
     async def _execute_task(self, task: ScheduledTask):
-        self.log(f"[EXEC] {task.priority} Task: {task.name} ({task.task_id})")
+        should_log = True
+        if task.type == "REPEAT":
+            try:
+                if task.period_unit == "milliseconds":
+                    should_log = False
+                elif task.period_unit == "seconds" and float(task.schedule) < 900:
+                    should_log = False
+                elif task.period_unit == "minutes" and float(task.schedule) < 15:
+                    should_log = False
+            except ValueError:
+                pass
+
+        if should_log:
+            self.log(f"[EXEC] {task.priority} Task: {task.name} ({task.task_id})")
         
         async def _run_task():
             task.start_time = time.time()
@@ -255,7 +268,8 @@ class CobaltScheduler:
                     )
                     stdout, stderr = await process.communicate()
                     if process.returncode == 0:
-                        self.log(f"Status: COMPLETED {task.task_id}")
+                        if should_log:
+                            self.log(f"Status: COMPLETED {task.task_id}")
                         task.last_run = datetime.now().isoformat()
                         task.current_run_count += 1
                         self._save_registry()

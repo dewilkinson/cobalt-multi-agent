@@ -388,6 +388,16 @@ async def ui_telemetry_stream():
 
 
 
+@app.get("/api/scheduler/logs")
+async def get_scheduler_logs():
+    try:
+        from src.services.scheduler import cobalt_scheduler
+        logs = cobalt_scheduler.get_execution_log(limit=100)
+        return {"status": "OK", "logs": logs}
+    except Exception as e:
+        logger.error(f"Failed to fetch scheduler logs: {e}")
+        return {"status": "ERROR", "error": str(e)}
+
 @app.get("/api/health")
 async def health_check():
     try:
@@ -912,6 +922,17 @@ async def startup_event():
     from src.services.scheduler import cobalt_scheduler
     
     # Register Internal System Tasks
+    from src.services.atp_importer import process_dropzone_files
+    cobalt_scheduler.add_timer(
+        task_id="DROPZONE_WATCHER",
+        name="VLI Dropzone CSV Processor",
+        type="REPEAT",
+        schedule=1,
+        period_unit="minutes",
+        priority="BACKGROUND",
+        callback=process_dropzone_files
+    )
+
     cobalt_scheduler.add_timer(
         task_id="INBOX_WATCHER",
         name="VLI Inbox & Archiver Watcher",
@@ -920,6 +941,25 @@ async def startup_event():
         period_unit="seconds",
         priority="NORMAL",
         callback=vli_inbox_tick
+    )
+    
+    from src.services.brokerage_cache import BrokerageCache
+    cobalt_scheduler.add_timer(
+        task_id="CACHE_BACKUP_DAILY",
+        name="Brokerage Cache Daily Backup",
+        type="CALENDAR",
+        schedule="0 19 * * 1-5",
+        priority="BACKGROUND",
+        callback=BrokerageCache.backup_cache_daily
+    )
+    
+    cobalt_scheduler.add_timer(
+        task_id="CACHE_BACKUP_WEEKLY",
+        name="Brokerage Cache Weekly Archival",
+        type="CALENDAR",
+        schedule="0 19 * * 5",
+        priority="BACKGROUND",
+        callback=BrokerageCache.backup_cache_weekly
     )
     
     # [HARDENING] Conditional Scanner Logic
@@ -1786,29 +1826,17 @@ async def login_snaptrade(req: SnapTradeLoginRequest):
 async def get_brokerage_accounts():
     from fastapi.responses import JSONResponse
     try:
-        from snaptrade_client import SnapTrade
-        cid = os.getenv("SNAPTRADE_CLIENT_ID", "")
-        ckey = os.getenv("SNAPTRADE_CONSUMER_KEY", "")
-        uid = os.getenv("SNAPTRADE_USER_ID", "")
-        usecret = os.getenv("SNAPTRADE_USER_SECRET", "")
-        if not (cid and ckey and uid and usecret):
-            return JSONResponse({"error": "Missing SnapTrade credentials"}, status_code=400)
-            
-        client = SnapTrade(client_id=cid, consumer_key=ckey)
-        res = client.account_information.list_user_accounts(user_id=uid, user_secret=usecret)
-        accounts = getattr(res, 'body', res)
-        # Ensure it's JSON serializable
-        if not isinstance(accounts, list):
-            accounts = []
+        from src.services.brokerage_cache import BrokerageCache
+        cache_data = BrokerageCache._load_cache()
         parsed_accounts = []
-        for a in accounts:
-            if hasattr(a, 'to_dict'):
-                parsed_accounts.append(a.to_dict())
-            elif isinstance(a, dict):
-                parsed_accounts.append(a)
+        for acct_id in cache_data.keys():
+            parsed_accounts.append({
+                "id": acct_id,
+                "name": acct_id
+            })
         return JSONResponse({"accounts": parsed_accounts})
     except Exception as e:
-        logger.error(f"SnapTrade accounts error: {e}")
+        logger.error(f"BrokerageCache accounts error: {e}")
         return JSONResponse({"error": str(e)}, status_code=400)
 
 @app.post("/api/fidelity/sync")
@@ -1831,107 +1859,17 @@ async def sync_fidelity_payload(request: Request):
 async def get_brokerage_history(account_id: str, start_date: str, end_date: str):
     from fastapi.responses import JSONResponse
     try:
-        from snaptrade_client import SnapTrade
         from src.services.brokerage_cache import BrokerageCache
-        from datetime import datetime, timezone, timedelta
         
-        cid = os.getenv("SNAPTRADE_CLIENT_ID", "")
-        ckey = os.getenv("SNAPTRADE_CONSUMER_KEY", "")
-        uid = os.getenv("SNAPTRADE_USER_ID", "")
-        usecret = os.getenv("SNAPTRADE_USER_SECRET", "")
-        if not (cid and ckey and uid and usecret):
-            return JSONResponse({"error": "Missing SnapTrade credentials"}, status_code=400)
-            
-        client = SnapTrade(client_id=cid, consumer_key=ckey)
+        # 1. Fetch activities directly from the pure offline cache
+        activities = BrokerageCache.get_activities(account_id)
         
-        # We always fetch the last 3 days to catch delayed overnight syncs from Fidelity.
-        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        fetch_start_str = (datetime.now(timezone.utc) - timedelta(days=3)).strftime("%Y-%m-%d")
-        
-        # Force a deeper fetch if the requested start_date is older than the oldest date in our cache
-        cached_acts = BrokerageCache.get_activities(account_id)
-        oldest_cached_date = today_str
-        for act in cached_acts:
-            placed_time = act.get('trade_date') or act.get('time_placed') or act.get('trade_time') or act.get('timestamp') or act.get('time') or act.get('date') or ''
-            if placed_time:
-                date_only = str(placed_time)[:10]
-                if date_only < oldest_cached_date:
-                    oldest_cached_date = date_only
-                    
-        if start_date < oldest_cached_date:
-            fetch_start_str = start_date
-            
-        fetched_activities = []
-        try:
-            activities_res = client.transactions_and_reporting.get_activities(
-                user_id=uid, 
-                user_secret=usecret, 
-                accounts=account_id, 
-                start_date=fetch_start_str, 
-                end_date=today_str
-            )
-            fetched_activities = getattr(activities_res, 'body', activities_res)
-            if not isinstance(fetched_activities, list):
-                fetched_activities = []
-        except Exception as e:
-            logger.warning(f"Initial fetch to SnapTrade raised exception (likely background sync timeout): {e}")
-            fetched_activities = []
-            
-        # SnapTrade Background Sync Workaround:
-        # If we asked for deep history and got nothing (or timed out), SnapTrade might be asynchronously syncing with Fidelity.
-        # We poll a few times to give the background sync enough time to complete.
-        is_deep_fetch = fetch_start_str < (datetime.now(timezone.utc) - timedelta(days=3)).strftime("%Y-%m-%d")
-        if not fetched_activities and is_deep_fetch:
-            import asyncio
-            for attempt in range(3):
-                await asyncio.sleep(5)
-                try:
-                    activities_res2 = client.transactions_and_reporting.get_activities(
-                        user_id=uid, user_secret=usecret, accounts=account_id, 
-                        start_date=fetch_start_str, end_date=today_str
-                    )
-                    fetched_activities = getattr(activities_res2, 'body', activities_res2)
-                    if not isinstance(fetched_activities, list):
-                        fetched_activities = []
-                    
-                    if fetched_activities:
-                        break # Successfully retrieved data, exit retry loop
-                except Exception as e:
-                    logger.error(f"Failed to fetch SnapTrade activities on retry {attempt+1}: {e}")
-                    fetched_activities = []
-            
-        # Fetch live orders to catch today's executed trades before Fidelity's overnight batch settlement
-        try:
-            orders_res = client.account_information.get_user_account_orders(
-                user_id=uid, user_secret=usecret, account_id=account_id, state="all"
-            )
-            orders = getattr(orders_res, 'body', orders_res)
-            if isinstance(orders, list):
-                for o in orders:
-                    # Normalize Order schema to match Activity schema for the cache
-                    if 'id' not in o and 'brokerage_order_id' in o:
-                        o['id'] = str(o['brokerage_order_id'])
-                    if 'type' not in o and 'action' in o:
-                        o['type'] = str(o['action'])
-                    if 'units' not in o and 'filled_quantity' in o:
-                        o['units'] = float(o.get('filled_quantity', 0) or 0)
-                    if 'price' not in o and 'execution_price' in o:
-                        o['price'] = float(o.get('execution_price', 0) or 0)
-                    if 'trade_date' not in o and 'time_placed' in o:
-                        o['trade_date'] = str(o['time_placed'])
-                fetched_activities.extend(orders)
-        except Exception as e:
-            logger.warning(f"Failed to fetch live orders: {e}")
-            
-        # Merge fetched activities into our durable cache
-        activities = BrokerageCache.merge_activities(account_id, fetched_activities)
-        
-        # Reverse to oldest first for chronological timestamping
+        # Reverse to oldest first for chronological timestamping and position calculation
         activities_chronological = list(reversed(activities))
         
         daily_counters = {}
         results = []
-        active_symbols = {}
+        open_positions = {}
         
         for act in activities_chronological:
             action = act.get('type', act.get('action', 'N/A')).upper()
@@ -1951,27 +1889,29 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                 
             if sym == 'N/A': continue
             sym_raw = str(sym).upper().replace('-USD', '').replace('*', '')
-            if sym_raw == 'SPAXX': continue
             
             qty = float(act.get('units', 0))
             price = float(act.get('price', 0))
+            status = act.get('status', 'Executed')
             
-            if sym_raw not in active_symbols:
-                active_symbols[sym_raw] = {"quantity": 0, "total_cost": 0, "average_cost": 0.0}
-            
-            if action in ["BUY", "BOUGHT", "BTO", "BTC", "REINVEST", "DIVIDEND"]:
-                active_symbols[sym_raw]['quantity'] += qty
-                active_symbols[sym_raw]['total_cost'] += qty * price
-                if active_symbols[sym_raw]['quantity'] > 0:
-                    active_symbols[sym_raw]['average_cost'] = active_symbols[sym_raw]['total_cost'] / active_symbols[sym_raw]['quantity']
-            elif action in ["SELL", "SOLD", "STC", "STO"]:
-                active_symbols[sym_raw]['quantity'] -= qty
-                if active_symbols[sym_raw]['quantity'] <= 0.0001:
-                    active_symbols[sym_raw]['quantity'] = 0
-                    active_symbols[sym_raw]['total_cost'] = 0
-                    active_symbols[sym_raw]['average_cost'] = 0
+            # Dynamic Position Calculation
+            if status == "Executed":
+                if sym_raw not in open_positions:
+                    open_positions[sym_raw] = {"quantity": 0.0, "total_cost": 0.0, "average_cost": 0.0}
+                    
+                if action in ["BUY", "BOUGHT", "BTO", "BTC", "REINVEST", "DIVIDEND"]:
+                    open_positions[sym_raw]["quantity"] += qty
+                    open_positions[sym_raw]["total_cost"] += qty * price
+                elif action in ["SELL", "SOLD", "STC", "STO"]:
+                    open_positions[sym_raw]["quantity"] -= qty
+                    open_positions[sym_raw]["total_cost"] -= qty * price
+                    
+                if open_positions[sym_raw]["quantity"] > 0.0001:
+                    open_positions[sym_raw]["average_cost"] = open_positions[sym_raw]["total_cost"] / open_positions[sym_raw]["quantity"]
                 else:
-                    active_symbols[sym_raw]['total_cost'] = active_symbols[sym_raw]['quantity'] * active_symbols[sym_raw]['average_cost']
+                    # Flat position, zero out the cost
+                    open_positions[sym_raw]["total_cost"] = 0.0
+                    open_positions[sym_raw]["average_cost"] = 0.0
 
             # Extract real trade date for Order History log
             placed_time = act.get('trade_date') or act.get('time_placed') or act.get('trade_time') or act.get('timestamp') or act.get('time') or act.get('date') or ''
@@ -1985,7 +1925,6 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                 elif ' ' in placed_time_str:
                     real_time = placed_time_str.split(' ')[-1][:8]
                     
-            # Check if it's a default SnapTrade midnight UTC/EDT time (which means no real execution time is known)
             if real_time and (real_time.startswith('00:00') or real_time.startswith('04:00') or real_time.startswith('05:00')):
                 real_time = None
             
@@ -2010,14 +1949,52 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                     "action": action,
                     "qty": qty,
                     "price": price,
-                    "status": "Executed"
+                    "status": status
                 })
         
         results.reverse() # Newest first for UI log
-            
-        open_positions = {s: d for s, d in active_symbols.items() if d['quantity'] > 0.0001}
+        
+        # Override calculated open_positions with explicit positions from BrokerageCache
+        explicit_positions = BrokerageCache.get_positions(account_id)
+        if explicit_positions:
+            for pos in explicit_positions:
+                sym_raw = pos["symbol"].upper().replace('-USD', '').replace('*', '')
+                open_positions[sym_raw] = {
+                    "quantity": pos.get("quantity", 0.0),
+                    "average_cost": pos.get("average_cost", 0.0),
+                    "total_cost": pos.get("total_cost", 0.0)
+                }
+            # Explicit list is source of truth, remove calculated ones not in the explicit list
+            explicit_symbols = {pos["symbol"].upper().replace('-USD', '').replace('*', '') for pos in explicit_positions}
+            open_positions = {k: v for k, v in open_positions.items() if k in explicit_symbols}
+        
+        # Filter out 0-quantity positions
+        active_open_positions = {k: v for k, v in open_positions.items() if v["quantity"] > 0.0001}
+        open_positions = active_open_positions
         positions_payload = []
         
+        # Pull real trade times from PM BrokerageCache
+        real_trade_times = {}
+        from src.services.brokerage_cache import BrokerageCache
+        cached_acts = BrokerageCache.get_activities(account_id)
+        
+        for act in cached_acts:
+            # We want the MOST RECENT trade's time for this position today
+            act_sym = ""
+            if "universal_symbol" in act and isinstance(act["universal_symbol"], dict):
+                act_sym = act["universal_symbol"].get("symbol", "")
+            elif "symbol" in act and isinstance(act["symbol"], dict):
+                act_sym = act["symbol"].get("symbol", "")
+                
+            act_sym = act_sym.upper().replace('-USD', '').replace('*', '')
+            trade_date_str = act.get("trade_date", "")
+            
+            # Keep the newest time (BrokerageCache is usually newest first, so we just check if it's there)
+            if act_sym and act_sym not in real_trade_times and "T" in trade_date_str:
+                # '2026-04-29T15:54:07.000Z' -> '15:54:07'
+                time_part = trade_date_str.split("T")[-1].split(".")[0]
+                real_trade_times[act_sym] = time_part
+
         import yfinance as yf
         import math
         
@@ -2044,12 +2021,36 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                 for yf_sym, sym in yf_to_raw.items():
                     pdata = open_positions[sym]
                     try:
+                        import pandas as pd
                         sym_data = data if len(yf_tickers) == 1 else data[yf_sym]
-                        last_price = safe_float(sym_data['Close'].iloc[-1])
-                        prev_close = safe_float(sym_data['Close'].iloc[-2]) if len(sym_data) > 1 else last_price
+                        
+                        # Handle yfinance single-ticker MultiIndex edge case
+                        if isinstance(sym_data.columns, pd.MultiIndex):
+                            try:
+                                close_col = sym_data['Close']
+                            except KeyError:
+                                close_col = sym_data[('Close', yf_sym)] if ('Close', yf_sym) in sym_data.columns else sym_data.iloc[:, 0]
+                        else:
+                            close_col = sym_data['Close'] if 'Close' in sym_data.columns else sym_data.iloc[:, 0]
+                            
+                        # Extract raw scalar to prevent pandas single-element Series TypeError
+                        last_val = close_col.iloc[-1]
+                        prev_val = close_col.iloc[-2] if len(close_col) > 1 else last_val
+                        
+                        if isinstance(last_val, pd.Series):
+                            last_val = last_val.iloc[0]
+                        if isinstance(prev_val, pd.Series):
+                            prev_val = prev_val.iloc[0]
+                            
+                        last_price = safe_float(last_val)
+                        prev_close = safe_float(prev_val)
                         
                         last_time_obj = sym_data.index[-1]
                         last_time_str = last_time_obj.strftime('%Y-%m-%d 16:00') if hasattr(last_time_obj, 'strftime') else 'Unknown'
+                        
+                        # Override with real execution time from CSV if available
+                        if sym in real_trade_times:
+                            last_time_str = f"{last_time_str[:10]} {real_trade_times[sym]}"
                         
                         qty = safe_float(pdata['quantity'])
                         avg_cost = safe_float(pdata['average_cost'])
@@ -2092,8 +2093,10 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
             
         return JSONResponse({"history": results, "positions": positions_payload})
     except Exception as e:
-        logger.error(f"SnapTrade history error: {e}")
-        return JSONResponse({"error": str(e)}, status_code=400)
+        import traceback
+        tb = traceback.format_exc()
+        logger.error(f"SnapTrade history error: {e}\n{tb}")
+        return JSONResponse({"error": str(e), "traceback": tb}, status_code=400)
 
 
 async def _invoke_vli_agent(
@@ -2629,6 +2632,35 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
         )
         _append_to_vli_history("assistant", "TradingView Scanner Sync has been started.", thread_id=transaction_id)
         return {"response": "TradingView Scanner Sync started.", "status": "OK", "error_details": None}
+
+    # [NEW] Dropzone Import/Export Interception
+    import_match = re.match(r"^import\s+fidelity\s*(.*)$", command_text)
+    if import_match:
+        from src.services.atp_importer import process_dropzone_files
+        opt_path = import_match.group(1).strip()
+        res_msg = process_dropzone_files(optional_path=opt_path if opt_path else None)
+        _append_to_vli_history("ai", res_msg, thread_id=transaction_id)
+        return {"response": res_msg, "status": "OK", "error_details": None, "thread_id": transaction_id}
+
+    export_match = re.match(r"^export\s+tradezella\s*(.*)$", command_text)
+    if export_match:
+        opt_path = export_match.group(1).strip()
+        try:
+            if opt_path:
+                from src.services.tradezella_exporter import generate_tradezella_csv, get_todays_csv
+                input_csv = get_todays_csv()
+                if not input_csv:
+                    res_msg = "[ERROR]: No orders CSV found to export."
+                else:
+                    processed = generate_tradezella_csv(input_csv, opt_path, today_only=True)
+                    res_msg = f"Successfully exported {len(processed) if processed else 0} trades to custom path: {opt_path}"
+            else:
+                from src.tools.broker import export_to_tradezella
+                res_msg = export_to_tradezella.invoke({"timeframe": "day"}, config=None)
+        except Exception as e:
+            res_msg = f"Export failed: {e}"
+        _append_to_vli_history("ai", res_msg, thread_id=transaction_id)
+        return {"response": res_msg, "status": "OK", "error_details": None, "thread_id": transaction_id}
 
     # [NEW] Meta-Analysis Interception
     if request.text.strip().lower() == "run meta analysis":
@@ -3988,6 +4020,39 @@ try:
     purge_stale_vli_sessions()
 except Exception:
     pass
+
+@app.post("/api/system/restart")
+async def restart_server(request: Request):
+    import os
+    if os.name != 'nt':
+        return {"status": "error", "message": "Restart only supported in local Windows environment."}
+        
+    logger.info("VLI_SYSTEM: Initiating true server restart sequence...")
+    def restart_process():
+        import time
+        import sys
+        import os
+        import tempfile
+        
+        # Give the API request time to return before we replace the process
+        time.sleep(1.0)
+        
+        wrapper_path = os.path.join(tempfile.gettempdir(), "vli_restarter.py")
+        with open(wrapper_path, "w") as f:
+            f.write(f"""import time, os, sys
+time.sleep(2.0)
+try:
+    os.remove({repr(wrapper_path)})
+except Exception:
+    pass
+os.execv(sys.executable, {repr([sys.executable] + sys.argv)})
+""")
+        
+        os.execv(sys.executable, [sys.executable, wrapper_path])
+    
+    import threading
+    threading.Thread(target=restart_process, daemon=True).start()
+    return {"status": "restarting"}
 
 # Mount the backend directory to serve the dashboard HTML
 backend_dir = os.path.dirname(os.path.abspath(__file__))  # src/server

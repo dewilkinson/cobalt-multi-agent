@@ -24,7 +24,7 @@
             return originalFetch(...args);
         };
 
-        const VLI_CLIENT_VERSION = "00.000.0004";
+        const VLI_CLIENT_VERSION = "00.000.0005";
     </script>
     
     <link
@@ -1435,12 +1435,18 @@
             </div>
         </div>
         <div class="menu-right">
-            <div class="status-pill">
-                <div class="status-dot"></div>
-                <span id="menu-sync-status">SYNC_OK</span>
+            <div class="status-pill" style="width: 175px; box-sizing: border-box; background: transparent; padding: 0;">
+                <button id="server-toggle-btn" onclick="toggleServerConnection()" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--emerald-green); padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 6px; width: 90px; justify-content: center;" title="Toggle Connection">
+                    <div class="status-dot" id="server-status-dot" style="background-color: var(--emerald-green); width: 6px; height: 6px; border-radius: 50%;"></div>
+                    <span id="menu-sync-status">Connected</span>
+                </button>
+                <button onclick="restartServer()" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-left: auto;" title="Restart Server">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                    Restart
+                </button>
             </div>
-            <div style="font-family: var(--font-mono); color: var(--text-muted); opacity: 0.8; margin-right: 15px;" id="system-clock">09:48:46</div>
-            <div class="menu-item" style="font-weight: 800; font-size: 16px; padding-right: 10px;">
+            <div style="font-family: var(--font-mono); color: var(--text-muted); opacity: 0.8; margin-right: 15px; width: 60px; text-align: center; font-variant-numeric: tabular-nums;" id="system-clock">09:48:46</div>
+            <div class="menu-item" style="font-weight: 800; font-size: 16px; padding-right: 10px; width: 140px; justify-content: center;">
                 <span style="color: #fff; letter-spacing: 1.5px;">COBALT</span>
                 <span style="color: var(--cobalt-blue); margin: 0 6px; font-weight: 300;">|</span>
                 <span style="color: var(--cobalt-blue); letter-spacing: 1px;">VLI</span>
@@ -1553,7 +1559,8 @@
             'STRUCTURAL_ANALY': { idPrefix: 'AR', title: 'Structural Analysis', isSingleton: false },
             'SCAN_RES': { idPrefix: 'SR', title: 'Satellite Scan', isSingleton: true },
             'SHIELD_RES': { idPrefix: 'SH', title: 'Core Scan', isSingleton: true },
-            'ORDER_HIST': { idPrefix: 'OH', title: 'Order History', isSingleton: true }
+            'ORDER_HIST': { idPrefix: 'OH', title: 'Order History', isSingleton: true },
+            'SCHEDULER_LOG': { idPrefix: 'SL', title: 'Scheduler Telemetry', isSingleton: true }
         };
 
         class UXCardManager {
@@ -1633,7 +1640,7 @@
                     }
                 });
 
-                const liveBadgeHTML = (typeGuid === 'VLI_CHAT' || typeGuid === 'VLI_TELEMETRY') ? `<span class="live-badge" id="conn-status-${instanceGuid}" style="cursor: pointer;" onclick="if(this.innerText==='OFFLINE') { window.vliStartHandshake(); }">LIVE</span>` : '';
+                const liveBadgeHTML = '';
                 
                 let bodyContent = '';
                 if (typeGuid === 'VLI_CHAT') {
@@ -1706,17 +1713,18 @@
                                     </select>
                                 </div>
                                 <div style="display:flex; gap: 5px; align-items:center;">
-                                    <select class="vli-input" style="flex:1;" onchange="setOrderHistoryRange(this.value, '${instanceGuid}')">
+                                    <select id="order-hist-range-${instanceGuid}" class="vli-input" style="flex:1;" onchange="setOrderHistoryRange(this.value, '${instanceGuid}')">
                                         <option value="today">Today</option>
                                         <option value="week">Past Week</option>
                                         <option value="month">Past Month</option>
                                         <option value="ytd">Year-to-Date</option>
                                         <option value="1y">Past Year</option>
+                                        <option value="custom">Custom</option>
                                     </select>
                                 </div>
                                 <div style="display:flex; gap: 5px; align-items:center;">
-                                    <input type="date" id="order-hist-start-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other">
-                                    <input type="date" id="order-hist-end-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other">
+                                    <input type="date" id="order-hist-start-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="document.getElementById('order-hist-range-${instanceGuid}').value='custom'">
+                                    <input type="date" id="order-hist-end-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="document.getElementById('order-hist-range-${instanceGuid}').value='custom'">
                                     <input type="text" id="order-hist-symbol-${instanceGuid}" class="vli-input" placeholder="Sym" style="width: 50px; text-transform: uppercase;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other">
                                     <button id="order-hist-filter-btn-${instanceGuid}" class="vli-btn" onclick="fetchOrderHistory('${instanceGuid}')" style="background:var(--cobalt-blue); border:none; color:#fff; padding:6px 12px; border-radius:4px; font-weight:700; cursor:pointer;">Filter</button>
                                 </div>
@@ -1764,6 +1772,13 @@
                                         <tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Select filters...</td></tr>
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>`;
+                } else if (typeGuid === 'SCHEDULER_LOG') {
+                    bodyContent = `
+                        <div class="card-body" style="padding:0; overflow:hidden; display:flex; flex-direction:column;">
+                            <div class="chat-messages" id="scheduler-log-messages-${instanceGuid}" style="font-family: var(--font-mono); font-size: 11px; padding-bottom: 20px;">
+                                <div style="color: var(--text-muted); padding: 10px;">Initializing Scheduler Telemetry...</div>
                             </div>
                         </div>`;
                 }
@@ -1815,6 +1830,14 @@
                             }
                         }
                     }, 10000);
+                } else if (typeGuid === 'SCHEDULER_LOG') {
+                    window.fetchSchedulerLogs(instanceGuid);
+                    setInterval(() => {
+                        const box = document.getElementById('win-' + instanceGuid);
+                        if(box && box.style.display !== 'none') {
+                            window.fetchSchedulerLogs(instanceGuid);
+                        }
+                    }, 5000);
                 }
                 
                 this.bindCardEvents(cardBox);
@@ -2225,6 +2248,9 @@
             if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SHIELD_RES')) {
                  viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SHIELD_RES')" style="color:var(--emerald-green);">[+] Spawn Core Scanner</div>`;
             }
+            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCHEDULER_LOG')) {
+                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCHEDULER_LOG')" style="color:var(--emerald-green);">[+] Spawn Scheduler Log</div>`;
+            }
 
             if (keys.length > 0) viewMenu.innerHTML += '<div class="dropdown-divider"></div>';
 
@@ -2267,6 +2293,9 @@
             }
             if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SHIELD_RES')) {
                  UXManager.createCard('SHIELD_RES', {top: '51%', left: '33.5%', width: '31%', height: '47%'}, 'shield');
+            }
+            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCHEDULER_LOG')) {
+                 UXManager.createCard('SCHEDULER_LOG', {top: '51%', left: '66%', width: '33%', height: '47%'}, 'scheduler');
             }
 
                 updateViewMenu();
@@ -2842,6 +2871,7 @@
         let isProcessing = false;
         async function poll() {
             if (isPolling) return;
+            if (typeof vliPollingEnabled !== 'undefined' && !vliPollingEnabled) return;
             console.log("[VLI_TRACE] " + new Date().toLocaleTimeString() + " - Starting poll check...");
             isPolling = true;
             try {
@@ -2851,14 +2881,27 @@
                 if (window.VLI_DEBUG) console.log("[VLI_TRACE] " + new Date().toLocaleTimeString() + " - Poll data received successfully.");
                 if (data.error) throw new Error(data.error);
 
-                const topStatus = document.getElementById('conn-status');
-                if (topStatus) {
-                    topStatus.innerText = "LIVE";
-                    topStatus.style.color = "var(--emerald-green)";
+                const syncBadge = document.getElementById('menu-sync-status');
+                const syncDot = document.getElementById('server-status-dot');
+                if (syncBadge && syncDot) {
+                    syncBadge.innerText = "Connected";
+                    const toggleBtn = document.getElementById('server-toggle-btn');
+                    if(toggleBtn) {
+                        toggleBtn.style.background = "rgba(16, 185, 129, 0.1)";
+                        toggleBtn.style.borderColor = "rgba(16, 185, 129, 0.3)";
+                        toggleBtn.style.color = "var(--emerald-green)";
+                        syncDot.style.backgroundColor = "var(--emerald-green)";
+                        toggleBtn.style.opacity = "1";
+                    }
+                    const restartBtn = document.querySelector('button[title="Restart Server"]');
+                    if(restartBtn) {
+                        restartBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg> Restart`;
+                        restartBtn.style.opacity = "1";
+                        restartBtn.style.pointerEvents = "auto";
+                    }
                 }
                 document.querySelectorAll('.live-badge').forEach(b => {
-                    b.innerText = "LIVE";
-                    b.style.color = "var(--emerald-green)";
+                    b.style.display = 'none';
                 });
                 
                 if (data.last_macro_update) {
@@ -2910,25 +2953,24 @@
                 bc.postMessage({ type: 'STATE_UPDATE', state: data });
                 if (window.VLI_DEBUG) console.log("[VLI_ORCHESTRA] Master Broadcast Sent.");
 
-                // 4. Connectivity Status
-                const statusBadge = document.getElementById('conn-status');
-                if (statusBadge) {
-                    statusBadge.innerText = "LIVE";
-                    statusBadge.style.color = "var(--emerald-green)";
-                    statusBadge.style.background = "rgba(63, 185, 80, 0.15)";
-                }
+                // Status already updated above
 
             } catch (e) {
                 console.error("VLI Poll Error:", e);
-                const statusBadge = document.getElementById('conn-status');
-                if (statusBadge) {
-                    statusBadge.innerText = "OFFLINE";
-                    statusBadge.style.color = "var(--ruby-red)";
-                    statusBadge.style.background = "rgba(248, 81, 73, 0.1)";
+                const syncBadge = document.getElementById('menu-sync-status');
+                const syncDot = document.getElementById('server-status-dot');
+                if (syncBadge && syncDot) {
+                    syncBadge.innerText = "Offline";
+                    const toggleBtn = document.getElementById('server-toggle-btn');
+                    if(toggleBtn) {
+                        toggleBtn.style.background = "rgba(225, 29, 72, 0.1)";
+                        toggleBtn.style.borderColor = "rgba(225, 29, 72, 0.3)";
+                        toggleBtn.style.color = "var(--ruby-red)";
+                        syncDot.style.backgroundColor = "var(--ruby-red)";
+                    }
                 }
                 document.querySelectorAll('.live-badge').forEach(b => {
-                    b.innerText = "OFFLINE";
-                    b.style.color = "var(--ruby-red)";
+                    b.style.display = 'none';
                 });
             } finally {
                 isPolling = false;
@@ -4366,6 +4408,45 @@
         
         // Auto-refresh pollers removed in favor of unified VLI poll cycle
         
+        // --- SCHEDULER LOG LOGIC ---
+        window.fetchSchedulerLogs = async function(instanceGuid) {
+            const msgsContainer = document.getElementById(`scheduler-log-messages-${instanceGuid}`);
+            if(!msgsContainer) return;
+            
+            try {
+                const baseUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://127.0.0.1:8000' : '';
+                const res = await fetch(`${baseUrl}/api/scheduler/logs`);
+                const data = await res.json();
+                
+                if(data.status === 'OK' && data.logs) {
+                    const isAtBottom = msgsContainer.scrollHeight - msgsContainer.scrollTop <= msgsContainer.clientHeight + 20;
+                    
+                    let html = '';
+                    data.logs.forEach(log => {
+                        let color = 'var(--text-muted)';
+                        if (log.includes('CRITICAL')) color = 'var(--text-alert)';
+                        else if (log.includes('FAILED') || log.includes('MISFIRE')) color = 'var(--orange-warning)';
+                        else if (log.includes('COMPLETED') || log.includes('EXECUTED')) color = 'var(--emerald-green)';
+                        else if (log.includes('STARTED')) color = 'var(--cobalt-blue)';
+                        html += `<div style="padding: 2px 10px; color: ${color};">${log}</div>`;
+                    });
+                    
+                    if(html === '') {
+                        html = '<div style="color: var(--text-muted); padding: 10px;">No rhythmic execution logs available.</div>';
+                    }
+                    
+                    if (msgsContainer.innerHTML !== html) {
+                        msgsContainer.innerHTML = html;
+                        if (isAtBottom) {
+                            msgsContainer.scrollTop = msgsContainer.scrollHeight;
+                        }
+                    }
+                }
+            } catch(e) {
+                console.error("Scheduler fetch error", e);
+            }
+        };
+
         // --- End of Shield Logic ---
         
         // --- ORDER HISTORY LOGIC ---
@@ -4402,10 +4483,11 @@
             }
         };
 
-        window.setOrderHistoryRange = function(rangeStr, instanceGuid) {
+        window.setOrderHistoryRange = function(rangeStr, instanceGuid, skipFetch = false) {
             const startEl = document.getElementById(`order-hist-start-${instanceGuid}`);
             const endEl = document.getElementById(`order-hist-end-${instanceGuid}`);
             if(!startEl || !endEl) return;
+            if(rangeStr === 'custom') return;
             
             const end = new Date();
             let start = new Date();
@@ -4427,13 +4509,20 @@
             endEl.value = end.toISOString().split('T')[0];
             
             // Automatically fetch if account is already loaded
-            const accountVal = document.getElementById(`order-hist-account-${instanceGuid}`).value;
-            if(accountVal) {
-                fetchOrderHistory(instanceGuid);
+            if (!skipFetch) {
+                const accountVal = document.getElementById(`order-hist-account-${instanceGuid}`).value;
+                if(accountVal) {
+                    fetchOrderHistory(instanceGuid);
+                }
             }
         };
 
         window.fetchOrderHistory = async function(instanceGuid, isBackground = false) {
+            const rangeSelect = document.getElementById(`order-hist-range-${instanceGuid}`);
+            if (rangeSelect && rangeSelect.value !== 'custom') {
+                window.setOrderHistoryRange(rangeSelect.value, instanceGuid, true);
+            }
+            
             const accountId = document.getElementById(`order-hist-account-${instanceGuid}`).value;
             const startVal = document.getElementById(`order-hist-start-${instanceGuid}`).value;
             const endVal = document.getElementById(`order-hist-end-${instanceGuid}`).value;
@@ -4609,6 +4698,59 @@
             }
         };
 
+        async function restartServer() {
+            const btn = document.querySelector('button[title="Restart Server"]');
+            if (btn) {
+                btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg> Restarting...`;
+                btn.style.opacity = '0.5';
+                btn.style.pointerEvents = 'none';
+            }
+            
+            const syncBadge = document.getElementById('menu-sync-status');
+            const syncDot = document.getElementById('server-status-dot');
+            const toggleBtn = document.getElementById('server-toggle-btn');
+            if (syncBadge && toggleBtn && syncDot) {
+                syncBadge.innerText = "Offline";
+                toggleBtn.style.background = "rgba(225, 29, 72, 0.1)";
+                toggleBtn.style.borderColor = "rgba(225, 29, 72, 0.3)";
+                toggleBtn.style.color = "var(--ruby-red)";
+                syncDot.style.backgroundColor = "var(--ruby-red)";
+            }
+            
+            try {
+                // Wait for the server to acknowledge the restart command
+                await fetch('/api/system/restart', { method: 'POST' });
+            } catch(e) {
+                console.log("Expected restart drop:", e);
+            }
+            
+            // The server acknowledged the restart, so it is now starting its 1s shutdown delay + 2s wrapper delay.
+            // Let's wait 2.5s so we are guaranteed to start the reconnecting workflow exactly when the server is dead.
+            setTimeout(() => {
+                window.vliStartHandshake();
+            }, 2500);
+        }
+
+        let vliPollingEnabled = true;
+        function toggleServerConnection() {
+            vliPollingEnabled = !vliPollingEnabled;
+            const syncBadge = document.getElementById('menu-sync-status');
+            const syncDot = document.getElementById('server-status-dot');
+            const toggleBtn = document.getElementById('server-toggle-btn');
+            
+            if (vliPollingEnabled) {
+                syncBadge.innerText = "Connecting...";
+                toggleBtn.style.opacity = "0.7";
+                window.vliStartHandshake();
+            } else {
+                syncBadge.innerText = "Offline";
+                toggleBtn.style.background = "rgba(225, 29, 72, 0.1)";
+                toggleBtn.style.borderColor = "rgba(225, 29, 72, 0.3)";
+                toggleBtn.style.color = "var(--ruby-red)";
+                syncDot.style.backgroundColor = "var(--ruby-red)";
+                toggleBtn.style.opacity = "1";
+            }
+        }
     </script>
 
     <div id="vli-version-watermark" style="position: fixed; bottom: 12px; right: 16px; z-index: 999999; font-family: var(--font-mono); font-size: 11px; color: rgba(255,255,255,0.5); pointer-events: none; user-select: none;">
