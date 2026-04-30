@@ -1,2 +1,0 @@
-. Clearing current scan cache and resetting filters to default. No research required.
-[VLI_SPINE] Current scan and cache have been cleared. All filters have been reset to default parameters. Scanner state is now: IDLE. Ready for a fresh morning scan.

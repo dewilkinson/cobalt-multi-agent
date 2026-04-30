@@ -57,3 +57,10 @@ backend/examples_test_*/
 backend/examples_error_*/
 backend/OllamaSetup.exe
 *.exe
+
+# VLI Data directories
+data/dropzone/
+data/reports/
+data/brokerage_cache*
+data/*.csv
+data/*.html
