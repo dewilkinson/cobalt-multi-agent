@@ -287,7 +287,7 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                     "sortino": round(sortino, 2),
                     "float": f_shares,
                     "market_cap": m_cap,
-                    "grade": "A" if sortino >= 3.0 else "B",
+                    "grade": "S" if sortino >= effective_hurdle * 1.5 else "A" if sortino >= effective_hurdle * 1.2 else "B",
                     "timestamp": datetime.now().isoformat()
                 }
             except Exception as e:

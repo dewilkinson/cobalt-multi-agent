@@ -39,7 +39,7 @@ COMBAT_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "SHIELD_COMBAT
 # TV Shield Scan Minimums: Market Cap >= 300M, Price >= 15, Volume >= 1M, Float >= 100M
 # We use cap_smallover (>= 300M) and ta_sma200_pa (Price > SMA200) to keep initial results broad but aligned with TV.
 # sh_price_o15, sh_vol_o1000, sh_float_o100 are handled natively but can also be enforced here to reduce load.
-FINVIZ_FILTERS = "f=cap_smallover,ta_sma200_pa,sh_price_o15,sh_vol_o1000,sh_float_o100"
+FINVIZ_FILTERS = "f=cap_smallover,ta_sma200_pa,sh_price_o15,sh_vol_o1000,sh_float_o100&o=-change"
 
 def _get_shield_config(strategy_config: str) -> Dict[str, Any]:
     """Provides configuration for the APEX SHIELD SCAN."""
@@ -148,8 +148,8 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                     await page.wait_for_selector(".count-text", timeout=15000)
                     count_text = await page.inner_text(".count-text")
                     total_count = int(count_text.split("/")[-1].split("Total")[0].strip())
-                    total_pages = (total_count // 20) + (1 if total_count % 20 > 0 else 0)
-                    logger.info(f"Total candidates matching SHIELD filters: {total_count} ({total_pages} pages).")
+                    total_pages = min((total_count // 20) + (1 if total_count % 20 > 0 else 0), 2)
+                    logger.info(f"Total candidates matching SHIELD filters: {total_count} (Capped at {total_pages} pages).")
                 except:
                     logger.warning("Could not detect total count from .count-text. Using fallback: 3 pages.")
                     total_pages = 3
@@ -289,8 +289,9 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                     logger.info(f"Rejected {ticker} - Failed Long-Range Sortino Floor ({c_sortino})")
                     return None
                 
-                # Calculate Sortino-based fallback grading
-                grade = "S" if c_sortino >= 3.0 else ("A" if c_sortino >= 1.5 else "B")
+                # Calculate Sortino-based fallback grading dynamically based on the day trading hurdle
+                effective_hurdle = config.get("sortino_hurdle", 2.0)
+                grade = "S" if c_sortino >= effective_hurdle * 1.5 else ("A" if c_sortino >= effective_hurdle * 1.2 else "B")
                 
                 return {
                     **c,
@@ -300,6 +301,7 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                     "dividend_yield": round(div_yield * 100, 2),
                     "float": f_shares,
                     "market_cap": m_cap,
+                    "sortino": c_sortino,
                     "grade": grade,
                     "timestamp": datetime.now().isoformat()
                 }
@@ -317,6 +319,17 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     
     # Strictly limit to top 10
     verified_list = verified_list[:10]
+
+    if verified_list:
+        max_sortino = verified_list[0].get("sortino", 0.0)
+        for v in verified_list:
+            s = v.get("sortino", 0.0)
+            if s >= max_sortino * 0.8:
+                v["grade"] = "S"
+            elif s >= max_sortino * 0.5:
+                v["grade"] = "A"
+            else:
+                v["grade"] = "B"
 
     # 4. Persistence
     combat_list = {

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cobalt | Finlab Command Center</title>
+    <title>Cobalt | QDESK Command Center</title>
     
     <script>
         // VLI Dynamic Tab Session Tracker (Window Isolation)
@@ -1403,7 +1403,7 @@
             <div class="menu-item" style="font-weight: 800; font-size: 16px; padding-right: 15px; width: 145px; justify-content: center; display: flex; align-items: center; border-right: 1px solid rgba(255,255,255,0.05); margin-right: 5px;">
                 <span style="color: #fff; letter-spacing: 1.5px; line-height: 1; display: inline-block;">COBALT</span>
                 <span style="color: var(--cobalt-blue); margin: 0 6px; font-weight: 300; line-height: 1; display: inline-block; transform: translateY(-2px);">|</span>
-                <span style="color: var(--cobalt-blue); letter-spacing: 1.5px; font-family: 'JetBrains Mono', monospace; font-weight: 700; line-height: 1; display: inline-block; transform: translateY(1.5px);">FINLAB</span>
+                <span style="color: var(--cobalt-blue); letter-spacing: 1.5px; font-family: 'JetBrains Mono', monospace; font-weight: 700; line-height: 1; display: inline-block; transform: translateY(1.5px);">QDESK</span>
                 <div class="menu-dropdown" style="left: 0; right: auto;">
                     <div class="dropdown-item" onclick="alert('VLI Integrated Engine \nVersion: 4.8.2-INSTITUTIONAL\nStatus: Operational')">System Architecture</div>
                     <div class="dropdown-divider"></div>
@@ -1581,7 +1581,7 @@
         class UXCardManager {
             constructor() {
                 this.instances = {};
-                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'STRUCTURAL_ANALY': 0 };
+                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'STRUCTURAL_ANALY': 0, 'SCAN_RES': 0, 'SHIELD_RES': 0, 'ORDER_HIST': 0, 'SCHEDULER_LOG': 0 };
             }
 
             generateGUID() {
@@ -3448,7 +3448,7 @@
                 if (!table) {
                     body.innerHTML = `
                         <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
-                            <div style="color: var(--emerald-green); font-weight: 800;">${(res.pulse_mode || '').includes('TradingView') ? 'TradingView - Apex Sword Scan' : (res.pulse_mode || 'InstitutionalPulse')}</div>
+                            <div style="color: var(--emerald-green); font-weight: 800;">${(res.pulse_mode || '').includes('TradingView') ? 'Trading View - Sword Scan' : (res.pulse_mode || 'InstitutionalPulse')}</div>
                             <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
                         <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 13px;">
@@ -3616,7 +3616,7 @@
 
                 const newTelemetry = data.telemetry_tail || "";
                 if (tBody.dataset.lastContent !== newTelemetry) {
-                    let safeTelemetry = newTelemetry;
+                    let safeTelemetry = newTelemetry.replace(/\\n/g, '\n');
                     const leakKeywords = ["# SECURITY OVERRIDE", "APEX 500 SYSTEM", "USER IDENTITY: DAVE", "OPERATIONAL MANDATE"];
                     if (leakKeywords.some(k => safeTelemetry.toUpperCase().includes(k))) {
                         safeTelemetry = "**⚠️ [VLI_MONITOR]: TECHNICAL STATE LEAKAGE SUPPRESSED.**";
@@ -4350,7 +4350,7 @@
                 if (!table) {
                     body.innerHTML = `
                         <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
-                            <div style="color: var(--emerald-green); font-weight: 800;">${(res.pulse_mode || '').includes('TradingView') ? 'TradingView - Apex Shield Scan' : 'Defensive Shield'}</div>
+                            <div style="color: var(--emerald-green); font-weight: 800;">${(res.pulse_mode || '').includes('TradingView') ? 'Trading View - Shield Scan' : 'Defensive Shield'}</div>
                             <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sh-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
                         <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 13px;">
@@ -5009,9 +5009,25 @@
             display: none;
             flex-direction: column;
             height: 100%;
-            width: 380px;
             border-left: 1px solid rgba(255,255,255,0.05);
             background: #161b22;
+            position: relative;
+        }
+        
+        .sidebar-resizer {
+            position: absolute;
+            top: 0;
+            left: -4px; /* Slightly overlap outside for easier grabbing */
+            width: 8px;
+            height: 100%;
+            cursor: ew-resize;
+            z-index: 9999;
+            background: transparent;
+            transition: background 0.2s ease;
+        }
+        
+        .sidebar-resizer:hover, .sidebar-resizer.active {
+            background: rgba(88, 166, 255, 0.4);
         }
 
         .sidebar-content-area.active {
@@ -5076,6 +5092,7 @@
     <div id="vli-sidebar" class="vli-sidebar">
         <!-- Coordinator Panel -->
         <div id="tab-coordinator" class="sidebar-content-area">
+            <div class="sidebar-resizer" data-tab-id="coordinator"></div>
             <div style="padding:15px; font-weight:800; font-size:14px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
                 <span>COORDINATOR AI</span>
                 <span style="color:var(--emerald-green); font-size:10px; display:flex; align-items:center;">● ONLINE</span>
@@ -5116,6 +5133,7 @@
 
         <!-- Artifacts Panel -->
         <div id="tab-artifacts" class="sidebar-content-area">
+            <div class="sidebar-resizer" data-tab-id="artifacts"></div>
             <div style="padding:15px; font-weight:800; font-size:14px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
                 <span>RESEARCH ARTIFACTS</span>
                 <span style="cursor:pointer; color:var(--text-muted);" onclick="loadArtifactTree()" title="Refresh">↻</span>
@@ -5144,7 +5162,93 @@
             }, 1500);
         });
 
+        window.vliTabWidths = { coordinator: 380, artifacts: 380 };
         let activeSidebarTabs = new Set();
+        
+        // --- SIDEBAR RESIZING LOGIC ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const resizers = document.querySelectorAll('.sidebar-resizer');
+            const sidebar = document.getElementById('vli-sidebar');
+            const tabsContainer = document.getElementById('sidebar-tabs-container');
+            const watermark = document.getElementById('vli-version-watermark');
+            
+            let isResizingSidebar = false;
+            let startX;
+            let startWidths = {};
+            let activeResizerId = null;
+            
+            resizers.forEach(resizer => {
+                resizer.addEventListener('mousedown', (e) => {
+                    isResizingSidebar = true;
+                    activeResizerId = resizer.getAttribute('data-tab-id');
+                    startX = e.clientX;
+                    
+                    // Snapshot current widths
+                    Object.keys(window.vliTabWidths).forEach(k => {
+                        startWidths[k] = window.vliTabWidths[k];
+                    });
+                    
+                    resizer.classList.add('active');
+                    document.body.style.cursor = 'ew-resize';
+                    document.body.style.userSelect = 'none';
+                });
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizingSidebar || !activeResizerId) return;
+                
+                const numActive = activeSidebarTabs.size;
+                if (numActive === 0) return;
+                
+                // dx is positive when moving mouse to the left
+                const dx = startX - e.clientX; 
+                
+                let newWidth = startWidths[activeResizerId] + dx;
+                newWidth = Math.max(250, newWidth);
+                
+                // Enforce max stretch to ensure tabs always have room
+                const maxAllowedTotalWidth = window.innerWidth - 60;
+                
+                // Calculate total width if we apply this newWidth
+                let otherActiveWidths = 0;
+                activeSidebarTabs.forEach(id => {
+                    if (id !== activeResizerId) {
+                        otherActiveWidths += window.vliTabWidths[id];
+                    }
+                });
+                
+                if (newWidth + otherActiveWidths > maxAllowedTotalWidth) {
+                    newWidth = maxAllowedTotalWidth - otherActiveWidths;
+                }
+                
+                window.vliTabWidths[activeResizerId] = newWidth;
+                
+                // Apply inline styles to the active tabs
+                let totalWidth = 0;
+                activeSidebarTabs.forEach(id => {
+                    const el = document.getElementById('tab-' + id);
+                    if (el) {
+                        el.style.width = `${window.vliTabWidths[id]}px`;
+                    }
+                    totalWidth += window.vliTabWidths[id];
+                });
+                
+                // Apply to total width container
+                sidebar.style.width = `${totalWidth}px`;
+                tabsContainer.style.right = `${totalWidth}px`;
+                if (watermark) watermark.style.right = `${totalWidth + 20}px`;
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isResizingSidebar) {
+                    isResizingSidebar = false;
+                    resizers.forEach(r => r.classList.remove('active'));
+                    document.body.style.cursor = 'default';
+                    document.body.style.userSelect = 'auto';
+                }
+            });
+        });
+
         function switchSidebarTab(tabId) {
             console.log("[VLI_SIDEBAR] Toggling tab:", tabId);
             const sidebar = document.getElementById('vli-sidebar');
@@ -5158,13 +5262,10 @@
             } else {
                 activeSidebarTabs.add(tabId);
                 
-                // [HARDENING] If opening coordinator in sidebar, ensure floating card is closed to prevent UX ghosting
                 if (tabId === 'coordinator' && typeof UXManager !== 'undefined') {
-                    // Search for any active VLI_CHAT cards
                     const activeCards = document.querySelectorAll('.card');
                     activeCards.forEach(card => {
                         if (card.id && card.id.startsWith('win-CI')) {
-                            console.log("[VLI_SIDEBAR] Closing redundant floating coordinator card:", card.id);
                             UXManager.closeCard(card.id.replace('win-', ''));
                         }
                     });
@@ -5179,7 +5280,34 @@
                 if (watermark) watermark.style.right = '16px';
             } else {
                 sidebar.classList.add('open');
-                const totalWidth = numActive * 380;
+                
+                // Apply inline styles to the active tabs
+                let totalWidth = 0;
+                
+                // Ensure total width fits in window when opening a new tab
+                let maxAllowedTotalWidth = window.innerWidth - 60;
+                
+                activeSidebarTabs.forEach(id => {
+                    totalWidth += window.vliTabWidths[id];
+                });
+                
+                // If it overflows because we just opened a tab, shrink the tabs proportionally
+                if (totalWidth > maxAllowedTotalWidth) {
+                    const scale = maxAllowedTotalWidth / totalWidth;
+                    totalWidth = 0;
+                    activeSidebarTabs.forEach(id => {
+                        window.vliTabWidths[id] = Math.max(250, window.vliTabWidths[id] * scale);
+                        totalWidth += window.vliTabWidths[id];
+                    });
+                }
+
+                activeSidebarTabs.forEach(id => {
+                    const el = document.getElementById('tab-' + id);
+                    if (el) {
+                        el.style.width = `${window.vliTabWidths[id]}px`;
+                    }
+                });
+
                 sidebar.style.width = `${totalWidth}px`;
                 tabsContainer.style.right = `${totalWidth}px`;
                 if (watermark) watermark.style.right = `${totalWidth + 20}px`;

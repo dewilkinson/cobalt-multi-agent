@@ -416,20 +416,6 @@ async def health_check():
     except ImportError:
         return {"status": "ok", "version": "00.000.0000"}
 
-@app.post("/api/system/restart")
-async def system_restart():
-    logger.warning("VLI_SYSTEM: Received restart signal from client.")
-    import threading
-    import sys
-    import subprocess
-    def delay_exit():
-        import time
-        time.sleep(1)
-        # Re-launch the current process
-        subprocess.Popen([sys.executable] + sys.argv)
-        os._exit(0)
-    threading.Thread(target=delay_exit).start()
-    return {"status": "restarting"}
 
 @app.get("/vli")
 async def vli_dashboard_redirect():
@@ -641,9 +627,7 @@ async def run_tv_sync():
     try:
         script_path = os.path.join(os.getcwd(), "scripts", "vli", "tv_scanner_sync.py")
         if not os.path.exists(script_path):
-            script_path = os.path.join(os.getcwd(), "scripts", "tv_scanner_sync.py")
-        if not os.path.exists(script_path):
-            script_path = os.path.join(os.getcwd(), "backend", "scripts", "tv_scanner_sync.py")
+            script_path = os.path.join(os.getcwd(), "..", "scripts", "vli", "tv_scanner_sync.py")
             
         logger.info(f"[TV SYNC] Launching TradingView extractor: {script_path}")
         process = await asyncio.create_subprocess_exec(
@@ -958,8 +942,9 @@ async def run_meta_analysis(manual_trigger: bool = False):
         
         if result_text and "Agent reasoning encountered a failure" not in result_text and "timed out" not in result_text.lower():
             meta_path = os.path.join(reports_dir, "analyze_meta.md")
-            generation_ts = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
-            header = f"> **Generated:** {generation_ts}\n\n"
+            generation_date = datetime.now().strftime("%A, %B %d, %Y")
+            generation_time = datetime.now().strftime("%I:%M %p")
+            header = f"> **Date:** {generation_date}  \n> **Time:** {generation_time}\n\n"
             
             with open(meta_path, "w", encoding="utf-8") as mf:
                 mf.write(header + result_text)
@@ -1062,27 +1047,6 @@ async def startup_event():
             priority="LOW",
             callback=run_tv_sync
         )
-        
-        # Register Background Idle Analyst (Runs every 10 minutes)
-        cobalt_scheduler.add_timer(
-            task_id="IDLE_ANALYST",
-            name="Background LLM Analyst Scanner",
-            type="REPEAT",
-            schedule=10,
-            period_unit="minutes",
-            priority="NORMAL",
-            callback=run_idle_analysis
-        )
-        
-        # Register 6:00 AM Full Generation Cron
-        cobalt_scheduler.add_timer(
-            task_id="DAILY_ANALYST",
-            name="6:00 AM Morning Analyst Prep",
-            type="CALENDAR",
-            schedule="0 6 * * *",
-            priority="HIGH",
-            callback=run_daily_morning_analysis
-        )
         logger.info("VLI_SYSTEM: Internal Cobalt scanner logic BYPASSED (Using TradingView Engine)")
     else:
         # Register Internal Cobalt Scanner Logic
@@ -1116,6 +1080,27 @@ async def startup_event():
             priority="LOW",
             callback=poll_market_pulse
         )
+
+    # Register Background Idle Analyst (Runs every 10 minutes)
+    cobalt_scheduler.add_timer(
+        task_id="IDLE_ANALYST",
+        name="Background LLM Analyst Scanner",
+        type="REPEAT",
+        schedule=10,
+        period_unit="minutes",
+        priority="NORMAL",
+        callback=run_idle_analysis
+    )
+    
+    # Register 6:00 AM Full Generation Cron
+    cobalt_scheduler.add_timer(
+        task_id="DAILY_ANALYST",
+        name="6:00 AM Morning Analyst Prep",
+        type="CALENDAR",
+        schedule="0 6 * * *",
+        priority="HIGH",
+        callback=run_daily_morning_analysis
+    )
 
     cobalt_scheduler.add_timer(
         task_id="SMC_5M_POLLER",
@@ -1490,46 +1475,83 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                 logger.error(f"Failed to read MACRO_WATCHLIST_state.json: {e}")
                 
         # 6. Read SCANNER_RES state
-        scanner_res_content = {}
+        scanner_res_content = {"candidates": [], "pulse_mode": "Automated Pulse"}
+        sword_path = os.path.join(os.getcwd(), "data", "SCANNER_COMBAT_LIST.json")
         scanner_bucket_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SCANNER_RES_state.json")
-        if os.path.exists(scanner_bucket_path):
-            try:
+        
+        try:
+            engine = os.environ.get("VLI_SCANNER_ENGINE", "tradingview").lower()
+            
+            loaded_data = False
+            
+            if engine == "tradingview" and os.path.exists(scanner_bucket_path):
                 with open(scanner_bucket_path, encoding="utf-8") as f:
-                    scanner_res_content = json.load(f)
+                    data = json.load(f)
+                    cands = data if isinstance(data, list) else data.get("candidates", [])
+                    for c in cands:
+                        if "tier" not in c: c["tier"] = "SWORD"
+                    scanner_res_content["candidates"].extend(cands)
+                    if isinstance(data, dict):
+                        scanner_res_content["pulse_mode"] = "TradingView"
+                loaded_data = True
+                
+            if not loaded_data and os.path.exists(sword_path):
+                with open(sword_path, encoding="utf-8") as f:
+                    data = json.load(f)
+                    cands = data if isinstance(data, list) else data.get("candidates", []) or data.get("combat_list", [])
+                    for c in cands:
+                        if "tier" not in c: c["tier"] = "SWORD"
+                    scanner_res_content["candidates"].extend(cands)
+                    if isinstance(data, dict):
+                        scanner_res_content["pulse_mode"] = data.get("pulse_mode", "Sortino Sniper Scanner")
+                loaded_data = True
+                
+            if not loaded_data and engine != "tradingview" and os.path.exists(scanner_bucket_path):
+                with open(scanner_bucket_path, encoding="utf-8") as f:
+                    data = json.load(f)
+                    cands = data if isinstance(data, list) else data.get("candidates", [])
+                    for c in cands:
+                        if "tier" not in c: c["tier"] = "SWORD"
+                    scanner_res_content["candidates"].extend(cands)
+                    if isinstance(data, dict):
+                        scanner_res_content["pulse_mode"] = data.get("pulse_mode", "TradingView")
+        except Exception as e:
+            logger.error(f"Failed to load Sword data: {e}")
+            
+        shield_tv_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SHIELD_RES_state.json")
+        shield_local_path = os.path.join(os.getcwd(), "data", "SHIELD_COMBAT_LIST.json")
+        
+        shield_path = shield_tv_path if (engine == "tradingview" and os.path.exists(shield_tv_path)) else shield_local_path
+        
+        try:
+            if os.path.exists(shield_path):
+                with open(shield_path, encoding="utf-8") as sf:
+                    s_data = json.load(sf)
+                    if isinstance(s_data, list):
+                        s_list = s_data
+                    else:
+                        s_list = s_data.get("combat_list", []) or s_data.get("candidates", [])
+                    for c in s_list:
+                        c["tier"] = "SHIELD"
+                    scanner_res_content["candidates"].extend(s_list)
+        except Exception as e:
+            logger.error(f"Failed to load Shield data: {e}")
                     
-                # [NEW] Inject Shield Candidates from segregated pipeline
-                shield_path = os.path.join(os.getcwd(), "data", "SHIELD_COMBAT_LIST.json")
-                if os.path.exists(shield_path):
-                    try:
-                        with open(shield_path, encoding="utf-8") as sf:
-                            s_data = json.load(sf)
-                            s_list = s_data.get("combat_list", [])
-                            for c in s_list:
-                                c["tier"] = "SHIELD"
-                            if "candidates" not in scanner_res_content:
-                                scanner_res_content["candidates"] = []
-                            scanner_res_content["candidates"].extend(s_list)
-                    except Exception as e:
-                        logger.error(f"Failed to inject shield data: {e}")
-                    
-                # Dynamically enrich the has_report status to ensure UI polling catches live background generation
-                from datetime import datetime
-                for key in ["candidates", "sword_candidates", "shield_candidates"]:
-                    for cand in scanner_res_content.get(key, []):
-                        sym = cand.get("symbol", "")
-                        if sym:
-                            r_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
-                            cand["has_report"] = False
-                            if os.path.exists(r_path):
-                                cand["has_report"] = True
-                                mtime = os.path.getmtime(r_path)
-                                report_dt = datetime.fromtimestamp(mtime).isoformat()
-                                cand_dt = cand.get("updated_at", "")
-                                if not cand_dt or report_dt > cand_dt:
-                                    cand["updated_at"] = report_dt
-                                
-            except Exception as e:
-                logger.error(f"Failed to read SCANNER_RES_state.json: {e}")
+        # Dynamically enrich the has_report status to ensure UI polling catches live background generation
+        from datetime import datetime
+        for key in ["candidates", "sword_candidates", "shield_candidates"]:
+            for cand in scanner_res_content.get(key, []):
+                sym = cand.get("symbol", "")
+                if sym:
+                    r_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
+                    cand["has_report"] = False
+                    if os.path.exists(r_path):
+                        cand["has_report"] = True
+                        mtime = os.path.getmtime(r_path)
+                        report_dt = datetime.fromtimestamp(mtime).isoformat()
+                        cand_dt = cand.get("updated_at", "")
+                        if not cand_dt or report_dt > cand_dt:
+                            cand["updated_at"] = report_dt
 
         logger.info(f"[VLI_TRACE] State compiled for return. Telemetry size: {len(telemetry_tail)} bytes.")
         
@@ -2774,7 +2796,7 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     # [NEW] Meta-Analysis Eviction Interception
     req_lower = request.text.strip().lower()
     verbs = ["delete", "remove", "invalidate", "scrub"]
-    targets = ["briefing", "daily briefing", "morning briefing"]
+    targets = ["briefing", "daily briefing", "morning briefing", "daily report", "morning report"]
     
     if any(req_lower == f"{v} {t}" for v in verbs for t in targets):
         reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
@@ -3262,6 +3284,19 @@ async def vli_inbox_tick():
                     f.write(f"# Daily Action Plan - {current_day}\n- [ ] Waiting for morning session briefing...")
             except Exception as e:
                 logger.error(f"VLI: Day transition archival failed: {e}")
+
+        # [NEW] Invalidate Executive Morning Briefing at midnight
+        reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
+        meta_path = os.path.join(reports_dir, "analyze_meta.md")
+        if os.path.exists(meta_path):
+            try:
+                os.remove(meta_path)
+            except Exception as e:
+                logger.error(f"VLI: Failed to expire Morning Briefing: {e}")
+                
+        global _vli_last_async_report
+        if "Executive Morning Briefing" in _vli_last_async_report:
+            _vli_last_async_report = ""
 
         _vli_last_run_day = current_day
 
@@ -4135,22 +4170,25 @@ async def restart_server(request: Request):
         import sys
         import os
         import tempfile
+        import subprocess
         
         # Give the API request time to return before we replace the process
         time.sleep(1.0)
         
         wrapper_path = os.path.join(tempfile.gettempdir(), "vli_restarter.py")
         with open(wrapper_path, "w") as f:
-            f.write(f"""import time, os, sys
+            f.write(f"""import time, os, sys, subprocess
 time.sleep(2.0)
 try:
     os.remove({repr(wrapper_path)})
 except Exception:
     pass
-os.execv(sys.executable, {repr([sys.executable] + sys.argv)})
+cmd = {repr(sys.orig_argv)}
+subprocess.Popen(cmd)
 """)
         
-        os.execv(sys.executable, [sys.executable, wrapper_path])
+        subprocess.Popen([sys.executable, wrapper_path])
+        os._exit(0)
     
     import threading
     threading.Thread(target=restart_process, daemon=True).start()
