@@ -72,7 +72,7 @@ async def _run_node_with_tiered_fallback(agent_type, state, config, tools=None, 
         
         tier_timeouts = {
             "reasoning": 120.0,
-            "basic": 35.0,
+            "basic": 90.0,
             "legacy": 30.0
         }
         

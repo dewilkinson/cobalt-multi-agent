@@ -40,10 +40,10 @@ echo "      ✔ Backend started (PID: $SERVER_PID). Logs: vli_server.log"
 echo "[4/4] Launching VLI Dashboard in browser..."
 sleep 2 # Wait for uvicorn to bind
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-    start http://localhost:8000/public/vli_dashboard.html
+    start http://localhost:8000/vli_dashboard.html
 else
     # Linux/macOS
-    open http://localhost:8000/public/vli_dashboard.html 2>/dev/null || xdg-open http://localhost:8000/public/vli_dashboard.html 2>/dev/null
+    open http://localhost:8000/vli_dashboard.html 2>/dev/null || xdg-open http://localhost:8000/vli_dashboard.html 2>/dev/null
 fi
 
 echo "--------------------------------------------------"

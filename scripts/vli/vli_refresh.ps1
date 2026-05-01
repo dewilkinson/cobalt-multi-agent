@@ -70,7 +70,7 @@ if (Test-Path "backend") {
 # 4. LAUNCH DASHBOARD
 Write-Host "[4/4] Launching VLI Dashboard in browser..."
 Start-Sleep -Seconds 3
-Start-Process "http://localhost:8000/public/vli_dashboard.html"
+Start-Process "http://localhost:8000/vli_dashboard.html"
 
 Write-Host "--------------------------------------------------" -ForegroundColor Green
 Write-Host "VLI System Restored." -ForegroundColor Green

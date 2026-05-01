@@ -85,7 +85,7 @@ Provide a clean summary of the institutional landscape. Use bullet points for hi
 - **Status**: **STRIKE Authorized** | **SCOUT Authorized** | **HOLD** | **WAIT**
 - **Trigger**: Define the exact price or event required for entry.
 - **Guardrails**:
-  - **Strike Zone**: [Entry Price]
+  - **Strike Zone**: [Entry Price. MANDATORY: The entry point MUST be realistic and mathematically anchored near the CURRENT price action (e.g. within 1-3% of current price). Do not recommend unrealistic, deep retracement entries that are massively decoupled from today's price action.]
   - **Hard Stop**: [Liquidity Sweep/Invalidation Price. MANDATORY: Prioritize tight momentum stops (e.g. 1.0 below entry). DO NOT use extremely wide swing/macro stops that dilute share quantity.]
   - **Risk Unit**: [Mandated R scaling]
   - **Share Quantity**: [MANDATORY: Calculate and state exact number of shares required to match the Risk Unit based on Entry minus Hard Stop]

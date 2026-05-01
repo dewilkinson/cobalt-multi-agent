@@ -12,11 +12,15 @@ from src.utils.temporal import get_effective_now
 logger = logging.getLogger(__name__)
 
 @tool
-async def get_ticker_news(subject: str, refresh: bool = False) -> str:
+async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = False) -> str:
     """
     Scout Primitive: Fetches and categorizes the latest news for a specific stock ticker OR a general topic (e.g. 'Iran War').
     Implements Alpha Vantage Institutional Intelligence if enabled, falling back to Web Search for generic subjects.
+    You must provide EITHER 'subject' or 'ticker'.
     """
+    subject = subject or ticker
+    if not subject:
+        return "[ERROR] Missing subject or ticker argument."
     t = subject.upper()
     is_ticker = len(t) <= 6 and " " not in t
     

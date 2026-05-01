@@ -276,9 +276,8 @@ def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str =
                     logger.error(f"[AV PARALLEL ENGINE] Task failed for {t}: {e}")
                     return t, pd.DataFrame()
 
-        tasks = [fetch_av_concurrently(t) for t in mapped_tickers]
-        
         async def run_tasks():
+            tasks = [fetch_av_concurrently(t) for t in mapped_tickers]
             return await asyncio.gather(*tasks)
             
         try:
@@ -309,7 +308,7 @@ def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str =
                 threads=False,
                 timeout=20.0,    # [HARDEN] Increased from 15.0
                 auto_adjust=False,
-                prepost=False,
+                prepost=True,
             )
             duration_ms = (time.time() - start_time) * 1000
             if data is not None and not data.empty:

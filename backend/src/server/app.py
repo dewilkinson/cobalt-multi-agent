@@ -1091,6 +1091,71 @@ async def startup_event():
         priority="NORMAL",
         callback=run_idle_analysis
     )
+
+    async def trigger_daily_postmortem():
+        """
+        Cron task running at 5:00 PM EST.
+        Generates the Daily Trading Report (post-mortem) and condenses Symbol Analysis reports generated today.
+        """
+        logger.info("[POSTMORTEM_AUTO] Initiating 5:00 PM Daily Trading Report sequence.")
+        import os
+        from datetime import datetime
+        
+        # 1. Trigger the post-mortem analysis
+        try:
+            from src.services.historical_reports import PERFORMANCE_DIR
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            report_path = os.path.join(PERFORMANCE_DIR, f"Daily_Trading_Report_{date_str}.md")
+            
+            # Delete if it exists and was created before 16:00
+            if os.path.exists(report_path):
+                mtime = datetime.fromtimestamp(os.path.getmtime(report_path))
+                if mtime.hour < 16:
+                    os.remove(report_path)
+                    logger.info(f"Deleted premature post-mortem report: {report_path}")
+                    
+            # Trigger background synthesis
+            import asyncio
+            asyncio.create_task(_background_synthesis_task(
+                text="Analyze today's executed trades and generate a detailed Daily Trading Report post-mortem.",
+                image=None,
+                thread_id=f"POSTMORTEM_{date_str}",
+                direct_mode=False
+            ))
+        except Exception as e:
+            logger.error(f"Failed to trigger daily post-mortem: {e}")
+            
+        # 2. Condense any raw Symbol Analysis reports generated today into rolling summaries
+        try:
+            from src.services.historical_reports import REPORTS_DIR, update_symbol_rolling_summary
+            import glob
+            
+            symbol_reports = glob.glob(os.path.join(REPORTS_DIR, "analyze_*.md"))
+            today_date = datetime.now().date()
+            
+            for r_path in symbol_reports:
+                if not os.path.basename(r_path).startswith("analyze_meta"):
+                    mtime = datetime.fromtimestamp(os.path.getmtime(r_path))
+                    if mtime.date() == today_date:
+                        sym = os.path.basename(r_path).replace("analyze_", "").replace(".md", "")
+                        with open(r_path, "r", encoding="utf-8") as f:
+                            content = f.read()
+                        
+                        logger.info(f"Condensing today's analysis for {sym.upper()} into rolling summary.")
+                        update_symbol_rolling_summary(sym.upper(), content)
+                        
+        except Exception as e:
+            logger.error(f"Failed to run symbol report condensation: {e}")
+            
+    # Register 5:00 PM Daily Post-Mortem
+    cobalt_scheduler.add_timer(
+        task_id="DAILY_POSTMORTEM",
+        name="5:00 PM Daily Trading Post-Mortem",
+        type="CALENDAR",
+        schedule="0 17 * * 1-5",
+        priority="HIGH",
+        callback=trigger_daily_postmortem
+    )
     
     # Register 6:00 AM Full Generation Cron
     cobalt_scheduler.add_timer(
@@ -1521,7 +1586,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
         shield_tv_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SHIELD_RES_state.json")
         shield_local_path = os.path.join(os.getcwd(), "data", "SHIELD_COMBAT_LIST.json")
         
-        shield_path = shield_tv_path if (engine == "tradingview" and os.path.exists(shield_tv_path)) else shield_local_path
+        shield_path = shield_tv_path if engine == "tradingview" else shield_local_path
         
         try:
             if os.path.exists(shield_path):
@@ -1536,6 +1601,16 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                     scanner_res_content["candidates"].extend(s_list)
         except Exception as e:
             logger.error(f"Failed to load Shield data: {e}")
+            
+        # Defensive Deduplication: Ensure no duplicate symbols render across pipelines
+        seen_symbols = set()
+        deduped_cands = []
+        for cand in scanner_res_content.get("candidates", []):
+            sym = cand.get("symbol", "").upper()
+            if sym and sym not in seen_symbols:
+                seen_symbols.add(sym)
+                deduped_cands.append(cand)
+        scanner_res_content["candidates"] = deduped_cands
                     
         # Dynamically enrich the has_report status to ensure UI polling catches live background generation
         from datetime import datetime
@@ -1974,6 +2049,9 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
         # Reverse to oldest first for chronological timestamping and position calculation
         activities_chronological = list(reversed(activities))
         
+        import datetime
+        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        
         daily_counters = {}
         results = []
         open_positions = {}
@@ -2001,17 +2079,24 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
             price = float(act.get('price', 0))
             status = act.get('status', 'Executed')
             
+            placed_time = act.get('trade_date') or act.get('time_placed') or act.get('trade_time') or act.get('timestamp') or act.get('time') or act.get('date') or ''
+            date_only = str(placed_time)[:10] if placed_time else "Unknown"
+
             # Dynamic Position Calculation
             if status == "Executed":
                 if sym_raw not in open_positions:
-                    open_positions[sym_raw] = {"quantity": 0.0, "total_cost": 0.0, "average_cost": 0.0}
+                    open_positions[sym_raw] = {"quantity": 0.0, "total_cost": 0.0, "average_cost": 0.0, "qty_today": 0.0}
                     
                 if action in ["BUY", "BOUGHT", "BTO", "BTC", "REINVEST", "DIVIDEND"]:
                     open_positions[sym_raw]["quantity"] += qty
                     open_positions[sym_raw]["total_cost"] += qty * price
+                    if date_only == today_str:
+                        open_positions[sym_raw]["qty_today"] += qty
                 elif action in ["SELL", "SOLD", "STC", "STO"]:
                     open_positions[sym_raw]["quantity"] -= qty
                     open_positions[sym_raw]["total_cost"] -= qty * price
+                    if date_only == today_str:
+                        open_positions[sym_raw]["qty_today"] -= qty
                     
                 if open_positions[sym_raw]["quantity"] > 0.0001:
                     open_positions[sym_raw]["average_cost"] = open_positions[sym_raw]["total_cost"] / open_positions[sym_raw]["quantity"]
@@ -2019,10 +2104,10 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                     # Flat position, zero out the cost
                     open_positions[sym_raw]["total_cost"] = 0.0
                     open_positions[sym_raw]["average_cost"] = 0.0
+                    open_positions[sym_raw]["qty_today"] = 0.0
 
             # Extract real trade date for Order History log
-            placed_time = act.get('trade_date') or act.get('time_placed') or act.get('trade_time') or act.get('timestamp') or act.get('time') or act.get('date') or ''
-            date_only = str(placed_time)[:10] if placed_time else "Unknown"
+            # placed_time already extracted above
             
             real_time = None
             placed_time_str = str(placed_time) if placed_time else ""
@@ -2068,10 +2153,12 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                 sym_raw = pos["symbol"].upper().replace('-USD', '').replace('*', '')
                 if "CASH" in sym_raw or "FZFXX" in sym_raw or "SPAXX" in sym_raw or "FDIC" in sym_raw:
                     continue
+                qty_today = open_positions.get(sym_raw, {}).get("qty_today", 0.0)
                 open_positions[sym_raw] = {
                     "quantity": pos.get("quantity", 0.0),
                     "average_cost": pos.get("average_cost", 0.0),
-                    "total_cost": pos.get("total_cost", 0.0)
+                    "total_cost": pos.get("total_cost", 0.0),
+                    "qty_today": qty_today
                 }
             # Explicit list is source of truth, remove calculated ones not in the explicit list
             explicit_symbols = {pos["symbol"].upper().replace('-USD', '').replace('*', '') for pos in explicit_positions}
@@ -2154,6 +2241,9 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                         last_price = safe_float(last_val)
                         prev_close = safe_float(prev_val)
                         
+                        if last_price and not prev_close:
+                            prev_close = last_price
+                        
                         last_time_obj = sym_data.index[-1]
                         last_time_str = last_time_obj.strftime('%Y-%m-%d 16:00') if hasattr(last_time_obj, 'strftime') else 'Unknown'
                         
@@ -2162,12 +2252,16 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                             last_time_str = f"{last_time_str[:10]} {real_trade_times[sym]}"
                         
                         qty = safe_float(pdata['quantity'])
+                        qty_today = safe_float(pdata.get('qty_today', 0.0))
                         avg_cost = safe_float(pdata['average_cost'])
                         total_cost = safe_float(pdata['total_cost'])
                         current_value = qty * last_price
                         
-                        todays_gl_dol = (last_price - prev_close) * qty
-                        todays_gl_pct = ((last_price - prev_close) / prev_close * 100) if prev_close > 0 else 0.0
+                        qty_yesterday = max(0.0, qty - max(0.0, qty_today))
+                        held_today = max(0.0, qty_today)
+                        
+                        todays_gl_dol = (last_price - prev_close) * qty_yesterday + (last_price - avg_cost) * held_today
+                        todays_gl_pct = (todays_gl_dol / (prev_close * qty_yesterday + avg_cost * held_today) * 100) if (prev_close * qty_yesterday + avg_cost * held_today) > 0 else 0.0
                         
                         total_gl_dol = current_value - total_cost
                         total_gl_pct = (total_gl_dol / total_cost * 100) if total_cost > 0 else 0.0
@@ -2534,13 +2628,27 @@ async def _invoke_vli_agent(
         # But if we were passing the WHOLE history in workflow_input, we'd truncate it here.
     except: pass
     
+    # [NEW] Historical Symbol Memory Injection
+    injected_observations = []
+    if "generate a detailed Daily Trading Report post-mortem" in text:
+        from src.services.historical_reports import get_trader_performance_summary
+        perf_summary = get_trader_performance_summary()
+        if perf_summary:
+            injected_observations.append(f"[SYSTEM INJECTION: Trader Performance History]\n{perf_summary}")
+    elif text.lower().startswith("analyze "):
+        sym = text.split(" ")[1].strip().upper()
+        from src.services.historical_reports import get_historical_symbol_summary
+        sym_summary = get_historical_symbol_summary(sym)
+        if sym_summary:
+            injected_observations.append(f"[SYSTEM INJECTION: Supplemental Interday History for {sym}]\n{sym_summary}")
+
     workflow_input = {
         "messages": [HumanMessage(content=content_obj)],
         "plan_iterations": 0,
         "steps_completed": 0,
         "final_report": "",
         "current_plan": None,
-        "observations": [],
+        "observations": injected_observations,
         "auto_accepted_plan": True,
         "is_plan_approved": True,
         "enable_background_investigation": False,
@@ -2673,7 +2781,22 @@ async def _background_synthesis_task(text: str, image: str | None, direct_mode: 
 
         # [PERSISTENCE FIX] Persist asynchronously generated markdown to disk
         if response_text and len(response_text) > 50 and "[ERROR]" not in response_text:
-            _persist_vli_report(text, response_text)
+            if thread_id and thread_id.startswith("POSTMORTEM_"):
+                # 1. Save to Obsidian
+                from src.services.historical_reports import write_obsidian_daily_report, PERFORMANCE_DIR, update_performance_rolling_summary
+                write_obsidian_daily_report(response_text)
+                
+                # 2. Save raw to Cobalt cache (Human readable)
+                import os
+                date_str = thread_id.replace("POSTMORTEM_", "")
+                perf_path = os.path.join(PERFORMANCE_DIR, f"Daily_Trading_Report_{date_str}.md")
+                with open(perf_path, "w", encoding="utf-8") as f:
+                    f.write(response_text)
+                    
+                # 3. Condense into rolling performance summary
+                update_performance_rolling_summary(response_text)
+            else:
+                _persist_vli_report(text, response_text)
 
     except Exception as e:
         logger.error(f"[ASYNC_SYNTHESIS] Background report failed: {e}")
@@ -3815,15 +3938,31 @@ async def _astream_workflow_generator(
                 logger.warning(f"Failed to save user message: {e}")
 
     # Prepare workflow input
+    
+    # [NEW] Historical Symbol Memory Injection
+    injected_observations = []
+    req_text = messages[-1]["content"] if messages else ""
+    if "generate a detailed Daily Trading Report post-mortem" in req_text:
+        from src.services.historical_reports import get_trader_performance_summary
+        perf_summary = get_trader_performance_summary()
+        if perf_summary:
+            injected_observations.append(f"[SYSTEM INJECTION: Trader Performance History]\n{perf_summary}")
+    elif req_text.lower().startswith("analyze "):
+        sym = req_text.split(" ")[1].strip().upper()
+        from src.services.historical_reports import get_historical_symbol_summary
+        sym_summary = get_historical_symbol_summary(sym)
+        if sym_summary:
+            injected_observations.append(f"[SYSTEM INJECTION: Supplemental Interday History for {sym}]\n{sym_summary}")
+
     workflow_input = {
         "messages": messages,
         "plan_iterations": 0,
         "final_report": "",
         "current_plan": None,
-        "observations": [],
+        "observations": injected_observations,
         "auto_accepted_plan": auto_accepted_plan,
         "enable_background_investigation": enable_background_investigation,
-        "research_topic": messages[-1]["content"] if messages else "",
+        "research_topic": req_text,
         "obsidian_settings": obsidian_settings,
         "verbosity": verbosity,
         "test_mode": is_test_mode,

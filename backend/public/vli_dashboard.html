@@ -24,7 +24,8 @@
             return originalFetch(...args);
         };
 
-        const VLI_CLIENT_VERSION = "00.000.0005";
+        // Centralized Version Control
+        const VLI_CLIENT_VERSION = "00.000.0011";
     </script>
     
     <link
@@ -1237,7 +1238,9 @@
                 handshakeSeconds++;
                 
                 if (handshakeSeconds >= 60) {
-                    window.showServerOffline('SERVER OFFLINE');
+                    window.showServerOffline('RECONNECTING', 'Server launch timed out. Running refresh script...');
+                    setTimeout(() => window.location.reload(true), 2000);
+                    return;
                 }
                 
                 let baseText = window._vliHandshakeIsRestarting ? "Launching Server" : "Connecting to Server";
@@ -1304,12 +1307,16 @@
                         }
                     } else {
                         if (handshakeSeconds >= 60) {
-                            window.showServerOffline('SERVER OFFLINE');
+                            window.showServerOffline('RECONNECTING', 'Server launch timed out. Running refresh script...');
+                            setTimeout(() => window.location.reload(true), 2000);
+                            return;
                         }
                     }
                 } catch (err) {
                     if (handshakeSeconds >= 60) {
-                        window.showServerOffline('SERVER OFFLINE');
+                        window.showServerOffline('RECONNECTING', 'Server launch timed out. Running refresh script...');
+                        setTimeout(() => window.location.reload(true), 2000);
+                        return;
                     }
                 } finally {
                     isHandshakeFetching = false;
@@ -1321,10 +1328,15 @@
             try {
                 const res = await originalFetch(`/api/health?_t=${Date.now()}`, { cache: 'no-store' });
                 if (!res.ok) {
-                    window.vliStartHandshake();
+                    window.vliStartHandshake(true);
+                    return;
+                }
+                const data = await res.json();
+                if (!data || !data.version) {
+                    window.vliStartHandshake(true);
                 }
             } catch(e) {
-                window.vliStartHandshake();
+                window.vliStartHandshake(true);
             }
         }
 
@@ -4515,7 +4527,7 @@
             if(!msgsContainer) return;
             
             try {
-                const baseUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://127.0.0.1:8000' : '';
+                const baseUrl = '';
                 const res = await fetch(`${baseUrl}/api/scheduler/logs`);
                 const data = await res.json();
                 
@@ -4555,7 +4567,7 @@
             const selectEl = document.getElementById(`order-hist-account-${instanceGuid}`);
             if(!selectEl) return;
             try {
-                const baseUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://127.0.0.1:8000' : '';
+                const baseUrl = '';
                 const res = await fetch(`${baseUrl}/api/brokerage/accounts`);
                 const data = await res.json();
                 if(data.accounts && data.accounts.length > 0) {
@@ -4653,7 +4665,7 @@
             
             try {
                 // Ensure we hit the Python backend directly
-                const baseUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://127.0.0.1:8000' : '';
+                const baseUrl = '';
                 const url = `${baseUrl}/api/brokerage/history?account_id=${encodeURIComponent(accountId)}&start_date=${startVal}&end_date=${endVal}`;
                 const res = await fetch(url);
                 const data = await res.json();

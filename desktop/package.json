@@ -1,0 +1,13 @@
+{
+  "name": "vli-desktop",
+  "version": "1.0.0",
+  "description": "Desktop wrapper for Cobalt Multi-Agent / VLI",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0"
+  }
+}

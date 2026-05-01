@@ -141,6 +141,28 @@ class BrokerageCache:
             date_str = datetime.now().strftime("%Y-%m-%d")
             backup_path = os.path.join(archive_dir, f"BrokerageCacheBackup_{date_str}{ext}")
             shutil.copy2(CACHE_FILE, backup_path)
+            
+            # [NEW] Backup Obsidian Journals and internal Analysis Reports
+            try:
+                from src.tools.journal import _get_obsidian_config
+                vault_path, journal_dir = _get_obsidian_config(None)
+                
+                if vault_path:
+                    full_journal_dir = os.path.join(vault_path, journal_dir)
+                    if os.path.exists(full_journal_dir):
+                        journal_backup = os.path.join(archive_dir, f"TradingJournalsBackup_{date_str}")
+                        shutil.make_archive(journal_backup, 'zip', full_journal_dir)
+                        logger.info(f"Backed up Obsidian journals to {journal_backup}.zip")
+                        
+                reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
+                if os.path.exists(reports_dir):
+                    reports_backup = os.path.join(archive_dir, f"AnalysisReportsBackup_{date_str}")
+                    shutil.make_archive(reports_backup, 'zip', reports_dir)
+                    logger.info(f"Backed up internal reports to {reports_backup}.zip")
+                    
+            except Exception as e:
+                logger.error(f"Failed to backup extra directories during weekly cron: {e}")
+            
             logger.info(f"Created weekly BrokerageCache backup: {backup_path}")
         else:
             backup_path = os.path.join(archive_dir, f"BrokerageCacheDailyBackup{ext}")
@@ -250,6 +272,11 @@ class BrokerageCache:
             action = act.get('type', act.get('action', 'N/A')).upper()
             if action not in ["BUY", "SELL", "BOUGHT", "SOLD", "BTO", "STC", "BTC", "STO", "REINVEST", "DIVIDEND"]:
                 continue
+                
+            status = str(act.get('status', act.get('state', 'Executed'))).upper()
+            if status in ["OPEN", "PENDING", "CANCELED", "CANCELLED", "EXPIRED", "REJECTED"]:
+                continue
+
                 
             sym_obj = act.get('symbol') or act.get('universal_symbol') or {}
             sym = sym_obj.get('symbol', act.get('symbol')) if isinstance(sym_obj, dict) else sym_obj

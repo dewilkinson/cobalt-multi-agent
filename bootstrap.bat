@@ -11,6 +11,7 @@ IF "%MODE%"=="development" GOTO DEV
 :PROD
 echo Starting Cobalt Multiagent in [PRODUCTION] mode...
 cd backend
+uv run python bump_version.py
 start uv run server.py
 cd ../web
 start pnpm start
@@ -19,6 +20,7 @@ GOTO END
 :DEV
 echo Starting Cobalt Multiagent in [DEVELOPMENT] mode...
 cd backend
+uv run python bump_version.py
 start uv run server.py --reload
 cd ../web
 start pnpm dev

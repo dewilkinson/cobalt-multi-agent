@@ -285,10 +285,10 @@ def get_personal_risk_metrics(config: RunnableConfig):
 
 
 @tool
-async def get_daily_blotter(config: RunnableConfig):
+async def get_daily_blotter(days_back: int = 2):
     """
-    Retrieves the raw executions exclusively from the last 24 to 48 hours.
-    Use this for daily journaling and diary reflection.
+    Retrieves the raw executions exclusively from the last N days (defaults to 2 for daily journaling).
+    Use this for daily or weekly journaling and diary reflection.
     """
     logger.info("Journaler Tool: Extracting daily blotter via BrokerageCache")
     from src.services.brokerage_cache import BrokerageCache
@@ -301,7 +301,7 @@ async def get_daily_blotter(config: RunnableConfig):
 
     recent_trades = []
     unique_tickers = set()
-    cutoff = datetime.now() - timedelta(days=2)
+    cutoff = datetime.now() - timedelta(days=days_back)
     cutoff_str = cutoff.strftime("%Y-%m-%d")
 
     for account_id, acct_data in cache.items():
@@ -309,7 +309,12 @@ async def get_daily_blotter(config: RunnableConfig):
         for act in activities:
             t_date = str(act.get("trade_date", "") or act.get("time_placed", ""))
             
-            # Filter for last 48 hours
+            # Filter out non-executed orders (Open, Canceled, Rejected)
+            status = str(act.get("status", "")).upper()
+            if status and "EXECUTED" not in status:
+                continue
+                
+            # Filter for last N days
             if t_date >= cutoff_str:
                 sym = ""
                 if 'universal_symbol' in act and act['universal_symbol']:
