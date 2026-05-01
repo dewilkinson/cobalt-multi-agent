@@ -5,7 +5,7 @@ import webbrowser
 from datetime import datetime
 
 # Setup paths to allow importing from src
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "backend")))
 
 # Force Mock Broker to use the offline CSV
 os.environ["MOCK_BROKER"] = "true"

@@ -285,30 +285,90 @@ def get_personal_risk_metrics(config: RunnableConfig):
 
 
 @tool
-def get_daily_blotter(config: RunnableConfig):
+async def get_daily_blotter(config: RunnableConfig):
     """
     Retrieves the raw executions exclusively from the last 24 to 48 hours.
     Use this for daily journaling and diary reflection.
     """
-    logger.info("Journaler Tool: Extracting daily blotter via DAL")
-    history = _fetch_aggregated_history(config, days=365)
-
-    if not history:
-        return "No recent trades found."
+    logger.info("Journaler Tool: Extracting daily blotter via BrokerageCache")
+    from src.services.brokerage_cache import BrokerageCache
+    import os
+    from datetime import datetime, timedelta
+    
+    cache = BrokerageCache._load_cache()
+    if not cache:
+        return "No recent trades found in cache."
 
     recent_trades = []
+    unique_tickers = set()
     cutoff = datetime.now() - timedelta(days=2)
     cutoff_str = cutoff.strftime("%Y-%m-%d")
 
-    for t in history:
-        t_date = str(t.get("date", ""))
-        if t_date >= cutoff_str:
-            recent_trades.append(f"{t_date}: {t.get('action', '')} {t.get('quantity', '')} {t.get('symbol', '')} @ ${t.get('price', '')}")
+    for account_id, acct_data in cache.items():
+        activities = acct_data.get("activities", []) if isinstance(acct_data, dict) else acct_data
+        for act in activities:
+            t_date = str(act.get("trade_date", "") or act.get("time_placed", ""))
+            
+            # Filter for last 48 hours
+            if t_date >= cutoff_str:
+                sym = ""
+                if 'universal_symbol' in act and act['universal_symbol']:
+                    sym = act['universal_symbol'].get('symbol', '')
+                elif 'symbol' in act and act['symbol'] and isinstance(act['symbol'], dict):
+                    sym = act['symbol'].get('symbol', '')
+                elif 'symbol' in act and isinstance(act['symbol'], str):
+                    sym = act['symbol']
+                    
+                if not sym:
+                    continue
+                    
+                action = "BUY" if "BUY" in str(act.get('type', '')).upper() or act.get('action') == "BUY" else "SELL"
+                qty = act.get('units') or act.get('quantity') or 0
+                price = act.get('price') or 0
+                
+                recent_trades.append(f"{t_date}: {action} {qty} {sym} @ ${price}")
+                unique_tickers.add(sym)
 
     if not recent_trades:
         return "No trades executed in the last 48 hours."
 
-    return "Recent Executions:\n" + "\n".join([str(t) for t in recent_trades])
+    blotter_text = "Recent Executions:\n" + "\n".join([str(t) for t in recent_trades])
+    
+    # Missing Reports Logic
+    missing_reports = []
+    reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
+    
+    for ticker in unique_tickers:
+        r_path = os.path.join(reports_dir, f"analyze_{ticker.lower()}.md")
+        if not os.path.exists(r_path):
+            missing_reports.append(ticker)
+            
+    if missing_reports:
+        logger.info(f"Daily Blotter: Auto-generating missing reports for {missing_reports}")
+        try:
+            from src.server.app import _invoke_vli_agent
+            import asyncio
+            tasks = [_invoke_vli_agent(f"analyze {ticker}", thread_id=f"bg_{ticker}") for ticker in missing_reports]
+            await asyncio.gather(*tasks, return_exceptions=True)
+        except Exception as e:
+            logger.error(f"Failed to auto-generate reports in get_daily_blotter: {e}")
+            
+    # Embed Reports
+    blotter_text += "\n\n=== STRUCTURAL ANALYSIS REPORTS ===\n"
+    for ticker in unique_tickers:
+        r_path = os.path.join(reports_dir, f"analyze_{ticker.lower()}.md")
+        if os.path.exists(r_path):
+            try:
+                with open(r_path, "r", encoding="utf-8") as f:
+                    blotter_text += f"\n\n--- Analysis for {ticker} ---\n"
+                    blotter_text += f.read()
+            except Exception as e:
+                logger.error(f"Failed to read report for {ticker}: {e}")
+        else:
+            blotter_text += f"\n\n--- Analysis for {ticker} ---\n[REPORT MISSING OR FAILED TO GENERATE]"
+
+    directive = "\n\n[CRITICAL DIRECTIVE TO AI: The text above contains the user's raw executions followed by the structural analysis for the tickers they traded. Your job is NOT to repeat the structural analysis. Your job is to ACT AS A POST-TRADE ANALYST. You must mathematically grade the user's entry and exit efficiency against the POC, VAH, VAL, and High/Low ranges mentioned in the analysis. Did they buy the top? Did they sell the bottom? Did they follow the strategy? Provide a highly critical Post-Trade Efficiency Report!]"
+    return blotter_text + directive
 
 
 @tool

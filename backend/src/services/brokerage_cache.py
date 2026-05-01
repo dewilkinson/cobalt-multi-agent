@@ -225,3 +225,95 @@ class BrokerageCache:
             logger.info(f"Merged {added} new activities into brokerage cache for account {account_id}")
             
         return existing_activities
+
+    @classmethod
+    def calculate_realized_pnl(cls, account_id: str, start_date: str, end_date: str) -> Dict[str, Any]:
+        """
+        Calculates the Realized PnL for a given date range using a FIFO tax-lot engine.
+        Returns a dict with total_pnl and a list of closed_trades.
+        """
+        activities = cls.get_activities(account_id)
+        if not activities:
+            return {"total_pnl": 0.0, "closed_trades": []}
+            
+        # Sort chronologically (oldest first)
+        def get_sort_key(act):
+            return act.get('trade_date', act.get('time_placed', ''))
+        
+        chronological_acts = sorted(activities, key=get_sort_key)
+        
+        tax_lots = {} # dict of symbol -> list of {"qty": float, "price": float}
+        realized_pnl = 0.0
+        closed_trades = []
+        
+        for act in chronological_acts:
+            action = act.get('type', act.get('action', 'N/A')).upper()
+            if action not in ["BUY", "SELL", "BOUGHT", "SOLD", "BTO", "STC", "BTC", "STO", "REINVEST", "DIVIDEND"]:
+                continue
+                
+            sym_obj = act.get('symbol') or act.get('universal_symbol') or {}
+            sym = sym_obj.get('symbol', act.get('symbol')) if isinstance(sym_obj, dict) else sym_obj
+            if not sym or sym == 'N/A':
+                continue
+                
+            sym_raw = str(sym).upper().replace('-USD', '').replace('*', '')
+            qty = float(act.get('units', 0))
+            price = float(act.get('price', 0))
+            
+            trade_date_str = get_sort_key(act)
+            date_only = trade_date_str[:10] if trade_date_str else "Unknown"
+            
+            in_range = False
+            if start_date <= date_only <= end_date or date_only == "Unknown":
+                in_range = True
+                
+            if sym_raw not in tax_lots:
+                tax_lots[sym_raw] = []
+                
+            if action in ["BUY", "BOUGHT", "BTO", "BTC", "REINVEST", "DIVIDEND"]:
+                tax_lots[sym_raw].append({"qty": qty, "price": price})
+            elif action in ["SELL", "SOLD", "STC", "STO"]:
+                sell_qty_remaining = qty
+                trade_pnl = 0.0
+                total_cost_basis = 0.0
+                qty_matched = 0.0
+                
+                while sell_qty_remaining > 0.0001 and len(tax_lots[sym_raw]) > 0:
+                    lot = tax_lots[sym_raw][0]
+                    if lot["qty"] <= sell_qty_remaining:
+                        # Consume entire lot
+                        trade_pnl += (price - lot["price"]) * lot["qty"]
+                        total_cost_basis += lot["price"] * lot["qty"]
+                        qty_matched += lot["qty"]
+                        sell_qty_remaining -= lot["qty"]
+                        tax_lots[sym_raw].pop(0)
+                    else:
+                        # Consume partial lot
+                        trade_pnl += (price - lot["price"]) * sell_qty_remaining
+                        total_cost_basis += lot["price"] * sell_qty_remaining
+                        qty_matched += sell_qty_remaining
+                        lot["qty"] -= sell_qty_remaining
+                        sell_qty_remaining = 0.0
+                
+                # If we still have sell_qty_remaining, we don't have cost basis data.
+                # Since we don't have the original BUY, we cannot calculate Realized PnL accurately.
+                # Do NOT default to $0 cost basis (100% profit) as it severely inflates gains.
+                if sell_qty_remaining > 0.0001:
+                    pass # Ignore PnL for unknown cost basis
+                    
+                avg_cost = (total_cost_basis / qty_matched) if qty_matched > 0 else 0.0
+                
+                if in_range and qty_matched > 0:
+                    realized_pnl += trade_pnl
+                    closed_trades.append({
+                        "symbol": sym_raw,
+                        "close_date": trade_date_str,
+                        "qty": qty_matched,
+                        "sell_price": price,
+                        "buy_price": avg_cost,
+                        "pnl": trade_pnl,
+                        "pnl_pct": (trade_pnl / total_cost_basis * 100) if total_cost_basis > 0 else 0.0
+                    })
+                    
+        return {"total_pnl": realized_pnl, "closed_trades": closed_trades}
+

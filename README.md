@@ -34,8 +34,17 @@ Project Cobalt is released under the PolyForm Noncommercial License 1.0.0.
 - **Commercial Entities**: Institutional use, for-profit redistribution, or commercial integration is strictly prohibited.
 
 ## 🚀 Getting Started
-
 1. **Clone the Repo**: Initialize your Obsidian vault as a Git repository.
 2. **Configure Railway**: Deploy the Scout agent to Railway and input your SnapTrade credentials as environment variables.
 3. **Define your SOP**: Set your SMC grading thresholds in the VLI configuration.
 4. **Open Obsidian**: Use the Obsidian Git plugin to begin receiving Dispatches.
+
+---
+
+## 🧰 Toolbox: Scripts & Utilities
+The `scripts/` directory contains various tools to manage and debug the system:
+- **`scripts/vli/`**: Essential VLI lifecycle tools (e.g., `vli_refresh.sh` for emergency system restarts).
+- **`scripts/diagnostic/`**: High-fidelity scanners and verification tools for the data pipeline.
+- **`scripts/utils/`**: Maintenance utilities like cache cleanup and UI patching.
+- **`scripts/archive/`**: Historical logs, test results, and deprecated script iterations.
+- **`scripts/dev/`**: Simulation and development-phase logic for testing new agent strategies.

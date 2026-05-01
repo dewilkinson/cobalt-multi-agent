@@ -115,16 +115,27 @@ async def coordinator_node(state: State, config: RunnableConfig) -> dict[str, An
 
     # [CONTEXT POISONING GUARDRAIL]
     if (not plan_obj.steps or plan_obj.has_enough_context) and not state.get("direct_mode", False):
-        tech_keywords = ["analyze", "analysis", "smc", "sortino", "sharpe", "report", "scan", "scanner", "watchlist"]
         user_query_content = str(state.get("messages", [])).lower()
-        if any(kw in user_query_content for kw in tech_keywords):
-            logger.warning("[COORD] Guardrail triggered: Coordinator hallucinated direct response for technical query. Forcing smc_analyst step.")
+        
+        # Check if it's a trade analysis request first
+        trade_keywords = ["trades", "journal", "blotter", "executions"]
+        if any(kw in user_query_content for kw in trade_keywords):
+            logger.warning("[COORD] Guardrail: Forced Journaler step for trade analysis.")
             plan_obj.has_enough_context = False
             plan_obj.direct_response = ""
             from src.prompts.planner_model import Step, StepType
+            plan_obj.steps = [Step(need_search=False, title="Trade Efficiency Analysis", description="Analyze the user's execution efficiency using the daily blotter.", step_type=StepType.JOURNALER)]
+            
+        else:
+            tech_keywords = ["analyze", "analysis", "smc", "sortino", "sharpe", "report", "scan", "scanner", "watchlist"]
+            if any(kw in user_query_content for kw in tech_keywords):
+                logger.warning("[COORD] Guardrail triggered: Coordinator hallucinated direct response for technical query. Forcing smc_analyst step.")
+                plan_obj.has_enough_context = False
+                plan_obj.direct_response = ""
+                from src.prompts.planner_model import Step, StepType
 
-            user_context = state.get("messages", [])[-1].content if state.get("messages") else "the target ticker"
-            plan_obj.steps = [Step(need_search=False, title="Forced Technical Execution", description=f"Run deep structural analysis for: {user_context}", step_type=StepType.SMC_ANALYST)]
+                user_context = state.get("messages", [])[-1].content if state.get("messages") else "the target ticker"
+                plan_obj.steps = [Step(need_search=False, title="Forced Technical Execution", description=f"Run deep structural analysis for: {user_context}", step_type=StepType.SMC_ANALYST)]
 
     logger.info(f"[COORD] Plan formulated: {plan_obj.title}. Ready to execute {len(plan_obj.steps)} steps.")
     return {"current_plan": plan_obj, "steps_completed": steps_completed, "messages": fb_msgs}

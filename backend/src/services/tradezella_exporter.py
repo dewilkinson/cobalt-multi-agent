@@ -267,6 +267,7 @@ def generate_tradezella_csv(input_filename, output_filename, target_month=None, 
             })
 
     # 4. Save the full TradeZella-ready file
+    os.makedirs(os.path.dirname(output_filename), exist_ok=True)
     with open(output_filename, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=tz_headers, extrasaction='ignore')
         writer.writeheader()

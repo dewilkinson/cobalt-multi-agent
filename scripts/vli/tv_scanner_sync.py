@@ -5,7 +5,7 @@ import asyncio
 from datetime import datetime
 from tradingview_screener import Query, col
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'backend')))
 from src.tools.scanner import batch_fetch_sortino
 
 def sync_vli_scanners():

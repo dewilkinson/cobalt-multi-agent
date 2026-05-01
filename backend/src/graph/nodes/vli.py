@@ -187,6 +187,41 @@ async def vli_node(
                 goto=END
             )
 
+    # --- [ANALYZE TRADES INTENT] ---
+    is_analyze_trades = bool(re.search(r'^(analyze|audit|check|grade|performance|evaluate)\s+(?:the\s+)?(?:session\s+|today\'s\s+)?trades$', stripped_query))
+    if is_analyze_trades:
+        from src.tools.broker import get_daily_blotter
+        from datetime import datetime
+        
+        logger.info(f"[VLI_SPINE] Trade analysis requested. Ingesting session blotter...")
+        
+        # [TELEMETRY]
+        try:
+            from src.config.vli import get_vli_path
+            telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
+            timestamp = datetime.now().strftime("[%H:%M:%S]")
+            with open(telemetry_file, "a", encoding="utf-8") as tf:
+                tf.write(f"\n{timestamp} 📈 **[TRADE_ANALYSIS]** Ingesting session blotter for post-trade efficiency audit.\n")
+                tf.flush()
+        except:
+            pass
+            
+        # Invoke the blotter tool to bundle all session executions and reports
+        blotter_data = await get_daily_blotter.ainvoke({}, config=config)
+        
+        return Command(
+            update={
+                "intent": "TACTICAL_EXECUTION",
+                "directive": "Perform a highly critical Post-Trade Efficiency Report. Grade every execution against the structural POC/VAH/VAL levels provided in the reports.",
+                "messages": fallback_msgs_all + [
+                    AIMessage(content=f"[SILENT_LOG] Session Blotter Ingested: {len(str(blotter_data))} bytes.", name="vli_coordinator"),
+                    AIMessage(content=f"[TRADE_BLOTTER_DATA]\n{blotter_data}", name="broker_specialist")
+                ],
+                "metadata": {**state.get("metadata", {}), "analysis_type": "TRADES"}
+            },
+            goto="reporter"
+        )
+
     # --- [DAILY RECONCILIATION INTENT] ---
     is_daily_reconcile = bool(re.search(r'^(run|execute|update|sync)\s+(daily|dailies)$', stripped_query))
     if is_daily_reconcile:

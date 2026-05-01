@@ -235,9 +235,9 @@ class CobaltScheduler:
             try:
                 if task.period_unit == "milliseconds":
                     should_log = False
-                elif task.period_unit == "seconds" and float(task.schedule) < 900:
+                elif task.period_unit == "seconds" and float(task.schedule) < 3600:
                     should_log = False
-                elif task.period_unit == "minutes" and float(task.schedule) < 15:
+                elif task.period_unit == "minutes" and float(task.schedule) < 60:
                     should_log = False
             except ValueError:
                 pass

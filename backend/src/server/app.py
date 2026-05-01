@@ -398,6 +398,16 @@ async def get_scheduler_logs():
         logger.error(f"Failed to fetch scheduler logs: {e}")
         return {"status": "ERROR", "error": str(e)}
 
+@app.post("/api/vli/reset_scheduler_logs")
+async def reset_scheduler_logs():
+    try:
+        from src.services.scheduler import cobalt_scheduler
+        with open(cobalt_scheduler.log_file, 'w', encoding='utf-8') as f:
+            f.write("[HEARTBEAT] Scheduler Log Cleared via Dashboard Command.\n")
+        return {"status": "OK"}
+    except Exception as e:
+        return {"status": "ERROR", "error": str(e)}
+
 @app.get("/api/health")
 async def health_check():
     try:
@@ -427,6 +437,79 @@ async def vli_dashboard_redirect():
 
     return RedirectResponse(url="/vli_dashboard.html")
 
+
+def build_file_tree(dir_path: str):
+    tree = []
+    if not os.path.exists(dir_path):
+        return tree
+    
+    for item in sorted(os.listdir(dir_path)):
+        full_path = os.path.join(dir_path, item)
+        if os.path.isdir(full_path):
+            # Only add folders that aren't empty, or just add them
+            children = build_file_tree(full_path)
+            if children:
+                tree.append({
+                    "name": item,
+                    "type": "folder",
+                    "children": children
+                })
+        elif item.endswith('.md') or item.endswith('.json') or item.endswith('.txt'):
+            # Convert Windows backslashes to forward slashes for safer URL handling
+            tree.append({
+                "name": item,
+                "type": "file",
+                "path": full_path.replace("\\", "/")
+            })
+    return tree
+
+@app.get("/api/vli/artifacts/tree")
+async def get_artifacts_tree():
+    data_dir = os.path.join(os.getcwd(), "data")
+    if not os.path.exists(data_dir):
+        data_dir = os.path.join(os.getcwd(), "backend", "data")
+        
+    tree = []
+    
+    reports_dir = os.path.join(data_dir, "reports")
+    if os.path.exists(reports_dir):
+        tree.append({
+            "name": "reports",
+            "type": "folder",
+            "children": build_file_tree(reports_dir)
+        })
+        
+    artifacts_dir = os.path.join(data_dir, "artifacts")
+    if os.path.exists(artifacts_dir):
+        tree.append({
+            "name": "artifacts",
+            "type": "folder",
+            "children": build_file_tree(artifacts_dir)
+        })
+        
+    return {"status": "OK", "tree": tree}
+
+@app.get("/api/vli/artifacts/content")
+async def get_artifact_content(path: str):
+    import os
+    if not path or ".." in path:
+        raise HTTPException(status_code=400, detail="Invalid path")
+        
+    data_dir = os.path.abspath(os.path.join(os.getcwd(), "data"))
+    if not os.path.exists(data_dir):
+        data_dir = os.path.abspath(os.path.join(os.getcwd(), "backend", "data"))
+        
+    target_path = os.path.abspath(path)
+    if not target_path.startswith(data_dir):
+        raise HTTPException(status_code=403, detail="Forbidden path")
+        
+    if not os.path.exists(target_path):
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    with open(target_path, "r", encoding="utf-8") as f:
+        content = f.read()
+        
+    return {"status": "OK", "content": content}
 
 # Add CORS middleware
 # It's recommended to load the allowed origins from an environment variable
@@ -556,7 +639,9 @@ async def run_tv_sync():
     import asyncio
     import sys
     try:
-        script_path = os.path.join(os.getcwd(), "scripts", "tv_scanner_sync.py")
+        script_path = os.path.join(os.getcwd(), "scripts", "vli", "tv_scanner_sync.py")
+        if not os.path.exists(script_path):
+            script_path = os.path.join(os.getcwd(), "scripts", "tv_scanner_sync.py")
         if not os.path.exists(script_path):
             script_path = os.path.join(os.getcwd(), "backend", "scripts", "tv_scanner_sync.py")
             
@@ -1956,9 +2041,11 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
         
         # Override calculated open_positions with explicit positions from BrokerageCache
         explicit_positions = BrokerageCache.get_positions(account_id)
-        if explicit_positions:
+        if explicit_positions is not None:
             for pos in explicit_positions:
                 sym_raw = pos["symbol"].upper().replace('-USD', '').replace('*', '')
+                if "CASH" in sym_raw or "FZFXX" in sym_raw or "SPAXX" in sym_raw or "FDIC" in sym_raw:
+                    continue
                 open_positions[sym_raw] = {
                     "quantity": pos.get("quantity", 0.0),
                     "average_cost": pos.get("average_cost", 0.0),
@@ -2091,7 +2178,22 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                         "average_cost": safe_float(pdata['average_cost']), "current_value": safe_float(pdata['total_cost']), "last_time": "Unknown"
                     })
             
-        return JSONResponse({"history": results, "positions": positions_payload})
+        realized_pnl_data = BrokerageCache.calculate_realized_pnl(account_id, start_date, end_date)
+        realized_pnl = realized_pnl_data["total_pnl"]
+        closed_positions = realized_pnl_data["closed_trades"]
+            
+        import datetime
+        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        today_realized_pnl_data = BrokerageCache.calculate_realized_pnl(account_id, today_str, today_str)
+        today_realized_pnl = today_realized_pnl_data["total_pnl"]
+        
+        return JSONResponse({
+            "history": results, 
+            "positions": positions_payload,
+            "closed_positions": closed_positions,
+            "realized_pnl_summary": realized_pnl,
+            "today_realized_pnl": today_realized_pnl
+        })
     except Exception as e:
         import traceback
         tb = traceback.format_exc()

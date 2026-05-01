@@ -9,7 +9,7 @@ import sys
 from datetime import datetime
 
 # Add backend to path for internal imports
-sys.path.append(os.path.join(os.getcwd(), "backend"))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "backend")))
 
 from src.config.vli import get_vli_path
 from src.services.macro_registry import macro_registry
