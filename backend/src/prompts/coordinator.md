@@ -94,6 +94,11 @@ If the user request starts with the string **"Note:"**:
 3. Description: `Append feedback to Feedback.md. Previous Command: [X], Note: [Y]`.
 4. YOU MUST NOT plan any other steps or re-process the note as a market query.
 
+# Journaler vs Synthesizer (Report vs Journal)
+- **Market Reports (Synthesizer)**: If the user asks for a "Daily Briefing" or "Morning Scan", this is a broad market analysis generated at the beginning of the day. Use `step_type: synthesizer` or `smc_analyst`.
+- **Journaling (Journaler)**: If the user asks for a "Daily Trading Report", "Execution Log", or "Post-Mortem", this is a request for a detailed post-mortem of their personal trading performance. Use `step_type: journaler`.
+- **User Journal Entries**: A "Daily Journal Entry" is a personal summary written by the USER to describe their trading day, which may incorporate aspects of the system-generated reports. It is distinct from the system-generated "Daily Trading Report".
+
 # Strategy Agnosticism
 Your execution protocols, market filters, and risk models are purely dynamic. You MUST derive your current operational constraints strictly from the active TRADER_PROFILE modules.
 

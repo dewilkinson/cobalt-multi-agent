@@ -337,7 +337,14 @@ async def get_daily_blotter(days_back: int = 2):
     if not recent_trades:
         return "No trades executed in the last 48 hours."
 
-    blotter_text = "Recent Executions:\n" + "\n".join([str(t) for t in recent_trades])
+    # Calculate precise realized PnL for the period using FIFO engine
+    total_realized_pnl = 0.0
+    end_date_str = datetime.now().strftime("%Y-%m-%d")
+    for account_id in cache.keys():
+        pnl_data = BrokerageCache.calculate_realized_pnl(account_id, cutoff_str, end_date_str)
+        total_realized_pnl += pnl_data.get("total_pnl", 0.0)
+
+    blotter_text = f"**TOTAL REALIZED PNL FOR PERIOD**: ${total_realized_pnl:,.2f}\n\nRecent Executions:\n" + "\n".join([str(t) for t in recent_trades])
     
     # Missing Reports Logic
     missing_reports = []
@@ -372,7 +379,7 @@ async def get_daily_blotter(days_back: int = 2):
         else:
             blotter_text += f"\n\n--- Analysis for {ticker} ---\n[REPORT MISSING OR FAILED TO GENERATE]"
 
-    directive = "\n\n[CRITICAL DIRECTIVE TO AI: The text above contains the user's raw executions followed by the structural analysis for the tickers they traded. Your job is NOT to repeat the structural analysis. Your job is to ACT AS A POST-TRADE ANALYST. You must mathematically grade the user's entry and exit efficiency against the POC, VAH, VAL, and High/Low ranges mentioned in the analysis. Did they buy the top? Did they sell the bottom? Did they follow the strategy? Provide a highly critical Post-Trade Efficiency Report!]"
+    directive = "\n\n[CRITICAL DIRECTIVE TO AI: The text above contains the user's raw executions followed by the structural analysis for the tickers they traded. Your job is NOT to repeat the structural analysis. Your job is to ACT AS A POST-TRADE ANALYST. You must mathematically grade the user's entry and exit efficiency against the POC, VAH, VAL, and High/Low ranges mentioned in the analysis. Did they buy the top? Did they sell the bottom? Did they follow the strategy? Provide a highly critical Post-Trade Efficiency Report! CRITICAL: YOU ARE STRICTLY FORBIDDEN FROM ESTIMATING OR CALCULATING THE DRAWDOWN OR PNL. You MUST use the exact 'TOTAL REALIZED PNL FOR PERIOD' figure provided at the top of the execution list.]"
     return blotter_text + directive
 
 
