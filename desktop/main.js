@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, globalShortcut } = require('electron');
 const { spawn, execSync } = require('child_process');
 const path = require('path');
 
@@ -132,6 +132,27 @@ app.whenReady().then(async () => {
             createWindow();
         }
     });
+    
+    // Register shortcuts
+    globalShortcut.register('CommandOrControl+R', () => {
+        if (mainWindow) {
+            mainWindow.webContents.reloadIgnoringCache();
+        }
+    });
+    globalShortcut.register('F5', () => {
+        if (mainWindow) {
+            mainWindow.webContents.reloadIgnoringCache();
+        }
+    });
+    globalShortcut.register('CommandOrControl+Shift+I', () => {
+        if (mainWindow) {
+            mainWindow.webContents.toggleDevTools();
+        }
+    });
+});
+
+app.on('will-quit', () => {
+    globalShortcut.unregisterAll();
 });
 
 app.on('window-all-closed', () => {

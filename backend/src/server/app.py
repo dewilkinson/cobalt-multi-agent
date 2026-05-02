@@ -146,7 +146,21 @@ from src.services.macro_registry import macro_registry
 
 from fastapi.responses import StreamingResponse
 
-# Global queue for pushing telemetry directly to the UI
+def get_reports_root() -> str:
+    import os
+    default_root = os.path.join(os.getcwd(), "data", "reports")
+    if not os.path.exists(os.path.join(os.getcwd(), "data")):
+        default_root = os.path.join(os.getcwd(), "backend", "data", "reports")
+    return os.environ.get("VLI_REPORTS_ROOT", default_root)
+
+def get_daily_briefing_path() -> str:
+    import os
+    from datetime import datetime
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    return os.path.join(get_reports_root(), today_str, f"{today_str} Daily Briefing.md")
+
+# Global variables for system context
+last_graph_state = None
 global_telemetry_queue = None
 
 def get_telemetry_queue():
@@ -451,29 +465,207 @@ def build_file_tree(dir_path: str):
 
 @app.get("/api/vli/artifacts/tree")
 async def get_artifacts_tree():
-    data_dir = os.path.join(os.getcwd(), "data")
-    if not os.path.exists(data_dir):
-        data_dir = os.path.join(os.getcwd(), "backend", "data")
+    import os
+    from datetime import datetime
+    
+    reports_dir = get_reports_root()
+    os.makedirs(reports_dir, exist_ok=True)
         
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    
+    # Ensure today's folder structure exists
+    today_dir = os.path.join(reports_dir, today_str)
+    notes_dir = os.path.join(today_dir, "Notes")
+    os.makedirs(notes_dir, exist_ok=True)
+    
+    # Generate Journal if missing
+    journal_path = os.path.join(today_dir, f"{today_str} Daily Journal.md")
+    if not os.path.exists(journal_path):
+        with open(journal_path, "w", encoding="utf-8") as f:
+            f.write(f"# {today_str} Daily Journal\n\n## Trades\n| Symbol | Direction | Entry | Exit | PnL | Notes |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n| | | | | | |\n\n## Notes\n- \n")
+            
     tree = []
     
-    reports_dir = os.path.join(data_dir, "reports")
-    if os.path.exists(reports_dir):
+    for root_item in os.listdir(reports_dir):
+        # Ignore system legacy/cache folders
+        if root_item in ["history", "performance", "vli_cache", "artifacts"]:
+            continue
+            
+        root_path = os.path.join(reports_dir, root_item)
+        if not os.path.isdir(root_path):
+            continue
+            
+        node_name = "Today" if root_item == today_str else root_item
+        
+        children = []
+        for child_item in os.listdir(root_path):
+            child_path = os.path.join(root_path, child_item)
+            if os.path.isfile(child_path) and child_item.endswith(".md"):
+                is_system_file = ("Daily Briefing" in child_item) or ("Daily Journal" in child_item)
+                children.append({
+                    "name": child_item,
+                    "type": "file",
+                    "path": child_path.replace("\\", "/"),
+                    "canRename": not is_system_file,
+                    "canDelete": not is_system_file
+                })
+            elif os.path.isdir(child_path):
+                inner_children = []
+                for inner_item in os.listdir(child_path):
+                    inner_path = os.path.join(child_path, inner_item)
+                    if os.path.isfile(inner_path) and inner_item.endswith(".md"):
+                        inner_children.append({
+                            "name": inner_item,
+                            "type": "file",
+                            "path": inner_path.replace("\\", "/"),
+                            "canRename": True,
+                            "canDelete": True
+                        })
+                children.append({
+                    "name": child_item,
+                    "type": "folder",
+                    "path": child_path.replace("\\", "/"),
+                    "children": sorted(inner_children, key=lambda x: x["name"])
+                })
+                
         tree.append({
-            "name": "reports",
+            "name": node_name,
             "type": "folder",
-            "children": build_file_tree(reports_dir)
+            "children": sorted(children, key=lambda x: (x["type"] == "folder", x["name"]))
         })
         
-    artifacts_dir = os.path.join(data_dir, "artifacts")
-    if os.path.exists(artifacts_dir):
-        tree.append({
-            "name": "artifacts",
-            "type": "folder",
-            "children": build_file_tree(artifacts_dir)
-        })
-        
+    # Sort tree: Today first, then reverse chronological
+    tree.sort(key=lambda x: "0000" if x["name"] == "Today" else x["name"], reverse=True)
+    
     return {"status": "OK", "tree": tree}
+
+from pydantic import BaseModel
+class RenameArtifactRequest(BaseModel):
+    old_path: str
+    new_name: str
+
+@app.post("/api/vli/artifacts/rename")
+async def rename_artifact(request: RenameArtifactRequest):
+    import os
+    reports_dir = get_reports_root()
+    
+    # Resolve absolute path of old file
+    old_full_path = os.path.abspath(request.old_path)
+    if not old_full_path.lower().startswith(os.path.abspath(reports_dir).lower()):
+        raise HTTPException(status_code=403, detail="Access denied")
+        
+    if not os.path.exists(old_full_path):
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    # Build new path in the same directory
+    dir_name = os.path.dirname(old_full_path)
+    
+    # Sanitize new name (ensure it has .md)
+    new_name = request.new_name.strip()
+    if not new_name.endswith('.md'):
+        new_name += '.md'
+    # prevent path traversal
+    new_name = os.path.basename(new_name)
+    
+    new_full_path = os.path.join(dir_name, new_name)
+    
+    try:
+        os.rename(old_full_path, new_full_path)
+        return {"status": "OK", "message": "Renamed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class CreateArtifactRequest(BaseModel):
+    folder: str
+
+class CopyToNotesRequest(BaseModel):
+    source_path: str
+
+@app.post("/api/vli/artifacts/copy_to_notes")
+async def copy_to_notes(request: CopyToNotesRequest):
+    import os
+    import shutil
+    from datetime import datetime
+    
+    source_path = os.path.abspath(request.source_path)
+    if not os.path.exists(source_path):
+        raise HTTPException(status_code=404, detail="Source file not found")
+        
+    reports_dir = get_reports_root()
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    notes_dir = os.path.join(reports_dir, today_str, "Notes")
+    os.makedirs(notes_dir, exist_ok=True)
+    
+    base_name = os.path.basename(source_path)
+    dest_path = os.path.join(notes_dir, base_name)
+    
+    # Prevent overwrite by appending counter if needed
+    name, ext = os.path.splitext(base_name)
+    counter = 1
+    while os.path.exists(dest_path):
+        dest_path = os.path.join(notes_dir, f"{name} {counter}{ext}")
+        counter += 1
+        
+    try:
+        shutil.copy2(source_path, dest_path)
+        return {"status": "OK", "message": "Copied to Notes", "path": dest_path.replace("\\", "/")}
+    except Exception as e:
+        logger.error(f"Failed to copy to notes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/vli/artifacts/create")
+async def create_artifact(request: CreateArtifactRequest):
+    import os
+    reports_dir = get_reports_root()
+    
+    # request.folder might be an absolute path from the frontend UI or a relative name
+    if os.path.isabs(request.folder):
+        folder_path = request.folder
+    else:
+        folder_path = os.path.join(reports_dir, request.folder)
+        
+    folder_path = os.path.abspath(folder_path)
+    
+    if not folder_path.lower().startswith(os.path.abspath(reports_dir).lower()):
+        raise HTTPException(status_code=403, detail="Invalid folder")
+        
+    os.makedirs(folder_path, exist_ok=True)
+    
+    base_name = "New Note"
+    ext = ".md"
+    new_path = os.path.join(folder_path, f"{base_name}{ext}")
+    counter = 1
+    while os.path.exists(new_path):
+        new_path = os.path.join(folder_path, f"{base_name} {counter}{ext}")
+        counter += 1
+        
+    try:
+        with open(new_path, "w", encoding="utf-8") as f:
+            f.write(f"# {os.path.basename(new_path).replace('.md', '')}\n\nStart typing here...\n")
+        return {"status": "OK", "message": "Created", "path": new_path.replace("\\", "/")}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class DeleteArtifactRequest(BaseModel):
+    path: str
+
+@app.post("/api/vli/artifacts/delete")
+async def delete_artifact(request: DeleteArtifactRequest):
+    import os
+    reports_dir = get_reports_root()
+    
+    full_path = os.path.abspath(request.path)
+    if not full_path.lower().startswith(os.path.abspath(reports_dir).lower()):
+        raise HTTPException(status_code=403, detail="Access denied")
+        
+    if not os.path.exists(full_path):
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    try:
+        os.remove(full_path)
+        return {"status": "OK", "message": "Deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/vli/artifacts/content")
 async def get_artifact_content(path: str):
@@ -486,7 +678,18 @@ async def get_artifact_content(path: str):
         data_dir = os.path.abspath(os.path.join(os.getcwd(), "backend", "data"))
         
     target_path = os.path.abspath(path)
-    if not target_path.startswith(data_dir):
+    
+    vault_path = None
+    try:
+        from src.tools.journal import _get_obsidian_config
+        vp, _ = _get_obsidian_config(None)
+        if vp:
+            vault_path = os.path.abspath(vp)
+    except Exception:
+        pass
+        
+    reports_dir = get_reports_root()
+    if not target_path.lower().startswith(os.path.abspath(reports_dir).lower()) and not target_path.lower().startswith(data_dir.lower()) and (not vault_path or not target_path.lower().startswith(vault_path.lower())):
         raise HTTPException(status_code=403, detail="Forbidden path")
         
     if not os.path.exists(target_path):
@@ -496,6 +699,61 @@ async def get_artifact_content(path: str):
         content = f.read()
         
     return {"status": "OK", "content": content}
+
+class OpenLocalRequest(BaseModel):
+    path: str
+
+@app.post("/api/vli/artifacts/open_local")
+async def open_local_artifact(request: OpenLocalRequest):
+    import os
+    import subprocess
+    import sys
+    target_path = os.path.abspath(request.path)
+    if not os.path.exists(target_path):
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    preferred_editor = os.environ.get("VLI_DEFAULT_EDITOR", "obsidian")
+    
+    try:
+        if os.name == 'nt':
+            if "obsidian" in preferred_editor.lower():
+                # Obsidian can only open files inside a known vault.
+                # Try to determine if the target path is inside the user's vault.
+                vault_path = None
+                try:
+                    from src.tools.journal import _get_obsidian_config
+                    vp, _ = _get_obsidian_config(None)
+                    if vp:
+                        vault_path = os.path.abspath(vp)
+                except Exception:
+                    pass
+
+                if vault_path and target_path.lower().startswith(vault_path.lower()):
+                    import urllib.parse
+                    uri = f"obsidian://open?path={urllib.parse.quote(target_path.replace(chr(92), '/'))}"
+                    try:
+                        os.startfile(uri)
+                        return {"status": "OK", "message": "Opened via Obsidian URI"}
+                    except Exception:
+                        pass
+                # If it's NOT in the vault, Obsidian will throw a "Vault not found" error dialog.
+                # We must skip Obsidian and fallback to the system default for loose files.
+
+            if os.path.exists(preferred_editor) and "obsidian" not in preferred_editor.lower():
+                try:
+                    subprocess.Popen([preferred_editor, target_path])
+                    return {"status": "OK", "message": f"Opened with {os.path.basename(preferred_editor)}"}
+                except Exception:
+                    pass
+            
+            # Ultimate Fallback
+            os.startfile(target_path)
+            return {"status": "OK", "message": "Opened with system default (fallback)"}
+        else:
+            subprocess.run(['open' if sys.platform == 'darwin' else 'xdg-open', target_path])
+            return {"status": "OK", "message": "Opened locally"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Add CORS middleware
 # It's recommended to load the allowed origins from an environment variable
@@ -880,7 +1138,7 @@ async def run_meta_analysis(manual_trigger: bool = False):
         os.makedirs(reports_dir, exist_ok=True)
         
         # [NEW] Check if already generated today
-        meta_path = os.path.join(reports_dir, "analyze_meta.md")
+        meta_path = get_daily_briefing_path()
         if not manual_trigger and os.path.exists(meta_path):
             mtime = datetime.fromtimestamp(os.path.getmtime(meta_path))
             if mtime.date() == datetime.now().date():
@@ -941,7 +1199,9 @@ async def run_meta_analysis(manual_trigger: bool = False):
         result_text, _ = await _invoke_vli_agent(prompt, thread_id="bg_meta_analysis")
         
         if result_text and "Agent reasoning encountered a failure" not in result_text and "timed out" not in result_text.lower():
-            meta_path = os.path.join(reports_dir, "analyze_meta.md")
+            meta_path = get_daily_briefing_path()
+            # Ensure its parent dir exists
+            os.makedirs(os.path.dirname(meta_path), exist_ok=True)
             generation_date = datetime.now().strftime("%A, %B %d, %Y")
             generation_time = datetime.now().strftime("%I:%M %p")
             header = f"> **Date:** {generation_date}  \n> **Time:** {generation_time}\n\n"
@@ -2855,9 +3115,36 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
             f.write(request.text)
         return {"response": "Plan captured. Vault updated. Session Monitor is analyzing directives...", "status": "OK", "error_details": None}
 
-    # [NEW] TV_SYNC Direct Control Interception
     import re
     command_text = request.text.strip().lower()
+
+    # [NEW] Show Report / Artifact Interception
+    show_match = re.match(r"^show\s+([a-zA-Z]+)\s+(report|analysis)$", command_text)
+    if show_match:
+        symbol = show_match.group(1).upper()
+        # Look for the cached analysis report
+        reports_dir = os.path.join(os.getcwd(), "data", "reports")
+        cache_path = os.path.join(reports_dir, f"analyze_{symbol.lower()}.md")
+        
+        if os.path.exists(cache_path):
+            _append_to_vli_history("ai", f"Retrieving cached intelligence for {symbol}...", thread_id=transaction_id)
+            return {
+                "response": f"Retrieving cached intelligence for {symbol}...",
+                "status": "OK",
+                "error_details": None,
+                "metadata": {
+                    "action": "OPEN_REPORT",
+                    "artifact_type": "REPORT",
+                    "symbol": symbol
+                }
+            }
+        else:
+            # Mutate request to trigger regeneration
+            _append_to_vli_history("ai", f"No cached intelligence found for {symbol}. Initiating real-time tactical synthesis...", thread_id=transaction_id)
+            request.text = f"analyze {symbol}"
+            command_text = request.text.strip().lower()
+
+    # [NEW] TV_SYNC Direct Control Interception
     
     if re.match(r"^(suspend|pause|stop)\s+tv_?sync$", command_text):
         from src.services.scheduler import cobalt_scheduler
@@ -2923,7 +3210,7 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     
     if any(req_lower == f"{v} {t}" for v in verbs for t in targets):
         reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
-        meta_path = os.path.join(reports_dir, "analyze_meta.md")
+        meta_path = get_daily_briefing_path()
         if os.path.exists(meta_path):
             try:
                 os.remove(meta_path)
@@ -3410,7 +3697,7 @@ async def vli_inbox_tick():
 
         # [NEW] Invalidate Executive Morning Briefing at midnight
         reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
-        meta_path = os.path.join(reports_dir, "analyze_meta.md")
+        meta_path = get_daily_briefing_path()
         if os.path.exists(meta_path):
             try:
                 os.remove(meta_path)

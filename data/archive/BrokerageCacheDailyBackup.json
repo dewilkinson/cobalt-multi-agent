@@ -2,6 +2,468 @@
   "Rollover IRA *5513": {
     "activities": [
       {
+        "id": "ATP-QUBT-2026-05-01T152109.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 9.0701,
+        "trade_date": "2026-05-01T15:21:09.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QUBT"
+        }
+      },
+      {
+        "id": "ATP-ILMN-2026-05-01T133704.000Z-50.0-SELL",
+        "type": "SELL",
+        "units": 50.0,
+        "price": 0.0,
+        "trade_date": "2026-05-01T13:37:04.000Z",
+        "status": "Open",
+        "symbol": {
+          "symbol": "ILMN"
+        }
+      },
+      {
+        "id": "ATP-AIG-2026-05-01T133648.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 78.54,
+        "trade_date": "2026-05-01T13:36:48.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AIG"
+        }
+      },
+      {
+        "id": "ATP-QUBT-2026-05-01T133600.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 0.0,
+        "trade_date": "2026-05-01T13:36:00.000Z",
+        "status": "Open",
+        "symbol": {
+          "symbol": "QUBT"
+        }
+      },
+      {
+        "id": "ATP-NVTS-2026-05-01T133321.000Z-1050.0-SELL",
+        "type": "SELL",
+        "units": 1050.0,
+        "price": 17.79,
+        "trade_date": "2026-05-01T13:33:21.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVTS"
+        }
+      },
+      {
+        "id": "ATP-NVTS-2026-05-01T132802.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 17.865,
+        "trade_date": "2026-05-01T13:28:02.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVTS"
+        }
+      },
+      {
+        "id": "ATP-NVTS-2026-05-01T132657.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 17.87,
+        "trade_date": "2026-05-01T13:26:57.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVTS"
+        }
+      },
+      {
+        "id": "ATP-NVTS-2026-05-01T131237.000Z-250.0-BUY",
+        "type": "BUY",
+        "units": 250.0,
+        "price": 17.6398,
+        "trade_date": "2026-05-01T13:12:37.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVTS"
+        }
+      },
+      {
+        "id": "ATP-NVTS-2026-05-01T130950.000Z-200.0-BUY",
+        "type": "BUY",
+        "units": 200.0,
+        "price": 17.485,
+        "trade_date": "2026-05-01T13:09:50.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVTS"
+        }
+      },
+      {
+        "id": "ATP-ILMN-2026-05-01T130751.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 134.36,
+        "trade_date": "2026-05-01T13:07:51.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ILMN"
+        }
+      },
+      {
+        "id": "ATP-NVTS-2026-05-01T130508.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 17.465,
+        "trade_date": "2026-05-01T13:05:08.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVTS"
+        }
+      },
+      {
+        "id": "ATP-NVTS-2026-05-01T130434.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 17.435,
+        "trade_date": "2026-05-01T13:04:34.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVTS"
+        }
+      },
+      {
+        "id": "ATP-NVTS-2026-05-01T125821.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 17.395,
+        "trade_date": "2026-05-01T12:58:21.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVTS"
+        }
+      },
+      {
+        "id": "ATP-NVTS-2026-05-01T125723.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 17.385,
+        "trade_date": "2026-05-01T12:57:23.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVTS"
+        }
+      },
+      {
+        "id": "ATP-LWLG-2026-05-01T122202.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 16.775,
+        "trade_date": "2026-05-01T12:22:02.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "LWLG"
+        }
+      },
+      {
+        "id": "ATP-LWLG-2026-05-01T122116.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 17.21,
+        "trade_date": "2026-05-01T12:21:16.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "LWLG"
+        }
+      },
+      {
+        "id": "ATP-LWLG-2026-05-01T121929.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 17.215,
+        "trade_date": "2026-05-01T12:19:29.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "LWLG"
+        }
+      },
+      {
+        "id": "ATP-AIG-2026-05-01T120848.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 0.0,
+        "trade_date": "2026-05-01T12:08:48.000Z",
+        "status": "Open",
+        "symbol": {
+          "symbol": "AIG"
+        }
+      },
+      {
+        "id": "ATP-AIG-2026-05-01T120747.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 79.02,
+        "trade_date": "2026-05-01T12:07:47.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AIG"
+        }
+      },
+      {
+        "id": "ATP-RIOT-2026-05-01T115328.000Z-50.0-SELL",
+        "type": "SELL",
+        "units": 50.0,
+        "price": 18.905,
+        "trade_date": "2026-05-01T11:53:28.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "RIOT"
+        }
+      },
+      {
+        "id": "ATP-NXT-2026-05-01T114558.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 121.875,
+        "trade_date": "2026-05-01T11:45:58.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NXT"
+        }
+      },
+      {
+        "id": "ATP-NXT-2026-05-01T114537.000Z-110.0-BUY",
+        "type": "BUY",
+        "units": 110.0,
+        "price": 122.4809,
+        "trade_date": "2026-05-01T11:45:37.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NXT"
+        }
+      },
+      {
+        "id": "ATP-QUBT-2026-05-01T114451.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 0.0,
+        "trade_date": "2026-05-01T11:44:51.000Z",
+        "status": "Open",
+        "symbol": {
+          "symbol": "QUBT"
+        }
+      },
+      {
+        "id": "ATP-QUBT-2026-05-01T114411.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 9.1546,
+        "trade_date": "2026-05-01T11:44:11.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QUBT"
+        }
+      },
+      {
+        "id": "ATP-NXT-2026-05-01T114150.000Z-40.0-BUY",
+        "type": "BUY",
+        "units": 40.0,
+        "price": 122.0,
+        "trade_date": "2026-05-01T11:41:50.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NXT"
+        }
+      },
+      {
+        "id": "ATP-QUBT-2026-05-01T114033.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 9.1378,
+        "trade_date": "2026-05-01T11:40:33.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QUBT"
+        }
+      },
+      {
+        "id": "ATP-NXT-2026-05-01T113914.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 121.84,
+        "trade_date": "2026-05-01T11:39:14.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NXT"
+        }
+      },
+      {
+        "id": "ATP-INTC-2026-05-01T112227.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 98.0517,
+        "trade_date": "2026-05-01T11:22:27.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "INTC"
+        }
+      },
+      {
+        "id": "ATP-INTC-2026-05-01T112115.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 99.955,
+        "trade_date": "2026-05-01T11:21:15.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "INTC"
+        }
+      },
+      {
+        "id": "ATP-ETH-2026-05-01T112026.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 21.92,
+        "trade_date": "2026-05-01T11:20:26.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ETH"
+        }
+      },
+      {
+        "id": "ATP-RIOT-2026-05-01T111939.000Z-500.0-SELL",
+        "type": "SELL",
+        "units": 500.0,
+        "price": 19.401,
+        "trade_date": "2026-05-01T11:19:39.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "RIOT"
+        }
+      },
+      {
+        "id": "ATP-RIOT-2026-05-01T111639.000Z-300.0-BUY",
+        "type": "BUY",
+        "units": 300.0,
+        "price": 19.465,
+        "trade_date": "2026-05-01T11:16:39.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "RIOT"
+        }
+      },
+      {
+        "id": "ATP-RIOT-2026-05-01T111101.000Z-250.0-BUY",
+        "type": "BUY",
+        "units": 250.0,
+        "price": 19.305,
+        "trade_date": "2026-05-01T11:11:01.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "RIOT"
+        }
+      },
+      {
+        "id": "ATP-INTC-2026-05-01T105705.000Z-25.0-BUY",
+        "type": "BUY",
+        "units": 25.0,
+        "price": 100.2,
+        "trade_date": "2026-05-01T10:57:05.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "INTC"
+        }
+      },
+      {
+        "id": "ATP-INTC-2026-05-01T105536.000Z-25.0-BUY",
+        "type": "BUY",
+        "units": 25.0,
+        "price": 99.95,
+        "trade_date": "2026-05-01T10:55:36.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "INTC"
+        }
+      },
+      {
+        "id": "ATP-GLDM-2026-05-01T105057.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 91.43,
+        "trade_date": "2026-05-01T10:50:57.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GLDM"
+        }
+      },
+      {
+        "id": "ATP-MRK-2026-05-01T102626.000Z-50.0-SELL",
+        "type": "SELL",
+        "units": 50.0,
+        "price": 113.14,
+        "trade_date": "2026-05-01T10:26:26.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MRK"
+        }
+      },
+      {
+        "id": "ATP-MRK-2026-05-01T102547.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 114.12,
+        "trade_date": "2026-05-01T10:25:47.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MRK"
+        }
+      },
+      {
+        "id": "ATP-ETH-2026-05-01T101329.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 22.085,
+        "trade_date": "2026-05-01T10:13:29.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ETH"
+        }
+      },
+      {
+        "id": "ATP-GLDM-2026-05-01T101248.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 92.13,
+        "trade_date": "2026-05-01T10:12:48.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GLDM"
+        }
+      },
+      {
+        "id": "ATP-ETH-2026-05-01T100318.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 21.8401,
+        "trade_date": "2026-05-01T10:03:18.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ETH"
+        }
+      },
+      {
+        "id": "ATP-ETH-2026-05-01T100054.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 22.035,
+        "trade_date": "2026-05-01T10:00:54.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ETH"
+        }
+      },
+      {
         "id": "ATP-SCHD-2026-04-30T155911.000Z-100.0-SELL",
         "type": "SELL",
         "units": 100.0,
@@ -359,6 +821,248 @@
         "units": 150.0,
         "price": 20.91,
         "trade_date": "2026-04-30T09:42:25.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AMPX"
+        }
+      },
+      {
+        "id": "HIST-SCHD-2026-04-30T000000.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 32.09,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SCHD"
+        }
+      },
+      {
+        "id": "HIST-XLI-2026-04-30T000000.000Z-25.0-SELL",
+        "type": "SELL",
+        "units": 25.0,
+        "price": 174.51,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLI"
+        }
+      },
+      {
+        "id": "HIST-XLI-2026-04-30T000000.000Z-75.0-SELL",
+        "type": "SELL",
+        "units": 75.0,
+        "price": 173.82,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLI"
+        }
+      },
+      {
+        "id": "HIST-EDSA-2026-04-30T000000.000Z-15.0-SELL",
+        "type": "SELL",
+        "units": 15.0,
+        "price": 17.86,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "EDSA"
+        }
+      },
+      {
+        "id": "HIST-EDSA-2026-04-30T000000.000Z-15.0-BUY",
+        "type": "BUY",
+        "units": 15.0,
+        "price": 18.07,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "EDSA"
+        }
+      },
+      {
+        "id": "HIST-CARR-2026-04-30T000000.000Z-85.0-SELL",
+        "type": "SELL",
+        "units": 85.0,
+        "price": 68.54,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CARR"
+        }
+      },
+      {
+        "id": "HIST-CARR-2026-04-30T000000.000Z-35.0-BUY",
+        "type": "BUY",
+        "units": 35.0,
+        "price": 68.58,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CARR"
+        }
+      },
+      {
+        "id": "HIST-SCHD-2026-04-30T000000.000Z-400.0-SELL",
+        "type": "SELL",
+        "units": 400.0,
+        "price": 31.99,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SCHD"
+        }
+      },
+      {
+        "id": "HIST-CARR-2026-04-30T000000.000Z-150.0-SELL",
+        "type": "SELL",
+        "units": 150.0,
+        "price": 68.27,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CARR"
+        }
+      },
+      {
+        "id": "HIST-XLU-2026-04-30T000000.000Z-125.0-SELL",
+        "type": "SELL",
+        "units": 125.0,
+        "price": 46.44,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLU"
+        }
+      },
+      {
+        "id": "HIST-AMPX-2026-04-30T000000.000Z-450.0-SELL",
+        "type": "SELL",
+        "units": 450.0,
+        "price": 20.8,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AMPX"
+        }
+      },
+      {
+        "id": "HIST-XLU-2026-04-30T000000.000Z-250.0-BUY",
+        "type": "BUY",
+        "units": 250.0,
+        "price": 46.71,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLU"
+        }
+      },
+      {
+        "id": "HIST-XLU-2026-04-30T000000.000Z-250.0-SELL",
+        "type": "SELL",
+        "units": 250.0,
+        "price": 46.71,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLU"
+        }
+      },
+      {
+        "id": "HIST-CARR-2026-04-30T000000.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 66.3,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CARR"
+        }
+      },
+      {
+        "id": "HIST-SCHD-2026-04-30T000000.000Z-200.0-BUY",
+        "type": "BUY",
+        "units": 200.0,
+        "price": 31.85,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SCHD"
+        }
+      },
+      {
+        "id": "HIST-SCHD-2026-04-30T000000.000Z-150.0-BUY",
+        "type": "BUY",
+        "units": 150.0,
+        "price": 31.85,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SCHD"
+        }
+      },
+      {
+        "id": "HIST-USAR-2026-04-30T000000.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 23.47,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "USAR"
+        }
+      },
+      {
+        "id": "HIST-XLI-2026-04-30T000000.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 173.17,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLI"
+        }
+      },
+      {
+        "id": "HIST-AMPX-2026-04-30T000000.000Z-150.0-BUY",
+        "type": "BUY",
+        "units": 150.0,
+        "price": 21.16,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AMPX"
+        }
+      },
+      {
+        "id": "HIST-USAR-2026-04-30T000000.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 24.42,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "USAR"
+        }
+      },
+      {
+        "id": "HIST-AMPX-2026-04-30T000000.000Z-750.0-SELL",
+        "type": "SELL",
+        "units": 750.0,
+        "price": 20.81,
+        "trade_date": "2026-04-30T00:00:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AMPX"
+        }
+      },
+      {
+        "id": "HIST-AMPX-2026-04-30T000000.000Z-300.0-BUY",
+        "type": "BUY",
+        "units": 300.0,
+        "price": 21.33,
+        "trade_date": "2026-04-30T00:00:00.000Z",
         "status": "Executed",
         "symbol": {
           "symbol": "AMPX"
@@ -9784,7 +10488,7 @@
     "positions": [
       {
         "symbol": "Cash (SPAXX)",
-        "quantity": 102742.65,
+        "quantity": 102985.53,
         "average_cost": 0.0,
         "total_cost": 0.0
       },
@@ -9799,11 +10503,44 @@
   "Health Savings Account *6937": {
     "activities": [
       {
+        "id": "ATP-NVTS-2026-05-01T134324.000Z-11.0-SELL",
+        "type": "SELL",
+        "units": 11.0,
+        "price": 0.0,
+        "trade_date": "2026-05-01T13:43:24.000Z",
+        "status": "Open",
+        "symbol": {
+          "symbol": "NVTS"
+        }
+      },
+      {
+        "id": "ATP-NVTS-2026-05-01T134222.000Z-11.0-BUY",
+        "type": "BUY",
+        "units": 11.0,
+        "price": 17.8099,
+        "trade_date": "2026-05-01T13:42:22.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVTS"
+        }
+      },
+      {
         "id": "ATP-EDSA-2026-04-30T144807.000Z-11.0-SELL",
         "type": "SELL",
         "units": 11.0,
         "price": 17.72,
         "trade_date": "2026-04-30T14:48:07.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "EDSA"
+        }
+      },
+      {
+        "id": "HIST-EDSA-2026-04-30T000000.000Z-11.0-SELL",
+        "type": "SELL",
+        "units": 11.0,
+        "price": 17.72,
+        "trade_date": "2026-04-30T00:00:00.000Z",
         "status": "Executed",
         "symbol": {
           "symbol": "EDSA"

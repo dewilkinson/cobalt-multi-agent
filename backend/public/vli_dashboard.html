@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0011";
+        const VLI_CLIENT_VERSION = "00.000.0027";
     </script>
     
     <link
@@ -105,6 +105,19 @@
             min-width: 200px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             transition: opacity 0.2s ease, transform 0.1s ease;
+        }
+
+        .card[data-artifact-path].is-dragging {
+            z-index: 99999 !important;
+            box-shadow: 0 0 30px rgba(88, 166, 255, 0.4) !important;
+            opacity: 0.3 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            pointer-events: none !important;
+        }
+
+        .card[data-artifact-path].is-dragging .card-body {
+            display: none !important;
         }
 
         .vli-input {
@@ -1657,6 +1670,7 @@
                     bringToFront(cardBox);
                     if (e.target.closest('.card-header') && !e.target.classList.contains('win-btn')) {
                         winManager.dragging = cardBox;
+                        cardBox.classList.add('is-dragging');
                         winManager.startX = e.clientX;
                         winManager.startY = e.clientY;
                         winManager.startTop = cardBox.offsetTop;
@@ -1839,6 +1853,8 @@
                                 <div style="color: var(--text-muted); padding: 10px;">Initializing Scheduler Telemetry...</div>
                             </div>
                         </div>`;
+                } else if (typeDef.initContent) {
+                    bodyContent = typeDef.initContent(instanceGuid);
                 }
 
                 cardBox.innerHTML = `
@@ -1922,6 +1938,7 @@
                     if (e.target.classList.contains('win-btn')) return;
                     
                     winManager.dragging = cardBox;
+                    cardBox.classList.add('is-dragging');
                     winManager.startX = e.clientX;
                     winManager.startY = e.clientY;
                     winManager.startTop = cardBox.offsetTop;
@@ -2031,8 +2048,27 @@
                     }
                 }
                 
+                let isOffCanvas = winManager.dragging.dataset.artifactPath && e.clientX < 300;
+                
+                if (isOffCanvas) {
+                    document.querySelectorAll('.tree-folder').forEach(node => {
+                        node.style.backgroundColor = '';
+                    });
+                    
+                    const elemUnder = document.elementFromPoint(e.clientX, e.clientY);
+                    if (elemUnder) {
+                        const treeNode = elemUnder.closest('.tree-folder');
+                        if (treeNode) {
+                            const label = treeNode.querySelector('.tree-label');
+                            if (label && label.innerText.trim() === 'Notes') {
+                                treeNode.style.backgroundColor = 'rgba(88, 166, 255, 0.2)';
+                            }
+                        }
+                    }
+                }
+
                 let didSnap = false;
-                if (snapModeEnabled && snapStrength > 0) {
+                if (!isOffCanvas && snapModeEnabled && snapStrength > 0) {
                     const snapThreshold = 32 * snapStrength; // Dominant magnetic pull to other windows
                     const gridSnapThreshold = 14 * snapStrength; // Base background grid snap
                     const elWidth = winManager.dragging.offsetWidth;
@@ -2362,8 +2398,77 @@
             });
         }
 
-        function onMouseUp() {
-            if (winManager.dragging || winManager.resizing) {
+        function onMouseUp(e) {
+            document.querySelectorAll('.tree-folder').forEach(node => {
+                node.style.backgroundColor = '';
+            });
+            
+            if (winManager.dragging) {
+                if (e && winManager.dragging.dataset.artifactPath) {
+                    const elemUnder = document.elementFromPoint(e.clientX, e.clientY);
+                    if (elemUnder) {
+                        const treeNode = elemUnder.closest('.tree-folder');
+                        if (treeNode) {
+                            const label = treeNode.querySelector('.tree-label');
+                            if (label && label.innerText.trim() === 'Notes') {
+                                const dragged = winManager.dragging;
+                                const rect = dragged.getBoundingClientRect();
+                                const targetRect = treeNode.getBoundingClientRect();
+                                
+                                const ghost = document.createElement('div');
+                                ghost.style.position = 'fixed';
+                                ghost.style.left = rect.left + 'px';
+                                ghost.style.top = rect.top + 'px';
+                                ghost.style.width = rect.width + 'px';
+                                ghost.style.height = rect.height + 'px';
+                                ghost.style.border = '2px dashed var(--cobalt-blue)';
+                                ghost.style.borderRadius = '12px';
+                                ghost.style.zIndex = '999999';
+                                ghost.style.pointerEvents = 'none';
+                                ghost.style.transition = 'all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1)';
+                                document.body.appendChild(ghost);
+                                
+                                const cardId = dragged.id.replace('win-', '');
+                                UXManager.closeCard(cardId);
+                                
+                                requestAnimationFrame(() => {
+                                    ghost.style.left = (targetRect.left + targetRect.width / 2) + 'px';
+                                    ghost.style.top = (targetRect.top + targetRect.height / 2) + 'px';
+                                    ghost.style.width = '10px';
+                                    ghost.style.height = '10px';
+                                    ghost.style.opacity = '0';
+                                    ghost.style.transform = 'translate(-50%, -50%)';
+                                });
+                                
+                                setTimeout(() => {
+                                    if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
+                                    treeNode.style.transition = 'background-color 0.2s';
+                                    treeNode.style.backgroundColor = 'rgba(88, 166, 255, 0.4)';
+                                    setTimeout(() => { treeNode.style.backgroundColor = ''; }, 500);
+                                }, 400);
+
+                                fetch('/api/vli/artifacts/copy_to_notes', {
+                                    method: 'POST',
+                                    headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify({ source_path: dragged.dataset.artifactPath })
+                                }).then(res => res.json())
+                                  .then(data => {
+                                      if (data.status === 'OK') {
+                                          window.vliForceOpenFolder = "Notes";
+                                          loadArtifactTree();
+                                      } else {
+                                          console.error('Copy failed:', data.detail || data);
+                                      }
+                                  });
+                                  
+                                winManager.dragging = null;
+                            }
+                        }
+                    }
+                }
+                winManager.dragging.classList.remove('is-dragging');
+                saveLayout();
+            } else if (winManager.resizing) {
                 saveLayout();
             }
             winManager.dragging = null;
@@ -2753,7 +2858,7 @@
                 }
             }
 
-            reportViewer.innerHTML = `<div class="analysis-report">${applyStatusFormatting(marked.parse(formattedText))}</div>`;
+            reportViewer.innerHTML = `<div class="msg-ai" style="padding: 15px;">${applyStatusFormatting(marked.parse(formattedText))}</div>`;
             reportViewer.scrollTop = 0;
             
             const card = reportViewer.closest('.card');
@@ -3679,7 +3784,7 @@
                     if (leakKeywords.some(k => safeReport.toUpperCase().includes(k))) {
                         reportViewer.dataset.lastReport = data.async_report;
                     } else {
-                        reportViewer.innerHTML = `<div class="analysis-report">${applyStatusFormatting(marked.parse(safeReport))}</div>`;
+                        reportViewer.innerHTML = `<div class="msg-ai" style="padding: 15px;">${applyStatusFormatting(marked.parse(safeReport))}</div>`;
                         reportViewer.dataset.lastReport = data.async_report;
                         reportViewer.scrollTop = 0;
                         try {
@@ -4843,9 +4948,9 @@
             
             if (!reportViewer) return;
             
-            const win = reportViewer.closest('.window');
+            const win = reportViewer.closest('.card');
             if (win) {
-                const titleSpan = win.querySelector('.window-title span:first-child');
+                const titleSpan = win.querySelector('.card-header > div:first-child > div:nth-child(2)');
                 if (titleSpan) titleSpan.innerText = symbol.toUpperCase() + " Structural Analysis";
                 bringToFront(win);
             }
@@ -4870,7 +4975,7 @@
                     
                     reportViewer.innerHTML = marked.parse(formattedText);
                     if (win) {
-                        const titleSpan = win.querySelector('.window-title span:first-child');
+                        const titleSpan = win.querySelector('.card-header > div:first-child > div:nth-child(2)');
                         if (titleSpan) titleSpan.innerText = dynamicTitle;
                     }
                 } else {
@@ -5096,15 +5201,18 @@
         }
     </style>
 
-    <div id="sidebar-tabs-container" class="sidebar-tabs-container">
-        <div id="tab-btn-coordinator" class="folder-tab" onclick="switchSidebarTab('coordinator')">COORDINATOR</div>
-        <div id="tab-btn-artifacts" class="folder-tab" onclick="switchSidebarTab('artifacts')">ARTIFACTS</div>
+    <div id="sidebar-tabs-left" class="sidebar-tabs-container" style="left: 0; right: auto;">
+        <div id="tab-btn-artifacts" class="folder-tab" style="border-radius: 0 4px 4px 0;" onclick="switchSidebarTab('artifacts')">REPORTS</div>
     </div>
 
-    <div id="vli-sidebar" class="vli-sidebar">
+    <div id="sidebar-tabs-right" class="sidebar-tabs-container" style="right: 0; left: auto;">
+        <div id="tab-btn-coordinator" class="folder-tab" style="border-radius: 4px 0 0 4px;" onclick="switchSidebarTab('coordinator')">COORDINATOR</div>
+    </div>
+
+    <div id="vli-sidebar-right" class="vli-sidebar" style="right: 0; left: auto; transform: translateX(100%); border-right: none; border-left: 1px solid rgba(255,255,255,0.05); box-shadow: -5px 0 25px rgba(0,0,0,0.6);">
         <!-- Coordinator Panel -->
-        <div id="tab-coordinator" class="sidebar-content-area">
-            <div class="sidebar-resizer" data-tab-id="coordinator"></div>
+        <div id="tab-coordinator" class="sidebar-content-area" style="display: flex; flex-direction: column; height: 100%; width: 100%;">
+            <div class="sidebar-resizer" data-tab-id="coordinator" style="right: auto; left: -2px; cursor: ew-resize;"></div>
             <div style="padding:15px; font-weight:800; font-size:14px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
                 <span>COORDINATOR AI</span>
                 <span style="color:var(--emerald-green); font-size:10px; display:flex; align-items:center;">● ONLINE</span>
@@ -5142,12 +5250,14 @@
                 </div>
             </div>
         </div>
+    </div>
 
+    <div id="vli-sidebar-left" class="vli-sidebar" style="right: auto; left: 0; transform: translateX(-100%); border-left: none; border-right: 1px solid rgba(255,255,255,0.05); box-shadow: 5px 0 25px rgba(0,0,0,0.6);">
         <!-- Artifacts Panel -->
-        <div id="tab-artifacts" class="sidebar-content-area">
-            <div class="sidebar-resizer" data-tab-id="artifacts"></div>
+        <div id="tab-artifacts" class="sidebar-content-area" style="display: block; width: 100%;">
+            <div class="sidebar-resizer" data-tab-id="artifacts" style="left: auto; right: -2px; cursor: ew-resize;"></div>
             <div style="padding:15px; font-weight:800; font-size:14px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
-                <span>RESEARCH ARTIFACTS</span>
+                <span>REPORTS</span>
                 <span style="cursor:pointer; color:var(--text-muted);" onclick="loadArtifactTree()" title="Refresh">↻</span>
             </div>
             <div id="artifact-tree-container" class="tree-container">
@@ -5180,9 +5290,6 @@
         // --- SIDEBAR RESIZING LOGIC ---
         document.addEventListener('DOMContentLoaded', () => {
             const resizers = document.querySelectorAll('.sidebar-resizer');
-            const sidebar = document.getElementById('vli-sidebar');
-            const tabsContainer = document.getElementById('sidebar-tabs-container');
-            const watermark = document.getElementById('vli-version-watermark');
             
             let isResizingSidebar = false;
             let startX;
@@ -5195,7 +5302,6 @@
                     activeResizerId = resizer.getAttribute('data-tab-id');
                     startX = e.clientX;
                     
-                    // Snapshot current widths
                     Object.keys(window.vliTabWidths).forEach(k => {
                         startWidths[k] = window.vliTabWidths[k];
                     });
@@ -5212,43 +5318,33 @@
                 const numActive = activeSidebarTabs.size;
                 if (numActive === 0) return;
                 
-                // dx is positive when moving mouse to the left
                 const dx = startX - e.clientX; 
-                
-                let newWidth = startWidths[activeResizerId] + dx;
-                newWidth = Math.max(250, newWidth);
-                
-                // Enforce max stretch to ensure tabs always have room
-                const maxAllowedTotalWidth = window.innerWidth - 60;
-                
-                // Calculate total width if we apply this newWidth
-                let otherActiveWidths = 0;
-                activeSidebarTabs.forEach(id => {
-                    if (id !== activeResizerId) {
-                        otherActiveWidths += window.vliTabWidths[id];
-                    }
-                });
-                
-                if (newWidth + otherActiveWidths > maxAllowedTotalWidth) {
-                    newWidth = maxAllowedTotalWidth - otherActiveWidths;
+                let newWidth;
+                if (activeResizerId === 'coordinator') {
+                    newWidth = startWidths[activeResizerId] + dx;
+                } else if (activeResizerId === 'artifacts') {
+                    newWidth = startWidths[activeResizerId] - dx;
                 }
+                
+                newWidth = Math.max(250, newWidth);
+                const maxAllowedTotalWidth = window.innerWidth / 2;
+                if (newWidth > maxAllowedTotalWidth) newWidth = maxAllowedTotalWidth;
                 
                 window.vliTabWidths[activeResizerId] = newWidth;
                 
-                // Apply inline styles to the active tabs
-                let totalWidth = 0;
-                activeSidebarTabs.forEach(id => {
-                    const el = document.getElementById('tab-' + id);
-                    if (el) {
-                        el.style.width = `${window.vliTabWidths[id]}px`;
-                    }
-                    totalWidth += window.vliTabWidths[id];
-                });
-                
-                // Apply to total width container
-                sidebar.style.width = `${totalWidth}px`;
-                tabsContainer.style.right = `${totalWidth}px`;
-                if (watermark) watermark.style.right = `${totalWidth + 20}px`;
+                if (activeResizerId === 'coordinator') {
+                    const rightSidebar = document.getElementById('vli-sidebar-right');
+                    const rightTabs = document.getElementById('sidebar-tabs-right');
+                    const watermark = document.getElementById('vli-version-watermark');
+                    rightSidebar.style.width = `${newWidth}px`;
+                    rightTabs.style.right = `${newWidth}px`;
+                    if (watermark) watermark.style.right = `${newWidth + 20}px`;
+                } else if (activeResizerId === 'artifacts') {
+                    const leftSidebar = document.getElementById('vli-sidebar-left');
+                    const leftTabs = document.getElementById('sidebar-tabs-left');
+                    leftSidebar.style.width = `${newWidth}px`;
+                    leftTabs.style.left = `${newWidth}px`;
+                }
             });
             
             document.addEventListener('mouseup', () => {
@@ -5263,12 +5359,7 @@
 
         function switchSidebarTab(tabId) {
             console.log("[VLI_SIDEBAR] Toggling tab:", tabId);
-            const sidebar = document.getElementById('vli-sidebar');
-            const tabsContainer = document.getElementById('sidebar-tabs-container');
-            const watermark = document.getElementById('vli-version-watermark');
             
-            if (!sidebar || !tabsContainer) return;
-
             if (activeSidebarTabs.has(tabId)) {
                 activeSidebarTabs.delete(tabId);
             } else {
@@ -5278,53 +5369,13 @@
                     const activeCards = document.querySelectorAll('.card');
                     activeCards.forEach(card => {
                         if (card.id && card.id.startsWith('win-CI')) {
-                            UXManager.closeCard(card.id.replace('win-', ''));
+                            console.log("[VLI_SYSTEM] Suppressing floating coordinator card...");
+                            UXManager.closeCard('CI');
                         }
                     });
                 }
             }
-
-            const numActive = activeSidebarTabs.size;
-            if (numActive === 0) {
-                sidebar.classList.remove('open');
-                sidebar.style.width = '0px';
-                tabsContainer.style.right = '0px';
-                if (watermark) watermark.style.right = '16px';
-            } else {
-                sidebar.classList.add('open');
-                
-                // Apply inline styles to the active tabs
-                let totalWidth = 0;
-                
-                // Ensure total width fits in window when opening a new tab
-                let maxAllowedTotalWidth = window.innerWidth - 60;
-                
-                activeSidebarTabs.forEach(id => {
-                    totalWidth += window.vliTabWidths[id];
-                });
-                
-                // If it overflows because we just opened a tab, shrink the tabs proportionally
-                if (totalWidth > maxAllowedTotalWidth) {
-                    const scale = maxAllowedTotalWidth / totalWidth;
-                    totalWidth = 0;
-                    activeSidebarTabs.forEach(id => {
-                        window.vliTabWidths[id] = Math.max(250, window.vliTabWidths[id] * scale);
-                        totalWidth += window.vliTabWidths[id];
-                    });
-                }
-
-                activeSidebarTabs.forEach(id => {
-                    const el = document.getElementById('tab-' + id);
-                    if (el) {
-                        el.style.width = `${window.vliTabWidths[id]}px`;
-                    }
-                });
-
-                sidebar.style.width = `${totalWidth}px`;
-                tabsContainer.style.right = `${totalWidth}px`;
-                if (watermark) watermark.style.right = `${totalWidth + 20}px`;
-            }
-
+            
             // Sync UI states
             document.querySelectorAll('.folder-tab').forEach(el => {
                 const id = el.id.replace('tab-btn-', '');
@@ -5332,24 +5383,47 @@
                 else el.classList.remove('active');
             });
             
-            document.querySelectorAll('.sidebar-content-area').forEach(el => {
-                const id = el.id.replace('tab-', '');
-                if (activeSidebarTabs.has(id)) el.classList.add('active');
-                else el.classList.remove('active');
-            });
-
-            if (tabId === 'artifacts' && activeSidebarTabs.has('artifacts')) {
+            // Handle Artifacts (Left)
+            const leftSidebar = document.getElementById('vli-sidebar-left');
+            const leftTabs = document.getElementById('sidebar-tabs-left');
+            if (activeSidebarTabs.has('artifacts')) {
+                leftSidebar.style.transform = 'translateX(0)';
+                leftSidebar.style.width = window.vliTabWidths['artifacts'] + 'px';
+                leftTabs.style.left = window.vliTabWidths['artifacts'] + 'px';
                 loadArtifactTree();
-            } else if (tabId === 'coordinator' && activeSidebarTabs.has('coordinator')) {
+            } else {
+                leftSidebar.style.transform = 'translateX(-100%)';
+                leftSidebar.style.width = '0px';
+                leftTabs.style.left = '0px';
+            }
+            
+            // Handle Coordinator (Right)
+            const rightSidebar = document.getElementById('vli-sidebar-right');
+            const rightTabs = document.getElementById('sidebar-tabs-right');
+            const watermark = document.getElementById('vli-version-watermark');
+            if (activeSidebarTabs.has('coordinator')) {
+                rightSidebar.style.transform = 'translateX(0)';
+                rightSidebar.style.width = window.vliTabWidths['coordinator'] + 'px';
+                rightTabs.style.right = window.vliTabWidths['coordinator'] + 'px';
+                if (watermark) watermark.style.right = (window.vliTabWidths['coordinator'] + 20) + 'px';
                 const input = document.getElementById('chat-input');
-                if(input) {
-                    setTimeout(() => input.focus(), 100);
-                }
+                if (input) setTimeout(() => input.focus(), 100);
+            } else {
+                rightSidebar.style.transform = 'translateX(100%)';
+                rightSidebar.style.width = '0px';
+                rightTabs.style.right = '0px';
+                if (watermark) watermark.style.right = '16px';
             }
         }
         
         async function loadArtifactTree() {
             try {
+                // Snapshot currently open folders to prevent collapse on redraw
+                const openFolders = new Set();
+                document.querySelectorAll('.tree-folder.open > .tree-item > div > .tree-label').forEach(el => {
+                    openFolders.add(el.textContent.trim());
+                });
+
                 const res = await fetch('/api/vli/artifacts/tree');
                 const data = await res.json();
                 const container = document.getElementById('artifact-tree-container');
@@ -5357,7 +5431,7 @@
                 
                 if (data.tree) {
                     data.tree.forEach(node => {
-                        container.appendChild(createTreeNode(node));
+                        container.appendChild(createTreeNode(node, openFolders));
                     });
                 }
             } catch (e) {
@@ -5365,23 +5439,52 @@
             }
         }
         
-        function createTreeNode(node) {
+        function createTreeNode(node, openFolders = new Set()) {
             const wrapper = document.createElement('div');
             
             if (node.type === 'folder') {
                 wrapper.className = 'tree-folder';
+                if (openFolders.has(node.name) || window.vliForceOpenFolder === node.name) {
+                    wrapper.classList.add('open');
+                }
                 
                 const item = document.createElement('div');
                 item.className = 'tree-item';
-                item.innerHTML = `<div class="tree-icon">▶</div><div class="tree-label" style="font-weight:700; color:var(--text-muted);">${node.name}</div>`;
-                item.onclick = () => {
+                let extraBtns = '';
+                if (node.name === 'Notes') {
+                    extraBtns = `<div class="tree-add-btn" title="Add New Note" style="margin-left: auto; cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px;">➕</div>`;
+                }
+                item.innerHTML = `<div style="display:flex; flex:1; align-items:center; width:100%;"><div class="tree-icon">▶</div><div class="tree-label" style="font-weight:700; color:var(--text-muted);">${node.name}</div>${extraBtns}</div>`;
+                item.onclick = (e) => {
+                    if (e.target.closest('.tree-add-btn')) {
+                        e.stopPropagation();
+                        fetch('/api/vli/artifacts/create', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ folder: node.path || node.name })
+                        }).then(res => res.json())
+                          .then(data => { 
+                              if (data.status === 'OK') {
+                                  loadArtifactTree(); 
+                                  if (data.path) {
+                                      fetch('/api/vli/artifacts/open_local', {
+                                          method: 'POST',
+                                          headers: {'Content-Type': 'application/json'},
+                                          body: JSON.stringify({ path: data.path })
+                                      }).catch(e => console.error('Error auto-opening file:', e));
+                                  }
+                              } 
+                          })
+                          .catch(err => console.error(err));
+                        return;
+                    }
                     wrapper.classList.toggle('open');
                 };
                 
                 const childrenContainer = document.createElement('div');
                 childrenContainer.className = 'tree-children';
                 node.children.forEach(child => {
-                    childrenContainer.appendChild(createTreeNode(child));
+                    childrenContainer.appendChild(createTreeNode(child, openFolders));
                 });
                 
                 wrapper.appendChild(item);
@@ -5391,8 +5494,113 @@
                 
                 const item = document.createElement('div');
                 item.className = 'tree-item';
-                item.innerHTML = `<div class="tree-icon" style="opacity:0.3;">≡</div><div class="tree-label">${node.name}</div>`;
-                item.onclick = () => {
+                
+                let buttonsHtml = '<div style="display:flex; margin-left: auto;">';
+                if (node.canRename) {
+                    buttonsHtml += `<div class="tree-rename-btn" title="Rename Report" style="cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px;">🏷️</div>`;
+                }
+                buttonsHtml += `<div class="tree-local-btn" title="Edit File Locally" style="cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px;">✏️</div>`;
+                if (node.canDelete) {
+                    buttonsHtml += `<div class="tree-delete-btn" title="Delete Report" style="cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px; color: #f85149;">❌</div>`;
+                }
+                buttonsHtml += '</div>';
+
+                item.innerHTML = `<div class="tree-icon" style="opacity:0.3;">≡</div><div class="tree-label" style="display:flex; width:100%; align-items:center;"><span>${node.name}</span>${buttonsHtml}</div>`;
+                
+                item.onclick = (e) => {
+                    if (e.target.closest('.tree-delete-btn')) {
+                        e.stopPropagation();
+                        fetch('/api/vli/artifacts/delete', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ path: node.path })
+                        }).then(res => res.json())
+                          .then(data => {
+                              if (data.status === 'OK') loadArtifactTree();
+                              else alert('Delete failed: ' + (data.detail || data.message));
+                          })
+                          .catch(err => alert('Error deleting file: ' + err));
+                        return;
+                    }
+                    if (e.target.closest('.tree-rename-btn')) {
+                        e.stopPropagation();
+                        const labelContainer = item.querySelector('.tree-label');
+                        const labelSpan = labelContainer.querySelector('span');
+                        
+                        if (labelContainer.querySelector('input')) return;
+                        
+                        const currentName = labelSpan.textContent;
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = currentName.replace('.md', '');
+                        input.style.flex = '1';
+                        input.style.background = '#0d1117';
+                        input.style.color = '#c9d1d9';
+                        input.style.border = '1px solid #30363d';
+                        input.style.borderRadius = '4px';
+                        input.style.padding = '2px 6px';
+                        input.style.fontSize = '12px';
+                        input.style.marginRight = '8px';
+                        
+                        labelSpan.style.display = 'none';
+                        labelContainer.insertBefore(input, labelSpan);
+                        input.focus();
+                        input.select();
+                        
+                        let isRenaming = false;
+                        const handleRename = () => {
+                            if (isRenaming) return;
+                            isRenaming = true;
+                            
+                            let newName = input.value.trim();
+                            if (newName && newName !== currentName.replace('.md', '')) {
+                                fetch('/api/vli/artifacts/rename', {
+                                    method: 'POST',
+                                    headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify({ old_path: node.path, new_name: newName })
+                                }).then(res => res.json())
+                                  .then(data => {
+                                      if (data.status === 'OK') loadArtifactTree();
+                                      else {
+                                          alert('Rename failed: ' + (data.detail || data.message));
+                                          input.remove();
+                                          labelSpan.style.display = '';
+                                      }
+                                  })
+                                  .catch(err => {
+                                      alert('Error renaming file: ' + err);
+                                      input.remove();
+                                      labelSpan.style.display = '';
+                                  });
+                            } else {
+                                input.remove();
+                                labelSpan.style.display = '';
+                            }
+                        };
+                        
+                        input.addEventListener('blur', handleRename);
+                        input.addEventListener('keydown', (evt) => {
+                            if (evt.key === 'Enter') handleRename();
+                            if (evt.key === 'Escape') {
+                                isRenaming = true;
+                                input.remove();
+                                labelSpan.style.display = '';
+                            }
+                        });
+                        return;
+                    }
+
+                    if (e.target.closest('.tree-local-btn')) {
+                        e.stopPropagation();
+                        fetch('/api/vli/artifacts/open_local', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ path: node.path })
+                        }).then(res => res.json())
+                          .catch(err => console.error('Error opening local file:', err));
+                        return;
+                    }
+
                     openArtifact(node.path, node.name);
                 };
                 wrapper.appendChild(item);
@@ -5411,7 +5619,7 @@
                             idPrefix: "ART",
                             title: "Artifact Viewer",
                             isSingleton: false,
-                            initContent: () => `<div class="artifact-content analysis-report" style="padding:15px; overflow-y:auto; height:100%;"></div>`,
+                            initContent: () => `<div class="artifact-content msg-ai" style="padding:15px; overflow-y:auto; height:100%;"></div>`,
                             onAttach: () => {}
                         };
                     }
@@ -5424,10 +5632,14 @@
                     });
                     
                     if (card) {
-                        const titleEl = card.querySelector('.win-title');
+                        card.dataset.artifactPath = path;
+                        const titleEl = card.querySelector('.card-header > div:first-child > div:nth-child(2)');
                         if (titleEl) titleEl.innerText = name;
                         const contentEl = card.querySelector('.artifact-content');
-                        if (contentEl) contentEl.innerHTML = marked.parse(data.content);
+                        if (contentEl) {
+                            contentEl.innerHTML = marked.parse(data.content);
+                            contentEl.style.color = "var(--text-muted)";
+                        }
                     }
                 }
             } catch(e) {
