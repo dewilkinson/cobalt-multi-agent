@@ -250,7 +250,7 @@ def generate_tradezella_csv(input_filename, output_filename, target_month=None, 
             tz_datetime = f"{tz_date} {timestamp}"
             
             final_rows.append({
-                "Date&Time": tz_datetime,
+                "Date&Time": "",
                 "Date": tz_date,
                 "Time": timestamp,
                 "Symbol": trade['Symbol'].strip(),
