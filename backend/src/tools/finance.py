@@ -187,7 +187,7 @@ def _fetch_av_history(ticker: str, period: str = "5d", interval: str = "1d") -> 
         mapped_interval = interval.replace("m", "min")
         endpoint = "TIME_SERIES_INTRADAY"
         
-    url = f"https://www.alphavantage.co/query?function={endpoint}&symbol={ticker}&datatype=csv&entitlement=delayed&apikey={api_key}"
+    url = f"https://www.alphavantage.co/query?function={endpoint}&symbol={ticker}&datatype=csv&entitlement=realtime&apikey={api_key}"
     
     if endpoint == "TIME_SERIES_INTRADAY":
         url += f"&interval={mapped_interval}&outputsize=full"

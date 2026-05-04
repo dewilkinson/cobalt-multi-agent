@@ -3,10 +3,44 @@ import os
 import sys
 import asyncio
 from datetime import datetime
+import yfinance as yf
 from tradingview_screener import Query, col
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'backend')))
 from src.tools.scanner import batch_fetch_sortino
+import httpx
+
+async def batch_fetch_news_sentiment(tickers: list) -> dict:
+    import os
+    api_key = os.environ.get("ALPHA_VANTAGE_API_KEY", "")
+    if not api_key:
+        return {}
+    
+    chunks = [tickers[i:i+10] for i in range(0, len(tickers), 10)]
+    sentiment_map = {}
+    
+    async def fetch_chunk(chunk):
+        url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={','.join(chunk)}&apikey={api_key}&limit=50"
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(url, timeout=15.0)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    for item in data.get("feed", []):
+                        for ts in item.get("ticker_sentiment", []):
+                            tk = ts.get("ticker")
+                            if tk in chunk:
+                                score = float(ts.get("ticker_sentiment_score", 0))
+                                if tk in sentiment_map:
+                                    sentiment_map[tk] = (sentiment_map[tk] + score) / 2
+                                else:
+                                    sentiment_map[tk] = score
+        except Exception:
+            pass
+            
+    await asyncio.gather(*(fetch_chunk(c) for c in chunks))
+    return sentiment_map
+
 
 def sync_vli_scanners():
     """
@@ -19,12 +53,22 @@ def sync_vli_scanners():
     pass
 
     try:
+        # Fetch SPY benchmark for RS Proxy
+        spy_perf_3m = 0.0
+        try:
+            spy_hist = yf.Ticker("SPY").history(period="3mo")
+            if not spy_hist.empty:
+                spy_perf_3m = ((spy_hist['Close'].iloc[-1] - spy_hist['Close'].iloc[0]) / spy_hist['Close'].iloc[0]) * 100
+            print(f"SPY 3-Month Benchmark Performance: {spy_perf_3m:.2f}%")
+        except Exception as e:
+            print(f"Failed to fetch SPY benchmark for RS Proxy: {e}")
         # Field list for both scanners
         # Mapping to internal names for the dashboard
         fields = [
             'name', 'close', 'change', 'relative_volume_10d_calc', 'market_cap_basic',
             'Perf.W', 'Perf.1M', 'Perf.3M', 'ATR', 'Volatility.M', 'volume', 'SMA200', 'SMA50',
-            'float_shares_outstanding', 'average_volume_30d_calc', 'Recommend.All', 'change_from_open'
+            'float_shares_outstanding', 'average_volume_30d_calc', 'Recommend.All', 'change_from_open', 'RSI',
+            'relative_volume_intraday|5'
         ]
 
         # --- 1. APEX SHIELD SCAN (Core / Institutional Leaders) ---
@@ -32,7 +76,7 @@ def sync_vli_scanners():
             .set_markets('america')
             .select(*fields)
             .where(
-                col('exchange').isin(['NASDAQ', 'NYSE']),
+                col('exchange').isin(['NASDAQ', 'NYSE', 'AMEX']),
                 col('close') > 15,
                 col('change').between(3, 8),
                 col('market_cap_basic') > 300_000_000,
@@ -49,9 +93,8 @@ def sync_vli_scanners():
             .set_markets('america')
             .select(*fields)
             .where(
-                col('exchange').isin(['NASDAQ', 'NYSE']),
-                col('type') == 'stock',
-                col('subtype') == 'common',
+                col('exchange').isin(['NASDAQ', 'NYSE', 'AMEX']),
+                col('type').isin(['stock', 'fund']),
                 col('close').between(1, 20),
                 col('market_cap_basic').between(100_000_000, 2_000_000_000),
                 col('volume') > 500_000,
@@ -59,18 +102,49 @@ def sync_vli_scanners():
                 col('ATR') > 0.75,
                 col('close') > col('SMA50'),
                 col('Volatility.M') > 5,
-                col('relative_volume_10d_calc') > 2,
+                col('relative_volume_intraday|5') > 2,
                 col('change') > 3,
                 col('Recommend.All') >= 0.1
             )
             .order_by('relative_volume_10d_calc', ascending=False))
 
+        # --- 3. SORTINO SNIPER SCAN (Momentum & SMC) ---
+        sniper_query = (Query()
+            .set_markets('america')
+            .select(*fields)
+            .where(
+                col('exchange').isin(['NASDAQ', 'NYSE', 'AMEX']),
+                col('type').isin(['stock', 'fund']),
+                col('close') >= 5,
+                col('change').between(3, 8),
+                col('volume') > 1_000_000,
+                col('market_cap_basic').between(300_000_000, 2_000_000_000),
+                col('float_shares_outstanding').between(20_000_000, 100_000_000),
+                col('relative_volume_intraday|5') >= 1.2
+            )
+            .order_by('relative_volume_intraday|5', ascending=False))
 
-        # Execute Queries
-        shield_df = shield_query.get_scanner_data()[1]
-        sword_df = sword_query.get_scanner_data()[1]
 
-        raw_all = shield_df['name'].tolist() + sword_df['name'].tolist()
+        # Determine Active Strategy
+        active_strategy = ""
+        config_path = r"c:\github\obsidian-vault\_cobalt\vli_session_config.json"
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, "r", encoding="utf-8") as cf:
+                    active_strategy = json.load(cf).get("active_strategy", "").lower()
+            except: pass
+
+        import pandas as pd
+        empty_df = pd.DataFrame(columns=['name', 'close', 'change', 'volume', 'relative_volume_intraday|5', 'market_cap_basic'])
+
+        # Execute Queries based on Active Strategy
+        run_all = not ("shield" in active_strategy or "sword" in active_strategy or "sniper" in active_strategy)
+        
+        shield_df = shield_query.get_scanner_data()[1] if run_all or "shield" in active_strategy else empty_df
+        sword_df = sword_query.get_scanner_data()[1] if run_all or "sword" in active_strategy else empty_df
+        sniper_df = sniper_query.get_scanner_data()[1] if run_all or "sniper" in active_strategy else empty_df
+
+        raw_all = shield_df['name'].tolist() + sword_df['name'].tolist() + sniper_df['name'].tolist()
         
         # [MINIMIZED] Telemetry for query completion suppressed
         pass
@@ -78,7 +152,7 @@ def sync_vli_scanners():
         removed_trace = []
 
         # Process and map for VLI Dashboard
-        def map_candidate(row, tier):
+        def map_candidate(row, tier, spy_benchmark, track_spy):
             symbol = row['name']
             
             # [HARDENING] Strict sanitization
@@ -88,25 +162,44 @@ def sync_vli_scanners():
             if len(symbol) > 4 and symbol[-1] in ['W', 'U', 'R', 'P']:
                 removed_trace.append(f"   ❌ Removed: **{symbol}** (Preferred/Warrant Filter)")
                 return None
+            
+            # [RS PROXY FILTER]
+            if track_spy:
+                sym_perf_3m = float(row.get('Perf.3M') or 0.0)
+                if sym_perf_3m < spy_benchmark + 15.0:
+                    removed_trace.append(f"   ❌ Removed: **{symbol}** (Failed RS Proxy: {sym_perf_3m:.2f}% vs SPY {spy_benchmark:.2f}%)")
+                    return None
                 
             return row
 
-        clean_shield = [r for r in (map_candidate(r, "SHIELD") for _, r in shield_df.iterrows()) if r is not None]
-        clean_sword = [r for r in (map_candidate(r, "SWORD") for _, r in sword_df.iterrows()) if r is not None]
+        # Load Scanner Settings
+        track_spy = False
+        try:
+            settings_path = os.path.join(os.path.dirname(__file__), "..", "..", "backend", "data", "scanner_settings.json")
+            if os.path.exists(settings_path):
+                with open(settings_path, "r", encoding="utf-8") as f:
+                    track_spy = json.load(f).get("track_spy", False)
+        except Exception as e:
+            print(f"Error loading scanner settings: {e}")
+
+        clean_shield = [r for r in (map_candidate(r, "SHIELD", spy_perf_3m, track_spy) for _, r in shield_df.iterrows()) if r is not None]
+        clean_sword = [r for r in (map_candidate(r, "SWORD", spy_perf_3m, track_spy) for _, r in sword_df.iterrows()) if r is not None]
+        clean_sniper = [r for r in (map_candidate(r, "SNIPER", spy_perf_3m, track_spy) for _, r in sniper_df.iterrows()) if r is not None]
 
         # [MINIMIZED] Sanitization Trace suppressed
         pass
 
         # Fetch Sortino for surviving candidates
-        all_symbols = [r['name'] for r in clean_shield] + [r['name'] for r in clean_sword]
+        all_symbols = [r['name'] for r in clean_shield] + [r['name'] for r in clean_sword] + [r['name'] for r in clean_sniper]
         
         # [MINIMIZED] Sortino calculation telemetry suppressed
         pass
             
         print(f"Fetching localized Sortino ratios for {len(all_symbols)} candidates...")
         sortino_map = asyncio.run(batch_fetch_sortino(all_symbols, period="20d"))
+        sentiment_map = asyncio.run(batch_fetch_news_sentiment(all_symbols))
 
-        def finalize_candidate(row, tier, sortino_map):
+        def finalize_candidate(row, tier, sortino_map, sentiment_map):
             symbol = row['name']
             report_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{symbol.lower()}.md')
             
@@ -117,8 +210,64 @@ def sync_vli_scanners():
             if len(symbol) > 4 and symbol[-1] in ['W', 'U', 'R', 'P']:
                 removed_trace.append(f"   ❌ Removed: **{symbol}** (Preferred/Warrant Filter)")
                 return None
+
+            sortino = sortino_map.get(symbol, 0.0)
+            sentiment_score = sentiment_map.get(symbol, 0.0)
+            
+            # --- ADVANCED QUANTITATIVE GRADING ---
+            # Default passing candidates start at a C grade (40 points)
+            heat = 40.0
+            
+            rvol = row.get('relative_volume_10d_calc', 0)
+            if rvol > 1.0:
+                heat += min(20, (rvol - 1.0) * 15)
                 
-            report_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{symbol.lower()}.md')
+            if sortino > 0:
+                heat += min(30, sortino * 5)
+            else:
+                heat -= min(20, abs(sortino) * 10)
+                
+            perf_w = row.get('Perf.W')
+            perf_1m = row.get('Perf.1M')
+            if perf_1m is not None:
+                if perf_1m > 0:
+                    heat += min(20, perf_1m)
+                else:
+                    heat -= min(20, abs(perf_1m))
+                    
+            if sentiment_score > 0.15:
+                heat += 15.0
+            elif sentiment_score < -0.15:
+                heat -= 15.0
+                    
+            heat = max(0, min(100, int(heat)))
+            
+            if heat >= 90: grade = "S"
+            elif heat >= 80: grade = "A+"
+            elif heat >= 70: grade = "A"
+            elif heat >= 60: grade = "B+"
+            elif heat >= 50: grade = "B"
+            elif heat >= 40: grade = "C"
+            elif heat >= 30: grade = "C-"
+            elif heat >= 20: grade = "D"
+            else: grade = "F"
+            
+            if grade in ["S", "A+"] and sentiment_score <= 0.05:
+                grade = "A"
+                heat = min(heat, 79.0)
+            
+            # Hard fails for falling knives
+            if perf_1m is not None and perf_w is not None:
+                if perf_1m < -10 and perf_w < -5:
+                    grade = "F"
+                    heat = min(heat, 15)
+                    
+            # Minimum passing grade is C-
+            if heat < 30 or grade in ["D", "F"]:
+                removed_trace.append(f"   ❌ Removed: **{symbol}** (Failed Quantitative Grading - Final Grade: {grade})")
+                return None
+                
+            report_path = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{symbol.lower()}.md')
             updated_at = None
             has_report = False
             if os.path.exists(report_path):
@@ -126,6 +275,16 @@ def sync_vli_scanners():
                 updated_at = mtime.isoformat()
                 if mtime.date() == datetime.now().date():
                     has_report = True
+                    
+                # Evaluate LLM Report Verdict Override
+                try:
+                    with open(report_path, "r", encoding="utf-8") as rf:
+                        report_text = rf.read()
+                        if "[FAIL]" in report_text or "**FAIL**" in report_text or "[UNRATED]" in report_text or "UNRATED/FAIL" in report_text:
+                            removed_trace.append(f"   ❌ Removed: **{symbol}** (Failed LLM Structural Audit - Verdict: FAIL)")
+                            return None
+                except Exception:
+                    pass
                     
             return {
                 "symbol": symbol,
@@ -139,36 +298,47 @@ def sync_vli_scanners():
                 "atr": row['ATR'],
                 "volatility": row['Volatility.M'],
                 "tier": tier,
-                "grade": "S" if row['relative_volume_10d_calc'] > 3 else "A",
-                "heat_score": min(100, int(row['relative_volume_10d_calc'] * 20)),
-                "sortino": sortino_map.get(symbol, 0.0),
+                "grade": grade,
+                "heat_score": heat,
+                "sortino": sortino,
                 "has_report": has_report,
                 "updated_at": updated_at
             }
 
-        raw_shield = [finalize_candidate(r, "SHIELD", sortino_map) for r in clean_shield]
-        raw_sword = [finalize_candidate(r, "SWORD", sortino_map) for r in clean_sword]
+        raw_shield = [finalize_candidate(r, "SHIELD", sortino_map, sentiment_map) for r in clean_shield]
+        raw_sword = [finalize_candidate(r, "SWORD", sortino_map, sentiment_map) for r in clean_sword]
+        raw_sniper = [finalize_candidate(r, "SNIPER", sortino_map, sentiment_map) for r in clean_sniper]
         
         shield_candidates = [c for c in raw_shield if c is not None]
         sword_candidates = [c for c in raw_sword if c is not None]
+        sniper_candidates = [c for c in raw_sniper if c is not None]
+
+        # Deduplicate candidates across tiers (Priority: SNIPER > SWORD > SHIELD)
+        seen_symbols = set()
+        deduped_candidates = []
+        for c in (sniper_candidates + sword_candidates + shield_candidates):
+            if c['symbol'] not in seen_symbols:
+                seen_symbols.add(c['symbol'])
+                deduped_candidates.append(c)
 
         # Final Dashboard State
         dashboard_state = {
             "pulse_mode": "TradingView (HIGH-FIDELITY)",
-            "total_pulsed": len(shield_candidates) + len(sword_candidates),
-            "candidates_passed": len(shield_candidates) + len(sword_candidates),
-            "candidates": sword_candidates + shield_candidates,  # Swapped order to prioritize runners in main view
+            "total_pulsed": len(deduped_candidates),
+            "candidates_passed": len(deduped_candidates),
+            "candidates": deduped_candidates,
             "metadata": {
                 "last_sync": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "shield_count": len(shield_candidates),
                 "sword_count": len(sword_candidates),
+                "sniper_count": len(sniper_candidates),
                 "status": "active"
             }
         }
 
         # --- DIFF CALCULATION ---
         prev_symbols = set()
-        target_path = os.path.join(os.getcwd(), 'data', 'SCANNER_COMBAT_LIST.json')
+        target_path = os.path.join(os.getcwd(), 'data', 'SCANNER_STRIKE_LIST.json')
         if os.path.exists(target_path):
             try:
                 with open(target_path, 'r') as f:

@@ -120,14 +120,14 @@ async def trigger_scanner_trawl():
 @router.get("/bunker")
 async def get_bunker_list():
     """Retrieve the current persistent Combat List (Phase A)."""
-    combat_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SCANNER_COMBAT_LIST.json"))
-    if not os.path.exists(combat_list_path):
+    strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SCANNER_STRIKE_LIST.json"))
+    if not os.path.exists(strike_list_path):
         return {"status": "success", "data": []}
     
     try:
-        with open(combat_list_path, "r", encoding="utf-8") as f:
+        with open(strike_list_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-            return sanitize_data({"status": "success", "data": data.get("combat_list", [])})
+            return sanitize_data({"status": "success", "data": data.get("strike_list", [])})
     except Exception as e:
         logger.error(f"Failed to read bunker: {e}")
         return {"status": "error", "message": str(e)}
@@ -145,22 +145,22 @@ async def trigger_shield_trawl():
 @router.get("/shield-bunker")
 async def get_shield_bunker_list():
     """Retrieve the current Shield Combat List."""
-    combat_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SHIELD_COMBAT_LIST.json"))
-    if not os.path.exists(combat_list_path):
+    strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SHIELD_COMBAT_LIST.json"))
+    if not os.path.exists(strike_list_path):
         return {"status": "success", "data": []}
     
     try:
-        with open(combat_list_path, "r", encoding="utf-8") as f:
+        with open(strike_list_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-            return sanitize_data({"status": "success", "data": data.get("combat_list", [])})
+            return sanitize_data({"status": "success", "data": data.get("strike_list", [])})
     except Exception as e:
         logger.error(f"Failed to read shield bunker: {e}")
         return {"status": "error", "message": str(e)}
 
 
 async def fetch_av_gainers() -> List[Dict[str, Any]]:
-    api_key = os.getenv("ALPHAVANTAGE_API_KEY", "demo")
-    url = f"https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey={api_key}"
+    api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "premium")
+    url = f"https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey={api_key}&entitlement=realtime"
     
     try:
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15)) as session:
@@ -214,15 +214,15 @@ async def scanner_stream():
             yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'Initializing Phase 0: Fetching AV Top Gainers...'}), cls=NpEncoder)}\n\n"
             
             # 1. Load Universe (Combat List + Discovery)
-            combat_list = []
-            combat_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SCANNER_COMBAT_LIST.json"))
-            if os.path.exists(combat_list_path):
+            strike_list = []
+            strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SCANNER_STRIKE_LIST.json"))
+            if os.path.exists(strike_list_path):
                 try:
-                    with open(combat_list_path, "r", encoding="utf-8") as f:
+                    with open(strike_list_path, "r", encoding="utf-8") as f:
                         c_data = json.load(f)
-                        combat_list = c_data.get("candidates", c_data.get("combat_list", []))
+                        strike_list = c_data.get("candidates", c_data.get("strike_list", []))
                         pulse_mode = c_data.get("pulse_mode", "")
-                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Combat List loaded: {len(combat_list)} swords in the bunker.'}), cls=NpEncoder)}\n\n"
+                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Combat List loaded: {len(strike_list)} swords in the bunker.'}), cls=NpEncoder)}\n\n"
                 except Exception as e:
                     logger.warning(f"Failed to load combat list: {e}")
                     pulse_mode = ""
@@ -237,7 +237,7 @@ async def scanner_stream():
             
             # Merge: Combat List results are enriched with discovery data if they overlap, 
             # or we add discovery candidates to the tail.
-            phase0_symbols = {c["symbol"]: c for c in combat_list}
+            phase0_symbols = {c["symbol"]: c for c in strike_list}
             for d in discovery_raw:
                 if d["symbol"] not in phase0_symbols:
                     phase0_symbols[d["symbol"]] = d
@@ -279,25 +279,31 @@ async def scanner_stream():
             
             # 2. Phase 1
             yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'Initiating Phase 1: Applying Sortino static filters...'}), cls=NpEncoder)}\n\n"
-            try:
-                # Direct logic invocation to bypass StructuredTool wrapper
-                p1_res_str = await _build_session_watchlist_impl(strategy_config="{}", universe_csv=universe_csv)
-                p1_data = json.loads(p1_res_str)
-                p1_symbols = p1_data.get("watchlist", [])
-                p1_details = p1_data.get("detail", [])
-                
-                # Report details including rejects
-                for d in p1_details:
-                    if d["grade"] in ["C", "F"]:
-                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'REJECTED: {d['symbol']} - Grade {d['grade']} (Sortino: {d.get('sortino', 0.0)})'}), cls=NpEncoder)}\n\n"
-                    else:
-                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'PASSED: {d['symbol']} - Grade {d['grade']} (Sortino: {d.get('sortino', 0.0)})'}), cls=NpEncoder)}\n\n"
-                
-                yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Phase 1 complete. Surviving Candidates: {len(p1_symbols)}'}), cls=NpEncoder)}\n\n"
-            except Exception as e:
-                logger.error(f"Phase 1 error: {e}")
-                p1_symbols = []
-                yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Phase 1 failed: {str(e)}'}), cls=NpEncoder)}\n\n"
+            
+            if "TradingView" in pulse_mode:
+                yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'TradingView High-Fidelity Mode active. Bypassing Phase 1 LLM filters to preserve raw strategy candidates...'}), cls=NpEncoder)}\n\n"
+                p1_symbols = symbols
+                p1_details = [{"symbol": s, "grade": "A", "sortino": next((x.get("sortino", 0.0) for x in phase0_raw if x["symbol"] == s), 0.0)} for s in symbols]
+            else:
+                try:
+                    # Direct logic invocation to bypass StructuredTool wrapper
+                    p1_res_str = await _build_session_watchlist_impl(strategy_config="{}", universe_csv=universe_csv)
+                    p1_data = json.loads(p1_res_str)
+                    p1_symbols = p1_data.get("watchlist", [])
+                    p1_details = p1_data.get("detail", [])
+                    
+                    # Report details including rejects
+                    for d in p1_details:
+                        if d["grade"] in ["C", "F"]:
+                            yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'REJECTED: {d["symbol"]} - Grade {d["grade"]} (Sortino: {d.get("sortino", 0.0)})'}), cls=NpEncoder)}\n\n"
+                        else:
+                            yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'PASSED: {d["symbol"]} - Grade {d["grade"]} (Sortino: {d.get("sortino", 0.0)})'}), cls=NpEncoder)}\n\n"
+                    
+                    yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Phase 1 complete. Surviving Candidates: {len(p1_symbols)}'}), cls=NpEncoder)}\n\n"
+                except Exception as e:
+                    logger.error(f"Phase 1 error: {e}")
+                    p1_symbols = []
+                    yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Phase 1 failed: {str(e)}'}), cls=NpEncoder)}\n\n"
                 
             p1_full = sanitize_data([])
             for s in p1_symbols:

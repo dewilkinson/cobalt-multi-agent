@@ -332,23 +332,23 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                 v["grade"] = "B"
 
     # 4. Persistence
-    combat_list = {
+    strike_list = {
         "updated_at": datetime.now().isoformat(),
         "macro": {
             "shield_mode": "ACTIVE"
         },
         "universe_size": total_count or len(candidates),
         "verified_count": len(verified_list),
-        "combat_list": verified_list
+        "strike_list": verified_list
     }
 
-    clean_combat_list = sanitize_data(combat_list)
+    clean_strike_list = sanitize_data(strike_list)
 
     with open(COMBAT_LIST_PATH, "w", encoding="utf-8") as f:
-        json.dump(clean_combat_list, f, indent=4)
+        json.dump(clean_strike_list, f, indent=4)
 
     logger.info(f"SHIELD Combat List synchronized. {len(verified_list)} verified shields in the bunker.")
-    return clean_combat_list
+    return clean_strike_list
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

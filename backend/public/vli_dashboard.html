@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0028";
+        const VLI_CLIENT_VERSION = "00.000.0032";
     </script>
     
     <link
@@ -1597,8 +1597,7 @@
             'VLI_TELEMETRY': { idPrefix: 'TM', title: 'System Telemetry', isSingleton: true },
             'MACRO_WL': { idPrefix: 'WL', title: 'Macro Watchlist', isSingleton: false },
             'STRUCTURAL_ANALY': { idPrefix: 'AR', title: 'Structural Analysis', isSingleton: false },
-            'SCAN_RES': { idPrefix: 'SR', title: 'Satellite Scan', isSingleton: true },
-            'SHIELD_RES': { idPrefix: 'SH', title: 'Core Scan', isSingleton: true },
+            'SCAN_RES': { idPrefix: 'SR', title: 'Market Scan', isSingleton: false },
             'ORDER_HIST': { idPrefix: 'OH', title: 'Portfolio', isSingleton: true },
             'SCHEDULER_LOG': { idPrefix: 'SL', title: 'Scheduler Telemetry', isSingleton: true }
         };
@@ -1606,7 +1605,7 @@
         class UXCardManager {
             constructor() {
                 this.instances = {};
-                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'STRUCTURAL_ANALY': 0, 'SCAN_RES': 0, 'SHIELD_RES': 0, 'ORDER_HIST': 0, 'SCHEDULER_LOG': 0 };
+                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'STRUCTURAL_ANALY': 0, 'SCAN_RES': 0, 'ORDER_HIST': 0, 'SCHEDULER_LOG': 0 };
             }
 
             generateGUID() {
@@ -1768,8 +1767,8 @@
                                     </select>
                                 </div>
                                 <div style="display:flex; gap: 5px; align-items:center;">
-                                    <input type="date" id="order-hist-start-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="document.getElementById('order-hist-range-${instanceGuid}').value='custom'; fetchOrderHistory('${instanceGuid}');">
-                                    <input type="date" id="order-hist-end-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="document.getElementById('order-hist-range-${instanceGuid}').value='custom'; fetchOrderHistory('${instanceGuid}');">
+                                    <input type="date" id="order-hist-start-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="window.validateOrderDateRange('start', '${instanceGuid}'); document.getElementById('order-hist-range-${instanceGuid}').value='custom'; fetchOrderHistory('${instanceGuid}');">
+                                    <input type="date" id="order-hist-end-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="window.validateOrderDateRange('end', '${instanceGuid}'); document.getElementById('order-hist-range-${instanceGuid}').value='custom'; fetchOrderHistory('${instanceGuid}');">
                                     <input type="text" id="order-hist-symbol-${instanceGuid}" class="vli-input" placeholder="Sym" style="width: 50px; text-transform: uppercase;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="fetchOrderHistory('${instanceGuid}')" onkeydown="if(event.key === 'Enter') fetchOrderHistory('${instanceGuid}')">
                                     <button id="order-hist-filter-btn-${instanceGuid}" class="vli-btn" onclick="fetchOrderHistory('${instanceGuid}')" style="background:var(--cobalt-blue); border:none; color:#fff; padding:6px 12px; border-radius:4px; font-weight:700; cursor:pointer;">Filter</button>
                                 </div>
@@ -2337,10 +2336,7 @@
             }
             
             if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCAN_RES')) {
-                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES')" style="color:var(--emerald-green);">[+] Spawn Satellite Scanner</div>`;
-            }
-            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SHIELD_RES')) {
-                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SHIELD_RES')" style="color:var(--emerald-green);">[+] Spawn Core Scanner</div>`;
+                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES')" style="color:var(--emerald-green);">[+] Spawn Market Scan</div>`;
             }
             if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCHEDULER_LOG')) {
                  viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCHEDULER_LOG')" style="color:var(--emerald-green);">[+] Spawn Scheduler Log</div>`;
@@ -2390,6 +2386,14 @@
             }
             if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCHEDULER_LOG')) {
                  UXManager.createCard('SCHEDULER_LOG', {top: '51%', left: '66%', width: '33%', height: '47%'}, 'scheduler');
+            }
+
+
+            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCAN_RES')) {
+                 UXManager.createCard('SCAN_RES', {top: '2%', left: '33.5%', width: '31%', height: '47%'}, 'scanner');
+            }
+            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SHIELD_RES')) {
+                 UXManager.createCard('SHIELD_RES', {top: '51%', left: '33.5%', width: '31%', height: '47%'}, 'shield');
             }
 
                 updateViewMenu();
@@ -3113,6 +3117,18 @@
                     }
                 }
 
+                if (data.session_config && data.session_config.active_strategy) {
+                    const strategy = data.session_config.active_strategy.toUpperCase();
+                    document.querySelectorAll('select[id^="scan-filter-"]').forEach(select => {
+                        if (document.activeElement !== select) {
+                            if (strategy.includes('SNIPER')) select.value = 'SNIPER';
+                            else if (strategy.includes('SHIELD')) select.value = 'SHIELD';
+                            else if (strategy.includes('SWORD')) select.value = 'SWORD';
+                            else select.value = 'ALL';
+                        }
+                    });
+                }
+
                 bc.postMessage({ type: 'STATE_UPDATE', state: data });
                 if (window.VLI_DEBUG) console.log("[VLI_ORCHESTRA] Master Broadcast Sent.");
 
@@ -3416,6 +3432,9 @@
                 stopScanner();
             }
             
+            window._vliIsScanning = true;
+            updateScannerResultsUI();
+            
             scannerEventSource = new EventSource('/api/scanner/stream');
 
             scannerEventSource.onmessage = (e) => {
@@ -3427,6 +3446,8 @@
                         scannerEventSource.close();
                         scannerEventSource = null;
                         appendSystemLog("--- SCAN COMPLETED ---", 'var(--emerald-green)');
+                        window._vliIsScanning = false;
+                        updateScannerResultsUI();
                     }
                 } else if (data.type === 'phase0') {
                     appendSystemLog(`[PHASE 0] Discovery Pool: ${data.msg || data.message || 'Processing raw universe...'}`, 'var(--cobalt-blue)');
@@ -3490,11 +3511,98 @@
         }
 
         function stopScanner() {
+            window._vliIsScanning = false;
             if (scannerEventSource) {
                 scannerEventSource.close();
                 scannerEventSource = null;
                 appendSystemLog("--- SCAN TERMINATED BY USER ---", 'var(--ruby-red)');
             }
+            updateScannerResultsUI();
+        }
+
+        async function toggleTrackSpy(checked) {
+            window._vliTrackSpy = checked;
+            // Update all checkboxes to match and disable them
+            document.querySelectorAll('.track-spy-cb').forEach(cb => {
+                cb.checked = checked;
+                cb.disabled = true;
+                cb.parentElement.style.opacity = '0.5';
+                cb.parentElement.style.pointerEvents = 'none';
+            });
+            
+            // Dim the scanner results to show loading state
+            document.querySelectorAll('.card[data-type-guid="SCAN_RES"] tbody tr').forEach(r => r.style.opacity = '0.3');
+            
+            try {
+                await fetch('/api/vli/scanner-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ track_spy: checked })
+                });
+                
+                // Trigger background rescan and wait for completion
+                await fetch('/api/vli/force-scanner-sync', { method: 'POST' });
+                
+                // Refresh the UI with the newly fetched data
+                initScannerSSE();
+                
+            } catch (e) {
+                console.error("Failed to update scanner settings", e);
+            } finally {
+                // Restore checkbox state
+                document.querySelectorAll('.track-spy-cb').forEach(cb => {
+                    cb.disabled = false;
+                    cb.parentElement.style.opacity = '1';
+                    cb.parentElement.style.pointerEvents = 'auto';
+                });
+            }
+        }
+
+        async function handleScannerTierChange(selectElement) {
+            const newTier = selectElement.value;
+            
+            // Re-filter locally first (will likely be empty if switching to un-cached strategy)
+            updateScannerResultsUI();
+            
+            // Dim the scanner results to show loading state
+            document.querySelectorAll('.card[data-type-guid="SCAN_RES"] tbody tr').forEach(r => r.style.opacity = '0.3');
+            selectElement.disabled = true;
+            
+            try {
+                let strategyFile = "cma_strategy_sortino_sniper.md";
+                if (newTier === "SHIELD") strategyFile = "cma_strategy_apex_shield.md";
+                else if (newTier === "SWORD") strategyFile = "cma_strategy_apex_sword.md";
+                
+                // Update active strategy in vli_session_config
+                await fetch('/api/v1/trader-profile/active-modules', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ active_strategy: strategyFile })
+                });
+                
+                // Trigger background rescan and wait for completion
+                window._vliIsScanning = true;
+                updateScannerResultsUI();
+                await fetch('/api/vli/force-scanner-sync', { method: 'POST' });
+                
+                // Refresh the UI with the newly fetched data
+                initScannerSSE();
+            } catch (e) {
+                console.error("Failed to sync tier change", e);
+            } finally {
+                selectElement.disabled = false;
+            }
+        }
+
+        async function initScannerSettings() {
+            try {
+                const res = await fetch('/api/vli/scanner-settings');
+                if (res.ok) {
+                    const data = await res.json();
+                    window._vliTrackSpy = data.track_spy;
+                    document.querySelectorAll('.track-spy-cb').forEach(cb => cb.checked = data.track_spy);
+                }
+            } catch (e) {}
         }
 
         function appendSystemLog(msg, color = 'var(--cobalt-blue)') {
@@ -3529,22 +3637,20 @@
         function renderScannerResults(data) {
             if (!data.scanner_results || !data.scanner_results.candidates) return;
             
-            // [HARDENING] Filter specifically for Satellite (SWORD) tier
             const allCandidates = data.scanner_results.candidates;
-            const swordCandidates = allCandidates.filter(c => c.tier === 'SWORD' || !c.tier);
 
-            // [NEW CANDIDATE TRACKING] Determine differential highlights
-            const currentSwordSymbols = new Set(swordCandidates.map(c => c.symbol));
+            // [NEW CANDIDATE TRACKING] Determine differential highlights across all tracked candidates
+            const currentSymbols = new Set(allCandidates.map(c => c.symbol));
             if (previousSwordSymbols.size > 0) {
-                currentSwordSymbols.forEach(sym => {
+                currentSymbols.forEach(sym => {
                     if (!previousSwordSymbols.has(sym)) {
                         window.vliNewSymbols.add(sym);
                     }
                 });
             }
-            previousSwordSymbols = currentSwordSymbols;
+            previousSwordSymbols = currentSymbols;
 
-            const res = { ...data.scanner_results, candidates: swordCandidates };
+            const res = { ...data.scanner_results, candidates: allCandidates };
             
             document.querySelectorAll('.card[data-type-guid="SCAN_RES"]').forEach(card => {
                 let body = card.querySelector('.card-body');
@@ -3552,7 +3658,9 @@
                     console.warn("[VLI_UI_HEALING] SCAN_RES missing .card-body. Auto-injecting structure.");
                     body = document.createElement('div');
                     body.className = 'card-body';
-                    body.style.overflowY = 'auto';
+                    body.style.display = 'flex';
+                    body.style.flexDirection = 'column';
+                    body.style.overflowY = 'hidden';
                     body.style.padding = '10px';
                     // Ensure the card correctly positions the newly injected body
                     body.style.height = 'calc(100% - 30px)'; // Account for header
@@ -3565,52 +3673,90 @@
                 if (!table) {
                     body.innerHTML = `
                         <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
-                            <div style="color: var(--emerald-green); font-weight: 800;">${(res.pulse_mode || '').includes('TradingView') ? 'Trading View - Sword Scan' : (res.pulse_mode || 'InstitutionalPulse')}</div>
+                            <div style="display:flex; gap: 8px; align-items: center;">
+                                <select id="scan-filter-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="handleScannerTierChange(this)">
+                                    <option value="ALL">All Algorithms</option>
+                                    <option value="SNIPER" selected>Sortino Sniper</option>
+                                    <option value="SHIELD">Apex Core Scan</option>
+                                    <option value="SWORD">Apex Satellite Scan</option>
+                                </select>
+                            </div>
                             <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
-                        <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 13px;">
-                            <thead>
-                                <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                    <th style="padding: 8px 4px; text-align: left;">SYMBOL</th>
-                                    <th style="padding: 8px 4px; text-align: right;">PRICE</th>
-                                    <th style="padding: 8px 4px; text-align: right;">CHANGE</th>
-                                    <th style="padding: 8px 4px; text-align: right;">SORTINO</th>
-                                    <th style="padding: 8px 4px; text-align: center;">GRADE</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
+                        <div style="flex-grow: 1; overflow-y: auto;">
+                            <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 13px;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        <th style="padding: 8px 4px; text-align: left;">SYMBOL</th>
+                                        <th style="padding: 8px 4px; text-align: right;">PRICE</th>
+                                        <th style="padding: 8px 4px; text-align: right;">CHANGE</th>
+                                        <th style="padding: 8px 4px; text-align: right;">SORTINO</th>
+                                        <th style="padding: 8px 4px; text-align: center;">GRADE</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 600; text-transform: uppercase;" title="Filter by Relative Strength against S&P">
+                                <input type="checkbox" class="track-spy-cb" onchange="toggleTrackSpy(this.checked)" style="accent-color: var(--emerald-green); cursor: pointer;"> RS Filter
+                            </label>
+                            <button class="scanner-refresh-btn" onclick="document.querySelectorAll('.card[data-type-guid=\\'SCAN_RES\\'] tbody tr').forEach(r => r.style.opacity = '0.3'); initScannerSSE();" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Refresh">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                                Refresh
+                            </button>
+                        </div>
                     `;
                     table = body.querySelector('table');
                 } else {
                     const timeEl = body.querySelector('#sr-updated-at');
                     if (timeEl) timeEl.innerText = new Date().toLocaleTimeString();
+                    
+                    const cb = body.querySelector('.track-spy-cb');
+                    if (cb && typeof window._vliTrackSpy !== 'undefined') {
+                        cb.checked = window._vliTrackSpy;
+                    } else if (cb) {
+                        cb.checked = false; // Default off
+                    }
                 }
                 
                 const tbody = table.querySelector('tbody');
                 tbody.innerHTML = '';
                 
-                if (res.candidates.length === 0) {
+                const filterEl = body.querySelector('#scan-filter-' + card.dataset.instanceGuid);
+                const activeFilter = filterEl ? filterEl.value : 'SNIPER';
+                
+                const filteredCandidates = res.candidates.filter(c => {
+                    if (activeFilter === 'ALL') return true;
+                    if (activeFilter === 'SNIPER' && c.tier === 'SNIPER') return true;
+                    if (activeFilter === 'SHIELD' && c.tier === 'SHIELD') return true;
+                    if (activeFilter === 'SWORD' && (c.tier === 'SWORD' || !c.tier)) return true;
+                    return false;
+                });
+                
+                if (filteredCandidates.length === 0) {
+                    const statusText = window._vliIsScanning ? "Scanning..." : "Empty List: No candidates passed institutional criteria.";
+                    const styleMod = window._vliIsScanning ? "color: var(--cobalt-blue); font-weight: bold; letter-spacing: 1px;" : "color: var(--text-muted); font-style: italic;";
                     tbody.innerHTML = `
                         <tr style="border: none;">
-                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-style: italic; font-size: 12px;">Empty List: No candidates passed institutional criteria.</td>
+                            <td colspan="5" style="text-align: center; padding: 30px 10px; font-size: 12px; ${styleMod}">${statusText}</td>
                         </tr>
                     `;
                 }
 
-                // [FRONTEND CURVE GRADING] Re-grade the elite list relative to each other using raw_power
-                if (res.candidates.length > 0) {
-                    const validCandidates = res.candidates.filter(c => c.raw_power !== undefined);
+                // [FRONTEND CURVE GRADING] Re-grade the elite list relative to each other using sortino
+                if (filteredCandidates.length > 0) {
+                    const validCandidates = filteredCandidates.filter(c => c.sortino !== undefined && c.sortino !== null);
                     if (validCandidates.length > 0) {
-                        const maxPower = Math.max(...validCandidates.map(c => c.raw_power));
-                        const minPower = Math.min(...validCandidates.map(c => c.raw_power));
+                        const maxPower = Math.max(...validCandidates.map(c => c.sortino));
+                        const minPower = Math.min(...validCandidates.map(c => c.sortino));
                         
-                        res.candidates.forEach(c => {
-                            if (c.raw_power === undefined) return;
+                        filteredCandidates.forEach(c => {
+                            if (c.sortino === undefined || c.sortino === null) return;
                             
                             let percentile = 1.0;
                             if (maxPower > minPower) {
-                                percentile = (c.raw_power - minPower) / (maxPower - minPower);
+                                percentile = (c.sortino - minPower) / (maxPower - minPower);
                             }
                             
                             // 40-100 UI visual sweep. S tier requires >= 95 (Top 8%)
@@ -3630,9 +3776,9 @@
                 }
 
                 // Autonomously sort candidates from strongest to weakest using the internal heat score
-                res.candidates.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
+                filteredCandidates.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
 
-                res.candidates.forEach(c => {
+                filteredCandidates.forEach(c => {
                     let gradeColor = 'var(--text-muted)';
                     let gradeBg = 'rgba(255,255,255,0.05)';
                     let gradeBorder = 'rgba(255,255,255,0.2)';
@@ -4110,6 +4256,27 @@
                                 aiMsg.className = 'msg msg-ai';
                                 aiMsg.style.borderColor = 'var(--emerald-green)';
                                 aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Opening ${data.metadata.artifact_type} UX Panel for **${data.metadata.symbol}**.`);
+                                msgBox.appendChild(aiMsg);
+                                vliChatSyncPointer++;
+                                msgBox.scrollTop = msgBox.scrollHeight;
+                            } else if (data.metadata && data.metadata.action === "OPEN_CARD") {
+                                UXManager.createCard(data.metadata.card_type);
+                                const aiMsg = document.createElement('div');
+                                aiMsg.className = 'msg msg-ai';
+                                aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Spawned UX Module **${data.metadata.card_type}**.`);
+                                msgBox.appendChild(aiMsg);
+                                vliChatSyncPointer++;
+                                msgBox.scrollTop = msgBox.scrollHeight;
+                            } else if (data.metadata && data.metadata.action === "CLOSE_CARD") {
+                                if (data.metadata.card_id === "ALL") {
+                                    Object.keys(UXManager.instances).forEach(id => UXManager.removeCard(id));
+                                } else {
+                                    const cards = Object.entries(UXManager.instances).filter(([id, card]) => card.dataset.badge === data.metadata.card_id.toUpperCase());
+                                    cards.forEach(([id, card]) => UXManager.removeCard(id));
+                                }
+                                const aiMsg = document.createElement('div');
+                                aiMsg.className = 'msg msg-ai';
+                                aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Destroyed UX Module **${data.metadata.card_id}**.`);
                                 msgBox.appendChild(aiMsg);
                                 vliChatSyncPointer++;
                                 msgBox.scrollTop = msgBox.scrollHeight;
@@ -4734,6 +4901,21 @@
                 }
             }
         };
+        
+        window.validateOrderDateRange = function(type, instanceGuid) {
+            const startInput = document.getElementById(`order-hist-start-${instanceGuid}`);
+            const endInput = document.getElementById(`order-hist-end-${instanceGuid}`);
+            
+            if (startInput && endInput && startInput.value && endInput.value) {
+                if (startInput.value > endInput.value) {
+                    if (type === 'start') {
+                        endInput.value = startInput.value;
+                    } else if (type === 'end') {
+                        startInput.value = endInput.value;
+                    }
+                }
+            }
+        };
 
         window.fetchOrderHistory = async function(instanceGuid, isBackground = false) {
             const rangeSelect = document.getElementById(`order-hist-range-${instanceGuid}`);
@@ -5203,6 +5385,7 @@
 
     <div id="sidebar-tabs-left" class="sidebar-tabs-container" style="left: 0; right: auto;">
         <div id="tab-btn-artifacts" class="folder-tab" style="border-radius: 0 4px 4px 0;" onclick="switchSidebarTab('artifacts')">REPORTS</div>
+        <div id="tab-btn-strategy" class="folder-tab" style="border-radius: 0 4px 4px 0; margin-top: 5px;" onclick="switchSidebarTab('strategy')">STRATEGY</div>
     </div>
 
     <div id="sidebar-tabs-right" class="sidebar-tabs-container" style="right: 0; left: auto;">
@@ -5264,6 +5447,34 @@
                 <!-- Dynamic tree injected here -->
             </div>
         </div>
+        
+        <!-- Strategy Panel -->
+        <div id="tab-strategy" class="sidebar-content-area" style="display: none; width: 100%; flex-direction: column;">
+            <div class="sidebar-resizer" data-tab-id="strategy" style="left: auto; right: -2px; cursor: ew-resize;"></div>
+            <div style="padding:15px; font-weight:800; font-size:14px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
+                <span>PROFILE & STRATEGY</span>
+                <span style="cursor:pointer; color:var(--text-muted);" onclick="initStrategySidebar()" title="Refresh">↻</span>
+            </div>
+            
+            <div class="modal-tabs" style="border-bottom: 1px solid rgba(255,255,255,0.1); display: flex;">
+                <div class="modal-tab active" onclick="switchStrategySubTab('persona')" id="sidebar-tab-btn-persona" style="flex:1; text-align:center; padding: 10px 0;">Persona</div>
+                <div class="modal-tab" onclick="switchStrategySubTab('strategy')" id="sidebar-tab-btn-strategy" style="flex:1; text-align:center; padding: 10px 0;">Strategy</div>
+                <div class="modal-tab" onclick="switchStrategySubTab('rules')" id="sidebar-tab-btn-rules" style="flex:1; text-align:center; padding: 10px 0;">Risk</div>
+            </div>
+            
+            <div style="padding: 10px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.1);">
+                <select id="sidebar-module-selector" onchange="onSidebarModuleChange()" class="vli-input" style="width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--card-border); color: #fff; padding: 6px; outline: none; border-radius: 4px; font-weight: 600;"></select>
+            </div>
+            
+            <!-- Summary Block -->
+            <div id="sidebar-module-summary" style="padding: 15px; border-bottom: 1px dotted rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); font-family: var(--font-main); font-size: 13px; color: var(--emerald-green); font-weight: 500; display: none;">
+            </div>
+            
+            <!-- Full Content Block -->
+            <div id="sidebar-module-content" style="padding: 15px; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); white-space: pre-wrap; flex: 1; overflow-y: auto; line-height: 1.4;">
+                Loading module...
+            </div>
+        </div>
     </div>
 
     <script>
@@ -5284,7 +5495,7 @@
             }, 1500);
         });
 
-        window.vliTabWidths = { coordinator: 380, artifacts: 380 };
+        window.vliTabWidths = { coordinator: 380, artifacts: 380, strategy: 450 };
         let activeSidebarTabs = new Set();
         
         // --- SIDEBAR RESIZING LOGIC ---
@@ -5322,7 +5533,7 @@
                 let newWidth;
                 if (activeResizerId === 'coordinator') {
                     newWidth = startWidths[activeResizerId] + dx;
-                } else if (activeResizerId === 'artifacts') {
+                } else if (activeResizerId === 'artifacts' || activeResizerId === 'strategy') {
                     newWidth = startWidths[activeResizerId] - dx;
                 }
                 
@@ -5339,7 +5550,7 @@
                     rightSidebar.style.width = `${newWidth}px`;
                     rightTabs.style.right = `${newWidth}px`;
                     if (watermark) watermark.style.right = `${newWidth + 20}px`;
-                } else if (activeResizerId === 'artifacts') {
+                } else if (activeResizerId === 'artifacts' || activeResizerId === 'strategy') {
                     const leftSidebar = document.getElementById('vli-sidebar-left');
                     const leftTabs = document.getElementById('sidebar-tabs-left');
                     leftSidebar.style.width = `${newWidth}px`;
@@ -5360,9 +5571,15 @@
         function switchSidebarTab(tabId) {
             console.log("[VLI_SIDEBAR] Toggling tab:", tabId);
             
+            const isLeftTab = tabId === 'artifacts' || tabId === 'strategy';
+            
             if (activeSidebarTabs.has(tabId)) {
                 activeSidebarTabs.delete(tabId);
             } else {
+                if (isLeftTab) {
+                    activeSidebarTabs.delete('artifacts');
+                    activeSidebarTabs.delete('strategy');
+                }
                 activeSidebarTabs.add(tabId);
                 
                 if (tabId === 'coordinator' && typeof UXManager !== 'undefined') {
@@ -5383,14 +5600,20 @@
                 else el.classList.remove('active');
             });
             
-            // Handle Artifacts (Left)
+            // Handle Artifacts/Strategy (Left)
             const leftSidebar = document.getElementById('vli-sidebar-left');
             const leftTabs = document.getElementById('sidebar-tabs-left');
-            if (activeSidebarTabs.has('artifacts')) {
+            
+            document.getElementById('tab-artifacts').style.display = activeSidebarTabs.has('artifacts') ? 'block' : 'none';
+            document.getElementById('tab-strategy').style.display = activeSidebarTabs.has('strategy') ? 'flex' : 'none';
+            
+            if (activeSidebarTabs.has('artifacts') || activeSidebarTabs.has('strategy')) {
+                const activeId = activeSidebarTabs.has('artifacts') ? 'artifacts' : 'strategy';
                 leftSidebar.style.transform = 'translateX(0)';
-                leftSidebar.style.width = window.vliTabWidths['artifacts'] + 'px';
-                leftTabs.style.left = window.vliTabWidths['artifacts'] + 'px';
-                loadArtifactTree();
+                leftSidebar.style.width = window.vliTabWidths[activeId] + 'px';
+                leftTabs.style.left = window.vliTabWidths[activeId] + 'px';
+                if (activeId === 'artifacts') loadArtifactTree();
+                if (activeId === 'strategy') initStrategySidebar();
             } else {
                 leftSidebar.style.transform = 'translateX(-100%)';
                 leftSidebar.style.width = '0px';
@@ -5444,17 +5667,28 @@
             
             if (node.type === 'folder') {
                 wrapper.className = 'tree-folder';
-                if (openFolders.has(node.name) || window.vliForceOpenFolder === node.name) {
+                
+                const d = new Date();
+                const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                const isToday = node.name === todayStr;
+                
+                if (openFolders.has(node.name) || window.vliForceOpenFolder === node.name || isToday) {
                     wrapper.classList.add('open');
                 }
                 
                 const item = document.createElement('div');
                 item.className = 'tree-item';
+                
+                const bgColor = isToday ? 'rgba(236, 72, 153, 0.15)' : 'transparent';
+                const textColor = isToday ? '#ec4899' : 'var(--text-muted)';
+                item.style.backgroundColor = bgColor;
+                if (isToday) item.style.borderRadius = '4px';
+                
                 let extraBtns = '';
                 if (node.name === 'Notes') {
                     extraBtns = `<div class="tree-add-btn" title="Add New Note" style="margin-left: auto; cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px;">➕</div>`;
                 }
-                item.innerHTML = `<div style="display:flex; flex:1; align-items:center; width:100%;"><div class="tree-icon">▶</div><div class="tree-label" style="font-weight:700; color:var(--text-muted);">${node.name}</div>${extraBtns}</div>`;
+                item.innerHTML = `<div style="display:flex; flex:1; align-items:center; width:100%;"><div class="tree-icon">▶</div><div class="tree-label" style="font-weight:700; color:${textColor};">${node.name}</div>${extraBtns}</div>`;
                 item.onclick = (e) => {
                     if (e.target.closest('.tree-add-btn')) {
                         e.stopPropagation();
@@ -5646,6 +5880,161 @@
                 console.error('Failed to load artifact content', e);
             }
         }
+
+        let activeStrategySubTab = 'strategy';
+        let sidebarProfileState = null;
+        
+        async function initStrategySidebar() {
+            try {
+                const res = await fetch('/api/v1/trader-profile');
+                if (res.ok) {
+                    sidebarProfileState = await res.json();
+                    switchStrategySubTab(activeStrategySubTab);
+                }
+            } catch(e) {
+                console.error('Failed to init strategy sidebar', e);
+            }
+        }
+        
+        function switchStrategySubTab(tabName) {
+            activeStrategySubTab = tabName;
+            
+            document.querySelectorAll('#tab-strategy .modal-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById('sidebar-tab-btn-' + tabName).classList.add('active');
+            
+            const selector = document.getElementById('sidebar-module-selector');
+            selector.innerHTML = '';
+            
+            let files = [];
+            let activeFile = '';
+            let activeContent = '';
+            
+            if (tabName === 'persona') {
+                files = sidebarProfileState.persona_files;
+                activeFile = sidebarProfileState.active_persona;
+                activeContent = sidebarProfileState.persona;
+            } else if (tabName === 'strategy') {
+                files = sidebarProfileState.strategy_files;
+                activeFile = sidebarProfileState.active_strategy;
+                activeContent = sidebarProfileState.strategy;
+            } else if (tabName === 'rules') {
+                files = sidebarProfileState.rules_files;
+                activeFile = sidebarProfileState.active_rules;
+                activeContent = sidebarProfileState.rules;
+            }
+            
+            files.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f;
+                opt.textContent = f;
+                selector.appendChild(opt);
+            });
+            selector.value = activeFile;
+            
+            renderSidebarModuleContent(activeContent);
+        }
+        
+        function renderSidebarModuleContent(content) {
+            const summaryBlock = document.getElementById('sidebar-module-summary');
+            const contentBlock = document.getElementById('sidebar-module-content');
+            
+            if (!content) {
+                summaryBlock.style.display = 'none';
+                contentBlock.innerHTML = 'No content available.';
+                return;
+            }
+            
+            // Extract the first paragraph after the title
+            const lines = content.split('\n');
+            let summaryText = '';
+            let contentStartIndex = 0;
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.startsWith('# ')) {
+                    // skip title
+                    continue;
+                }
+                if (line && !line.startsWith('#')) {
+                    // This is our first paragraph
+                    summaryText = line;
+                    contentStartIndex = i + 1;
+                    // if next lines are also text, keep appending until blank line or header
+                    for (let j = i + 1; j < lines.length; j++) {
+                        const nextLine = lines[j].trim();
+                        if (!nextLine || nextLine.startsWith('#')) {
+                            contentStartIndex = j;
+                            break;
+                        }
+                        summaryText += ' ' + nextLine;
+                    }
+                    break;
+                }
+            }
+            
+            if (summaryText) {
+                summaryBlock.style.display = 'block';
+                summaryBlock.innerHTML = `<strong>SUMMARY:</strong> ${summaryText}`;
+            } else {
+                summaryBlock.style.display = 'none';
+            }
+            
+            // The rest of the content
+            const remainingContent = lines.slice(contentStartIndex).join('\n');
+            contentBlock.innerHTML = marked.parse(remainingContent || content);
+        }
+        
+        async function onSidebarModuleChange() {
+            const selector = document.getElementById('sidebar-module-selector');
+            const targetFile = selector.value;
+            
+            document.getElementById('sidebar-module-content').innerHTML = 'Loading module...';
+            
+            try {
+                // Update active file in the backend
+                const payload = {};
+                if (activeStrategySubTab === 'persona') {
+                    payload.active_persona = targetFile;
+                    sidebarProfileState.active_persona = targetFile;
+                } else if (activeStrategySubTab === 'strategy') {
+                    payload.active_strategy = targetFile;
+                    sidebarProfileState.active_strategy = targetFile;
+                } else if (activeStrategySubTab === 'rules') {
+                    payload.active_rules = targetFile;
+                    sidebarProfileState.active_rules = targetFile;
+                }
+                
+                await fetch('/api/v1/trader-profile/active-modules', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                
+                // Fetch the new file content
+                const res = await fetch('/api/v1/trader-profile/file?name=' + encodeURIComponent(targetFile));
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    if (activeStrategySubTab === 'persona') sidebarProfileState.persona = data.content;
+                    else if (activeStrategySubTab === 'strategy') sidebarProfileState.strategy = data.content;
+                    else if (activeStrategySubTab === 'rules') sidebarProfileState.rules = data.content;
+                    
+                    renderSidebarModuleContent(data.content);
+                }
+            } catch(e) {
+                console.error('Failed to change sidebar module', e);
+                document.getElementById('sidebar-module-content').innerHTML = 'Error loading module.';
+            }
+        }
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            initScannerSettings();
+            
+            // Wait a brief moment to ensure UI frames are ready before fetching scanner
+            setTimeout(() => {
+                initScannerSSE();
+            }, 500);
+        });
     </script>
 </body>
 </html>

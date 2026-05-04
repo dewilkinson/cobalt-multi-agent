@@ -102,7 +102,7 @@ shield_render = """
                 if (!response.ok) return;
                 const data = await response.json();
                 
-                // IMPORTANT BUG FIX HERE: data.data! Not data.combat_list!
+                // IMPORTANT BUG FIX HERE: data.data! Not data.strike_list!
                 const candidates = data.data || [];
                 
                 if (candidates.length >= 0) {

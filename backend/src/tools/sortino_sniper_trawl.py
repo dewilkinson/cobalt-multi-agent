@@ -35,7 +35,7 @@ def sanitize_data(data):
     return data
 
 # Constants
-COMBAT_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "SCANNER_COMBAT_LIST.json"
+COMBAT_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "SCANNER_STRIKE_LIST.json"
 FINVIZ_FILTERS = "f=cap_smallover,sh_float_u100,sh_price_5to50,ta_perf_13w20o"
 
 async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
@@ -300,7 +300,7 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     verified_list = [v for v in verified_candidates if v is not None]
 
     # 4. Persistence
-    combat_list = {
+    strike_list = {
         "updated_at": datetime.now().isoformat(),
         "macro": {
             "tnx_rate": round(tnx_rate, 2),
@@ -308,16 +308,16 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
         },
         "universe_size": total_count or len(candidates),
         "verified_count": len(verified_list),
-        "combat_list": verified_list
+        "strike_list": verified_list
     }
 
-    clean_combat_list = sanitize_data(combat_list)
+    clean_strike_list = sanitize_data(strike_list)
 
     with open(COMBAT_LIST_PATH, "w", encoding="utf-8") as f:
-        json.dump(clean_combat_list, f, indent=4)
+        json.dump(clean_strike_list, f, indent=4)
 
     logger.info(f"Combat List synchronized. {len(verified_list)} verified swords in the bunker.")
-    return clean_combat_list
+    return clean_strike_list
 
 async def run_intraday_trawl():
     """

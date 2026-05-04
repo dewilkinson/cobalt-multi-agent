@@ -471,18 +471,20 @@ async def get_artifacts_tree():
     reports_dir = get_reports_root()
     os.makedirs(reports_dir, exist_ok=True)
         
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
     
-    # Ensure today's folder structure exists
-    today_dir = os.path.join(reports_dir, today_str)
-    notes_dir = os.path.join(today_dir, "Notes")
-    os.makedirs(notes_dir, exist_ok=True)
-    
-    # Generate Journal if missing
-    journal_path = os.path.join(today_dir, f"{today_str} Daily Journal.md")
-    if not os.path.exists(journal_path):
-        with open(journal_path, "w", encoding="utf-8") as f:
-            f.write(f"# {today_str} Daily Journal\n\n## Trades\n| Symbol | Direction | Entry | Exit | PnL | Notes |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n| | | | | | |\n\n## Notes\n- \n")
+    # Only auto-create folder structure on trading days (Mon-Fri) at/after 6 AM
+    if now.weekday() < 5 and now.hour >= 6:
+        today_dir = os.path.join(reports_dir, today_str)
+        notes_dir = os.path.join(today_dir, "Notes")
+        os.makedirs(notes_dir, exist_ok=True)
+        
+        # Generate Journal if missing
+        journal_path = os.path.join(today_dir, f"{today_str} Daily Journal.md")
+        if not os.path.exists(journal_path):
+            with open(journal_path, "w", encoding="utf-8") as f:
+                f.write(f"# {today_str} Daily Journal\n\n## Trades\n| Symbol | Direction | Entry | Exit | PnL | Notes |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n| | | | | | |\n\n## Notes\n- \n")
             
     tree = []
     
@@ -495,7 +497,7 @@ async def get_artifacts_tree():
         if not os.path.isdir(root_path):
             continue
             
-        node_name = "Today" if root_item == today_str else root_item
+        node_name = root_item
         
         children = []
         for child_item in os.listdir(root_path):
@@ -534,8 +536,8 @@ async def get_artifacts_tree():
             "children": sorted(children, key=lambda x: (x["type"] == "folder", x["name"]))
         })
         
-    # Sort tree: Today first, then reverse chronological
-    tree.sort(key=lambda x: "0000" if x["name"] == "Today" else x["name"], reverse=True)
+    # Sort tree reverse chronological
+    tree.sort(key=lambda x: x["name"], reverse=True)
     
     return {"status": "OK", "tree": tree}
 
@@ -780,21 +782,21 @@ from fastapi.staticfiles import StaticFiles
 
 async def poll_5m_patterns():
     """
-    Automated 5-minute watchdog tracing the SCANNER_COMBAT_LIST for
+    Automated 5-minute watchdog tracing the SCANNER_STRIKE_LIST for
     intraday Break of Structure (BOS) and Change of Character (CHOCH) patterns.
     """
     import json
     from src.tools.smc import run_smc_analysis
     
-    combat_list_path = os.path.join(os.getcwd(), "data", "SCANNER_COMBAT_LIST.json")
+    strike_list_path = os.path.join(os.getcwd(), "data", "SCANNER_STRIKE_LIST.json")
     # Correcting dynamic pathing just in case
-    if not os.path.exists(combat_list_path):
-        combat_list_path = os.path.join(os.getcwd(), "backend", "data", "SCANNER_COMBAT_LIST.json")
-        if not os.path.exists(combat_list_path):
+    if not os.path.exists(strike_list_path):
+        strike_list_path = os.path.join(os.getcwd(), "backend", "data", "SCANNER_STRIKE_LIST.json")
+        if not os.path.exists(strike_list_path):
             return
 
     try:
-        with open(combat_list_path, "r", encoding="utf-8") as f:
+        with open(strike_list_path, "r", encoding="utf-8") as f:
             data = json.load(f)
             
         candidates = data.get("candidates", [])
@@ -830,15 +832,15 @@ async def poll_market_pulse():
     from src.tools.scanner import _build_session_watchlist_impl, _run_activity_pulse_impl, sanitize_data, NpEncoder
 
     try:
-        combat_list_path = os.path.join(os.getcwd(), "data", "SCANNER_COMBAT_LIST.json")
-        if not os.path.exists(combat_list_path):
-            combat_list_path = os.path.join(os.getcwd(), "backend", "data", "SCANNER_COMBAT_LIST.json")
+        strike_list_path = os.path.join(os.getcwd(), "data", "SCANNER_STRIKE_LIST.json")
+        if not os.path.exists(strike_list_path):
+            strike_list_path = os.path.join(os.getcwd(), "backend", "data", "SCANNER_STRIKE_LIST.json")
 
         phase0_raw = []
-        if os.path.exists(combat_list_path):
-            with open(combat_list_path, "r", encoding="utf-8") as f:
+        if os.path.exists(strike_list_path):
+            with open(strike_list_path, "r", encoding="utf-8") as f:
                 c_data = json.load(f)
-                phase0_raw = c_data.get("combat_list", [])
+                phase0_raw = c_data.get("strike_list", [])
                 
         symbols = [r["symbol"] for r in phase0_raw if r.get("symbol")]
         universe_csv = ",".join(symbols)
@@ -908,7 +910,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
     import asyncio
     from datetime import datetime
     
-    target_path = os.path.join(os.getcwd(), 'data', 'SCANNER_COMBAT_LIST.json')
+    target_path = os.path.join(os.getcwd(), 'data', 'SCANNER_STRIKE_LIST.json')
     shield_path = os.path.join(os.getcwd(), 'data', 'SHIELD_COMBAT_LIST.json')
     if not os.path.exists(target_path) and not os.path.exists(shield_path):
         return
@@ -918,13 +920,13 @@ async def run_idle_analysis(manual_trigger: bool = False):
         if os.path.exists(target_path):
             with open(target_path, 'r') as f:
                 state = json.load(f)
-            candidates.extend(state.get("candidates", []) or state.get("combat_list", []))
+            candidates.extend(state.get("candidates", []) or state.get("strike_list", []))
             
         shield_path = os.path.join(os.getcwd(), 'data', 'SHIELD_COMBAT_LIST.json')
         if os.path.exists(shield_path):
             with open(shield_path, 'r') as f:
                 s_state = json.load(f)
-            candidates.extend(s_state.get("combat_list", []))
+            candidates.extend(s_state.get("strike_list", []))
     except Exception as e:
         logger.error(f"[BG_ANALYST] Failed to read combat lists: {e}")
 
@@ -943,7 +945,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
     reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
     os.makedirs(reports_dir, exist_ok=True)
         
-    symbols_to_process = []
+    candidates_to_process = []
     skipped_symbols = []
     added_trace = []
     skipped_trace = []
@@ -968,7 +970,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
                 needs_report = False
                 
         if needs_report:
-            symbols_to_process.append(sym)
+            candidates_to_process.append(c)
             added_trace.append(f"   ➕ Added: **{sym}**")
         else:
             skipped_symbols.append(sym)
@@ -988,22 +990,24 @@ async def run_idle_analysis(manual_trigger: bool = False):
     except Exception as e:
         logger.error(f"Failed to write candidate trace: {e}")
 
-    if symbols_to_process:
-        logger.info(f"[BG_ANALYST] Missing/stale reports detected for: {symbols_to_process}. Beginning generation sequence.")
+    if candidates_to_process:
+        logger.info(f"[BG_ANALYST] Missing/stale reports detected for: {[c.get('symbol') for c in candidates_to_process]}. Beginning generation sequence.")
         
         try:
             from src.config.vli import get_vli_path
             telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
             timestamp = datetime.now().strftime("[%H:%M:%S]")
             with open(telemetry_file, "a", encoding="utf-8") as tf:
-                tf.write(f"\n{timestamp} 🤖 **[ORCHESTRATOR]** Background LLM Analyst initiated deep-scan for {len(symbols_to_process)} missing candidates.\n")
+                tf.write(f"\n{timestamp} 🤖 **[ORCHESTRATOR]** Background LLM Analyst initiated deep-scan for {len(candidates_to_process)} missing candidates.\n")
                 tf.flush()
         except Exception:
             pass
 
-        total = len(symbols_to_process)
-        for i, sym in enumerate(symbols_to_process, 1):
-            logger.info(f"[BG_ANALYST] Spawning background LangGraph for {sym}...")
+        total = len(candidates_to_process)
+        for i, c in enumerate(candidates_to_process, 1):
+            sym = c.get("symbol")
+            tier = c.get("tier", "War Barbell") # Default to old behavior if missing
+            logger.info(f"[BG_ANALYST] Spawning background LangGraph for {sym} (Tier: {tier})...")
             
             try:
                 timestamp = datetime.now().strftime("[%H:%M:%S]")
@@ -1013,7 +1017,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
             except Exception:
                 pass
             
-            result_text, _ = await _invoke_vli_agent(f"analyze {sym}", thread_id=f"bg_{sym}")
+            result_text, _ = await _invoke_vli_agent(f"analyze {sym}. Ensure you include a line 'Active Strategy: {tier.capitalize()} Strategy' at the top of the report, and frame the analysis using {tier} terminology.", thread_id=f"bg_{sym}")
             
             # [HARDENING] Only persist valid reports. Prevent caching of LLM errors.
             is_valid = True
@@ -1190,7 +1194,7 @@ async def run_meta_analysis(manual_trigger: bool = False):
             "You are the Chief Market Strategist for Blueshell Securities. "
             "Synthesize an 'Executive Morning Briefing' from the following institutional reports. "
             "Focus on: 1. Sector Concentration/Convergence, 2. Aggregate Risk Profile (Volatility/ATR), "
-            "and 3. The absolute best 2 high-conviction setups of the day. "
+            "3. The absolute best 2 high-conviction setups of the day, and 4. Strategic Guidance (advise on which specific strategy is optimal today based on macro conditions, e.g., War Barbell, Sortino Sniper, or recommend a general/community strategy if appropriate). "
             f"CRITICAL INSTRUCTION: You MUST include the exact following line at the end of your briefing to cite the source documents: '{source_str}'. "
             "Be concise, tactical, and highly professional.\n\n"
             f"{bundle}\n\n--FORCE-GRAPH"
@@ -1666,6 +1670,36 @@ async def update_trader_profile(update: TraderProfileUpdate):
         logger.error(f"[PROFILE_API] Error updating trader profile: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+class TraderProfileActiveModulesUpdate(BaseModel):
+    active_persona: str | None = None
+    active_strategy: str | None = None
+    active_rules: str | None = None
+
+@app.post("/api/v1/trader-profile/active-modules")
+async def update_trader_profile_active_modules(req: TraderProfileActiveModulesUpdate):
+    base_dir = r"c:\github\obsidian-vault\_cobalt"
+    import json
+    config_path = os.path.join(base_dir, "vli_session_config.json")
+    
+    sc = {}
+    if os.path.exists(config_path):
+        try:
+            with open(config_path) as cf:
+                sc = json.load(cf)
+        except: pass
+        
+    if req.active_persona: sc["active_persona"] = req.active_persona
+    if req.active_strategy: sc["active_strategy"] = req.active_strategy
+    if req.active_rules: sc["active_risk"] = req.active_rules
+    
+    try:
+        with open(config_path, "w") as cf:
+            json.dump(sc, cf, indent=4)
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"[PROFILE_API] Error updating active modules: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/v1/trader-profile/file")
 async def get_trader_profile_file(name: str):
     base_dir = r"c:\github\obsidian-vault\_cobalt"
@@ -1720,6 +1754,55 @@ class VLIActionPlanRequest(BaseModel):
     thread_id: str | None = None
     snaptrade_settings: dict | None = None
 
+
+# --- VLI SCANNER SETTINGS ---
+@app.get("/api/vli/scanner-settings")
+def get_scanner_settings():
+    import json, os
+    settings_path = os.path.join(os.getcwd(), "backend", "data", "scanner_settings.json")
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"track_spy": False}
+
+class ScannerSettingsRequest(BaseModel):
+    track_spy: bool | None = None
+    active_tier: str | None = None
+
+@app.post("/api/vli/scanner-settings")
+def update_scanner_settings(req: ScannerSettingsRequest):
+    import json, os
+    settings_path = os.path.join(os.getcwd(), "backend", "data", "scanner_settings.json")
+    
+    existing = {"track_spy": False}
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                existing = json.load(f)
+        except Exception:
+            pass
+            
+    if req.track_spy is not None:
+        existing["track_spy"] = req.track_spy
+        
+    with open(settings_path, "w", encoding="utf-8") as f:
+        json.dump(existing, f)
+        
+    if req.active_tier:
+        strat_val = "all" if req.active_tier == "ALL" else req.active_tier.lower()
+        _update_vli_session_config({"active_strategy": strat_val})
+        
+    return {"status": "success"}
+
+@app.post("/api/vli/force-scanner-sync")
+async def force_scanner_sync():
+    import asyncio
+    # Trigger the sync and wait for it to complete
+    await run_tv_sync()
+    return {"status": "success"}
 
 # --- VLI CONSOLIDATED STATE ENDPOINT ---
 
@@ -1801,7 +1884,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                 
         # 6. Read SCANNER_RES state
         scanner_res_content = {"candidates": [], "pulse_mode": "Automated Pulse"}
-        sword_path = os.path.join(os.getcwd(), "data", "SCANNER_COMBAT_LIST.json")
+        sword_path = os.path.join(os.getcwd(), "data", "SCANNER_STRIKE_LIST.json")
         scanner_bucket_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SCANNER_RES_state.json")
         
         try:
@@ -1823,7 +1906,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
             if not loaded_data and os.path.exists(sword_path):
                 with open(sword_path, encoding="utf-8") as f:
                     data = json.load(f)
-                    cands = data if isinstance(data, list) else data.get("candidates", []) or data.get("combat_list", [])
+                    cands = data if isinstance(data, list) else data.get("candidates", []) or data.get("strike_list", [])
                     for c in cands:
                         if "tier" not in c: c["tier"] = "SWORD"
                     scanner_res_content["candidates"].extend(cands)
@@ -1855,7 +1938,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                     if isinstance(s_data, list):
                         s_list = s_data
                     else:
-                        s_list = s_data.get("combat_list", []) or s_data.get("candidates", [])
+                        s_list = s_data.get("strike_list", []) or s_data.get("candidates", [])
                     for c in s_list:
                         c["tier"] = "SHIELD"
                     scanner_res_content["candidates"].extend(s_list)
@@ -1878,7 +1961,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
             for cand in scanner_res_content.get(key, []):
                 sym = cand.get("symbol", "")
                 if sym:
-                    r_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
+                    r_path = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym.lower()}.md')
                     cand["has_report"] = False
                     if os.path.exists(r_path):
                         cand["has_report"] = True
@@ -1907,6 +1990,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                 "rules_enabled": _vli_rules_enabled,
                 "convergence_data": json.loads(json.dumps(_vli_convergence_history, default=str)),
                 "chat_history": json.loads(json.dumps(_vli_chat_history_store.get(client_id, []), default=str)),
+                "session_config": _get_vli_session_config(),
                 "client_id_echo": client_id
             },
             headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"}
@@ -1925,6 +2009,15 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
 
 # --- VLI SESSION CONFIGURATION ---
 
+def _get_vli_session_config() -> dict:
+    config_path = get_vli_path("vli_session_config.json")
+    if os.path.exists(config_path):
+        try:
+            with open(config_path) as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
 
 def _update_vli_session_config(updates: dict):
     config_path = get_vli_path("vli_session_config.json")
@@ -3118,6 +3211,34 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     import re
     command_text = request.text.strip().lower()
 
+    # UX Command: Open Scanner
+    if re.match(r"^(open|create|add|spawn)\s+(scanner|scan|market\s+scan)(\s+window|\s+panel)?$", command_text):
+        _append_to_vli_history("ai", f"Opening Market Scan module...", thread_id=transaction_id)
+        return {
+            "response": "Opening Market Scan module...",
+            "status": "OK",
+            "error_details": None,
+            "metadata": {
+                "action": "OPEN_CARD",
+                "card_type": "SCAN_RES"
+            }
+        }
+
+    # UX Command: Close Scanner
+    close_scan_match = re.match(r"^(destroy|delete|close|remove)\s+(scanner|scan|market\s+scan)\s+([a-zA-Z0-9]+|all)$", command_text)
+    if close_scan_match:
+        card_id = close_scan_match.group(3).upper()
+        _append_to_vli_history("ai", f"Destroying UX module: {card_id}", thread_id=transaction_id)
+        return {
+            "response": f"Destroying UX module: {card_id}",
+            "status": "OK",
+            "error_details": None,
+            "metadata": {
+                "action": "CLOSE_CARD",
+                "card_id": card_id
+            }
+        }
+
     # [NEW] Show Report / Artifact Interception
     show_match = re.match(r"^show\s+([a-zA-Z]+)\s+(report|analysis)$", command_text)
     if show_match:
@@ -3960,6 +4081,7 @@ async def _background_regenerate_data(sym: str):
         from src.config.vli import VAULT_ROOT
         
         in_watchlist = False
+        target_tier = "War Barbell"
         try:
             macro_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "MACRO_WATCHLIST_state.json")
             if os.path.exists(macro_path):
@@ -3968,6 +4090,7 @@ async def _background_regenerate_data(sym: str):
                     for row in macro_content.get("rows", []):
                         if len(row) > 1 and row[1].upper() == sym:
                             in_watchlist = True
+                            target_tier = "Macro"
                             break
                             
             scanner_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SCANNER_RES_state.json")
@@ -3977,6 +4100,7 @@ async def _background_regenerate_data(sym: str):
                     for cand in scanner_content.get("candidates", []):
                         if cand.get("symbol", "").upper() == sym:
                             in_watchlist = True
+                            target_tier = cand.get("tier", "War Barbell")
                             break
         except Exception as e:
             pass
@@ -4016,7 +4140,7 @@ async def _background_regenerate_data(sym: str):
         
         async def high_priority_synthesis():
             await _background_synthesis_task(
-                text=f"analyze {sym}",
+                text=f"analyze {sym}. Ensure you include a line 'Active Strategy: {target_tier.capitalize()} Strategy' at the top of the report, and frame the analysis using {target_tier} terminology.",
                 image=None,
                 direct_mode=False,
                 reporter_llm_type="reasoning",

@@ -11,6 +11,11 @@ from src.utils.temporal import get_effective_now
 
 logger = logging.getLogger(__name__)
 
+def _sanitize_text(text: str) -> str:
+    if not text:
+        return ""
+    return text.encode("ascii", "ignore").decode("ascii")
+
 @tool
 async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = False) -> str:
     """
@@ -45,7 +50,7 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
             if not api_key:
                 raise ValueError("[STABILITY] ALPHA_VANTAGE_API_KEY missing")
                 
-            url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={t}&apikey={api_key}&limit=20"
+            url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={t}&apikey={api_key}&entitlement=realtime&limit=20"
             def _fetch_av_news():
                 return httpx.get(url, timeout=15.0)
             resp = await asyncio.to_thread(_fetch_av_news)
@@ -81,11 +86,11 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
                             break
                             
                     if rel_score > relevance_threshold:
-                        title = item.get('title', 'No Title')
+                        title = _sanitize_text(item.get('title', 'No Title'))
                         headlines.append(title)
-                        source = item.get('source', '')
+                        source = _sanitize_text(item.get('source', ''))
                         url = item.get('url', '')
-                        summary = item.get('summary', '')[:200]
+                        summary = _sanitize_text(item.get('summary', ''))[:200]
                         label = item.get('overall_sentiment_label', 'Neutral')
                         
                         report.append(f"- **{title}** ({source}) | Polarity: {tik_score} ({label})")
@@ -117,8 +122,8 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
                         if pub_time > ref_time.timestamp():
                             continue
 
-                    title = item.get("title", "")
-                    publisher = item.get("publisher", "Unknown")
+                    title = _sanitize_text(item.get("title", ""))
+                    publisher = _sanitize_text(item.get("publisher", "Unknown"))
                     link = item.get("link", "#")
                     headlines.append(title)
                     report.append(f"- **{title}** ({publisher})")
@@ -135,9 +140,10 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
         try:
             logger.info(f"[NEWS] Executing General Web Search for subject: {subject}")
             search_tool = get_web_search_tool(max_search_results=5)
-            # Use invoke to safely execute the LangChain tool, with temporal bounds
+            # Use ainvoke with strict timeout to prevent hanging the event loop
             query_suffix = f" before:{ref_time.strftime('%Y-%m-%d')}"
-            search_out = search_tool.invoke(f"{subject} latest breaking financial news{query_suffix}")
+            query_str = f"{subject} latest breaking financial news{query_suffix}"
+            search_out = await asyncio.wait_for(search_tool.ainvoke(query_str), timeout=10.0)
             
             report.append(f"### Web Search Intelligence")
             report.append(str(search_out))
@@ -157,9 +163,13 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
                 source = source.strip()
                 if not source: continue
                 query = f"site:{source} {t} stock sentiment{query_suffix}"
-                social_out = search_tool_social.invoke(query)
-                report.append(f"#### {source.capitalize()}")
-                report.append(str(social_out))
+                try:
+                    social_out = await asyncio.wait_for(search_tool_social.ainvoke(query), timeout=8.0)
+                    report.append(f"#### {source.capitalize()}")
+                    report.append(str(social_out))
+                except asyncio.TimeoutError:
+                    logger.warning(f"Social search timeout for {source}")
+                    report.append(f"#### {source.capitalize()}\nData Unavailable (Timeout)")
         except Exception as e:
             logger.error(f"Social Media search failed for {t}: {e}")
 
@@ -243,7 +253,7 @@ async def get_macro_news(refresh: bool = False) -> str:
     success = False
     if api_key:
         try:
-            url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=economy_macro&apikey={api_key}&limit=10"
+            url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=economy_macro&apikey={api_key}&entitlement=realtime&limit=10"
             def _fetch_av_macro_news():
                 return httpx.get(url, timeout=15.0)
             resp = await asyncio.to_thread(_fetch_av_macro_news)

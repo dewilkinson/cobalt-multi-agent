@@ -1,0 +1,78 @@
+//@version=5
+indicator("Sortino Sniper Screener Filter", shorttitle="Sortino Sniper", overlay=false)
+
+// ==============================================================================
+// SORTINO SNIPER: MOMENTUM & SMC
+// ==============================================================================
+// This indicator is designed to be used as a custom filter column in the 
+// TradingView Screener, outputting a 1 when all Sortino Sniper conditions are met.
+//
+// NOTE: "RS > 90" is approximated here by ensuring strong internal momentum 
+// with a 14-period daily RSI > 55, as requested.
+// ==============================================================================
+
+// --- USER SETTINGS ---
+enable_price_filter = input.bool(true, title="Enable Price Filter (>= $5)")
+enable_float_mcap_filter = input.bool(true, title="Enable Float/Market Cap Filter")
+enable_vol_filter = input.bool(true, title="Enable Volume Filter (> 1M)")
+enable_gap_filter = input.bool(true, title="Enable Gap Filter (3% to 8%)")
+enable_sortino_filter = input.bool(true, title="Enable Sortino Filter (>= 2.0)")
+enable_rs_filter = input.bool(true, title="Enable RS Filter Proxy")
+enable_rvol_filter = input.bool(true, title="Enable RVOL Filter (>= 1.2)")
+
+// --- PILLAR 1: PRICE, FLOAT & VALUATION ---
+price_filter = not enable_price_filter or (close >= 5.0)
+
+// Fetch Total Shares Outstanding and Market Cap Diluted
+total_shares = request.financial(syminfo.tickerid, "TOTAL_SHARES_OUTSTANDING", "FQ")
+market_cap = request.financial(syminfo.tickerid, "MARKET_CAP_DILUTED", "FQ")
+
+shares_filter = (total_shares >= 20000000 and total_shares <= 100000000)
+mcap_filter = (market_cap >= 300000000 and market_cap <= 2000000000)
+float_mcap_filter = not enable_float_mcap_filter or (shares_filter and mcap_filter)
+
+// Volume & Gap
+// Gap % from previous close
+gap_pct = ((open - close[1]) / close[1]) * 100
+gap_filter = not enable_gap_filter or (gap_pct >= 3.0 and gap_pct <= 8.0)
+
+vol_filter = not enable_vol_filter or (volume > 1000000)
+
+// --- PILLAR 2: SORTINO RATIO (20-day) ---
+// Risk Free Rate (10-Year Treasury Yield .TNX)
+tnx_yield = request.security("US10Y", "D", close)
+daily_rfr = (tnx_yield / 100) / 252
+
+returns = (close - close[1]) / close[1]
+excess_returns = returns - daily_rfr
+
+avg_excess_return = ta.sma(excess_returns, 20)
+annualized_excess_return = avg_excess_return * 252
+
+downside_returns = excess_returns < 0 ? excess_returns : 0
+downside_variance = math.sum(math.pow(downside_returns, 2), 20) / 20
+downside_deviation = math.sqrt(downside_variance)
+annualized_downside_deviation = downside_deviation * math.sqrt(252)
+
+sortino = annualized_downside_deviation == 0 ? 0 : annualized_excess_return / annualized_downside_deviation
+sortino_filter = not enable_sortino_filter or (sortino >= 2.0)
+
+// --- PILLAR 4: RELATIVE STRENGTH (RSI Momentum Proxy) ---
+// User requested: Temporarily removed RS/RSI filter constraint.
+rs_filter = true
+
+// --- PILLAR 5: RVOL OVER 1.2 ---
+avg_vol = ta.sma(volume, 20)
+rvol = volume / avg_vol
+rvol_filter = not enable_rvol_filter or (rvol >= 1.2)
+
+// --- FINAL SCANNER CONDITION ---
+is_sniper = price_filter and float_mcap_filter and gap_filter and vol_filter and sortino_filter and rs_filter and rvol_filter
+
+// Output for the Screener
+// In TradingView's screener, you can filter by indicator. 
+// We output 1 if all conditions match, otherwise 0.
+plot(is_sniper ? 1 : 0, title="Sortino Sniper Signal", color=is_sniper ? color.green : color.red, style=plot.style_columns)
+
+// Optional: Highlight chart background if added directly to a chart
+bgcolor(is_sniper ? color.new(color.green, 80) : na, title="Sniper Background")

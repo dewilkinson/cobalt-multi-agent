@@ -137,8 +137,9 @@ async def batch_fetch_sortino(tickers: List[str], period: str = "20d") -> Dict[s
         # [HARDENING] Add 25s timeout to prevent infinite hang on thread execution
         # Inject ^TNX to fetch the dynamic risk-free rate simultaneously
         fetch_list = tickers + ["^TNX"] if trading_style != "day_trading" else tickers
+        use_prepost = trading_style == "day_trading"
         data = await asyncio.wait_for(
-            asyncio.to_thread(yf.download, fetch_list, period=period, interval=interval, group_by='ticker', progress=False, prepost=False),
+            asyncio.to_thread(yf.download, fetch_list, period=period, interval=interval, group_by='ticker', progress=False, prepost=use_prepost),
             timeout=25.0
         )
         
@@ -280,15 +281,15 @@ async def _build_session_watchlist_impl(strategy_config: str = "{}", universe_cs
         mock_universe = [t.strip().upper() for t in universe_csv.split(',') if t.strip()]
     else:
         # Check for existence of a pre-filtered Combat List (Layer A)
-        combat_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SCANNER_COMBAT_LIST.json"))
-        if os.path.exists(combat_list_path):
+        strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SCANNER_STRIKE_LIST.json"))
+        if os.path.exists(strike_list_path):
             try:
-                with open(combat_list_path, "r", encoding="utf-8") as f:
+                with open(strike_list_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     # Use the Combat List symbols if updated in the last 24 hours
                     updated_at = datetime.fromisoformat(data.get("updated_at", "2000-01-01"))
                     if (datetime.now() - updated_at).total_seconds() < 86400:
-                        mock_universe = [c["symbol"] for c in data.get("combat_list", [])]
+                        mock_universe = [c["symbol"] for c in data.get("strike_list", [])]
                         logger.info(f"Scanner: Leveraging persistent Combat List ({len(mock_universe)} symbols).")
             except Exception as e:
                 logger.warning(f"Failed to load Combat List, falling back to discovery: {e}")
@@ -581,12 +582,12 @@ async def clear_scanner_cache() -> str:
     import os
     from src.config.vli import get_vli_path
     import json
-    combat_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "SCANNER_COMBAT_LIST.json"))
-    shield_combat_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "SHIELD_COMBAT_LIST.json"))
+    strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "SCANNER_STRIKE_LIST.json"))
+    shield_strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "SHIELD_COMBAT_LIST.json"))
     transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "SCANNER_RES_state.json"))
     shield_transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "SHIELD_RES_state.json"))
     purged = []
-    for path, name in [(combat_list_path, "SCANNER_COMBAT_LIST.json"), (shield_combat_list_path, "SHIELD_COMBAT_LIST.json")]:
+    for path, name in [(strike_list_path, "SCANNER_STRIKE_LIST.json"), (shield_strike_list_path, "SHIELD_COMBAT_LIST.json")]:
         try:
             with open(path, "w", encoding="utf-8") as f: json.dump([], f)
             purged.append(name)
