@@ -424,14 +424,63 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
             curr_vol = int(hist["Volume"].iloc[-1])
             
             info = await asyncio.to_thread(lambda: ticker_obj.info)
+            
+            # --- PREMARKET BYPASS LOGIC ---
+            import pytz
+            est = pytz.timezone('America/New_York')
+            now_est = datetime.now(est)
+            
+            def parse_time(time_str, default_hour, default_minute):
+                try:
+                    h, m = map(int, time_str.split(':'))
+                    return h, m
+                except:
+                    return default_hour, default_minute
+            
+            pm_open_h, pm_open_m = parse_time(os.getenv("PREMARKET_OPEN_LOCALTIME", "04:00"), 4, 0)
+            mkt_open_h, mkt_open_m = parse_time(os.getenv("MARKET_OPEN_LOCALTIME", "09:30"), 9, 30)
+            # Fetch these for completeness as requested
+            parse_time(os.getenv("MARKET_CLOSE_LOCALTIME", "16:00"), 16, 0)
+            parse_time(os.getenv("POSTMARKET_CLOSE_LOCALTIME", "19:00"), 19, 0)
+            
+            current_mins = now_est.hour * 60 + now_est.minute
+            pm_open_mins = pm_open_h * 60 + pm_open_m
+            mkt_open_mins = mkt_open_h * 60 + mkt_open_m
+            
+            # Between premarket open and market open
+            is_premarket = pm_open_mins <= current_mins < mkt_open_mins
+            
+            if is_premarket:
+                reg_prev_close = float(info.get("regularMarketPreviousClose") or prev_close)
+                current_price = float(info.get("preMarketPrice") or info.get("currentPrice") or info.get("regularMarketPrice") or curr_close)
+                if reg_prev_close > 0:
+                    gap_pct = float(((current_price - reg_prev_close) / reg_prev_close) * 100.0)
+                else:
+                    gap_pct = 0.0
+                # Use premarket volume if available
+                curr_vol = int(info.get("preMarketVolume") or info.get("volume") or curr_vol)
+            else:
+                gap_pct = float(((curr_close - prev_close) / prev_close) * 100)
+                
             avg_vol = float(info.get("averageVolume") or (curr_vol + 1))
             rvol = float(curr_vol / avg_vol)
             
-            gap_pct = float(((curr_close - prev_close) / prev_close) * 100)
-            
             # Check Pillar 5 constraints
             is_miss = False
-            if curr_vol < config["volume_hurdle"]:
+            
+            if is_premarket:
+                # Bypass or significantly lower hurdles during premarket
+                effective_vol_hurdle = min(5000, config["volume_hurdle"])
+                effective_rvol_scout = 0.05
+                effective_rvol_strike = 0.1
+                effective_sortino_hurdle = 0.0  # Sortino is meaningless on flat premarket gaps
+            else:
+                effective_vol_hurdle = config["volume_hurdle"]
+                effective_rvol_scout = config["rvol_scout_min"]
+                effective_rvol_strike = config["rvol_strike_min"]
+                effective_sortino_hurdle = config.get("sortino_hurdle", 2.0)
+
+            if curr_vol < effective_vol_hurdle:
                 is_miss = True
             if not (config["gap_min"] <= gap_pct <= config["gap_max"]):
                 is_miss = True
@@ -441,9 +490,9 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
             if rvol > config["rvol_veto_max"]:
                 tier = "VETO_BLOWOFF"
                 is_miss = True
-            elif rvol >= config["rvol_strike_min"]:
+            elif rvol >= effective_rvol_strike:
                 tier = "STRIKE"
-            elif rvol >= config["rvol_scout_min"]:
+            elif rvol >= effective_rvol_scout:
                 tier = "SCOUT"
             else:
                 is_miss = True
@@ -477,6 +526,10 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
                         rets = df_sortino["close"].pct_change().dropna()
                         sortino = float(calculate_sortino_ratio(rets, annual_rf=dynamic_rf, interval=interval))
 
+                if sortino < effective_sortino_hurdle:
+                    is_miss = True
+                    tier = "MISS"
+
                 # Heat Score Algorithm (0-100%) - Maintained as an Absolute Institutional Standard
                 base_score = 50.0
                 if letter_grade == "A": base_score += 15.0
@@ -486,7 +539,7 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
                 
                 base_score += (sortino * 10.0)
                 base_score += max(0.0, rvol - 1.0) * 5.0
-                base_score += gap_pct * 1.0
+                base_score += min(20.0, gap_pct * 0.8)
                 
                 heat_score = int(max(0, min(100, base_score)))
                 
@@ -498,8 +551,13 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
                 elif heat_score >= 65: letter_grade = "B"
                 elif heat_score >= 58: letter_grade = "C+"
                 elif heat_score >= 50: letter_grade = "C"
-                elif heat_score >= 35: letter_grade = "D"
+                elif heat_score >= 35: letter_grade = "C-"
                 else: letter_grade = "F"
+
+                # Force MISS candidates to reflect a failing grade
+                if is_miss:
+                    letter_grade = "F"
+                    heat_score = min(heat_score, 34)
 
                 # Calculate Uncapped Power for UI curving
                 raw_power = 0.0
@@ -531,15 +589,16 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
         except Exception as e:
             logger.error(f"Pulse error for {ticker}: {e}")
             
-    # Sort and include top 10 misses
+    # Diagnostic telemetry: We calculate misses but do NOT display them in the primary scanner grid.
     miss_results.sort(key=lambda x: x["raw_power"], reverse=True)
-    scanned_results.extend(miss_results[:10])
+    # scanned_results.extend(miss_results[:10])
 
     response_obj = sanitize_data({
         "pulse_mode": "AlphaVantage (PREMIUM)" if has_premium_av else "YFinance (FALLBACK)",
         "total_pulsed": int(len(t_list)),
         "candidates_passed": int(len(scanned_results)),
         "candidates": scanned_results,
+        "misses": miss_results,
         "updated_at": datetime.now().isoformat()
     })
     
@@ -583,11 +642,11 @@ async def clear_scanner_cache() -> str:
     from src.config.vli import get_vli_path
     import json
     strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "SCANNER_STRIKE_LIST.json"))
-    shield_strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "SHIELD_COMBAT_LIST.json"))
+    shield_strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "SHIELD_STRIKE_LIST.json"))
     transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "SCANNER_RES_state.json"))
     shield_transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "SHIELD_RES_state.json"))
     purged = []
-    for path, name in [(strike_list_path, "SCANNER_STRIKE_LIST.json"), (shield_strike_list_path, "SHIELD_COMBAT_LIST.json")]:
+    for path, name in [(strike_list_path, "SCANNER_STRIKE_LIST.json"), (shield_strike_list_path, "SHIELD_STRIKE_LIST.json")]:
         try:
             with open(path, "w", encoding="utf-8") as f: json.dump([], f)
             purged.append(name)

@@ -26,7 +26,7 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
     subject = subject or ticker
     if not subject:
         return "[ERROR] Missing subject or ticker argument."
-    t = subject.upper()
+    t = subject.upper().strip(".,;:!")
     is_ticker = len(t) <= 6 and " " not in t
     
     if not refresh:
@@ -146,7 +146,16 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
             search_out = await asyncio.wait_for(search_tool.ainvoke(query_str), timeout=10.0)
             
             report.append(f"### Web Search Intelligence")
-            report.append(str(search_out))
+            if isinstance(search_out, list):
+                for item in search_out:
+                    if isinstance(item, dict):
+                        title = _sanitize_text(item.get("title", ""))
+                        content = _sanitize_text(item.get("content", ""))
+                        link = item.get("url", "#")
+                        snippet = content[:250].replace('\n', ' ')
+                        report.append(f"- **{title}**\n  > {snippet}...\n  [Source]({link})")
+            else:
+                report.append(str(search_out)[:500])
             success = True
         except Exception as e:
             logger.error(f"Web Search fallback failed for {subject}: {e}")
@@ -166,7 +175,18 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
                 try:
                     social_out = await asyncio.wait_for(search_tool_social.ainvoke(query), timeout=8.0)
                     report.append(f"#### {source.capitalize()}")
-                    report.append(str(social_out))
+                    if isinstance(social_out, list):
+                        for item in social_out:
+                            if isinstance(item, dict):
+                                title = _sanitize_text(item.get("title", ""))
+                                content = _sanitize_text(item.get("content", ""))
+                                # Filter out obvious platform login boilerplate
+                                if any(b in content for b in ["Sign in", "Log In", "Create account", "Forgot password"]):
+                                    continue
+                                snippet = content[:250].replace('\n', ' ')
+                                report.append(f"- **{title}**: {snippet}...")
+                    else:
+                        report.append(str(social_out)[:500])
                 except asyncio.TimeoutError:
                     logger.warning(f"Social search timeout for {source}")
                     report.append(f"#### {source.capitalize()}\nData Unavailable (Timeout)")

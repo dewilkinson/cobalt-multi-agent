@@ -1,26 +1,8 @@
 {
     "pulse_mode": "TradingView (HIGH-FIDELITY)",
-    "total_pulsed": 9,
-    "candidates_passed": 9,
+    "total_pulsed": 7,
+    "candidates_passed": 7,
     "candidates": [
-        {
-            "symbol": "OMDA",
-            "price": 15.29,
-            "change": 3.6610169491525366,
-            "rvol": 2.1582827631298462,
-            "market_cap": 900969944.0000001,
-            "perf_w": 7.90402258292166,
-            "perf_1m": 20.67876874506708,
-            "perf_3m": 2.4798927613940966,
-            "atr": 0.7995912894042662,
-            "volatility": 5.550527610146336,
-            "tier": "SNIPER",
-            "grade": "A",
-            "heat_score": 79.0,
-            "sortino": 8.51,
-            "has_report": true,
-            "updated_at": "2026-05-03T00:05:27.377306"
-        },
         {
             "symbol": "AVR",
             "price": 6.36,
@@ -37,25 +19,7 @@
             "heat_score": 69,
             "sortino": 1.9,
             "has_report": true,
-            "updated_at": "2026-05-03T21:01:07.248231"
-        },
-        {
-            "symbol": "RPD",
-            "price": 6.35,
-            "change": 4.4407894736842035,
-            "rvol": 1.538168875752521,
-            "market_cap": 424003328.00000006,
-            "perf_w": 10.627177700348422,
-            "perf_1m": 14.620938628158838,
-            "perf_3m": -45.68006843455945,
-            "atr": 0.39771143516920393,
-            "volatility": 6.919629323611642,
-            "tier": "SNIPER",
-            "grade": "A",
-            "heat_score": 79.0,
-            "sortino": 8.13,
-            "has_report": true,
-            "updated_at": "2026-05-03T21:02:11.996016"
+            "updated_at": "2026-05-03T22:47:15.085378"
         },
         {
             "symbol": "RILY",
@@ -73,7 +37,7 @@
             "heat_score": 79.0,
             "sortino": 14.81,
             "has_report": true,
-            "updated_at": "2026-05-03T22:03:32.798331"
+            "updated_at": "2026-05-03T22:49:18.006223"
         },
         {
             "symbol": "GRRR",
@@ -91,7 +55,7 @@
             "heat_score": 79.0,
             "sortino": 11.81,
             "has_report": true,
-            "updated_at": "2026-05-03T22:04:35.340290"
+            "updated_at": "2026-05-03T22:59:48.559594"
         },
         {
             "symbol": "EXPI",
@@ -109,7 +73,7 @@
             "heat_score": 71,
             "sortino": 3.86,
             "has_report": true,
-            "updated_at": "2026-05-03T22:05:32.696737"
+            "updated_at": "2026-05-03T22:51:22.881251"
         },
         {
             "symbol": "CEVA",
@@ -127,7 +91,7 @@
             "heat_score": 79.0,
             "sortino": 17.66,
             "has_report": true,
-            "updated_at": "2026-05-03T21:58:17.196150"
+            "updated_at": "2026-05-03T22:52:24.302565"
         },
         {
             "symbol": "ADTN",
@@ -145,7 +109,7 @@
             "heat_score": 79.0,
             "sortino": 10.89,
             "has_report": true,
-            "updated_at": "2026-05-03T22:07:43.679578"
+            "updated_at": "2026-05-03T22:53:23.257378"
         },
         {
             "symbol": "PHR",
@@ -163,14 +127,14 @@
             "heat_score": 79.0,
             "sortino": 11.64,
             "has_report": true,
-            "updated_at": "2026-05-03T22:10:44.780689"
+            "updated_at": "2026-05-03T22:56:27.088681"
         }
     ],
     "metadata": {
-        "last_sync": "2026-05-03 22:16:51",
+        "last_sync": "2026-05-03 23:01:54",
         "shield_count": 0,
         "sword_count": 0,
-        "sniper_count": 9,
+        "sniper_count": 7,
         "status": "active"
     }
 }

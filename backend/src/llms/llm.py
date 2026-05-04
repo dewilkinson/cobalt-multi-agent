@@ -88,6 +88,14 @@ def _create_llm_use_conf(llm_type: LLMType, conf: dict[str, Any]) -> BaseChatMod
     # Merge configurations, with environment variables taking precedence
     merged_conf = {**llm_conf, **env_conf}
 
+    if llm_type == "reasoning" and os.environ.get("BYPASS_REASONING_MODEL", "false").lower() == "true":
+        logger.info(f"BYPASS_REASONING_MODEL is enabled. Forcing model to gemini-3-flash-preview for type: {llm_type}.")
+        merged_conf["platform"] = "google_aistudio"
+        merged_conf["model"] = "gemini-3-flash-preview"
+        merged_conf.pop("thinking_level", None)
+        merged_conf.pop("base_url", None)
+        merged_conf.pop("api_base", None)
+
     if not merged_conf:
         raise ValueError(f"No configuration found for LLM type: {llm_type}")
 

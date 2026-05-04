@@ -35,7 +35,7 @@ def sanitize_data(data):
     return data
 
 # Constants
-COMBAT_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "SHIELD_COMBAT_LIST.json"
+STRIKE_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "SHIELD_STRIKE_LIST.json"
 # TV Shield Scan Minimums: Market Cap >= 300M, Price >= 15, Volume >= 1M, Float >= 100M
 # We use cap_smallover (>= 300M) and ta_sma200_pa (Price > SMA200) to keep initial results broad but aligned with TV.
 # sh_price_o15, sh_vol_o1000, sh_float_o100 are handled natively but can also be enforced here to reduce load.
@@ -83,7 +83,7 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     Filters the market for mid-to-mega cap "Shields" with elite defensive profiles.
     """
     config = _get_shield_config(strategy_config)
-    os.makedirs(os.path.dirname(COMBAT_LIST_PATH), exist_ok=True)
+    os.makedirs(os.path.dirname(STRIKE_LIST_PATH), exist_ok=True)
 
     candidates = []
     total_count = 0
@@ -344,7 +344,7 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
 
     clean_strike_list = sanitize_data(strike_list)
 
-    with open(COMBAT_LIST_PATH, "w", encoding="utf-8") as f:
+    with open(STRIKE_LIST_PATH, "w", encoding="utf-8") as f:
         json.dump(clean_strike_list, f, indent=4)
 
     logger.info(f"SHIELD Combat List synchronized. {len(verified_list)} verified shields in the bunker.")

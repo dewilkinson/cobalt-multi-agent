@@ -176,38 +176,40 @@ export default function MacroDashboard() {
     const es = new EventSource('http://localhost:8000/api/scanner/stream');
     eventSourceRef.current = es;
 
-    es.addEventListener('telemetry', (e) => {
-      const data = JSON.parse(e.data);
-      setScannerLogs(prev => [...prev, `[TELEMETRY] ${data.message}`]);
-    });
-
-    es.addEventListener('phase0', (e) => {
-      const data = JSON.parse(e.data);
-      setScannerLogs(prev => [...prev, `[PHASE 0] Discovery Pool: ${data.count} symbols identified.`]);
-    });
-
-    es.addEventListener('phase1', (e) => {
-      const data = JSON.parse(e.data);
-      setScannerLogs(prev => [...prev, `[PHASE 1] Sortino Static: ${data.pass_count}/${data.total_count} passing sniper hurdle.`]);
-    });
-
-    es.addEventListener('phase2', (e) => {
-      const data = JSON.parse(e.data);
-      if (data.candidates && data.candidates.length > 0) {
-        setStrikeCandidates(prev => {
-          const existing = new Set(prev.map(c => c.symbol));
-          const filtered = data.candidates.filter((c: any) => !existing.has(c.symbol));
-          return [...prev, ...filtered.map((c: any) => ({
-            ...c,
-            timestamp: new Date().toLocaleTimeString()
-          }))];
-        });
-        
-        data.candidates.forEach((c: any) => {
-          setScannerLogs(prev => [...prev, `[SELECTED] ${c.symbol} (Score: ${c.score || 'N/A'}) - Passing Pulse Filter.`]);
-        });
+    es.onmessage = (e) => {
+      const payload = JSON.parse(e.data);
+      const type = payload.type;
+      
+      if (type === 'telemetry') {
+        setScannerLogs(prev => [...prev, `[TELEMETRY] ${payload.msg || payload.message}`]);
+        if (payload.msg === 'Pipeline execution finished cleanly.') {
+          es.close();
+          setIsScanning(false);
+          setScannerLogs(prev => [...prev, "--- SCAN COMPLETED SUCCESSFULLY ---"]);
+        }
+      } else if (type === 'phase0') {
+        setScannerLogs(prev => [...prev, `[PHASE 0] Discovery Pool: ${payload.count} symbols identified.`]);
+      } else if (type === 'phase1') {
+        setScannerLogs(prev => [...prev, `[PHASE 1] Sortino Static: ${payload.pass_count}/${payload.total_count} passing sniper hurdle.`]);
+      } else if (type === 'phase2') {
+        const candidates = payload.data || [];
+        if (candidates && candidates.length > 0) {
+          setStrikeCandidates(prev => {
+            const existing = new Set(prev.map((c: any) => c.symbol));
+            const filtered = candidates.filter((c: any) => !existing.has(c.symbol));
+            const updated = [...prev, ...filtered.map((c: any) => ({
+              ...c,
+              timestamp: new Date().toLocaleTimeString()
+            }))];
+            return updated.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
+          });
+          
+          candidates.forEach((c: any) => {
+            setScannerLogs(prev => [...prev, `[SELECTED] ${c.symbol} (Score: ${c.heat_score || 'N/A'}) - Passing Pulse Filter.`]);
+          });
+        }
       }
-    });
+    };
 
     es.onerror = (err) => {
       console.error("Scanner SSE Error:", err);
@@ -829,7 +831,7 @@ export default function MacroDashboard() {
               </div>
 
               <TabsContent value="console" className="flex-1 overflow-hidden p-4 m-0">
-                <Terminal className="h-full max-h-none max-w-none bg-black/40 border-white/5 shadow-inner">
+                <Terminal sequence={false} className="h-full max-h-none max-w-none bg-black/40 border-white/5 shadow-inner">
                   {scannerLogs.map((log, index) => {
                     const isError = log.includes("[ERROR]");
                     const isSelected = log.includes("[SELECTED]");
@@ -869,7 +871,7 @@ export default function MacroDashboard() {
                         <tr className="border-b border-white/5">
                           <th className="pb-3 text-[10px] uppercase text-slate-500 font-bold">Symbol</th>
                           <th className="pb-3 text-[10px] uppercase text-slate-500 font-bold">Price</th>
-                          <th className="pb-3 text-[10px] uppercase text-slate-500 font-bold text-right">Score</th>
+                          <th className="pb-3 text-[10px] uppercase text-slate-500 font-bold text-right">Heat Score</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
@@ -890,9 +892,22 @@ export default function MacroDashboard() {
                               ${c.price?.toFixed(2) || '---'}
                             </td>
                             <td className="py-3 text-right">
-                              <span className="px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded text-emerald-400 text-[10px] font-bold font-mono">
-                                {c.score?.toFixed(2) || 'N/A'}
-                              </span>
+                              {(() => {
+                                const score = c.heat_score || 0;
+                                let colorClass = "bg-slate-500/10 border-slate-500/20 text-slate-400";
+                                if (score >= 95) colorClass = "bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.2)]"; // S
+                                else if (score >= 82) colorClass = "bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-400 shadow-[0_0_10px_rgba(217,70,239,0.2)]"; // A
+                                else if (score >= 65) colorClass = "bg-indigo-500/10 border-indigo-500/30 text-indigo-400"; // B
+                                else if (score >= 50) colorClass = "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"; // C
+
+                                return (
+                                  <div className="flex flex-col items-end gap-1">
+                                    <span className={`px-2 py-0.5 border rounded text-[10px] font-bold font-mono ${colorClass}`}>
+                                      {score} {c.grade ? `(${c.grade})` : ''}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
                             </td>
                           </motion.tr>
                         ))}

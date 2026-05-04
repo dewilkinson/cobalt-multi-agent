@@ -237,7 +237,7 @@ async def vli_node(
         )
 
     # --- [REGENERATE CACHE INTENT] ---
-    regen_match = re.match(r'^(regenerate|refresh|renew|update)\s+([a-zA-Z]+)$', stripped_query)
+    regen_match = re.match(r'^(regenerate|refresh|renew)\s+([a-zA-Z]+)$', stripped_query)
     if regen_match:
         from src.services.datastore import DatastoreManager
         from src.prompts.planner_model import Plan, Step, StepType
@@ -654,7 +654,10 @@ async def vli_node(
         telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
         timestamp = datetime.now().strftime("[%H:%M:%S]")
         with open(telemetry_file, "a", encoding="utf-8") as tf:
-            tf.write(f"\n{timestamp} **PHASE_B_EXECUTION:** Coordinator triggered. Model: `{llm_type.upper()}`. Context: {len(str(messages_coord))} chars.\n")
+            display_model = llm_type.upper()
+            if os.environ.get("BYPASS_REASONING_MODEL", "false").lower() == "true":
+                display_model = f"{llm_type.upper()} [BYPASSED -> FLASH]"
+            tf.write(f"\n{timestamp} **PHASE_B_EXECUTION:** Coordinator triggered. Model: `{display_model}`. Context: {len(str(messages_coord))} chars.\n")
             tf.flush()
     except:
         pass

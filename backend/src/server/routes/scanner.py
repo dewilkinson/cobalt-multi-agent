@@ -145,7 +145,7 @@ async def trigger_shield_trawl():
 @router.get("/shield-bunker")
 async def get_shield_bunker_list():
     """Retrieve the current Shield Combat List."""
-    strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SHIELD_COMBAT_LIST.json"))
+    strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SHIELD_STRIKE_LIST.json"))
     if not os.path.exists(strike_list_path):
         return {"status": "success", "data": []}
     
@@ -272,8 +272,7 @@ async def scanner_stream():
             yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Sortino calculations complete for {len(phase0_raw)} symbols.'}), cls=NpEncoder)}\n\n"
 
             yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'payload': phase0_raw[:5], 'msg': 'Phase 0 completed successfully.'}), cls=NpEncoder)}\n\n"
-            yield f"data: {json.dumps(sanitize_data({'type': 'phase0', 'data': phase0_raw}), cls=NpEncoder)}\n\n"
-                
+            # Intermediate UI grid rendering disabled: Wait for full pipeline completion.
             symbols = [r["symbol"] for r in phase0_raw if r["symbol"]]
             universe_csv = ",".join(symbols)
             
@@ -286,7 +285,9 @@ async def scanner_stream():
                 p1_details = [{"symbol": s, "grade": "A", "sortino": next((x.get("sortino", 0.0) for x in phase0_raw if x["symbol"] == s), 0.0)} for s in symbols]
             else:
                 try:
-                    # Direct logic invocation to bypass StructuredTool wrapper
+                    if os.environ.get("BYPASS_REASONING_MODEL", "false").lower() == "true":
+                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'BYPASS MODE ENABLED'}), cls=NpEncoder)}\n\n"
+                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'THINKING: OFF'}), cls=NpEncoder)}\n\n"
                     p1_res_str = await _build_session_watchlist_impl(strategy_config="{}", universe_csv=universe_csv)
                     p1_data = json.loads(p1_res_str)
                     p1_symbols = p1_data.get("watchlist", [])
@@ -312,7 +313,7 @@ async def scanner_stream():
                 match = next((x for x in phase0_raw if x["symbol"] == s), {"symbol": s, "price": 0, "change": "0%", "volume": 0})
                 p1_full.append(sanitize_data({**match, "grade": detail["grade"], "sortino": detail.get("sortino", 0.0)}))
                 
-            yield f"data: {json.dumps(sanitize_data({'type': 'phase1', 'data': p1_full}), cls=NpEncoder)}\n\n"
+            # Intermediate UI grid rendering disabled: Wait for full pipeline completion.
 
             # 3. Phase 2
             yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'Initiating Phase 2: Analyzing Pulse & RVOL...'}), cls=NpEncoder)}\n\n"
@@ -321,14 +322,18 @@ async def scanner_stream():
                 yield f"data: {json.dumps(sanitize_data({'type': 'phase2', 'data': []}), cls=NpEncoder)}\n\n"
             else:
                 try:
-                    # [TEST MODE] Direct logic invocation to bypass StructuredTool wrapper
-                    # p2_res_str = await _run_activity_pulse_impl(strategy_config="{}", watchlist=json.dumps(p1_symbols, cls=NpEncoder))
-                    # p2_data = json.loads(p2_res_str)
-                    # p2_candidates = p2_data.get("candidates", [])
+                    # Invoke actual Phase 2 logic
+                    if os.environ.get("BYPASS_REASONING_MODEL", "false").lower() == "true":
+                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'BYPASS MODE ENABLED'}), cls=NpEncoder)}\n\n"
+                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'THINKING: OFF'}), cls=NpEncoder)}\n\n"
+                    p2_res_str = await _run_activity_pulse_impl(strategy_config="{}", watchlist=json.dumps(p1_symbols, cls=NpEncoder))
+                    p2_data = json.loads(p2_res_str)
+                    p2_candidates = p2_data.get("candidates", [])
+                    p2_misses = p2_data.get("misses", [])
                     
-                    # [TEST MODE] Inject Phase 1 straight into Phase 2 output
-                    yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': 'TEST MODE ENGAGED. Bypassing Phase 2 Activity Pulse...'}), cls=NpEncoder)}\n\n"
-                    p2_candidates = [{"symbol": d["symbol"], "sortino": d.get("sortino", 0.0), "heat_score": 100, "grade": d.get("grade", "A")} for d in p1_details]
+                    for m in p2_misses:
+                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'PULSE REJECTED: {m.get(\"symbol\", \"UNKNOWN\")} - RVOL: {m.get(\"rvol\", 0.0):.2f}'}), cls=NpEncoder)}\n\n"
+                    
                     yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Phase 2 complete. Diagnostic Candidates Displayed: {len(p2_candidates)}'}), cls=NpEncoder)}\n\n"
                 except Exception as e:
                     logger.error(f"Phase 2 error: {e}")

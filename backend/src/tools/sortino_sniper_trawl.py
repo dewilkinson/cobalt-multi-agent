@@ -35,7 +35,7 @@ def sanitize_data(data):
     return data
 
 # Constants
-COMBAT_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "SCANNER_STRIKE_LIST.json"
+STRIKE_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "SCANNER_STRIKE_LIST.json"
 FINVIZ_FILTERS = "f=cap_smallover,sh_float_u100,sh_price_5to50,ta_perf_13w20o"
 
 async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
@@ -44,7 +44,7 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     Filters the market for mid-cap "Swords" with elite risk-adjusted profiles.
     """
     config = _get_strategy_config(strategy_config)
-    os.makedirs(os.path.dirname(COMBAT_LIST_PATH), exist_ok=True)
+    os.makedirs(os.path.dirname(STRIKE_LIST_PATH), exist_ok=True)
 
     # 1. Determine dynamic Sortino Hurdle based on .TNX
     tnx_rate = 4.30 # Conservative default
@@ -61,10 +61,25 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     base_hurdle = config.get("sortino_hurdle", 2.0)
     effective_hurdle = 2.5 if tnx_rate > 4.30 else base_hurdle
     
-    if os.getenv("VLI_TRADING_STYLE", "day_trading") == "day_trading":
-        effective_hurdle *= 10.0
+    import pytz
+    est = pytz.timezone('America/New_York')
+    now_est = datetime.now(est)
+    
+    def parse_time(time_str: str):
+        from datetime import datetime as dt
+        return dt.strptime(time_str, "%H:%M").time()
         
-    logger.info(f"Bunker Trawl: Effective Sortino Hurdle: {effective_hurdle}")
+    premarket_open = parse_time(os.environ.get("PREMARKET_OPEN_LOCALTIME", "04:00"))
+    market_open = parse_time(os.environ.get("MARKET_OPEN_LOCALTIME", "09:30"))
+    is_premarket = premarket_open <= now_est.time() < market_open
+
+    if is_premarket:
+        effective_hurdle = 0.0
+        logger.info("Bunker Trawl: Premarket Bypass Active. Sortino Hurdle bypassed.")
+    else:
+        if os.getenv("VLI_TRADING_STYLE", "day_trading") == "day_trading":
+            effective_hurdle *= 10.0
+        logger.info(f"Bunker Trawl: Effective Sortino Hurdle: {effective_hurdle}")
 
     candidates = []
     total_count = 0
@@ -313,10 +328,10 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
 
     clean_strike_list = sanitize_data(strike_list)
 
-    with open(COMBAT_LIST_PATH, "w", encoding="utf-8") as f:
+    with open(STRIKE_LIST_PATH, "w", encoding="utf-8") as f:
         json.dump(clean_strike_list, f, indent=4)
 
-    logger.info(f"Combat List synchronized. {len(verified_list)} verified swords in the bunker.")
+    logger.info(f"Strike List synchronized. {len(verified_list)} verified swords in the bunker.")
     return clean_strike_list
 
 async def run_intraday_trawl():
@@ -324,7 +339,7 @@ async def run_intraday_trawl():
     Periodic lightweight wrapper for the Sortino Sniper Trawl.
     Executes the background sweep with explicit memory configurations to update momentum safely intraday.
     """
-    logger.info("Intraday Trawl Initiated: Refreshing Combat List (Checking for momentum breakouts...)")
+    logger.info("Intraday Trawl Initiated: Refreshing Strike List (Checking for momentum breakouts...)")
     try:
         await run_background_trawl({"is_intraday": True})
     except Exception as e:

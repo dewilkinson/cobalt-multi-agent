@@ -81,6 +81,25 @@ _vli_rules_active_since = datetime.now()
 _vli_last_thread_id = None
 _vli_dynamic_panels = []
 _is_morning_scan_running = False
+
+# --- VLI CONSTANTS & ALIASES ---
+# DW ToDo: Gemini has created a mess here - need to rework the command parsing mechanism
+TACTICAL_REPORT_ALIASES = ["analyze ", "update ", "check ", "regenerate "]
+TACTICAL_REPORT_TOKENS = ["ANALYZE", "ANALYSIS", "SENTIMENT", "NEWS", "UPDATE", "CHECK", "REGENERATE"]
+FAST_OVERRIDE_TOKENS = ["FAST", "QUICK", "HIGH-LEVEL", "SHORTCUT", "RAPID"]
+TECH_KEYWORDS = ["SORTINO", "SHARPE", "RISK", "VOLATILITY", "ANALYSIS", "REPORT", "ANALYZE", "EXPLAIN"]
+MACRO_TOKENS = ["LIST", "PRICE", "SYMBOLS", "ENVIRONMENT"]
+QUALIFIER_TOKENS = ["PRICE", "VOLUME", "OHLC", "VALUE", "MA", "RSI", "MACD"]
+ADMIN_CMD_TOKENS = ["CLEAR", "PURGE", "RESET", "SCAN", "FORCE", "RESTART"]
+EVICT_VERBS = ["delete", "remove", "invalidate", "scrub"]
+EVICT_TARGETS = ["briefing", "daily briefing", "morning briefing", "daily report", "morning report"]
+ROUTER_QUERY_TOKENS = ["WHY", "WHAT", "HOW", "WHEN", "WHERE", "WHO", "CAN", "SHOULD", "IS", "ARE", "DID", "DO", "DOES", "EXPLAIN", "COMPARE", "ANALYZE"]
+ROUTER_ADMIN_TOKENS = ["CLEAR", "RESET", "REBOOT", "START", "STOP", "PAUSE", "TOGGLE", "PURGE", "FLUSH", "RUN", "GENERATE"]
+TICKER_STOP_WORDS = ["GET", "STOCK", "PRICE", "LIST", "MARCO", "MARO", "VALUE", "PORT", "SYMBOL", "SMC", "FOR", "ANALYSIS", "REPORT", "ANALYZE", "FAST", "QUICK", "HIGH-LEVEL", "SHORTCUT", "RAPID", "HIGH", "LEVEL", "RAW", "DATA", "VLI", "NEWS", "SENTIMENT", "UPDATE", "CHECK", "REGENERATE"]
+LEAK_KEYWORDS = ["SECURITY OVERRIDE", "APEX 500 SYSTEM", "SYSTEM INSTRUCTION", "USER IDENTITY", "OPERATIONAL MANDATE", "EXPECTED DICT", "SYSTEMMESSAGE"]
+EDUCATIONAL_MARKERS = ["LEARN", "EDUCATION", "EXPLAIN", "CONCEPT", "VS", "COMPARE", "PERFORM", "KEEP UP", "YTD", "YEAR", "GIVEN", "OUTLOOK", "SCENARIO", "RECOMMEND", "SUGGEST", "DOES", "HOW"]
+TACTICAL_TRIGGERS = ["ANALYZE", "ANALYSIS", "STRIKE", "SIGNAL", "SMC", "ENTRY", "SCAN", "SWORD", "SHIELD", "SETUP", "TRADE", "EXECUTE", "UPDATE", "CHECK", "REGENERATE", "SENTIMENT", "NEWS"]
+QUESTION_STARTERS = ["WHAT", "HOW", "WHY", "WHEN", "WHICH", "IS", "CAN", "WHO", "WHOSE", "WHOM", "ARE", "DIFFERENCE", "WILL", "DOES", "COULD", "SHOULD"]
 from fastapi.security import APIKeyHeader
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, HumanMessage, ToolMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -201,8 +220,7 @@ def scrub_vli_output(text) -> str:
     if text is None: return ""
     content = str(text)
     upper_content = content.upper()
-    leak_keywords = ["SECURITY OVERRIDE", "APEX 500 SYSTEM", "SYSTEM INSTRUCTION", "USER IDENTITY", "OPERATIONAL MANDATE", "EXPECTED DICT", "SYSTEMMESSAGE"]
-    if any(k in upper_content for k in leak_keywords):
+    if any(k in upper_content for k in LEAK_KEYWORDS):
         logger.error(f"[SCRUBBER DEBUG] Caught leak keywords in: {content}")
         return "**Managed Processing Recovery**: The analytical engine experienced a structural interruption or reasoning quota limit. Technical metadata has been suppressed for system integrity."
     return content
@@ -254,6 +272,8 @@ def _get_report_filename(request_text: str, content: str) -> str:
         # [MATCH FRONTEND JS] re.sub(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '_').substring(0, 25).toLowerCase()
         slug = re.sub(r"[^a-zA-Z0-9\s]", "", clean_text).strip()
         base_name = re.sub(r"\s+", "_", slug)[:25].lower()
+        if base_name.startswith("update_") or base_name.startswith("check_"):
+            base_name = base_name.replace("update_", "analyze_", 1).replace("check_", "analyze_", 1)
         if not base_name:
             base_name = "vli_report"
 
@@ -284,6 +304,33 @@ def _persist_vli_report(request_text: str, content: str):
         
         with open(file_path, "w", encoding="utf-8") as rf:
             rf.write(header + clean_content)
+            
+        # [UX SYNC] Instantly update scanner state if this is a ticker report, 
+        # so manual 'analyze' commands turn the document icon green.
+        import re
+        sym_match = re.search(r"analyze_([a-z0-9\-]+)\.md", filename)
+        if sym_match:
+            sym = sym_match.group(1).upper()
+            try:
+                from src.config.vli import get_vli_path
+                for target_state in ["SCANNER_RES_state.json", "SCANNER_STRIKE_LIST.json", "SHIELD_STRIKE_LIST.json"]:
+                    s_path = get_vli_path(os.path.join("01_Transit", "Buckets", target_state)) if "state" in target_state else os.path.join(os.getcwd(), 'data', target_state)
+                    if os.path.exists(s_path):
+                        with open(s_path, "r", encoding="utf-8") as f:
+                            s_data = json.load(f)
+                        updated = False
+                        target_list = s_data.get("candidates", []) if isinstance(s_data, dict) and "candidates" in s_data else (s_data.get("strike_list", []) if isinstance(s_data, dict) else [])
+                        for c_item in target_list:
+                            if isinstance(c_item, dict) and c_item.get("symbol", "").upper() == sym:
+                                c_item["has_report"] = True
+                                c_item["updated_at"] = datetime.now().isoformat()
+                                updated = True
+                        if updated:
+                            with open(s_path, "w", encoding="utf-8") as f:
+                                json.dump(s_data, f, indent=4)
+            except Exception as e:
+                logger.error(f"[VLI_SYSTEM] Failed to sync UI state for generated report {sym}: {e}")
+                
         return filename
     except Exception as e:
         logger.error(f"VLI_SYSTEM: Failed to persist report '{filename}': {e}")
@@ -296,17 +343,13 @@ def _get_vli_intent(text: str) -> str:
     text_upper = text_trim.upper()
     is_smc = "SMC" in text_upper
     
-    tactical_triggers = ["ANALYZE", "ANALYSIS", "STRIKE", "SIGNAL", "SMC", "ENTRY", "SCAN", "SWORD", "SHIELD", "SETUP", "TRADE", "EXECUTE"]
-    educational_markers = ["LEARN", "EDUCATION", "EXPLAIN", "CONCEPT", "VS", "COMPARE", "PERFORM", "KEEP UP", "YTD", "YEAR", "GIVEN", "OUTLOOK", "SCENARIO", "RECOMMEND", "SUGGEST", "DOES", "HOW"]
-    
-    is_tactical = any(kw in text_upper for kw in tactical_triggers) or is_smc
-    is_educational = any(kw in text_upper for kw in educational_markers)
+    is_tactical = any(kw in text_upper for kw in TACTICAL_TRIGGERS) or is_smc
+    is_educational = any(kw in text_upper for kw in EDUCATIONAL_MARKERS)
     
     if is_tactical and not is_educational:
         return "TACTICAL_EXECUTION"
         
-    question_starters = ["WHAT", "HOW", "WHY", "WHEN", "WHICH", "IS", "CAN", "WHO", "WHOSE", "WHOM", "ARE", "DIFFERENCE", "WILL", "DOES", "COULD", "SHOULD"]
-    is_question = any(text_upper.startswith(qs) for qs in question_starters) or text_trim.endswith("?") or text_trim.endswith("!")
+    is_question = any(text_upper.startswith(qs) for qs in QUESTION_STARTERS) or text_trim.endswith("?") or text_trim.endswith("!")
     
     if is_educational or is_question:
         return "MARKET_INSIGHT"
@@ -832,6 +875,10 @@ async def poll_market_pulse():
     from src.tools.scanner import _build_session_watchlist_impl, _run_activity_pulse_impl, sanitize_data, NpEncoder
 
     try:
+        engine = os.environ.get("VLI_SCANNER_ENGINE", "tradingview").lower()
+        if engine == "tradingview":
+            return
+            
         strike_list_path = os.path.join(os.getcwd(), "data", "SCANNER_STRIKE_LIST.json")
         if not os.path.exists(strike_list_path):
             strike_list_path = os.path.join(os.getcwd(), "backend", "data", "SCANNER_STRIKE_LIST.json")
@@ -911,7 +958,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
     from datetime import datetime
     
     target_path = os.path.join(os.getcwd(), 'data', 'SCANNER_STRIKE_LIST.json')
-    shield_path = os.path.join(os.getcwd(), 'data', 'SHIELD_COMBAT_LIST.json')
+    shield_path = os.path.join(os.getcwd(), 'data', 'SHIELD_STRIKE_LIST.json')
     if not os.path.exists(target_path) and not os.path.exists(shield_path):
         return
         
@@ -922,7 +969,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
                 state = json.load(f)
             candidates.extend(state.get("candidates", []) or state.get("strike_list", []))
             
-        shield_path = os.path.join(os.getcwd(), 'data', 'SHIELD_COMBAT_LIST.json')
+        shield_path = os.path.join(os.getcwd(), 'data', 'SHIELD_STRIKE_LIST.json')
         if os.path.exists(shield_path):
             with open(shield_path, 'r') as f:
                 s_state = json.load(f)
@@ -949,8 +996,9 @@ async def run_idle_analysis(manual_trigger: bool = False):
     skipped_symbols = []
     added_trace = []
     skipped_trace = []
+    logger.info(f"DEBUG: candidates count: {len(candidates)}")
     for c in candidates:
-        sym = c.get("symbol")
+        sym = c.get("symbol") if isinstance(c, dict) else c
         if not sym: continue
         
         sym_clean = sym.replace('^', '').replace('=', '').lower()
@@ -969,6 +1017,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
             if mtime.date() == datetime.now().date():
                 needs_report = False
                 
+        logger.info(f"DEBUG: {sym} needs_report: {needs_report}")
         if needs_report:
             candidates_to_process.append(c)
             added_trace.append(f"   ➕ Added: **{sym}**")
@@ -1034,6 +1083,32 @@ async def run_idle_analysis(manual_trigger: bool = False):
                     header = f"> **Generated:** {generation_ts}\n\n"
                     with open(r_path, "w", encoding="utf-8") as rf:
                         rf.write(header + result_text)
+                        
+                    # [UX HOTFIX] Instantly update the scanner lists so document icons turn green immediately
+                    try:
+                        from src.config.vli import get_vli_path
+                        for target_state in ["SCANNER_RES_state.json", "SCANNER_STRIKE_LIST.json", "SHIELD_STRIKE_LIST.json"]:
+                            s_path = get_vli_path(os.path.join("01_Transit", "Buckets", target_state)) if "state" in target_state else os.path.join(os.getcwd(), 'data', target_state)
+                            if os.path.exists(s_path):
+                                with open(s_path, "r", encoding="utf-8") as f:
+                                    s_data = json.load(f)
+                                updated = False
+                                
+                                # Handle both 'candidates' (SCANNER_RES) and 'strike_list' (COMBAT_LIST) formats
+                                target_list = s_data.get("candidates", []) if "candidates" in s_data else s_data.get("strike_list", [])
+                                
+                                for c_item in target_list:
+                                    if isinstance(c_item, dict) and c_item.get("symbol", "").upper() == sym.upper():
+                                        c_item["has_report"] = True
+                                        c_item["updated_at"] = datetime.now().isoformat()
+                                        updated = True
+                                        
+                                if updated:
+                                    with open(s_path, "w", encoding="utf-8") as f:
+                                        json.dump(s_data, f, indent=4)
+                    except Exception as e:
+                        logger.error(f"[BG_ANALYST] Failed to update scanner state for {sym}: {e}")
+                        
                 except Exception as e:
                     logger.error(f"[BG_ANALYST] Failed to save report for {sym}: {e}")
             else:
@@ -1190,13 +1265,20 @@ async def run_meta_analysis(manual_trigger: bool = False):
         compiled_symbols = [c.get("symbol") for c in candidates if c.get("symbol")]
         source_str = f"Source Scans: {', '.join(compiled_symbols)}"
         
+        session_config = _get_vli_session_config()
+        active_strat_file = session_config.get("active_strategy")
+        if active_strat_file:
+            active_strat_name = active_strat_file.replace(".md", "").replace("cma_strategy_", "").replace("_", " ").title()
+        else:
+            active_strat_name = "Active Strategy"
+
         prompt = (
             "You are the Chief Market Strategist for Blueshell Securities. "
             "Synthesize an 'Executive Morning Briefing' from the following institutional reports. "
             "Focus on: 1. Sector Concentration/Convergence, 2. Aggregate Risk Profile (Volatility/ATR), "
-            "3. The absolute best 2 high-conviction setups of the day, and 4. Strategic Guidance (advise on which specific strategy is optimal today based on macro conditions, e.g., War Barbell, Sortino Sniper, or recommend a general/community strategy if appropriate). "
+            f"3. The absolute best 2 high-conviction setups of the day, and 4. Strategic Guidance (The active strategy is '{active_strat_name}'. Frame your guidance entirely around this strategy's mathematical requirements and logic). "
             f"CRITICAL INSTRUCTION: You MUST include the exact following line at the end of your briefing to cite the source documents: '{source_str}'. "
-            "Be concise, tactical, and highly professional.\n\n"
+            "Be concise, tactical, and highly professional. DO NOT hallucinate other strategies or use incorrect terminology (e.g. 'Barbell') unless explicitly appropriate for the active strategy.\n\n"
             f"{bundle}\n\n--FORCE-GRAPH"
         )
         
@@ -1911,7 +1993,9 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                         if "tier" not in c: c["tier"] = "SWORD"
                     scanner_res_content["candidates"].extend(cands)
                     if isinstance(data, dict):
-                        scanner_res_content["pulse_mode"] = data.get("pulse_mode", "Sortino Sniper Scanner")
+                        active_sf = _get_vli_session_config().get("active_strategy", "")
+                        active_sn = active_sf.replace(".md", "").replace("cma_strategy_", "").replace("_", " ").title() if active_sf else "Active Strategy"
+                        scanner_res_content["pulse_mode"] = data.get("pulse_mode", f"{active_sn} Scanner")
                 loaded_data = True
                 
             if not loaded_data and engine != "tradingview" and os.path.exists(scanner_bucket_path):
@@ -1927,7 +2011,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
             logger.error(f"Failed to load Sword data: {e}")
             
         shield_tv_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SHIELD_RES_state.json")
-        shield_local_path = os.path.join(os.getcwd(), "data", "SHIELD_COMBAT_LIST.json")
+        shield_local_path = os.path.join(os.getcwd(), "data", "SHIELD_STRIKE_LIST.json")
         
         shield_path = shield_tv_path if engine == "tradingview" else shield_local_path
         
@@ -2701,22 +2785,28 @@ async def _invoke_vli_agent(
     # [NEW] Standardized Intent classification
     intent_mode = _get_vli_intent(text)
 
+    # [HARDENING] Context Poisoning Prevention
+    # If generating a tactical report, isolate the LangGraph thread completely so massive 
+    # reports from previous tickers do not bleed into the context window.
+    if intent_mode == "TACTICAL_EXECUTION" or any(text.lower().startswith(a) for a in TACTICAL_REPORT_ALIASES):
+        import uuid
+        thread_id = f"iso_{uuid.uuid4().hex[:8]}"
+        logger.info(f"[VLI_AGENT] Isolated TACTICAL_EXECUTION to fresh thread: {thread_id}")
+
     # [FAST-PATH TRIGGERS] Deterministic bypass for low-latency situation awareness
     is_smc = "SMC" in text.upper()
-    is_fast_override = any(kw in text.upper() for kw in ["FAST", "QUICK", "HIGH-LEVEL", "SHORTCUT", "RAPID"])
+    is_fast_override = any(kw in text.upper() for kw in FAST_OVERRIDE_TOKENS)
 
     # Exclusion: Technical keywords (Sortino, Sharpe, etc.) should use the full agent graph
-    tech_keywords = ["SORTINO", "SHARPE", "RISK", "VOLATILITY", "ANALYSIS", "REPORT", "ANALYZE", "EXPLAIN"]
-    is_technical = any(kw in text.upper() for kw in tech_keywords) and not (is_smc and is_fast_override)
+    is_technical = any(kw in text.upper() for kw in TECH_KEYWORDS) and not (is_smc and is_fast_override)
 
-    is_macro = "MACRO" in text.upper() and any(kw in text.upper() for kw in ["LIST", "PRICE", "SYMBOLS", "ENVIRONMENT"])
+    is_macro = "MACRO" in text.upper() and any(kw in text.upper() for kw in MACRO_TOKENS)
     is_price_list = ("SYMBOL" in text.upper() or "PORTFOLIO" in text.upper()) and "PRICE" in text.upper()
     is_vix = "VIX" in text.upper() and len(text) < 30
 
     # 2. Refined Ticker Query: Qualified vs Unqualified vs Analyze
-    qualifiers = ["PRICE", "VOLUME", "OHLC", "VALUE", "MA", "RSI", "MACD"]
-    is_qualified = any(q in text.upper() for q in qualifiers) or "GET " in text.upper() or len(text.split()) <= 2
-    is_analyze = ("ANALYZE" in text.upper() or "ANALYSIS" in text.upper() or "SENTIMENT" in text.upper() or "NEWS" in text.upper()) and not (is_smc and is_fast_override)
+    is_qualified = any(q in text.upper() for q in QUALIFIER_TOKENS) or "GET " in text.upper() or len(text.split()) <= 2
+    is_analyze = any(kw in text.upper() for kw in TACTICAL_REPORT_TOKENS) and not (is_smc and is_fast_override)
     is_ticker_query = ("$" in text or "GET " in text.upper() or is_fast_override) and len(text) < 65 and not is_analyze
 
     is_fast_track = ((is_macro or is_price_list or is_vix or is_ticker_query) and not is_technical and not is_analyze) or raw_data_mode
@@ -2988,7 +3078,7 @@ async def _invoke_vli_agent(
         perf_summary = get_trader_performance_summary()
         if perf_summary:
             injected_observations.append(f"[SYSTEM INJECTION: Trader Performance History]\n{perf_summary}")
-    elif text.lower().startswith("analyze "):
+    elif any(text.lower().startswith(a) for a in TACTICAL_REPORT_ALIASES):
         sym = text.split(" ")[1].strip().upper()
         from src.services.historical_reports import get_historical_symbol_summary
         sym_summary = get_historical_symbol_summary(sym)
@@ -3326,10 +3416,7 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
 
     # [NEW] Meta-Analysis Eviction Interception
     req_lower = request.text.strip().lower()
-    verbs = ["delete", "remove", "invalidate", "scrub"]
-    targets = ["briefing", "daily briefing", "morning briefing", "daily report", "morning report"]
-    
-    if any(req_lower == f"{v} {t}" for v in verbs for t in targets):
+    if any(req_lower == f"{v} {t}" for v in EVICT_VERBS for t in EVICT_TARGETS):
         reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
         meta_path = get_daily_briefing_path()
         if os.path.exists(meta_path):
@@ -3439,7 +3526,7 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
         except Exception as e:
             logger.error(f"Morning scan override failed: {e}")
 
-    is_admin_cmd = any(word in clean_req_text for word in ["CLEAR", "PURGE", "RESET", "SCAN", "FORCE", "RESTART"])
+    is_admin_cmd = any(word in clean_req_text for word in ADMIN_CMD_TOKENS)
     
     import hashlib, time
     cache_dir = os.path.join(os.getcwd(), "data", "artifacts", "vli_cache")
@@ -3483,15 +3570,12 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     cleaned_input = request.text.strip().upper()
     
     # --- HOLISTIC INTENT CLASSIFICATION ---
-    QUERY_TOKENS = ["WHY", "WHAT", "HOW", "WHEN", "WHERE", "WHO", "CAN", "SHOULD", "IS", "ARE", "DID", "DO", "DOES", "EXPLAIN", "COMPARE", "ANALYZE"]
-    ADMIN_TOKENS = ["CLEAR", "RESET", "REBOOT", "START", "STOP", "PAUSE", "TOGGLE", "PURGE", "FLUSH", "RUN", "GENERATE"]
-    
     first_word = cleaned_input.split()[0] if cleaned_input else ""
     
     global_intent = "COMMAND"
-    if first_word in QUERY_TOKENS:
+    if first_word in ROUTER_QUERY_TOKENS:
         global_intent = "QUERY"
-    elif first_word in ADMIN_TOKENS:
+    elif first_word in ROUTER_ADMIN_TOKENS:
         global_intent = "ADMIN"
         
     logger.info(f"VLI Intent Router: Input classified as [{global_intent}]")
@@ -3575,37 +3659,9 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
         if sym_match:
             ticker = sym_match.group(1)
         else:
-            ticker_stop_words = [
-                "GET",
-                "STOCK",
-                "PRICE",
-                "LIST",
-                "MARCO",
-                "MARO",
-                "VALUE",
-                "PORT",
-                "SYMBOL",
-                "SMC",
-                "FOR",
-                "ANALYSIS",
-                "REPORT",
-                "ANALYZE",
-                "FAST",
-                "QUICK",
-                "HIGH-LEVEL",
-                "SHORTCUT",
-                "RAPID",
-                "HIGH",
-                "LEVEL",
-                "RAW",
-                "DATA",
-                "VLI",
-                "NEWS",
-                "SENTIMENT",
-            ]
             words = re.findall(r"\b([A-Z]{1,10})\b", text.upper())
             for word in words:
-                if word not in ticker_stop_words:
+                if word not in TICKER_STOP_WORDS:
                     ticker = word
                     break
 
@@ -4358,7 +4414,7 @@ async def _astream_workflow_generator(
         perf_summary = get_trader_performance_summary()
         if perf_summary:
             injected_observations.append(f"[SYSTEM INJECTION: Trader Performance History]\n{perf_summary}")
-    elif req_text.lower().startswith("analyze "):
+    elif any(req_text.lower().startswith(a) for a in TACTICAL_REPORT_ALIASES):
         sym = req_text.split(" ")[1].strip().upper()
         from src.services.historical_reports import get_historical_symbol_summary
         sym_summary = get_historical_symbol_summary(sym)
