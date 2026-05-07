@@ -114,7 +114,10 @@ async def coordinator_node(state: State, config: RunnableConfig) -> dict[str, An
         )
 
     # [CONTEXT POISONING GUARDRAIL]
-    user_query_content = str(state.get("messages", [])).lower()
+    user_query_content = ""
+    if state.get("messages"):
+        last_msg = state["messages"][-1]
+        user_query_content = str(getattr(last_msg, "content", "")).lower()
     
     # 1. Unconditional Trade Analysis Intercept
     trade_intent_keywords = ["analyze", "show", "get", "print", "log", "review", "evaluate", "post-mortem", "postmortem", "summary"]

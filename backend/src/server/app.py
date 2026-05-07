@@ -642,10 +642,13 @@ async def copy_to_folder(request: CopyToFolderRequest):
     today_str = datetime.now().strftime("%Y-%m-%d")
     
     target_folder = request.target_folder
-    if "/" not in target_folder and "\\" not in target_folder:
-        target_dir = os.path.join(reports_dir, today_str, target_folder)
+    if os.path.isabs(target_folder):
+        target_dir = target_folder
+    elif "/" in target_folder or "\\" in target_folder:
+        target_folder = target_folder.lstrip('/\\')
+        target_dir = os.path.abspath(os.path.join(reports_dir, target_folder))
     else:
-        target_dir = os.path.abspath(target_folder)
+        target_dir = os.path.abspath(os.path.join(reports_dir, today_str, target_folder))
         
     os.makedirs(target_dir, exist_ok=True)
     
