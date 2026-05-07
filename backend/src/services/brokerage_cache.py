@@ -225,14 +225,70 @@ class BrokerageCache:
         # Build a set of existing IDs for fast lookup
         existing_ids = {act['id'] for act in existing_activities if 'id' in act}
         
+        # Build a fuzzy index of existing activities to handle ATP/HIST overlap
+        # Key: (symbol, action, units, trade_date_YYYY-MM-DD)
+        fuzzy_existing = {}
+        for act in existing_activities:
+            sym_obj = act.get('symbol', {})
+            sym = sym_obj.get('symbol', '') if isinstance(sym_obj, dict) else sym_obj
+            trade_date = str(act.get('trade_date', act.get('time_placed', '')))[:10]
+            action = act.get('type', act.get('action', 'N/A'))
+            units = act.get('units', 0)
+            key = (sym, action, units, trade_date)
+            if key not in fuzzy_existing:
+                fuzzy_existing[key] = []
+            fuzzy_existing[key].append(act)
+            
+        atp_absorption = {}
+        
         # Add new activities
         added = 0
         for act in new_activities:
             act_id = act.get('id')
-            if not act_id or act_id not in existing_ids:
+            if not act_id or act_id in existing_ids:
+                continue
+                
+            sym_obj = act.get('symbol', {})
+            sym = sym_obj.get('symbol', '') if isinstance(sym_obj, dict) else sym_obj
+            trade_date = str(act.get('trade_date', act.get('time_placed', '')))[:10]
+            action = act.get('type', act.get('action', 'N/A'))
+            units = act.get('units', 0)
+            key = (sym, action, units, trade_date)
+
+            is_duplicate = False
+
+            if act_id.startswith('HIST-') and key in fuzzy_existing:
+                # Find an ATP trade that hasn't absorbed a HIST trade yet
+                for f_act in fuzzy_existing[key]:
+                    f_id = f_act.get('id', '')
+                    if f_id.startswith('ATP-') and atp_absorption.get(f_id, 0) == 0:
+                        is_duplicate = True
+                        atp_absorption[f_id] = 1
+                        break
+
+            elif act_id.startswith('ATP-') and key in fuzzy_existing:
+                # Find a HIST trade to replace
+                hist_to_remove = None
+                for f_act in fuzzy_existing[key]:
+                    f_id = f_act.get('id', '')
+                    if f_id.startswith('HIST-') and atp_absorption.get(f_id, 0) == 0:
+                        hist_to_remove = f_act
+                        break
+                
+                if hist_to_remove:
+                    hist_id = hist_to_remove.get('id')
+                    existing_activities = [e for e in existing_activities if e.get('id') != hist_id]
+                    if hist_id in existing_ids:
+                        existing_ids.remove(hist_id)
+                    fuzzy_existing[key].remove(hist_to_remove)
+                    atp_absorption[act_id] = 1
+
+            if not is_duplicate:
                 existing_activities.append(act)
-                if act_id:
-                    existing_ids.add(act_id)
+                existing_ids.add(act_id)
+                if key not in fuzzy_existing:
+                    fuzzy_existing[key] = []
+                fuzzy_existing[key].append(act)
                 added += 1
                 
         if added > 0:

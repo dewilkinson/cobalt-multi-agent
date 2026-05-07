@@ -17,7 +17,7 @@ def generate_tradezella_csv(input_filename, output_filename, target_month=None, 
         return
 
     # TradeZella Generic Format Headers
-    tz_headers = ["Date&Time", "Date", "Time", "Symbol", "Buy/Sell", "Quantity", "Price", "Spread", "Expiration", "Strike", "Call/Put", "Commission", "Fees"]
+    tz_headers = ["Account Name", "Date&Time", "Date", "Time", "Symbol", "Buy/Sell", "Quantity", "Price", "Spread", "Expiration", "Strike", "Call/Put", "Commission", "Fees"]
 
     # 1. Load the raw data
     with open(input_filename, 'r', encoding='utf-8') as f:
@@ -250,6 +250,7 @@ def generate_tradezella_csv(input_filename, output_filename, target_month=None, 
             tz_datetime = f"{tz_date} {timestamp}"
             
             final_rows.append({
+                "Account Name": trade.get('Account', '').strip(),
                 "Date&Time": "",
                 "Date": tz_date,
                 "Time": timestamp,
@@ -480,7 +481,7 @@ def launch_audit_dashboard(rows):
         <div class="container">
             <div class="header">
                 <div class="header-text">
-                    <h2>📊 Final Audit Dashboard</h2>
+                    <h2> Final Audit Dashboard</h2>
                     <div class="subtitle">Range: {date_range_str}</div>
                 </div>
                 <button class="close-btn" onclick="window.close()">Close Window</button>

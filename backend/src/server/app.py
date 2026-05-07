@@ -91,8 +91,9 @@ TECH_KEYWORDS = ["SORTINO", "SHARPE", "RISK", "VOLATILITY", "ANALYSIS", "REPORT"
 MACRO_TOKENS = ["LIST", "PRICE", "SYMBOLS", "ENVIRONMENT"]
 QUALIFIER_TOKENS = ["PRICE", "VOLUME", "OHLC", "VALUE", "MA", "RSI", "MACD"]
 ADMIN_CMD_TOKENS = ["CLEAR", "PURGE", "RESET", "SCAN", "FORCE", "RESTART"]
-EVICT_VERBS = ["delete", "remove", "invalidate", "scrub"]
+EVICT_VERBS = ["delete", "remove", "invalidate", "scrub", "clear"]
 EVICT_TARGETS = ["briefing", "daily briefing", "morning briefing", "daily report", "morning report"]
+EVICT_POSTMORTEM_TARGETS = ["post-mortem", "daily post-mortem", "post-mortem report", "daily post-mortem report", "daily trading report", "trading report"]
 ROUTER_QUERY_TOKENS = ["WHY", "WHAT", "HOW", "WHEN", "WHERE", "WHO", "CAN", "SHOULD", "IS", "ARE", "DID", "DO", "DOES", "EXPLAIN", "COMPARE", "ANALYZE"]
 ROUTER_ADMIN_TOKENS = ["CLEAR", "RESET", "REBOOT", "START", "STOP", "PAUSE", "TOGGLE", "PURGE", "FLUSH", "RUN", "GENERATE"]
 TICKER_STOP_WORDS = ["GET", "STOCK", "PRICE", "LIST", "MARCO", "MARO", "VALUE", "PORT", "SYMBOL", "SMC", "FOR", "ANALYSIS", "REPORT", "ANALYZE", "FAST", "QUICK", "HIGH-LEVEL", "SHORTCUT", "RAPID", "HIGH", "LEVEL", "RAW", "DATA", "VLI", "NEWS", "SENTIMENT", "UPDATE", "CHECK", "REGENERATE"]
@@ -849,7 +850,7 @@ async def poll_5m_patterns():
         with open(strike_list_path, "r", encoding="utf-8") as f:
             data = json.load(f)
             
-        candidates = data.get("candidates", [])
+        candidates = data if isinstance(data, list) else (data.get("candidates", []) or data.get("strike_list", []))
         if not candidates:
             return
             
@@ -863,7 +864,7 @@ async def poll_5m_patterns():
             # Scan output block for exact matches to BoS or CHoCH
             if "Change of Character (ChoCh)" in report or "Break of Structure (BOS)" in report:
                 trigger_type = "CHoCH" if "Change of Character" in report else "Break of Structure"
-                msg = f"🚨 **[SMC ALERT]**: Just detected an Institutional **{trigger_type}** footprint printed on the **5m** structural timeframe for **{symbol}**."
+                msg = f" **[SMC ALERT]**: Just detected an Institutional **{trigger_type}** footprint printed on the **5m** structural timeframe for **{symbol}**."
                 
                 # Push organically to the Command Center UI via chat proxy
                 _append_to_vli_history("Analyst", msg)
@@ -894,7 +895,7 @@ async def poll_market_pulse():
         if os.path.exists(strike_list_path):
             with open(strike_list_path, "r", encoding="utf-8") as f:
                 c_data = json.load(f)
-                phase0_raw = c_data.get("strike_list", [])
+                phase0_raw = c_data if isinstance(c_data, list) else (c_data.get("strike_list", []) or c_data.get("candidates", []))
                 
         symbols = [r["symbol"] for r in phase0_raw if r.get("symbol")]
         universe_csv = ",".join(symbols)
@@ -973,7 +974,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
         if os.path.exists(target_path):
             with open(target_path, 'r') as f:
                 state = json.load(f)
-            candidates.extend(state.get("candidates", []) or state.get("strike_list", []))
+            candidates.extend(state if isinstance(state, list) else (state.get("candidates", []) or state.get("strike_list", [])))
             
     except Exception as e:
         logger.error(f"[BG_ANALYST] Failed to read combat lists: {e}")
@@ -1021,10 +1022,10 @@ async def run_idle_analysis(manual_trigger: bool = False):
         logger.info(f"DEBUG: {sym} needs_report: {needs_report}")
         if needs_report:
             candidates_to_process.append(c)
-            added_trace.append(f"   ➕ Added: **{sym}**")
+            added_trace.append(f"    Added: **{sym}**")
         else:
             skipped_symbols.append(sym)
-            skipped_trace.append(f"   ⏩ Skipped: **{sym}** (Cached Report Active)")
+            skipped_trace.append(f"    Skipped: **{sym}** (Cached Report Active)")
             
     # [NEW] Telemetry Write for List Building
     try:
@@ -1035,7 +1036,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
         trace_log = "\n".join(added_trace)
         if trace_log:
             with open(telemetry_file, "a", encoding="utf-8") as tf:
-                tf.write(f"\n{timestamp} 📋 **[ORCHESTRATOR]** Candidate Evaluation Trace:\n{trace_log}\n")
+                tf.write(f"\n{timestamp}  **[ORCHESTRATOR]** Candidate Evaluation Trace:\n{trace_log}\n")
                 tf.flush()
     except Exception as e:
         logger.error(f"Failed to write candidate trace: {e}")
@@ -1048,7 +1049,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
             telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
             timestamp = datetime.now().strftime("[%H:%M:%S]")
             with open(telemetry_file, "a", encoding="utf-8") as tf:
-                tf.write(f"\n{timestamp} 🤖 **[ORCHESTRATOR]** Background LLM Analyst initiated deep-scan for {len(candidates_to_process)} missing candidates.\n")
+                tf.write(f"\n{timestamp}  **[ORCHESTRATOR]** Background LLM Analyst initiated deep-scan for {len(candidates_to_process)} missing candidates.\n")
                 tf.flush()
         except Exception:
             pass
@@ -1062,7 +1063,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
             try:
                 timestamp = datetime.now().strftime("[%H:%M:%S]")
                 with open(telemetry_file, "a", encoding="utf-8") as tf:
-                    tf.write(f"\\n{timestamp} 🔄 **[ANALYST]** Spawning deep-dive intelligence for **{sym}** ({i}/{total})...\\n")
+                    tf.write(f"\\n{timestamp}  **[ANALYST]** Spawning deep-dive intelligence for **{sym}** ({i}/{total})...\\n")
                     tf.flush()
             except Exception:
                 pass
@@ -1118,7 +1119,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
             try:
                 timestamp = datetime.now().strftime("[%H:%M:%S]")
                 with open(telemetry_file, "a", encoding="utf-8") as tf:
-                    tf.write(f"\\n{timestamp} ✅ **[ANALYST]** Report generated for **{sym}** (Rate limit stagger: 30s).\\n")
+                    tf.write(f"\\n{timestamp}  **[ANALYST]** Report generated for **{sym}** (Rate limit stagger: 30s).\\n")
                     tf.flush()
             except Exception:
                 pass
@@ -1129,7 +1130,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
         try:
             timestamp = datetime.now().strftime("[%H:%M:%S]")
             with open(telemetry_file, "a", encoding="utf-8") as tf:
-                tf.write(f"\\n{timestamp} ✨ **[ORCHESTRATOR]** Background LLM Analyst sequence complete.\\n")
+                tf.write(f"\\n{timestamp}  **[ORCHESTRATOR]** Background LLM Analyst sequence complete.\\n")
                 tf.flush()
         except Exception:
             pass
@@ -1156,7 +1157,7 @@ async def run_daily_morning_analysis():
         telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
         timestamp = datetime.now().strftime("[%H:%M:%S]")
         with open(telemetry_file, "a", encoding="utf-8") as tf:
-            tf.write(f"\n{timestamp} 📡 **[ORCHESTRATOR]** Running Daily Scanner...\n")
+            tf.write(f"\n{timestamp}  **[ORCHESTRATOR]** Running Daily Scanner...\n")
             tf.flush()
     except Exception:
         pass
@@ -1256,7 +1257,7 @@ async def run_meta_analysis(manual_trigger: bool = False):
         # Write to telemetry
         try:
             with open(telemetry_file, "a", encoding="utf-8") as tf:
-                tf.write(f"\n{timestamp} 🧠 **[META_ANALYST]** Synthesizing Executive Morning Briefing from {len(compiled_reports)} reports...\n")
+                tf.write(f"\n{timestamp}  **[META_ANALYST]** Synthesizing Executive Morning Briefing from {len(compiled_reports)} reports...\n")
                 tf.flush()
         except Exception:
             pass
@@ -1305,7 +1306,7 @@ async def run_meta_analysis(manual_trigger: bool = False):
             try:
                 timestamp = datetime.now().strftime("[%H:%M:%S]")
                 with open(telemetry_file, "a", encoding="utf-8") as tf:
-                    tf.write(f"\n{timestamp} 🏆 **[META_ANALYST]** Executive Morning Briefing successfully compiled.\n")
+                    tf.write(f"\n{timestamp}  **[META_ANALYST]** Executive Morning Briefing successfully compiled.\n")
                     tf.flush()
             except Exception:
                 pass
@@ -1986,7 +1987,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                         scanner_res_content["pulse_mode"] = "TradingView"
                 loaded_data = True
                 
-            if not loaded_data and os.path.exists(sword_path):
+            if os.path.exists(sword_path):
                 with open(sword_path, encoding="utf-8") as f:
                     data = json.load(f)
                     cands = data if isinstance(data, list) else data.get("candidates", []) or data.get("strike_list", [])
@@ -2014,14 +2015,20 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
         pass
             
         # Defensive Deduplication: Ensure no duplicate symbols render across pipelines
-        seen_symbols = set()
-        deduped_cands = []
+        seen_symbols = {}
         for cand in scanner_res_content.get("candidates", []):
             sym = cand.get("symbol", "").upper()
-            if sym and sym not in seen_symbols:
-                seen_symbols.add(sym)
-                deduped_cands.append(cand)
-        scanner_res_content["candidates"] = deduped_cands
+            if not sym: continue
+            
+            existing = seen_symbols.get(sym)
+            if existing:
+                # Prefer institutional tiers over base pipeline tiers
+                if cand.get("tier") in ["SHIELD", "SNIPER", "SWORD"] and existing.get("tier") not in ["SHIELD", "SNIPER", "SWORD"]:
+                    seen_symbols[sym] = cand
+            else:
+                seen_symbols[sym] = cand
+                
+        scanner_res_content["candidates"] = list(seen_symbols.values())
                     
         # Dynamically enrich the has_report status to ensure UI polling catches live background generation
         from datetime import datetime
@@ -2216,7 +2223,7 @@ async def refresh_vli_card(req: RefreshRequest):
             logger.info("VLI: Global refresh requested for all UX cards")
             
             with open(telemetry_file, "a", encoding="utf-8") as tf:
-                tf.write(f"\n{timestamp} ### 🔄 [GLOBAL REFRESH] Target: ALL\n> Synchronizing all active Watchlist Engines...\n")
+                tf.write(f"\n{timestamp} ###  [GLOBAL REFRESH] Target: ALL\n> Synchronizing all active Watchlist Engines...\n")
                 tf.flush()
             
             # Currently only Macro Watchlist is active as a managed bucket
@@ -2235,7 +2242,7 @@ async def refresh_vli_card(req: RefreshRequest):
             logger.info("VLI: Explicit refresh requested for MACRO_WATCHLIST")
             
             with open(telemetry_file, "a", encoding="utf-8") as tf:
-                tf.write(f"\n{timestamp} ### 🔄 [UX REFRESH] Target: {target}\n> Triggering forced update of Macro Watchlist Engine...\n")
+                tf.write(f"\n{timestamp} ###  [UX REFRESH] Target: {target}\n> Triggering forced update of Macro Watchlist Engine...\n")
                 tf.flush()
             
             await get_macro_symbols.ainvoke({"fast_update": True})
@@ -2247,7 +2254,7 @@ async def refresh_vli_card(req: RefreshRequest):
 
             
         with open(telemetry_file, "a", encoding="utf-8") as tf:
-            tf.write(f"\n{timestamp} ### ⚠️ [UX REFRESH ERROR]\n> Target generic card identifier `{target}` not securely mapped for forced refreshes.\n")    
+            tf.write(f"\n{timestamp} ###  [UX REFRESH ERROR]\n> Target generic card identifier `{target}` not securely mapped for forced refreshes.\n")    
             tf.flush()
         return {"status": "ignored", "target": target, "msg": "Card identifier not recognized."}
     except Exception as e:
@@ -2256,7 +2263,7 @@ async def refresh_vli_card(req: RefreshRequest):
         timestamp = datetime.now().strftime("[%H:%M:%S]")
         try:
             with open(telemetry_file, "a", encoding="utf-8") as tf:
-                tf.write(f"\n{timestamp} ### ❌ [UX REFRESH FAILED]\n> Error resolving card '{target}': {e}\n")    
+                tf.write(f"\n{timestamp} ###  [UX REFRESH FAILED]\n> Error resolving card '{target}': {e}\n")    
                 tf.flush()
         except: pass
         raise HTTPException(status_code=500, detail=str(e))
@@ -3294,7 +3301,7 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     command_text = request.text.strip().lower()
 
     # UX Command: Open Scanner
-    if re.match(r"^(open|create|add|spawn)\s+(scanner|scan|market\s+scan)(\s+window|\s+panel)?$", command_text):
+    if re.match(r"^(open|create|add|spawn)\s+(?:new\s+)?(scanner|scan|market\s+scan)(\s+window|\s+card|\s+panel)?$", command_text):
         _append_to_vli_history("ai", f"Opening Market Scan module...", thread_id=transaction_id)
         return {
             "response": "Opening Market Scan module...",
@@ -3408,7 +3415,10 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
 
     # [NEW] Meta-Analysis Eviction Interception
     req_lower = request.text.strip().lower()
-    if any(req_lower == f"{v} {t}" for v in EVICT_VERBS for t in EVICT_TARGETS):
+    import re
+    clean_req = re.sub(r'[^\w\s-]', '', req_lower).strip()
+    
+    if any(clean_req.startswith(f"{v} {t}") for v in EVICT_VERBS for t in EVICT_TARGETS):
         reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
         meta_path = get_daily_briefing_path()
         if os.path.exists(meta_path):
@@ -3419,6 +3429,41 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
                 res_msg = f"Failed to evict Executive Morning Briefing: {e}"
         else:
             res_msg = "Executive Morning Briefing is not currently present in the cache."
+            
+        _append_to_vli_history("ai", res_msg, thread_id=transaction_id)
+        return {"response": res_msg, "status": "OK", "error_details": None, "thread_id": transaction_id}
+
+    # [NEW] Post-Mortem Eviction Interception
+    if any(clean_req.startswith(f"{v} {t}") for v in EVICT_VERBS for t in EVICT_POSTMORTEM_TARGETS):
+        from src.services.historical_reports import PERFORMANCE_DIR
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        perf_path = os.path.join(PERFORMANCE_DIR, f"Daily_PostMortem_{today_str}.md")
+        
+        # We also want to clear any Obsidian copy
+        import glob
+        from src.config.vli import VAULT_ROOT
+        obsidian_journals_dir = os.path.join(VAULT_ROOT, "bluesec-obsidian-vault", "trading", "journals")
+        obsidian_pattern = os.path.join(obsidian_journals_dir, f"Trade Journal - {today_str}*.md")
+        
+        cleared_files = 0
+        if os.path.exists(perf_path):
+            try:
+                os.remove(perf_path)
+                cleared_files += 1
+            except:
+                pass
+                
+        for path in glob.glob(obsidian_pattern):
+            try:
+                os.remove(path)
+                cleared_files += 1
+            except:
+                pass
+                
+        if cleared_files > 0:
+            res_msg = f"Daily Post-Mortem report for {today_str} has been successfully evicted from the cache and Obsidian vault."
+        else:
+            res_msg = f"Daily Post-Mortem report for {today_str} is not currently present in the cache."
             
         _append_to_vli_history("ai", res_msg, thread_id=transaction_id)
         return {"response": res_msg, "status": "OK", "error_details": None, "thread_id": transaction_id}
@@ -4109,7 +4154,7 @@ async def _background_raw_news_fetch(targets: list[str]):
                 tf_path = get_vli_path("VLI_Raw_Telemetry.md")
                 with open(tf_path, "a", encoding="utf-8") as f:
                     ts = datetime.now().strftime("[%H:%M:%S]")
-                    f.write(f"\n{ts} 📡 **[BACKGROUND FETCH]** Raw news successfully gathered for {', '.join(targets)}. Sent to Analysis Window.\n")
+                    f.write(f"\n{ts}  **[BACKGROUND FETCH]** Raw news successfully gathered for {', '.join(targets)}. Sent to Analysis Window.\n")
             except Exception:
                 pass
     except Exception as e:

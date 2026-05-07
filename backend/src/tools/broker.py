@@ -344,7 +344,20 @@ async def get_daily_blotter(days_back: int = 2):
         pnl_data = BrokerageCache.calculate_realized_pnl(account_id, cutoff_str, end_date_str)
         total_realized_pnl += pnl_data.get("total_pnl", 0.0)
 
-    blotter_text = f"**TOTAL REALIZED PNL FOR PERIOD**: ${total_realized_pnl:,.2f}\n\nRecent Executions:\n" + "\n".join([str(t) for t in recent_trades])
+    # Find the most recent trade date to calculate Single-Day PnL
+    latest_trade_date_str = end_date_str
+    if recent_trades:
+        dates = [t.split('T')[0] if 'T' in t else t.split(' ')[0] for t in recent_trades]
+        valid_dates = [d for d in dates if len(d) >= 10]
+        if valid_dates:
+            latest_trade_date_str = max(valid_dates)[:10]
+
+    single_day_pnl = 0.0
+    for account_id in cache.keys():
+        pnl_data = BrokerageCache.calculate_realized_pnl(account_id, latest_trade_date_str, latest_trade_date_str)
+        single_day_pnl += pnl_data.get("total_pnl", 0.0)
+
+    blotter_text = f"**SINGLE-DAY PNL ({latest_trade_date_str})**: ${single_day_pnl:,.2f}\n**MULTI-DAY PERIOD PNL**: ${total_realized_pnl:,.2f}\n\nRecent Executions:\n" + "\n".join([str(t) for t in recent_trades])
     
     # Missing Reports Logic
     missing_reports = []
@@ -379,7 +392,7 @@ async def get_daily_blotter(days_back: int = 2):
         else:
             blotter_text += f"\n\n--- Analysis for {ticker} ---\n[REPORT MISSING OR FAILED TO GENERATE]"
 
-    directive = "\n\n[CRITICAL DIRECTIVE TO AI: The text above contains the user's raw executions followed by the structural analysis for the tickers they traded. Your job is NOT to repeat the structural analysis. Your job is to ACT AS A POST-TRADE ANALYST. You must mathematically grade the user's entry and exit efficiency against the POC, VAH, VAL, and High/Low ranges mentioned in the analysis. Did they buy the top? Did they sell the bottom? Did they follow the strategy? Provide a highly critical Post-Trade Efficiency Report! CRITICAL: YOU ARE STRICTLY FORBIDDEN FROM ESTIMATING OR CALCULATING THE DRAWDOWN OR PNL. You MUST use the exact 'TOTAL REALIZED PNL FOR PERIOD' figure provided at the top of the execution list.]"
+    directive = "\n\n[CRITICAL DIRECTIVE TO AI: The text above contains the user's raw executions followed by the structural analysis for the tickers they traded. Your job is NOT to repeat the structural analysis. Your job is to ACT AS A POST-TRADE ANALYST. You must mathematically grade the user's entry and exit efficiency against the POC, VAH, VAL, and High/Low ranges mentioned in the analysis. Did they buy the top? Did they sell the bottom? Did they follow the strategy? Provide a highly critical Post-Trade Efficiency Report! CRITICAL: YOU ARE STRICTLY FORBIDDEN FROM ESTIMATING OR CALCULATING THE DRAWDOWN OR PNL. You MUST use the exact 'SINGLE-DAY PNL' figure provided at the top of the execution list for daily reports, to prevent confusing multi-day views with single session performance.]"
     return blotter_text + directive
 
 
