@@ -120,7 +120,7 @@ async def trigger_scanner_trawl():
 @router.get("/bunker")
 async def get_bunker_list():
     """Retrieve the current persistent Combat List (Phase A)."""
-    strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SCANNER_STRIKE_LIST.json"))
+    strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "STRIKE_LIST.json"))
     if not os.path.exists(strike_list_path):
         return {"status": "success", "data": []}
     
@@ -145,7 +145,7 @@ async def trigger_shield_trawl():
 @router.get("/shield-bunker")
 async def get_shield_bunker_list():
     """Retrieve the current Shield Combat List."""
-    strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SHIELD_STRIKE_LIST.json"))
+    strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "STRIKE_LIST.json"))
     if not os.path.exists(strike_list_path):
         return {"status": "success", "data": []}
     
@@ -195,7 +195,7 @@ async def get_scanner_state():
     from src.config.vli import get_vli_path
     
     try:
-        transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "SCANNER_RES_state.json"))
+        transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "STRIKE_RES_state.json"))
         if os.path.exists(transit_path):
             with open(transit_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -215,7 +215,7 @@ async def scanner_stream():
             
             # 1. Load Universe (Combat List + Discovery)
             strike_list = []
-            strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SCANNER_STRIKE_LIST.json"))
+            strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "STRIKE_LIST.json"))
             if os.path.exists(strike_list_path):
                 try:
                     with open(strike_list_path, "r", encoding="utf-8") as f:
@@ -332,7 +332,9 @@ async def scanner_stream():
                     p2_misses = p2_data.get("misses", [])
                     
                     for m in p2_misses:
-                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'PULSE REJECTED: {m.get(\"symbol\", \"UNKNOWN\")} - RVOL: {m.get(\"rvol\", 0.0):.2f}'}), cls=NpEncoder)}\n\n"
+                        sym = m.get("symbol", "UNKNOWN")
+                        rvol = m.get("rvol", 0.0)
+                        yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'PULSE REJECTED: {sym} - RVOL: {rvol:.2f}'}), cls=NpEncoder)}\n\n"
                     
                     yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Phase 2 complete. Diagnostic Candidates Displayed: {len(p2_candidates)}'}), cls=NpEncoder)}\n\n"
                 except Exception as e:
@@ -345,6 +347,11 @@ async def scanner_stream():
                 for p in p2_candidates:
                     match = next((x for x in phase0_raw if x["symbol"] == p["symbol"]), {})
                     merged = sanitize_data({**match, **p})
+                    
+                    # Preserve origin tier to ensure UI filtering by SHIELD/SWORD doesn't break
+                    if "tier" in match and match["tier"] in ["SHIELD", "SWORD"]:
+                        merged["tier"] = match["tier"]
+                        
                     p2_full.append(merged)
                     
                 yield f"data: {json.dumps(sanitize_data({'type': 'phase2', 'data': p2_full}), cls=NpEncoder)}\n\n"

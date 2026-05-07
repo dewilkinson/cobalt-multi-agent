@@ -71,9 +71,9 @@ async def _run_node_with_tiered_fallback(agent_type, state, config, tools=None, 
         remaining_global = 175.0 - elapsed_global # Use 175s to leave buffer for 180s master limit
         
         tier_timeouts = {
-            "reasoning": 120.0,
-            "basic": 90.0,
-            "legacy": 30.0
+            "reasoning": 180.0,
+            "basic": 150.0,
+            "legacy": 60.0
         }
         
         # [ADAPTIVE SKIP] If reasoning is requested but we have < 30s left, skip to basic

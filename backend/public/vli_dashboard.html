@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0042";
+        const VLI_CLIENT_VERSION = "00.000.0054";
     </script>
     
     <link
@@ -37,16 +37,16 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <style>
         :root {
-            --cobalt-deep: #0a0c10;
+            --cobalt-deep: #050505;
             --cobalt-blue: #58a6ff;
             --emerald-green: #3fb950;
             --ruby-red: #f85149;
-            --glass-bg: rgba(13, 17, 23, 0.85);
-            --card-border: rgba(255, 255, 255, 0.1);
+            --glass-bg: #111111;
+            --card-border: #333333;
             --text-primary: #e6edf3;
             --text-muted: #8b949e;
-            --font-main: 'Outfit', sans-serif;
-            --font-mono: 'Inter', monospace;
+            --font-main: 'Segoe UI', Tahoma, 'Inter', sans-serif;
+            --font-mono: 'Consolas', 'JetBrains Mono', monospace;
             --price-up: #3fb950;
             --price-down: #f85149;
             --amber-gold: #d29922;
@@ -65,7 +65,7 @@
             height: 100vh;
             overflow: hidden !important;
             /* Rigid No-Scroll */
-            background: radial-gradient(circle at 50% -20%, #161b22 0%, #0a0c10 100%);
+            background: var(--cobalt-deep);
         }
 
         /* --- DASHBOARD GRID --- */
@@ -73,18 +73,8 @@
             position: relative;
             width: 100vw;
             height: 100vh;
-            background-color: #0d111b; /* Deep Drafting Slate */
-            background-image: 
-                /* Mathematically Anchored 120px Dotted Major Lines */
-                radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.12) 1px, transparent 1px),
-                radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.12) 1px, transparent 1px),
-                /* Mathematically Anchored 40px Solid Minor Grid */
-                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-            background-size: 120px 8px, 8px 120px, 100% 40px, 40px 100%;
-            background-position: 0 0; /* Strict Origin Alignment */
+            background-color: var(--cobalt-deep);
             overflow: hidden;
-            box-shadow: inset 0 0 100px rgba(0,0,0,0.5); 
         }
 
         /* Grid containers removed for WM mode, cards moved to root */
@@ -95,19 +85,18 @@
         .card {
             background: var(--glass-bg);
             border: 1px solid var(--card-border);
-            backdrop-filter: blur(12px);
-            border-radius: 12px;
+            border-radius: 2px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
             position: absolute;
-            min-height: 100px;
-            min-width: 200px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            min-height: 60px;
+            min-width: 150px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
             transition: opacity 0.2s ease, transform 0.1s ease;
         }
 
-        .card[data-artifact-path].is-dragging {
+        .card.is-dragging {
             z-index: 99999 !important;
             box-shadow: 0 0 30px rgba(88, 166, 255, 0.4) !important;
             opacity: 0.3 !important;
@@ -116,7 +105,7 @@
             pointer-events: none !important;
         }
 
-        .card[data-artifact-path].is-dragging .card-body {
+        .card.is-dragging .card-body {
             display: none !important;
         }
 
@@ -127,7 +116,7 @@
             padding: 6px 10px;
             border-radius: 4px;
             font-family: var(--font-mono);
-            font-size: 13px;
+            font-size: 11px;
             color-scheme: dark;
         }
         .vli-input:focus {
@@ -141,18 +130,23 @@
         }
 
         .card-header {
-            height: 40px;
-            padding: 0 15px;
-            background: rgba(255, 255, 255, 0.05);
+            height: 24px;
+            padding: 0 8px;
+            background: #1a1a1a;
             border-bottom: 1px solid var(--card-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-weight: 700;
-            font-size: 17px;
-            letter-spacing: 0.3px;
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
             border-radius: 0 !important;
             z-index: 9999 !important;
+            cursor: grab !important;
+        }
+        .is-dragging .card-header, body.drag-hover * {
+            cursor: grabbing !important;
         }
 
         .card-controls {
@@ -176,6 +170,18 @@
         .win-btn:hover {
             opacity: 1;
             transform: scale(1.1);
+        }
+
+        .win-dock {
+            display: none;
+        }
+        body.standalone .popout-target .win-dock {
+            display: flex !important;
+        }
+        .win-dock::after {
+            content: '⤓';
+            font-size: 14px;
+            color: var(--text-primary);
         }
 
         /* Minimalist Line Icons */
@@ -236,6 +242,20 @@
         body.standalone #wm-workspace::before {
             display: none !important;
         }
+
+        .vli-menubar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 38px;
+            background: rgba(13, 17, 27, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            z-index: 10000;
+        }
         body.standalone .popout-target {
             position: fixed !important;
             top: 0 !important;
@@ -267,7 +287,7 @@
         .resize-se { bottom: -4px; right: -4px; width: 12px; height: 12px; cursor: nwse-resize; }
 
         .card-body {
-            padding: 15px;
+            padding: 6px;
             flex: 1;
             min-height: 0;
             display: flex;
@@ -276,6 +296,7 @@
             position: relative;
             height: 100%;
             width: 100%;
+            font-size: 11px;
         }
 
         /* HUD Badges */
@@ -306,19 +327,22 @@
         .macro-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 11px;
         }
 
         .macro-table th {
             text-align: left;
             color: var(--text-muted);
             font-size: 10px;
-            padding-bottom: 8px;
+            padding: 2px 4px;
+            border-bottom: 1px solid var(--card-border);
+            border-top: 1px solid var(--card-border);
+            text-transform: uppercase;
         }
 
         .macro-table td {
-            padding: 6px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            padding: 2px 4px;
+            border-bottom: 1px solid #1e1e1e;
         }
 
         .symbol-bold {
@@ -345,7 +369,7 @@
             max-width: 95%;
             padding: 18px;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 11px;
             line-height: 1.6;
             position: relative;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
@@ -357,7 +381,7 @@
             font-weight: 400;
             align-self: flex-start;
             font-family: 'Inter', sans-serif;
-            font-size: 15px; /* Refined for readability */
+            font-size: 12px; /* Refined for readability */
             line-height: 1.6;
             margin-bottom: 32px;
             box-shadow: none; /* Gemini uses flat design */
@@ -407,7 +431,7 @@
             width: 100%;
             border-collapse: collapse;
             margin: 16px 0;
-            font-size: 14px;
+            font-size: 12px;
         }
 
         .msg-ai th {
@@ -441,7 +465,7 @@
             padding: 8px 0;
             user-select: none;
             color: var(--text-muted);
-            font-size: 14px;
+            font-size: 11px;
             font-weight: 500;
             transition: color 0.2s;
         }
@@ -466,7 +490,7 @@
             overflow: hidden;
             transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s;
             padding: 0 10px 0 28px;
-            font-size: 13px;
+            font-size: 11px;
             color: var(--text-muted);
             line-height: 1.6;
             border-left: 1px solid rgba(255, 255, 255, 0.08);
@@ -490,7 +514,7 @@
             align-self: flex-end;
             border-radius: 20px;
             padding: 12px 20px;
-            font-size: 15px;
+            font-size: 12px;
             max-width: 80%;
             border-bottom-right-radius: 4px;
             margin-bottom: 32px;
@@ -542,7 +566,7 @@
             overflow-x: auto;
             border: 1px solid rgba(255, 255, 255, 0.05);
             font-family: var(--font-mono);
-            font-size: 15px;
+            font-size: 11px;
             /* Increased from 13px */
             color: #c9d1d9;
             margin: 10px 0;
@@ -590,7 +614,7 @@
             border: none;
             color: #fff;
             font-family: var(--font-main);
-            font-size: 19px;
+            font-size: 12px;
             outline: none;
             resize: none;
             min-height: 60px;
@@ -683,7 +707,7 @@
         /* TELEMETRY TAIL */
         .terminal {
             font-family: 'JetBrains Mono', Consolas, monospace !important;
-            font-size: 11pt !important;
+            font-size: 11px !important;
             /* Increased from 10pt */
             background: #05070a;
             color: #d1d5db;
@@ -713,7 +737,7 @@
         .terminal h2,
         .terminal h3 {
             color: var(--cobalt-blue);
-            font-size: 11pt;
+            font-size: 11px;
             margin: 12px 0 6px 0;
             letter-spacing: 0.5px;
         }
@@ -786,7 +810,7 @@
             justify-content: space-between;
             align-items: center;
             font-weight: 700;
-            font-size: 16px;
+            font-size: 11px;
             cursor: move;
             user-select: none;
         }
@@ -803,7 +827,7 @@
             color: var(--text-muted);
             border-right: 1px solid var(--card-border);
             font-weight: 600;
-            font-size: 13px;
+            font-size: 11px;
             text-transform: uppercase;
         }
 
@@ -826,7 +850,7 @@
             color: var(--text-primary);
             padding: 15px;
             font-family: var(--font-mono);
-            font-size: 16px;
+            font-size: 11px;
             resize: none;
             border-radius: 4px;
         }
@@ -932,7 +956,7 @@
         .analysis-report {
             flex: 1;
             font-family: 'Inter', sans-serif;
-            font-size: 17px;
+            font-size: 11px;
             color: var(--text-primary);
             line-height: 1.45;
             padding: 18px;
@@ -989,7 +1013,7 @@
             margin: 20px 0;
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid var(--card-border);
-            font-size: 13px;
+            font-size: 11px;
         }
 
         .analysis-report th {
@@ -1053,7 +1077,7 @@
             z-index: 100000;
             user-select: none;
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            font-size: 17px;
+            font-size: 11px;
             font-weight: 600;
             letter-spacing: 0.3px;
             color: var(--text-primary);
@@ -1157,7 +1181,7 @@
     <!-- SERVER HANDSHAKE OVERLAY -->
     <div id="vli-handshake-overlay" style="position: fixed; inset: 0; z-index: 99999; display: none; align-items: center; justify-content: center; background: transparent; backdrop-filter: none; pointer-events: none;">
         <div id="vli-handshake-dialog" style="background: #0d111b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 32px; width: 400px; box-shadow: 0 0 40px rgba(0,0,0,0.8); text-align: center; transition: background 0.3s ease; pointer-events: auto;">
-            <div id="vli-handshake-title" style="font-size: 14px; font-weight: 700; margin-bottom: 24px; font-family: var(--font-main); letter-spacing: 0.3px; text-transform: uppercase; color: var(--text-muted);">Connecting to Server (0s)</div>
+            <div id="vli-handshake-title" style="font-size: 11px; font-weight: 700; margin-bottom: 24px; font-family: var(--font-main); letter-spacing: 0.3px; text-transform: uppercase; color: var(--text-muted);">Connecting to Server (0s)</div>
             
             <div id="vli-handshake-details" style="display: none; margin-bottom: 24px; font-size: 11px; color: var(--ruby-red); background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.2); padding: 10px; border-radius: 4px; font-family: var(--font-mono); text-align: left; line-height: 1.5;"></div>
             
@@ -1375,7 +1399,7 @@
             </div>
             <div class="modal-body" style="padding-top: 5px;">
                 <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; border-bottom: 1px dotted rgba(255,255,255,0.1); padding-bottom: 10px;">
-                     <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Active Module:</span>
+                     <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Active Module:</span>
                      <select id="profile-selector" onchange="onProfileDropdownChange()" style="flex:1; background: rgba(0,0,0,0.4); border: 1px solid var(--card-border); color: #fff; padding: 5px; outline: none;"></select>
                      <button class="btn-action" style="padding: 5px 15px; font-size: 12px; background: rgba(255,255,255,0.1);" onclick="addNewProfileFile()">+ Add New</button>
                 </div>
@@ -1396,7 +1420,7 @@
                 <div style="cursor:pointer; color:var(--text-muted);" onclick="closeSnaptradeModal()">✕</div>
             </div>
             <div class="modal-body" style="display: flex; flex-direction: column; gap: 15px;">
-                <p style="color: var(--text-muted); font-size: 13px;">Enter your SnapTrade API keys below to link your brokerage accounts (Fidelity, IBKR, TastyTrade) directly into the Portfolio Manager node.</p>
+                <p style="color: var(--text-muted); font-size: 11px;">Enter your SnapTrade API keys below to link your brokerage accounts (Fidelity, IBKR, TastyTrade) directly into the Portfolio Manager node.</p>
                 <div>
                     <label style="font-size: 11px; color: var(--text-muted); margin-bottom: 5px; display: block;">CLIENT ID (REQUIRED)</label>
                     <input type="password" id="snaptrade-client-id" style="width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--card-border); color: #fff; padding: 8px; outline: none; border-radius: 4px;" placeholder="Your SnapTrade Client ID" />
@@ -1425,7 +1449,7 @@
 
     <div class="vli-menubar">
         <div class="menu-left">
-            <div class="menu-item" style="font-weight: 800; font-size: 16px; padding-right: 15px; width: 145px; justify-content: center; display: flex; align-items: center; border-right: 1px solid rgba(255,255,255,0.05); margin-right: 5px;">
+            <div class="menu-item" style="font-weight: 800; font-size: 11px; padding-right: 15px; width: 145px; justify-content: center; display: flex; align-items: center; border-right: 1px solid rgba(255,255,255,0.05); margin-right: 5px;">
                 <span style="color: #fff; letter-spacing: 1.5px; line-height: 1; display: inline-block;">COBALT</span>
                 <span style="color: var(--cobalt-blue); margin: 0 6px; font-weight: 300; line-height: 1; display: inline-block; transform: translateY(-2px);">|</span>
                 <span style="color: var(--cobalt-blue); letter-spacing: 1.5px; font-family: 'JetBrains Mono', monospace; font-weight: 700; line-height: 1; display: inline-block; transform: translateY(1.5px);">QDESK</span>
@@ -1669,6 +1693,8 @@
                     bringToFront(cardBox);
                     if (e.target.closest('.card-header') && !e.target.classList.contains('win-btn')) {
                         winManager.dragging = cardBox;
+                        winManager.draggingOriginalZ = cardBox.style.zIndex;
+                        cardBox.style.zIndex = '999999';
                         cardBox.classList.add('is-dragging');
                         winManager.startX = e.clientX;
                         winManager.startY = e.clientY;
@@ -1863,6 +1889,7 @@
                             <div>${typeDef.title} ${liveBadgeHTML}</div>
                         </div>
                         <div class="card-controls">
+                            <div class="win-btn win-dock" onclick="dockWindow('win-${instanceGuid}')" title="Dock to Main Workspace"></div>
                             <div class="win-btn win-min" onclick="toggleCollapse('win-${instanceGuid}')" title="Collapse"></div>
                             ${typeGuid === 'VLI_CHAT' ? '' : `<div class="win-btn win-pop" onclick="popoutWindow('win-${instanceGuid}')" title="Pop-out"></div>`}
                             <div class="win-btn win-max" onclick="maxWin('win-${instanceGuid}')" title="Maximize"></div>
@@ -1932,11 +1959,32 @@
             
             bindCardEvents(cardBox) {
                 const header = cardBox.querySelector('.card-header');
+
+                if (document.body.classList.contains('standalone')) {
+                    header.draggable = true;
+                    header.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', JSON.stringify({
+                            action: 'REDOCK_WINDOW',
+                            typeGuid: cardBox.dataset.typeGuid,
+                            popoutId: cardBox.id
+                        }));
+                        e.dataTransfer.effectAllowed = 'move';
+                    });
+                }
+
                 header.addEventListener('mousedown', (e) => {
                     bringToFront(cardBox);
                     if (e.target.classList.contains('win-btn')) return;
                     
+                    if (document.body.classList.contains('standalone')) {
+                        return; // Allow native HTML5 drag in standalone mode
+                    }
+                    
+                    e.preventDefault();
+                    
                     winManager.dragging = cardBox;
+                    winManager.draggingOriginalZ = cardBox.style.zIndex;
+                    cardBox.style.zIndex = '999999';
                     cardBox.classList.add('is-dragging');
                     winManager.startX = e.clientX;
                     winManager.startY = e.clientY;
@@ -2050,17 +2098,18 @@
                 let isOffCanvas = winManager.dragging.dataset.artifactPath && e.clientX < 300;
                 
                 if (isOffCanvas) {
-                    document.querySelectorAll('.tree-folder').forEach(node => {
+                    document.querySelectorAll('.tree-folder > .tree-item').forEach(node => {
                         node.style.backgroundColor = '';
                     });
                     
                     const elemUnder = document.elementFromPoint(e.clientX, e.clientY);
                     if (elemUnder) {
-                        const treeNode = elemUnder.closest('.tree-folder');
-                        if (treeNode) {
-                            const label = treeNode.querySelector('.tree-label');
-                            if (label && label.innerText.trim() === 'Notes') {
-                                treeNode.style.backgroundColor = 'rgba(88, 166, 255, 0.2)';
+                        const fileNode = elemUnder.closest('.tree-file');
+                        if (!fileNode) {
+                            const treeNode = elemUnder.closest('.tree-folder');
+                            if (treeNode) {
+                                const treeItem = treeNode.querySelector(':scope > .tree-item');
+                                if (treeItem) treeItem.style.backgroundColor = 'rgba(88, 166, 255, 0.2)';
                             }
                         }
                     }
@@ -2068,14 +2117,14 @@
 
                 let didSnap = false;
                 if (!isOffCanvas && snapModeEnabled && snapStrength > 0) {
-                    const snapThreshold = 32 * snapStrength; // Dominant magnetic pull to other windows
-                    const gridSnapThreshold = 14 * snapStrength; // Base background grid snap
+                    const snapThreshold = 45 * snapStrength; // Dominant magnetic pull to other windows
+                    const gridSnapThreshold = 8 * snapStrength; // Base background grid snap (micro-grid)
                     const elWidth = winManager.dragging.offsetWidth;
                     const elHeight = winManager.dragging.offsetHeight;
                     
-                    // 1. Strict Top-Left Grid Anchorage to maintain Title-Bar matrix alignment
-                    const gridX = Math.round(newLeft / 40) * 40;
-                    const gridY = Math.round(newTop / 40) * 40;
+                    // 1. Strict Top-Left Grid Anchorage (10px micro-grid instead of 40px)
+                    const gridX = Math.round(newLeft / 10) * 10;
+                    const gridY = Math.round(newTop / 10) * 10;
                     
                     if (Math.abs(newLeft - gridX) < gridSnapThreshold) { newLeft = gridX; didSnap = true; }
                     if (Math.abs(newTop - gridY) < gridSnapThreshold) { newTop = gridY; didSnap = true; }
@@ -2368,7 +2417,7 @@
                 const check = isVisible ? '☑' : '☐';
                 const el = document.createElement('div');
                 el.className = 'dropdown-item';
-                el.innerHTML = `<span>[${badge}] ${title}</span> <span style="font-size:16px; margin-left: 20px;">${check}</span>`;
+                el.innerHTML = `<span>[${badge}] ${title}</span> <span style="font-size: 11px; margin-left: 20px;">${check}</span>`;
                 el.onclick = () => {
                     if (isVisible) {
                         card.style.display = 'none';
@@ -2403,7 +2452,7 @@
         }
 
         function onMouseUp(e) {
-            document.querySelectorAll('.tree-folder').forEach(node => {
+            document.querySelectorAll('.tree-folder > .tree-item').forEach(node => {
                 node.style.backgroundColor = '';
             });
             
@@ -2411,10 +2460,10 @@
                 if (e && winManager.dragging.dataset.artifactPath) {
                     const elemUnder = document.elementFromPoint(e.clientX, e.clientY);
                     if (elemUnder) {
-                        const treeNode = elemUnder.closest('.tree-folder');
-                        if (treeNode) {
-                            const label = treeNode.querySelector('.tree-label');
-                            if (label && label.innerText.trim() === 'Notes') {
+                        const fileNode = elemUnder.closest('.tree-file');
+                        if (!fileNode) {
+                            const treeNode = elemUnder.closest('.tree-folder');
+                            if (treeNode) {
                                 const dragged = winManager.dragging;
                                 const rect = dragged.getBoundingClientRect();
                                 const targetRect = treeNode.getBoundingClientRect();
@@ -2433,7 +2482,7 @@
                                 document.body.appendChild(ghost);
                                 
                                 const cardId = dragged.id.replace('win-', '');
-                                UXManager.closeCard(cardId);
+                                UXManager.removeCard(cardId);
                                 
                                 requestAnimationFrame(() => {
                                     ghost.style.left = (targetRect.left + targetRect.width / 2) + 'px';
@@ -2446,19 +2495,27 @@
                                 
                                 setTimeout(() => {
                                     if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
-                                    treeNode.style.transition = 'background-color 0.2s';
-                                    treeNode.style.backgroundColor = 'rgba(88, 166, 255, 0.4)';
-                                    setTimeout(() => { treeNode.style.backgroundColor = ''; }, 500);
+                                    const treeItem = treeNode.querySelector(':scope > .tree-item');
+                                    if (treeItem) {
+                                        treeItem.style.transition = 'background-color 0.2s';
+                                        treeItem.style.backgroundColor = 'rgba(88, 166, 255, 0.4)';
+                                        setTimeout(() => { treeItem.style.backgroundColor = ''; }, 500);
+                                    }
                                 }, 400);
 
-                                fetch('/api/vli/artifacts/copy_to_notes', {
+                                const targetFolderName = treeNode.dataset.path || treeNode.querySelector('.tree-label').innerText.trim();
+
+                                fetch('/api/vli/artifacts/copy_to_folder', {
                                     method: 'POST',
                                     headers: {'Content-Type': 'application/json'},
-                                    body: JSON.stringify({ source_path: dragged.dataset.artifactPath })
+                                    body: JSON.stringify({ source_path: dragged.dataset.artifactPath, target_folder: targetFolderName })
                                 }).then(res => res.json())
                                   .then(data => {
                                       if (data.status === 'OK') {
-                                          window.vliForceOpenFolder = "Notes";
+                                          let folderBaseName = targetFolderName;
+                                          if (folderBaseName.includes('/')) folderBaseName = folderBaseName.split('/').pop();
+                                          if (folderBaseName.includes('\\')) folderBaseName = folderBaseName.split('\\').pop();
+                                          window.vliForceOpenFolder = folderBaseName;
                                           loadArtifactTree();
                                       } else {
                                           console.error('Copy failed:', data.detail || data);
@@ -2470,6 +2527,7 @@
                         }
                     }
                 }
+                winManager.dragging.style.zIndex = winManager.draggingOriginalZ || winManager.maxZ;
                 winManager.dragging.classList.remove('is-dragging');
                 saveLayout();
             } else if (winManager.resizing) {
@@ -2480,6 +2538,19 @@
             winManager.lastTime = null;
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
+        }
+
+        function dockWindow(id) {
+            if (document.body.classList.contains('standalone')) {
+                const cardEl = document.getElementById(id);
+                if (cardEl) {
+                    bc.postMessage({
+                        type: 'REDOCK_WINDOW_API',
+                        typeGuid: cardEl.dataset.typeGuid,
+                        popoutId: cardEl.id
+                    });
+                }
+            }
         }
 
         function toggleCollapse(id) {
@@ -2541,6 +2612,9 @@
                     target.style.height = '100vh';
                 }
                 bc.onmessage = (e) => {
+                    if (e.data.type === 'REDOCK_COMPLETE' && e.data.popoutId === popoutId) {
+                        window.close();
+                    }
                     if (e.data.type === 'STATE_UPDATE') {
                         const data = e.data.state;
                         renderTelemetry(data);
@@ -2552,6 +2626,38 @@
                         if (window.VLI_DEBUG) console.log("[VLI_ORCHESTRA] Satellite Node Re-Sync Successful.");
                     }
                 };
+            } else {
+                bc.onmessage = (e) => {
+                    if (e.data.type === 'REDOCK_WINDOW_API') {
+                        const instanceGuid = e.data.popoutId.replace('win-', '');
+                        UXManager.createCard(e.data.typeGuid, {}, instanceGuid);
+                        bc.postMessage({ type: 'REDOCK_COMPLETE', popoutId: e.data.popoutId });
+                    }
+                };
+
+                document.body.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    document.body.classList.add('drag-hover');
+                });
+                document.body.addEventListener('dragleave', (e) => {
+                    document.body.classList.remove('drag-hover');
+                });
+                document.body.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    document.body.classList.remove('drag-hover');
+                    try {
+                        const dataStr = e.dataTransfer.getData('text/plain');
+                        if (dataStr) {
+                            const data = JSON.parse(dataStr);
+                            if (data.action === 'REDOCK_WINDOW') {
+                                const instanceGuid = data.popoutId.replace('win-', '');
+                                UXManager.createCard(data.typeGuid, {}, instanceGuid);
+                                bc.postMessage({ type: 'REDOCK_COMPLETE', popoutId: data.popoutId });
+                            }
+                        }
+                    } catch(err) { }
+                });
             }
         });
 
@@ -2569,6 +2675,11 @@
             const top = (screen.height - height) / 2;
             window.open(window.location.href.split('?')[0] + '?popout=' + id + '&type=' + typeGuid, id, 
                 `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,status=no`);
+            
+            // Remove the card from the main UI
+            if (id.startsWith('win-')) {
+                UXManager.removeCard(id.replace('win-', ''));
+            }
         }
 
         async function resetVLI() {
@@ -2727,9 +2838,49 @@
         async function copyMessage(btn) {
             const msgContent = btn.closest('.msg-ai-content').querySelector('.chat-inline-markdown').innerText;
             await navigator.clipboard.writeText(msgContent);
-            const oldText = btn.innerText;
-            btn.innerText = '✅';
-            setTimeout(() => btn.innerText = oldText, 2000);
+            const oldHtml = btn.innerHTML;
+            btn.innerHTML = '✅';
+            setTimeout(() => btn.innerHTML = oldHtml, 2000);
+        }
+
+        async function popoutMessage(btn) {
+            const aiMsg = btn.closest('.msg-ai-content');
+            let contentHtml = "";
+            const inlineMd = aiMsg.querySelector('.chat-inline-markdown');
+            if (inlineMd) {
+                contentHtml = inlineMd.innerHTML;
+            } else {
+                contentHtml = aiMsg.innerHTML;
+            }
+            
+            if (typeof CARD_TYPES !== 'undefined' && !CARD_TYPES['ARTIFACT_VIEWER']) {
+                CARD_TYPES['ARTIFACT_VIEWER'] = {
+                    idPrefix: "ART",
+                    title: "Artifact Viewer",
+                    isSingleton: false,
+                    initContent: () => `<div class="artifact-content msg-ai" style="padding:15px; overflow-y:auto; height:100%;"></div>`,
+                    onAttach: () => {}
+                };
+            }
+            
+            if (typeof UXManager !== 'undefined') {
+                const card = UXManager.createCard('ARTIFACT_VIEWER', {
+                    top: '100px', left: '100px', width: '700px', height: '600px'
+                });
+                
+                if (card) {
+                    const titleEl = card.querySelector('.card-header > div:first-child > div:nth-child(2)');
+                    if (titleEl) titleEl.innerText = "Message Popout";
+                    const contentEl = card.querySelector('.artifact-content');
+                    if (contentEl) {
+                        contentEl.innerHTML = contentHtml;
+                        contentEl.style.color = "var(--text-muted)";
+                    }
+                }
+            } else {
+                console.warn("UXManager not found, falling back to window.alert");
+                alert("Popout not available without UXManager.");
+            }
         }
 
         // --- GEMINI MESSAGE RENDERING ENGINE ---
@@ -2765,7 +2916,19 @@
                         <div class="chat-inline-markdown">${applyStatusFormatting(marked.parse(msg.content || ''))}</div>
                         <div style="font-size:10px; color:var(--text-muted); margin-top:12px; display:flex; gap:12px; align-items:center;">
                             <span>${msg.timestamp}</span>
-                            <span style="cursor:pointer; opacity: 0.6; transition: opacity 0.2s;" onclick="copyMessage(this)" title="Copy Response">📋</span>
+                            <span style="cursor:pointer; opacity: 0.6; transition: opacity 0.2s;" onclick="popoutMessage(this)" title="Popout Message">
+                                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                            </span>
+                            <span style="cursor:pointer; opacity: 0.6; transition: opacity 0.2s;" onclick="copyMessage(this)" title="Copy Response">
+                                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </span>
                         </div>
                     </div>
                 `;
@@ -3684,7 +3847,7 @@
                             <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
                         <div style="flex-grow: 1; overflow-y: auto;">
-                            <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 13px;">
+                            <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
                                         <th style="padding: 8px 4px; text-align: left;">SYMBOL</th>
@@ -4637,7 +4800,7 @@
                             <div style="color: var(--emerald-green); font-weight: 800;">${(res.pulse_mode || '').includes('TradingView') ? 'Trading View - Shield Scan' : 'Defensive Shield'}</div>
                             <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sh-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
-                        <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 13px;">
+                        <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                             <thead>
                                 <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
                                     <th style="padding: 8px 4px; text-align: left;">SYMBOL</th>
@@ -4848,6 +5011,9 @@
                         const opt = document.createElement('option');
                         opt.value = acc.id;
                         opt.textContent = acc.name || acc.id;
+                        if (acc.id.includes('Rollover IRA') || (acc.name && acc.name.includes('Rollover IRA'))) {
+                            opt.selected = true;
+                        }
                         selectEl.appendChild(opt);
                     });
                     
@@ -5076,7 +5242,6 @@
                 let realizedPnl = parseFloat(data.realized_pnl_summary || 0);
                 
                 positions.forEach(p => {
-                    dayPnl += parseFloat(p.todays_gl_dol || 0);
                     unrealizedPnl += parseFloat(p.total_gl_dol || 0);
                 });
                 
@@ -5240,13 +5405,14 @@
             right: 0;
             width: auto;
             min-width: 0;
+            z-index: 40000;
             height: calc(100vh - 38px);
             background-color: #161b22;
             border-left: 1px solid rgba(255,255,255,0.05);
             color: #d1d5db;
             font-family: var(--font-main);
-            font-size: 13px;
-            z-index: 9000;
+            font-size: 11px;
+            z-index: 40001;
             display: flex;
             flex-direction: row;
             transform: translateX(100%);
@@ -5267,7 +5433,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            z-index: 9001;
+            z-index: 40002;
             transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
@@ -5300,7 +5466,7 @@
             color: var(--emerald-green);
             border-right: 1px solid #161b22;
             transform: translateX(-5px);
-            z-index: 9002;
+            z-index: 40003;
             box-shadow: -6px 0 15px rgba(0,0,0,0.5);
         }
 
@@ -5396,7 +5562,7 @@
         <!-- Coordinator Panel -->
         <div id="tab-coordinator" class="sidebar-content-area" style="display: flex; flex-direction: column; height: 100%; width: 100%;">
             <div class="sidebar-resizer" data-tab-id="coordinator" style="right: auto; left: -2px; cursor: ew-resize;"></div>
-            <div style="padding:15px; font-weight:800; font-size:14px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
+            <div style="padding:15px; font-weight:800; font-size: 11px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
                 <span>COORDINATOR AI</span>
                 <span style="color:var(--emerald-green); font-size:10px; display:flex; align-items:center;">● ONLINE</span>
             </div>
@@ -5411,7 +5577,7 @@
                     </div>
                 </div>
                 <div class="gemini-panel" style="background:#161b22; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:10px;">
-                    <textarea id="chat-input" placeholder="Enter directive or query..." style="width:100%; background:transparent; border:none; color:#fff; resize:none; outline:none; min-height:60px; font-family:var(--font-main); font-size:13px;"></textarea>
+                    <textarea id="chat-input" placeholder="Enter directive or query..." style="width:100%; background:transparent; border:none; color:#fff; resize:none; outline:none; min-height:60px; font-family:var(--font-main); font-size: 11px;"></textarea>
                     <div class="panel-controls" style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
                         <div style="display:flex; gap:15px;">
                             <div style="font-size:11px; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:5px;" title="Thinking Mode Toggle">
@@ -5439,7 +5605,7 @@
         <!-- Artifacts Panel -->
         <div id="tab-artifacts" class="sidebar-content-area" style="display: block; width: 100%;">
             <div class="sidebar-resizer" data-tab-id="artifacts" style="left: auto; right: -2px; cursor: ew-resize;"></div>
-            <div style="padding:15px; font-weight:800; font-size:14px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
+            <div style="padding:15px; font-weight:800; font-size: 11px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
                 <span>REPORTS</span>
                 <span style="cursor:pointer; color:var(--text-muted);" onclick="loadArtifactTree()" title="Refresh">↻</span>
             </div>
@@ -5451,7 +5617,7 @@
         <!-- Strategy Panel -->
         <div id="tab-strategy" class="sidebar-content-area" style="display: none; width: 100%; flex-direction: column;">
             <div class="sidebar-resizer" data-tab-id="strategy" style="left: auto; right: -2px; cursor: ew-resize;"></div>
-            <div style="padding:15px; font-weight:800; font-size:14px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
+            <div style="padding:15px; font-weight:800; font-size: 11px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;">
                 <span>PROFILE & STRATEGY</span>
                 <span style="cursor:pointer; color:var(--text-muted);" onclick="initStrategySidebar()" title="Refresh">↻</span>
             </div>
@@ -5467,7 +5633,7 @@
             </div>
             
             <!-- Summary Block -->
-            <div id="sidebar-module-summary" style="padding: 15px; border-bottom: 1px dotted rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); font-family: var(--font-main); font-size: 13px; color: var(--emerald-green); font-weight: 500; display: none;">
+            <div id="sidebar-module-summary" style="padding: 15px; border-bottom: 1px dotted rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); font-family: var(--font-main); font-size: 11px; color: var(--emerald-green); font-weight: 500; display: none;">
             </div>
             
             <!-- Full Content Block -->
@@ -5667,6 +5833,7 @@
             
             if (node.type === 'folder') {
                 wrapper.className = 'tree-folder';
+                wrapper.dataset.path = node.path || node.name;
                 
                 const d = new Date();
                 const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -5729,6 +5896,11 @@
                 const item = document.createElement('div');
                 item.className = 'tree-item';
                 
+                let displayName = node.name;
+                if (displayName.endsWith('.md')) {
+                    displayName = displayName.substring(0, displayName.length - 3);
+                }
+                
                 let buttonsHtml = '<div style="display:flex; margin-left: auto;">';
                 if (node.canRename) {
                     buttonsHtml += `<div class="tree-rename-btn" title="Rename Report" style="cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px;">🏷️</div>`;
@@ -5739,7 +5911,7 @@
                 }
                 buttonsHtml += '</div>';
 
-                item.innerHTML = `<div class="tree-icon" style="opacity:0.3;">≡</div><div class="tree-label" style="display:flex; width:100%; align-items:center;"><span>${node.name}</span>${buttonsHtml}</div>`;
+                item.innerHTML = `<div class="tree-icon" style="opacity:0.3;">≡</div><div class="tree-label" style="display:flex; width:100%; align-items:center;"><span>${displayName}</span>${buttonsHtml}</div>`;
                 
                 item.onclick = (e) => {
                     if (e.target.closest('.tree-delete-btn')) {

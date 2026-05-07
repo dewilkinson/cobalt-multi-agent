@@ -35,7 +35,7 @@ def sanitize_data(data):
     return data
 
 # Constants
-STRIKE_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "SCANNER_STRIKE_LIST.json"
+STRIKE_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "STRIKE_LIST.json"
 FINVIZ_FILTERS = "f=cap_smallover,sh_float_u100,sh_price_5to50,ta_perf_13w20o"
 
 async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
@@ -302,6 +302,7 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                     "sortino": round(sortino, 2),
                     "float": f_shares,
                     "market_cap": m_cap,
+                    "tier": "SNIPER",
                     "grade": "S" if sortino >= effective_hurdle * 1.5 else "A" if sortino >= effective_hurdle * 1.2 else "B",
                     "timestamp": datetime.now().isoformat()
                 }
@@ -315,6 +316,19 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     verified_list = [v for v in verified_candidates if v is not None]
 
     # 4. Persistence
+    existing_list = []
+    if STRIKE_LIST_PATH.exists():
+        try:
+            with open(STRIKE_LIST_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                existing_list = data.get("strike_list", [])
+        except Exception as e:
+            logger.warning(f"Could not read existing STRIKE_LIST: {e}")
+
+    # Preserve other tiers
+    preserved_list = [c for c in existing_list if c.get("tier") != "SNIPER"]
+    combined_list = preserved_list + verified_list
+
     strike_list = {
         "updated_at": datetime.now().isoformat(),
         "macro": {
@@ -322,8 +336,8 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
             "sortino_hurdle": effective_hurdle
         },
         "universe_size": total_count or len(candidates),
-        "verified_count": len(verified_list),
-        "strike_list": verified_list
+        "verified_count": len(combined_list),
+        "strike_list": combined_list
     }
 
     clean_strike_list = sanitize_data(strike_list)

@@ -164,6 +164,8 @@ def parse_atp_positions(csv_path: str):
         sym = (row.get("Symbol") or "").strip()
         qty_str = (row.get("Quantity") or "0").replace('"', '').replace(',', '')
         cost_str = (row.get("$ Avg Cost") or "0").replace('"', '').replace(',', '')
+        day_gl_str = (row.get("$ Day G/L") or "0").replace('"', '').replace(',', '')
+        total_gl_str = (row.get("$ Total G/L") or "0").replace('"', '').replace(',', '')
         
         raw_account = row.get("Account")
         if not raw_account:
@@ -179,6 +181,14 @@ def parse_atp_positions(csv_path: str):
             cost = float(cost_str)
         except:
             cost = 0.0
+        try:
+            day_gl = float(day_gl_str)
+        except:
+            day_gl = 0.0
+        try:
+            total_gl = float(total_gl_str)
+        except:
+            total_gl = 0.0
             
         if sym and qty > 0:
             if account not in positions_by_account:
@@ -187,15 +197,105 @@ def parse_atp_positions(csv_path: str):
                 "symbol": sym,
                 "quantity": qty,
                 "average_cost": cost,
+                "todays_gl_dol": day_gl,
+                "total_gl_dol": total_gl,
                 "total_cost": qty * cost
             })
             
     return positions_by_account
 
+def parse_atp_closed_positions(csv_path: str):
+    if not os.path.exists(csv_path): return {}
+    with open(csv_path, "r", encoding="utf-8-sig") as f:
+        lines = f.readlines()
+    
+    # Extract 'as of' date from header (e.g. 'as of 05/06/2026 at 08:00:12 AM')
+    as_of_date_str = "Unknown"
+    for line in lines[:5]:
+        if "as of" in line:
+            parts = line.split("as of ")
+            if len(parts) > 1:
+                as_of_date_str = parts[1].split(" at ")[0].strip()
+                break
+
+    # Reformat date to standard YYYY-MM-DD
+    target_date = datetime.datetime.now().strftime("%Y-%m-%d")
+    if as_of_date_str != "Unknown":
+        try:
+            target_date = datetime.datetime.strptime(as_of_date_str, "%m/%d/%Y").strftime("%Y-%m-%d")
+        except:
+            pass
+
+    header_idx = -1
+    for i, line in enumerate(lines):
+        if line.startswith("Symbol,Quantity,Last,Avg Proceeds"):
+            header_idx = i
+            break
+            
+    if header_idx == -1: return {}
+    
+    csv_data = "".join(lines[header_idx:])
+    reader = csv.DictReader(io.StringIO(csv_data))
+    
+    closed_positions_by_account = {}
+    row_count = 0
+    
+    for row in reader:
+        sym = (row.get("Symbol") or "").strip()
+        if sym == "Totals" or not sym:
+            continue
+            
+        qty_str = (row.get("Quantity") or "0").replace('"', '').replace(',', '')
+        avg_proceeds_str = (row.get("Avg Proceeds") or "0").replace('"', '').replace(',', '')
+        avg_cost_str = (row.get("Avg Cost") or "0").replace('"', '').replace(',', '')
+        total_gl_str = (row.get("$ Total G/L") or "0").replace('"', '').replace(',', '')
+        
+        raw_account = row.get("Account")
+        account = (raw_account or "__POSITIONS__").strip()
+        
+        try:
+            qty = float(qty_str)
+            sell_price = float(avg_proceeds_str)
+            buy_price = float(avg_cost_str)
+            pnl = float(total_gl_str)
+        except:
+            continue
+            
+        if qty > 0:
+            if account not in closed_positions_by_account:
+                closed_positions_by_account[account] = []
+                
+            # Chronological algorithm logic
+            seconds = row_count + 1
+            minutes = seconds // 60
+            remaining_secs = seconds % 60
+            buy_time_str = f"{target_date} 09:{30 + minutes:02d}:{remaining_secs:02d}"
+            
+            # Add 1 second for the sell to ensure it occurs after the buy
+            sell_seconds = seconds + 1
+            sell_minutes = sell_seconds // 60
+            sell_rem_secs = sell_seconds % 60
+            sell_time_str = f"{target_date} 09:{30 + sell_minutes:02d}:{sell_rem_secs:02d}"
+            
+            closed_positions_by_account[account].append({
+                "symbol": sym,
+                "qty": qty,
+                "buy_price": buy_price,
+                "sell_price": sell_price,
+                "buy_time": buy_time_str,
+                "close_date": sell_time_str,
+                "pnl": pnl,
+                "pnl_pct": ((sell_price - buy_price) / buy_price * 100) if buy_price > 0 else 0.0
+            })
+            row_count += 2
+            
+    return closed_positions_by_account
+
+
 def get_dropzone_csvs(optional_path=None):
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
     search_dir = optional_path if optional_path else os.path.join(project_root, "data", "dropzone")
-    csvs = {"orders": None, "history": None, "positions": None}
+    csvs = {"orders": None, "history": None, "positions": None, "closed_positions": None}
     
     if os.path.isfile(search_dir) and search_dir.endswith('.csv'):
         all_csvs = [search_dir]
@@ -209,8 +309,10 @@ def get_dropzone_csvs(optional_path=None):
             csvs["orders"] = c
         elif "history" in lower_name and not csvs["history"]:
             csvs["history"] = c
-        elif "positions" in lower_name and not csvs["positions"]:
+        elif "positions" in lower_name and "closed" not in lower_name and not csvs["positions"]:
             csvs["positions"] = c
+        elif "closed_positions" in lower_name and not csvs["closed_positions"]:
+            csvs["closed_positions"] = c
             
     return csvs
 
@@ -269,6 +371,20 @@ def process_dropzone_files(optional_path=None):
         except Exception as e:
             logger.error(f"Failed to archive {csvs['positions']}: {e}")
             messages.append(f"Imported Positions (failed to archive): {os.path.basename(csvs['positions'])}")
+
+    # Process Closed Positions
+    if csvs["closed_positions"]:
+        closed_data = parse_atp_closed_positions(csvs["closed_positions"])
+        for account, cp in closed_data.items():
+            if cp:
+                BrokerageCache.replace_closed_positions(account, cp)
+                updates_made = True
+        try:
+            shutil.move(csvs["closed_positions"], os.path.join(archive_dir, os.path.basename(csvs["closed_positions"])))
+            messages.append(f"Imported Closed Positions: {os.path.basename(csvs['closed_positions'])}")
+        except Exception as e:
+            logger.error(f"Failed to archive {csvs['closed_positions']}: {e}")
+            messages.append(f"Imported Closed Positions (failed to archive): {os.path.basename(csvs['closed_positions'])}")
 
     if updates_made:
         from src.tools.broker import export_to_tradezella

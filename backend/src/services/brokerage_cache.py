@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -249,6 +249,28 @@ class BrokerageCache:
         return existing_activities
 
     @classmethod
+    def get_closed_positions(cls, account_id: str) -> Optional[List[Dict[str, Any]]]:
+        """
+        Retrieves explicitly set closed positions for the account, or None if not set.
+        """
+        cache = cls._load_cache()
+        account_cache = cache.get(account_id, {})
+        return account_cache.get("closed_positions", None)
+
+    @classmethod
+    def replace_closed_positions(cls, account_id: str, closed_positions: List[Dict[str, Any]]) -> None:
+        """
+        Replaces the explicit closed positions list for the account with a new list.
+        """
+        cache = cls._load_cache()
+        if account_id not in cache:
+            cache[account_id] = {"activities": [], "positions": [], "closed_positions": [], "balances": {}}
+            
+        cache[account_id]["closed_positions"] = closed_positions
+        cls._save_cache(cache)
+        logger.info(f"Replaced explicit closed positions for account {account_id} with {len(closed_positions)} items")
+
+    @classmethod
     def calculate_realized_pnl(cls, account_id: str, start_date: str, end_date: str) -> Dict[str, Any]:
         """
         Calculates the Realized PnL for a given date range using a FIFO tax-lot engine.
@@ -322,11 +344,21 @@ class BrokerageCache:
                         lot["qty"] -= sell_qty_remaining
                         sell_qty_remaining = 0.0
                 
-                # If we still have sell_qty_remaining, we don't have cost basis data.
-                # Since we don't have the original BUY, we cannot calculate Realized PnL accurately.
-                # Do NOT default to $0 cost basis (100% profit) as it severely inflates gains.
+                # If we still have sell_qty_remaining, we don't have cost basis data in our imported tax lots.
+                # Fall back to the average cost from the Positions CSV if available.
                 if sell_qty_remaining > 0.0001:
-                    pass # Ignore PnL for unknown cost basis
+                    fallback_cost = 0.0
+                    positions = cls.get_positions(account_id)
+                    for p in positions:
+                        if p.get('symbol') == sym_raw:
+                            fallback_cost = float(p.get('average_cost') or 0.0)
+                            break
+                            
+                    if fallback_cost > 0.0:
+                        trade_pnl += (price - fallback_cost) * sell_qty_remaining
+                        total_cost_basis += fallback_cost * sell_qty_remaining
+                        qty_matched += sell_qty_remaining
+                        sell_qty_remaining = 0.0
                     
                 avg_cost = (total_cost_basis / qty_matched) if qty_matched > 0 else 0.0
                 

@@ -267,6 +267,33 @@ async def vli_node(
             goto=END
         )
 
+    # --- [CREATE CARD INTENT] ---
+    create_match = re.match(r'^(create|open|spawn|new)\s+(?:new\s+)?([a-zA-Z_]+)(?:\s+(?:window|module|artifact))?$', stripped_query, re.IGNORECASE)
+    if create_match:
+        card_type = create_match.group(2).upper()
+        # Map common words to CARD_TYPES
+        card_map = {
+            "ARTIFACT": "STRUCTURAL_ANALY",
+            "REPORT": "STRUCTURAL_ANALY",
+            "SCANNER": "SCAN_RES",
+            "WATCHLIST": "MACRO_WL",
+            "PORTFOLIO": "ORDER_HIST",
+            "TELEMETRY": "VLI_TELEMETRY",
+            "SCHEDULER": "SCHEDULER_LOG",
+            "CHAT": "VLI_CHAT",
+            "COORDINATOR": "VLI_CHAT"
+        }
+        actual_type = card_map.get(card_type, card_type)
+        
+        return Command(
+            update={
+                "messages": fallback_msgs_all + [AIMessage(content=f"Opening UX module: {actual_type}", name="vli_coordinator")],
+                "intent": "EXECUTE_DIRECT",
+                "metadata": {**state.get("metadata", {}), "action": "OPEN_CARD", "card_type": actual_type}
+            },
+            goto=END
+        )
+
     # --- [SHOW COMMAND INTENT] ---
     show_match = re.match(r'^(show|display)\s+(?:(report|news|quote)\s+(?:for\s+)?)?([a-zA-Z\.\=\^]+)(?:\s+(report|news|quote))?$', stripped_query, re.IGNORECASE)
     if show_match:

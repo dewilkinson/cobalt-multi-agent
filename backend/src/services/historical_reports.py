@@ -131,15 +131,15 @@ def write_obsidian_daily_report(content: str):
             logger.error("Obsidian vault path not configured for Daily Trading Report")
             return
             
-        full_journal_dir = os.path.join(vault_path, journal_dir)
-        os.makedirs(full_journal_dir, exist_ok=True)
+        reports_dir = os.path.join(full_journal_dir, "Daily Reports")
+        os.makedirs(reports_dir, exist_ok=True)
         
         date_str = datetime.now().strftime("%Y-%m-%d")
-        file_path = os.path.join(full_journal_dir, f"Daily_Trading_Report_{date_str}.md")
+        file_path = os.path.join(reports_dir, f"Daily_PostMortem_{date_str}.md")
         
         # We replace the file if it exists, since it's the 5 PM raw post mortem
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
-        logger.info(f"Wrote raw Daily Trading Report to Obsidian: {file_path}")
+        logger.info(f"Wrote raw Daily PostMortem to Obsidian: {file_path}")
     except Exception as e:
         logger.error(f"Failed to write Obsidian report: {e}")

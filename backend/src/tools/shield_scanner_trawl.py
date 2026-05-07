@@ -35,7 +35,7 @@ def sanitize_data(data):
     return data
 
 # Constants
-STRIKE_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "SHIELD_STRIKE_LIST.json"
+STRIKE_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "STRIKE_LIST.json"
 # TV Shield Scan Minimums: Market Cap >= 300M, Price >= 15, Volume >= 1M, Float >= 100M
 # We use cap_smallover (>= 300M) and ta_sma200_pa (Price > SMA200) to keep initial results broad but aligned with TV.
 # sh_price_o15, sh_vol_o1000, sh_float_o100 are handled natively but can also be enforced here to reduce load.
@@ -302,6 +302,7 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                     "float": f_shares,
                     "market_cap": m_cap,
                     "sortino": c_sortino,
+                    "tier": "SHIELD",
                     "grade": grade,
                     "timestamp": datetime.now().isoformat()
                 }
@@ -332,14 +333,27 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                 v["grade"] = "B"
 
     # 4. Persistence
+    existing_list = []
+    if STRIKE_LIST_PATH.exists():
+        try:
+            with open(STRIKE_LIST_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                existing_list = data.get("strike_list", [])
+        except Exception as e:
+            logger.warning(f"Could not read existing STRIKE_LIST: {e}")
+
+    # Preserve other tiers
+    preserved_list = [c for c in existing_list if c.get("tier") != "SHIELD"]
+    combined_list = preserved_list + verified_list
+
     strike_list = {
         "updated_at": datetime.now().isoformat(),
         "macro": {
             "shield_mode": "ACTIVE"
         },
         "universe_size": total_count or len(candidates),
-        "verified_count": len(verified_list),
-        "strike_list": verified_list
+        "verified_count": len(combined_list),
+        "strike_list": combined_list
     }
 
     clean_strike_list = sanitize_data(strike_list)

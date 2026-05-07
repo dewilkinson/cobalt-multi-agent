@@ -281,7 +281,7 @@ async def _build_session_watchlist_impl(strategy_config: str = "{}", universe_cs
         mock_universe = [t.strip().upper() for t in universe_csv.split(',') if t.strip()]
     else:
         # Check for existence of a pre-filtered Combat List (Layer A)
-        strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "SCANNER_STRIKE_LIST.json"))
+        strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "STRIKE_LIST.json"))
         if os.path.exists(strike_list_path):
             try:
                 with open(strike_list_path, "r", encoding="utf-8") as f:
@@ -382,6 +382,37 @@ async def build_session_watchlist(strategy_config: str = "{}", universe_csv: str
 
 
 
+
+def calculate_heuristic_cvd(ticker: str, lookback_bars: int = 21) -> bool:
+    """Returns True if there is a Negative Divergence (BULL TRAP) on the 1m chart."""
+    try:
+        from src.tools.finance import _fetch_stock_history
+        # Fetch 1m data for the last 2 days
+        df = _fetch_stock_history(ticker, period="2d", interval="1m")
+        if df.empty or len(df) < lookback_bars:
+            return False
+            
+        df.columns = [str(c).lower() for c in df.columns]
+        # Calculate heuristic delta
+        df['delta'] = np.where(df['close'] >= df['open'], df['volume'], -df['volume'])
+        df['cvd'] = df['delta'].cumsum()
+        
+        # Take the last N bars
+        recent = df.iloc[-lookback_bars:].copy()
+        
+        # Calculate slopes
+        x = np.arange(len(recent))
+        price_slope, _ = np.polyfit(x, recent['close'], 1)
+        cvd_slope, _ = np.polyfit(x, recent['cvd'], 1)
+        
+        # Negative Divergence (BULL TRAP): Price rising, CVD falling
+        if price_slope > 0 and cvd_slope < 0:
+            return True
+            
+        return False
+    except Exception as e:
+        logger.debug(f"CVD calculation skipped/failed for {ticker}: {e}")
+        return False
 
 async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str = "[]") -> str:
     """Core logic for Phase 2 Scanner."""
@@ -566,6 +597,11 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
                 raw_power += (sortino * 5.0)
                 raw_power += (rvol * 3.0)
                 raw_power += gap_pct
+                
+                # --- HEURISTIC CVD TRAP DETECTION ---
+                cvd_trap = False
+                if tier in ["SCOUT", "STRIKE"]:
+                    cvd_trap = await asyncio.to_thread(calculate_heuristic_cvd, ticker, 21)
 
                 payload = {
                     "symbol": str(ticker),
@@ -579,6 +615,7 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
                     "volume": int(curr_vol),
                     "heat_score": heat_score,
                     "raw_power": raw_power,
+                    "cvd_warning": cvd_trap,
                     "is_miss": is_miss
                 }
                 
@@ -605,7 +642,7 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
     # Synchronize to VLI Transit Bucket (Dashboard Feed)
     try:
         from src.config.vli import get_vli_path
-        transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "SCANNER_RES_state.json"))
+        transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "STRIKE_RES_state.json"))
         os.makedirs(os.path.dirname(transit_path), exist_ok=True)
         with open(transit_path, "w", encoding="utf-8") as f:
             json.dump(response_obj, f, indent=4, cls=NpEncoder)
@@ -641,17 +678,15 @@ async def clear_scanner_cache() -> str:
     import os
     from src.config.vli import get_vli_path
     import json
-    strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "SCANNER_STRIKE_LIST.json"))
-    shield_strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "SHIELD_STRIKE_LIST.json"))
-    transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "SCANNER_RES_state.json"))
-    shield_transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "SHIELD_RES_state.json"))
+    strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "STRIKE_LIST.json"))
+    transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "STRIKE_RES_state.json"))
     purged = []
-    for path, name in [(strike_list_path, "SCANNER_STRIKE_LIST.json"), (shield_strike_list_path, "SHIELD_STRIKE_LIST.json")]:
+    for path, name in [(strike_list_path, "STRIKE_LIST.json")]:
         try:
             with open(path, "w", encoding="utf-8") as f: json.dump([], f)
             purged.append(name)
         except: pass
-    for path, name in [(transit_path, "SCANNER_RES_state.json"), (shield_transit_path, "SHIELD_RES_state.json")]:
+    for path, name in [(transit_path, "STRIKE_RES_state.json")]:
         try:
             with open(path, "w", encoding="utf-8") as f: json.dump({"pulse_mode": "CLEARED", "total_pulsed": 0, "candidates_passed": 0, "candidates": []}, f)
             purged.append(name)

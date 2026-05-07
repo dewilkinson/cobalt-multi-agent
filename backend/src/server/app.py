@@ -313,7 +313,7 @@ def _persist_vli_report(request_text: str, content: str):
             sym = sym_match.group(1).upper()
             try:
                 from src.config.vli import get_vli_path
-                for target_state in ["SCANNER_RES_state.json", "SCANNER_STRIKE_LIST.json", "SHIELD_STRIKE_LIST.json"]:
+                for target_state in ["STRIKE_RES_state.json", "STRIKE_LIST.json", "STRIKE_LIST.json"]:
                     s_path = get_vli_path(os.path.join("01_Transit", "Buckets", target_state)) if "state" in target_state else os.path.join(os.getcwd(), 'data', target_state)
                     if os.path.exists(s_path):
                         with open(s_path, "r", encoding="utf-8") as f:
@@ -623,11 +623,12 @@ async def rename_artifact(request: RenameArtifactRequest):
 class CreateArtifactRequest(BaseModel):
     folder: str
 
-class CopyToNotesRequest(BaseModel):
+class CopyToFolderRequest(BaseModel):
     source_path: str
+    target_folder: str
 
-@app.post("/api/vli/artifacts/copy_to_notes")
-async def copy_to_notes(request: CopyToNotesRequest):
+@app.post("/api/vli/artifacts/copy_to_folder")
+async def copy_to_folder(request: CopyToFolderRequest):
     import os
     import shutil
     from datetime import datetime
@@ -638,22 +639,28 @@ async def copy_to_notes(request: CopyToNotesRequest):
         
     reports_dir = get_reports_root()
     today_str = datetime.now().strftime("%Y-%m-%d")
-    notes_dir = os.path.join(reports_dir, today_str, "Notes")
-    os.makedirs(notes_dir, exist_ok=True)
+    
+    target_folder = request.target_folder
+    if "/" not in target_folder and "\\" not in target_folder:
+        target_dir = os.path.join(reports_dir, today_str, target_folder)
+    else:
+        target_dir = os.path.abspath(target_folder)
+        
+    os.makedirs(target_dir, exist_ok=True)
     
     base_name = os.path.basename(source_path)
-    dest_path = os.path.join(notes_dir, base_name)
+    dest_path = os.path.join(target_dir, base_name)
     
     # Prevent overwrite by appending counter if needed
     name, ext = os.path.splitext(base_name)
     counter = 1
     while os.path.exists(dest_path):
-        dest_path = os.path.join(notes_dir, f"{name} {counter}{ext}")
+        dest_path = os.path.join(target_dir, f"{name} {counter}{ext}")
         counter += 1
         
     try:
         shutil.copy2(source_path, dest_path)
-        return {"status": "OK", "message": "Copied to Notes", "path": dest_path.replace("\\", "/")}
+        return {"status": "OK", "message": "Copied to Folder", "path": dest_path.replace("\\", "/")}
     except Exception as e:
         logger.error(f"Failed to copy to notes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -831,10 +838,10 @@ async def poll_5m_patterns():
     import json
     from src.tools.smc import run_smc_analysis
     
-    strike_list_path = os.path.join(os.getcwd(), "data", "SCANNER_STRIKE_LIST.json")
+    strike_list_path = os.path.join(os.getcwd(), "data", "STRIKE_LIST.json")
     # Correcting dynamic pathing just in case
     if not os.path.exists(strike_list_path):
-        strike_list_path = os.path.join(os.getcwd(), "backend", "data", "SCANNER_STRIKE_LIST.json")
+        strike_list_path = os.path.join(os.getcwd(), "backend", "data", "STRIKE_LIST.json")
         if not os.path.exists(strike_list_path):
             return
 
@@ -868,7 +875,7 @@ async def poll_5m_patterns():
 async def poll_market_pulse():
     """
     Automated execution of Phase 1 and Phase 2 algorithmic pulse tracking.
-    Refreshes the SCANNER_RES_state.json natively without broadcasting terminal SSEs.
+    Refreshes the STRIKE_RES_state.json natively without broadcasting terminal SSEs.
     """
     from datetime import datetime
     from src.config.vli import get_vli_path
@@ -879,9 +886,9 @@ async def poll_market_pulse():
         if engine == "tradingview":
             return
             
-        strike_list_path = os.path.join(os.getcwd(), "data", "SCANNER_STRIKE_LIST.json")
+        strike_list_path = os.path.join(os.getcwd(), "data", "STRIKE_LIST.json")
         if not os.path.exists(strike_list_path):
-            strike_list_path = os.path.join(os.getcwd(), "backend", "data", "SCANNER_STRIKE_LIST.json")
+            strike_list_path = os.path.join(os.getcwd(), "backend", "data", "STRIKE_LIST.json")
 
         phase0_raw = []
         if os.path.exists(strike_list_path):
@@ -913,7 +920,7 @@ async def poll_market_pulse():
             p2_full.append(merged)
             
         response_obj = sanitize_data({"candidates": p2_full})
-        transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "SCANNER_RES_state.json"))
+        transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "STRIKE_RES_state.json"))
         os.makedirs(os.path.dirname(transit_path), exist_ok=True)
         with open(transit_path, "w", encoding="utf-8") as f:
             json.dump(response_obj, f, indent=4, cls=NpEncoder)
@@ -957,9 +964,8 @@ async def run_idle_analysis(manual_trigger: bool = False):
     import asyncio
     from datetime import datetime
     
-    target_path = os.path.join(os.getcwd(), 'data', 'SCANNER_STRIKE_LIST.json')
-    shield_path = os.path.join(os.getcwd(), 'data', 'SHIELD_STRIKE_LIST.json')
-    if not os.path.exists(target_path) and not os.path.exists(shield_path):
+    target_path = os.path.join(os.getcwd(), 'data', 'STRIKE_LIST.json')
+    if not os.path.exists(target_path):
         return
         
     candidates = []
@@ -969,11 +975,6 @@ async def run_idle_analysis(manual_trigger: bool = False):
                 state = json.load(f)
             candidates.extend(state.get("candidates", []) or state.get("strike_list", []))
             
-        shield_path = os.path.join(os.getcwd(), 'data', 'SHIELD_STRIKE_LIST.json')
-        if os.path.exists(shield_path):
-            with open(shield_path, 'r') as f:
-                s_state = json.load(f)
-            candidates.extend(s_state.get("strike_list", []))
     except Exception as e:
         logger.error(f"[BG_ANALYST] Failed to read combat lists: {e}")
 
@@ -1087,7 +1088,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
                     # [UX HOTFIX] Instantly update the scanner lists so document icons turn green immediately
                     try:
                         from src.config.vli import get_vli_path
-                        for target_state in ["SCANNER_RES_state.json", "SCANNER_STRIKE_LIST.json", "SHIELD_STRIKE_LIST.json"]:
+                        for target_state in ["STRIKE_RES_state.json", "STRIKE_LIST.json"]:
                             s_path = get_vli_path(os.path.join("01_Transit", "Buckets", target_state)) if "state" in target_state else os.path.join(os.getcwd(), 'data', target_state)
                             if os.path.exists(s_path):
                                 with open(s_path, "r", encoding="utf-8") as f:
@@ -1200,9 +1201,9 @@ async def run_meta_analysis(manual_trigger: bool = False):
         telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
         timestamp = datetime.now().strftime("[%H:%M:%S]")
         
-        scanner_bucket_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SCANNER_RES_state.json")
+        scanner_bucket_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "STRIKE_RES_state.json")
         if not os.path.exists(scanner_bucket_path):
-            if manual_trigger: return "Error: SCANNER_RES_state.json not found."
+            if manual_trigger: return "Error: STRIKE_RES_state.json not found."
             return
             
         with open(scanner_bucket_path, encoding="utf-8") as f:
@@ -1451,7 +1452,7 @@ async def startup_event():
         try:
             from src.services.historical_reports import PERFORMANCE_DIR
             date_str = datetime.now().strftime("%Y-%m-%d")
-            report_path = os.path.join(PERFORMANCE_DIR, f"Daily_Trading_Report_{date_str}.md")
+            report_path = os.path.join(PERFORMANCE_DIR, f"Daily_PostMortem_{date_str}.md")
             
             # Delete if it exists and was created before 16:00
             if os.path.exists(report_path):
@@ -1966,8 +1967,8 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                 
         # 6. Read SCANNER_RES state
         scanner_res_content = {"candidates": [], "pulse_mode": "Automated Pulse"}
-        sword_path = os.path.join(os.getcwd(), "data", "SCANNER_STRIKE_LIST.json")
-        scanner_bucket_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SCANNER_RES_state.json")
+        sword_path = os.path.join(os.getcwd(), "data", "STRIKE_LIST.json")
+        scanner_bucket_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "STRIKE_RES_state.json")
         
         try:
             engine = os.environ.get("VLI_SCANNER_ENGINE", "tradingview").lower()
@@ -2010,24 +2011,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
         except Exception as e:
             logger.error(f"Failed to load Sword data: {e}")
             
-        shield_tv_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SHIELD_RES_state.json")
-        shield_local_path = os.path.join(os.getcwd(), "data", "SHIELD_STRIKE_LIST.json")
-        
-        shield_path = shield_tv_path if engine == "tradingview" else shield_local_path
-        
-        try:
-            if os.path.exists(shield_path):
-                with open(shield_path, encoding="utf-8") as sf:
-                    s_data = json.load(sf)
-                    if isinstance(s_data, list):
-                        s_list = s_data
-                    else:
-                        s_list = s_data.get("strike_list", []) or s_data.get("candidates", [])
-                    for c in s_list:
-                        c["tier"] = "SHIELD"
-                    scanner_res_content["candidates"].extend(s_list)
-        except Exception as e:
-            logger.error(f"Failed to load Shield data: {e}")
+        pass
             
         # Defensive Deduplication: Ensure no duplicate symbols render across pipelines
         seen_symbols = set()
@@ -2531,10 +2515,18 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                         open_positions[sym_raw]["qty_today"] += qty
                 elif action in ["SELL", "SOLD", "STC", "STO"]:
                     open_positions[sym_raw]["quantity"] -= qty
-                    open_positions[sym_raw]["total_cost"] -= qty * price
+                    # Reduce total_cost based on the CURRENT average cost (approximating FIFO)
+                    current_avg = open_positions[sym_raw].get("average_cost", 0.0)
+                    open_positions[sym_raw]["total_cost"] -= qty * current_avg
                     if date_only == today_str:
                         open_positions[sym_raw]["qty_today"] -= qty
                     
+                    # Prevent floating point drift
+                    if open_positions[sym_raw]["quantity"] <= 0.0001:
+                        open_positions[sym_raw]["quantity"] = 0.0
+                        open_positions[sym_raw]["total_cost"] = 0.0
+                        open_positions[sym_raw]["average_cost"] = 0.0
+                        
                 if open_positions[sym_raw]["quantity"] > 0.0001:
                     open_positions[sym_raw]["average_cost"] = open_positions[sym_raw]["total_cost"] / open_positions[sym_raw]["quantity"]
                 else:
@@ -2624,9 +2616,9 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
             
             # Keep the newest time (BrokerageCache is usually newest first, so we just check if it's there)
             if act_sym and act_sym not in real_trade_times and "T" in trade_date_str:
-                # '2026-04-29T15:54:07.000Z' -> '15:54:07'
-                time_part = trade_date_str.split("T")[-1].split(".")[0]
-                real_trade_times[act_sym] = time_part
+                # '2026-04-29T15:54:07.000Z' -> '2026-04-29 15:54:07'
+                full_time = trade_date_str.split(".")[0].replace("T", " ")
+                real_trade_times[act_sym] = full_time
 
         import yfinance as yf
         import math
@@ -2686,7 +2678,7 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                         
                         # Override with real execution time from CSV if available
                         if sym in real_trade_times:
-                            last_time_str = f"{last_time_str[:10]} {real_trade_times[sym]}"
+                            last_time_str = real_trade_times[sym]
                         
                         qty = safe_float(pdata['quantity'])
                         qty_today = safe_float(pdata.get('qty_today', 0.0))
@@ -3232,7 +3224,7 @@ async def _background_synthesis_task(text: str, image: str | None, direct_mode: 
                 # 2. Save raw to Cobalt cache (Human readable)
                 import os
                 date_str = thread_id.replace("POSTMORTEM_", "")
-                perf_path = os.path.join(PERFORMANCE_DIR, f"Daily_Trading_Report_{date_str}.md")
+                perf_path = os.path.join(PERFORMANCE_DIR, f"Daily_PostMortem_{date_str}.md")
                 with open(perf_path, "w", encoding="utf-8") as f:
                     f.write(response_text)
                     
@@ -3447,7 +3439,7 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     if req_lower == "regenerate":
         try:
             scanner_targets = []
-            scanner_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SCANNER_RES_state.json")
+            scanner_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "STRIKE_RES_state.json")
             if os.path.exists(scanner_path):
                 with open(scanner_path, "r", encoding="utf-8") as f:
                     s_data = json.load(f)
@@ -4149,7 +4141,7 @@ async def _background_regenerate_data(sym: str):
                             target_tier = "Macro"
                             break
                             
-            scanner_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "SCANNER_RES_state.json")
+            scanner_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "STRIKE_RES_state.json")
             if not in_watchlist and os.path.exists(scanner_path):
                 with open(scanner_path, encoding="utf-8") as f:
                     scanner_content = json.load(f)

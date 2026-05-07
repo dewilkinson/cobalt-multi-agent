@@ -59,6 +59,9 @@ You categorize every active tracker in the Obsidian Vault into one of four state
    - *Action*: Flag for MOC (Market on Close) Exit; automatically downgrade exposure to Scout risk parameters.
 4. **Critical**: Price physically violates the $1.5 \times$ Weekly ATR, records a CHoCH (Change of Character) downward, OR exhibits terminal **Negative Gamma** (accelerating downside volatility). 
    - *Action*: Immediate Liquidation.
+5. **CVD Erosion (Early Exit / Trap Warning)**: The asset's scanner telemetry indicates `cvd_warning` is True (Negative CVD Divergence), meaning structural volume is eroding underneath higher prices (Bull Trap).
+   - *Action for New Entries*: Treat as an **advisory caution**. You may still authorize a Scout/Strike entry if the Sortino/RVOL is exceptional, but you must explicitly warn the user of the CVD Trap.
+   - *Action for Active Positions*: Treat as a **mandatory early exit trigger**. You must flag the active position for an immediate trim or full liquidation, and aggressively tighten trailing stops.
 
 ## Macro Sentiment ("Ground Truth") Integration
 
