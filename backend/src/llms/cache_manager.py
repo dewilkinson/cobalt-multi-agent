@@ -13,20 +13,18 @@ class GeminiCacheManager:
     _active_caches: Dict[str, str] = {}
     
     @classmethod
-    def get_client(cls):
-        """Lazy load client to avoid env issues on import."""
-        if not hasattr(cls, '_client'):
-            cls._client = genai.Client()
-        return cls._client
-
-    @classmethod
     def create_session_cache(cls, model_name: str, system_instruction: str, large_payload: str, ttl_mins: int = 15, key: str = "default") -> Optional[str]:
         """Creates a cached context resource for massive payloads."""
         try:
             # Map standard model names to ones that definitely support caching
-            cache_model = "gemini-1.5-pro-002" if "pro" in model_name else "gemini-1.5-flash-002"
+            cache_model = "gemini-3-pro-preview" if "pro" in model_name else "gemini-3-flash-preview"
+            import os
+            from src.llms.llm import _get_env_llm_conf
+            conf = _get_env_llm_conf("basic")
+            api_key = conf.get("api_key", os.environ.get("GEMINI_API_KEY"))
             
-            client = cls.get_client()
+            # Using asyncio.to_thread or just synchronous call
+            client = genai.Client(api_key=api_key)
             cached_content = client.caches.create(
                 model=cache_model,
                 config=types.CreateCachedContentConfig(
@@ -51,7 +49,11 @@ class GeminiCacheManager:
     def cleanup_cache(cls, cache_name: str):
         """Deletes the cache to avoid storage charges."""
         try:
-            client = cls.get_client()
+            import os
+            from src.llms.llm import _get_env_llm_conf
+            conf = _get_env_llm_conf("basic")
+            api_key = conf.get("api_key", os.environ.get("GEMINI_API_KEY"))
+            client = genai.Client(api_key=api_key)
             client.caches.delete(name=cache_name)
             logger.info(f"[CACHE_MANAGER] Successfully deleted cache {cache_name}")
             # Remove from tracking
