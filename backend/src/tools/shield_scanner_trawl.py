@@ -289,9 +289,11 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                     logger.info(f"Rejected {ticker} - Failed Long-Range Sortino Floor ({c_sortino})")
                     return None
                 
-                # Calculate Sortino-based fallback grading dynamically based on the day trading hurdle
-                effective_hurdle = config.get("sortino_hurdle", 2.0)
-                grade = "S" if c_sortino >= effective_hurdle * 1.5 else ("A" if c_sortino >= effective_hurdle * 1.2 else "B")
+                if c_sortino >= 5.0: grade = "S"
+                elif c_sortino >= 2.5: grade = "A"
+                elif c_sortino >= 2.0: grade = "B"
+                elif c_sortino >= 1.0: grade = "C"
+                else: grade = "F"
                 
                 return {
                     **c,
@@ -321,24 +323,13 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     # Strictly limit to top 10
     verified_list = verified_list[:10]
 
-    if verified_list:
-        max_sortino = verified_list[0].get("sortino", 0.0)
-        for v in verified_list:
-            s = v.get("sortino", 0.0)
-            if s >= max_sortino * 0.8:
-                v["grade"] = "S"
-            elif s >= max_sortino * 0.5:
-                v["grade"] = "A"
-            else:
-                v["grade"] = "B"
-
     # 4. Persistence
     existing_list = []
     if STRIKE_LIST_PATH.exists():
         try:
             with open(STRIKE_LIST_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                existing_list = data.get("strike_list", [])
+                existing_list = data if isinstance(data, list) else data.get("strike_list", [])
         except Exception as e:
             logger.warning(f"Could not read existing STRIKE_LIST: {e}")
 

@@ -130,16 +130,16 @@ Open Issues: 196 (ongoing maintenance and feature development)
 
 | Feature | DeerFlow | OpenAI Deep Research | LangChain OpenDeepResearch |
 |---------|-----------|----------------------|----------------------------|
-| Multi-Agent Architecture | ✅ | ❌ | ✅ |
-| Local LLM Support | ✅ | ❌ | ✅ |
-| MCP Integration | ✅ | ❌ | ❌ |
+| Multi-Agent Architecture |  |  |  |
+| Local LLM Support |  |  |  |
+| MCP Integration |  |  |  |
 | Web Search Engines | Multiple (5+) | Limited | Limited |
-| Code Execution | ✅ Python REPL | Limited | ✅ |
-| Podcast Generation | ✅ | ❌ | ❌ |
-| Presentation Creation | ✅ | ❌ | ❌ |
-| Private Knowledgebase | ✅ (6+ options) | Limited | Limited |
-| Human-in-the-Loop | ✅ | Limited | ✅ |
-| Open Source | ✅ MIT | ❌ | ✅ Apache 2.0 |
+| Code Execution |  Python REPL | Limited |  |
+| Podcast Generation |  |  |  |
+| Presentation Creation |  |  |  |
+| Private Knowledgebase |  (6+ options) | Limited | Limited |
+| Human-in-the-Loop |  | Limited |  |
+| Open Source |  MIT |  |  Apache 2.0 |
 
 ### Market Positioning
 

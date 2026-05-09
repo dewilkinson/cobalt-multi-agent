@@ -7,7 +7,7 @@ The **Asset-Bucket** is a modular container designed to manage groups of assets 
 | Property | Description |
 |---|---|
 | **ID / Bucket ID** | Unique alphanumeric identifier for filesystem/internal logic (e.g., TECH_TRIAD). |
-| **Display Name** | String field for user-friendly UI labeling (e.g., ⚡ High-Beta Tech Leaders). |
+| **Display Name** | String field for user-friendly UI labeling (e.g.,  High-Beta Tech Leaders). |
 | **Asset List** | A dynamic array of tickers. |
 | **Operations** | A sequence of Cobalt Tools to run (e.g., [FETCH_QUOTE, RUN_SMC, GET_SENTIMENT]). |
 | **Update Mode** | MANUAL, ONE_SHOT, or PERIODIC. |
@@ -82,13 +82,13 @@ class AssetBucket:
         interval = self.config["interval"]
         
         if mode == "PERIODIC":
-            print(f"⏰ Scheduler: Registering recurring task for {self.bucket_id} every {interval}m.")
+            print(f" Scheduler: Registering recurring task for {self.bucket_id} every {interval}m.")
         elif mode == "ONE_SHOT":
-            print(f"⏲️ Scheduler: Registering single trigger for {self.bucket_id} in {interval}m.")
+            print(f"️ Scheduler: Registering single trigger for {self.bucket_id} in {interval}m.")
 
     def update(self):
         """Iterates through assets and applies the operation sequence."""
-        print(f"🪣 Updating Bucket: {self.config['display_name']}...")
+        print(f" Updating Bucket: {self.config['display_name']}...")
         results = {}
         
         for asset in self.config["assets"]:

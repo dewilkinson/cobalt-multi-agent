@@ -6,7 +6,7 @@ DEBUG_URL = "http://127.0.0.1:8089/vli_debug.html"
 
 
 def run_debug_test():
-    print("🚀 Starting VLI Isolated Debug Verification...")
+    print(" Starting VLI Isolated Debug Verification...")
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False, slow_mo=200)
@@ -20,7 +20,7 @@ def run_debug_test():
         try:
             page.goto(DEBUG_URL, timeout=10000)
         except Exception as e:
-            print(f"❌ FAIL: Could not reach the debug page. Is HTTP server on 8089 running?\nError: {e}")
+            print(f" FAIL: Could not reach the debug page. Is HTTP server on 8089 running?\nError: {e}")
             return
 
         page.wait_for_load_state("domcontentloaded")
@@ -36,7 +36,7 @@ def run_debug_test():
         try:
             # We look for the literal string "HTTP Status" to appear inside the log box
             page.locator("#cycleLog", has_text="HTTP Status: 200").wait_for(state="visible", timeout=15000)
-            print("   ✅ SUCCESS: Fetch successfully reached the Backend on Port 8001!")
+            print("    SUCCESS: Fetch successfully reached the Backend on Port 8001!")
 
             # Print the entire log sequence for human verification
             logs = page.locator("#cycleLog").inner_text()
@@ -45,7 +45,7 @@ def run_debug_test():
             print("----------------------\n")
 
         except Exception as e:
-            print("   ❌ FAIL: Fetch failed or timed out. Check if port 8001 server is running.")
+            print("    FAIL: Fetch failed or timed out. Check if port 8001 server is running.")
             print(e)
 
         time.sleep(2)

@@ -1,4 +1,4 @@
-# 🦌 DeerFlow - 2.0
+#  DeerFlow - 2.0
 
 [English](./README.md) | [中文](./README_zh.md) | 日本語 | [Français](./README_fr.md) | [Русский](./README_ru.md)
 
@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 <a href="https://trendshift.io/repositories/14699" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14699" alt="bytedance%2Fdeer-flow | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-> 2026年2月28日、バージョン2のリリースに伴い、DeerFlowはGitHub Trendingで🏆 第1位を獲得しました。素晴らしいコミュニティの皆さん、ありがとうございます！💪🔥
+> 2026年2月28日、バージョン2のリリースに伴い、DeerFlowはGitHub Trendingで 第1位を獲得しました。素晴らしいコミュニティの皆さん、ありがとうございます！
 
 DeerFlow（**D**eep **E**xploration and **E**fficient **R**esearch **Flow**）は、**サブエージェント**、**メモリ**、**サンドボックス**を統合し、**拡張可能なスキル**によってあらゆるタスクを実行できるオープンソースの**スーパーエージェントハーネス**です。
 
@@ -44,7 +44,7 @@ DeerFlowは、BytePlusが独自に開発したインテリジェント検索・�
 
 ## 目次
 
-- [🦌 DeerFlow - 2.0](#-deerflow---20)
+- [ DeerFlow - 2.0](#-deerflow---20)
   - [公式ウェブサイト](#公式ウェブサイト)
   - [InfoQuest](#infoquest)
   - [目次](#目次)
@@ -70,7 +70,7 @@ DeerFlowは、BytePlusが独自に開発したインテリジェント検索・�
   - [推奨モデル](#推奨モデル)
   - [組み込みPythonクライアント](#組み込みpythonクライアント)
   - [ドキュメント](#ドキュメント)
-  - [⚠️ セキュリティに関する注意](#️-セキュリティに関する注意)
+  - [️ セキュリティに関する注意](#️-セキュリティに関する注意)
   - [コントリビュート](#コントリビュート)
   - [ライセンス](#ライセンス)
   - [謝辞](#謝辞)
@@ -508,7 +508,7 @@ client.upload_files("thread-1", ["./report.pdf"])  # {"success": True, "files": 
 - [アーキテクチャ概要](backend/CLAUDE.md) - 技術的なアーキテクチャの詳細
 - [バックエンドアーキテクチャ](backend/README.md) - バックエンドアーキテクチャとAPIリファレンス
 
-## ⚠️ セキュリティに関する注意
+## ️ セキュリティに関する注意
 
 ### 不適切なデプロイはセキュリティリスクを引き起こす可能性があります
 

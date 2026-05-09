@@ -1,4 +1,4 @@
-# 🦌 [About DeerFlow 2.0](https://github.com/bytedance/deer-flow)
+#  [About DeerFlow 2.0](https://github.com/bytedance/deer-flow)
 
 > **From Open Source, Back to Open Source**
 
@@ -8,27 +8,27 @@ different levels of tasks that could take minutes to hours.
 
 ---
 
-## 🌟 GitHub Repository
+##  GitHub Repository
 
 Explore DeerFlow on GitHub: [github.com/bytedance/deer-flow](https://github.com/bytedance/deer-flow)
 
-## 🌐 Official Website
+##  Official Website
 
 Visit the official website of DeerFlow: [deerflow.tech](https://deerflow.tech/)
 
-## 📧 Support
+##  Support
 
 If you have any questions or need help, please contact us at [support@deerflow.tech](mailto:support@deerflow.tech).
 
 ---
 
-## 📜 License
+##  License
 
 DeerFlow is proudly open source and distributed under the **MIT License**.
 
 ---
 
-## 🙌 Acknowledgments
+##  Acknowledgments
 
 We extend our heartfelt gratitude to the open source projects and contributors who have made DeerFlow a reality. We truly stand on the shoulders of giants.
 

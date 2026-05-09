@@ -18,7 +18,7 @@ class InfoQuestClient:
     """Client for interacting with the InfoQuest web search and fetch API."""
 
     def __init__(self, fetch_time: int = -1, fetch_timeout: int = -1, fetch_navigation_timeout: int = -1, search_time_range: int = -1, image_search_time_range: int = -1, image_size: str = "i"):
-        logger.info("\n============================================\n🚀 BytePlus InfoQuest Client Initialization 🚀\n============================================")
+        logger.info("\n============================================\n BytePlus InfoQuest Client Initialization \n============================================")
 
         self.fetch_time = fetch_time
         self.fetch_timeout = fetch_timeout
@@ -29,14 +29,14 @@ class InfoQuestClient:
         self.api_key_set = bool(os.getenv("INFOQUEST_API_KEY"))
         if logger.isEnabledFor(logging.DEBUG):
             config_details = (
-                f"\n📋 Configuration Details:\n"
+                f"\n Configuration Details:\n"
                 f"├── Fetch time: {fetch_time} {'(Default: No fetch time)' if fetch_time == -1 else '(Custom)'}\n"
                 f"├── Fetch Timeout: {fetch_timeout} {'(Default: No fetch timeout)' if fetch_timeout == -1 else '(Custom)'}\n"
                 f"├── Navigation Timeout: {fetch_navigation_timeout} {'(Default: No Navigation Timeout)' if fetch_navigation_timeout == -1 else '(Custom)'}\n"
                 f"├── Search Time Range: {search_time_range} {'(Default: No Search Time Range)' if search_time_range == -1 else '(Custom)'}\n"
                 f"├── Image Search Time Range: {image_search_time_range} {'(Default: No Image Search Time Range)' if image_search_time_range == -1 else '(Custom)'}\n"
                 f"├── Image Size: {image_size} {'(Default: Medium)' if image_size == 'm' else '(Custom)'}\n"
-                f"└── API Key: {'✅ Configured' if self.api_key_set else '❌ Not set'}"
+                f"└── API Key: {' Configured' if self.api_key_set else ' Not set'}"
             )
 
             logger.debug(config_details)

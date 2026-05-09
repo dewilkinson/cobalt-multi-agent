@@ -46,10 +46,10 @@ The `task_tool` now:
 - Returns the final result directly
 
 This means:
-- ✅ LLM makes only ONE tool call
-- ✅ No wasteful LLM polling requests
-- ✅ Backend handles all status checking
-- ✅ Timeout protection (5 minutes max)
+-  LLM makes only ONE tool call
+-  No wasteful LLM polling requests
+-  Backend handles all status checking
+-  Timeout protection (5 minutes max)
 
 ### 3. Removed `task_status` from LLM Tools
 
@@ -126,10 +126,10 @@ exec_result = future.result(timeout=timeout_seconds)  # Wait with timeout
 ```
 
 **Benefits**:
-- ✅ Clean separation of concerns (scheduling vs execution)
-- ✅ No nested thread pools
-- ✅ Timeout enforcement at the right level
-- ✅ Better resource utilization
+-  Clean separation of concerns (scheduling vs execution)
+-  No nested thread pools
+-  Timeout enforcement at the right level
+-  Better resource utilization
 
 **Two-Level Timeout Protection**:
 1. **Execution Timeout**: Subagent execution itself has a 5-minute timeout (configurable in SubagentConfig)

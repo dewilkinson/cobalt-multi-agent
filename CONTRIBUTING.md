@@ -118,12 +118,12 @@ Docker Compose (deer-flow-dev)
 ```
 
 **Benefits of Docker Development**:
-- ✅ Consistent environment across different machines
-- ✅ No need to install Node.js, Python, or nginx locally
-- ✅ Isolated dependencies and services
-- ✅ Easy cleanup and reset
-- ✅ Hot-reload for all services
-- ✅ Production-like environment
+-  Consistent environment across different machines
+-  No need to install Node.js, Python, or nginx locally
+-  Isolated dependencies and services
+-  Easy cleanup and reset
+-  Hot-reload for all services
+-  Production-like environment
 
 ### Option 2: Local Development
 

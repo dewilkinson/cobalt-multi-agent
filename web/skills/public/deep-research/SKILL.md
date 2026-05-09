@@ -111,8 +111,8 @@ Before proceeding to content generation, verify:
 
 ```
 # Be specific with context
-❌ "AI trends"
-✅ "enterprise AI adoption trends 2024"
+ "AI trends"
+ "enterprise AI adoption trends 2024"
 
 # Include authoritative source hints
 "[topic] research paper"
@@ -148,8 +148,8 @@ Before proceeding to content generation, verify:
 - Never drop to year-only when day-level precision is needed — `"tech news 2026"` will NOT surface today's news
 - Try multiple phrasings: numeric form (`2026-02-28`), written form (`February 28 2026`), and relative terms (`today`, `this week`) across different queries
 
-❌ User asks "what's new in tech today" → searching `"new technology 2026"` → misses today's news
-✅ User asks "what's new in tech today" → searching `"new technology February 28 2026"` + `"tech news today Feb 28"` → gets today's results
+ User asks "what's new in tech today" → searching `"new technology 2026"` → misses today's news
+ User asks "what's new in tech today" → searching `"new technology February 28 2026"` + `"tech news today Feb 28"` → gets today's results
 
 ### When to Use web_fetch
 
@@ -179,12 +179,12 @@ Your research is sufficient when you can confidently answer:
 
 ## Common Mistakes to Avoid
 
-- ❌ Stopping after 1-2 searches
-- ❌ Relying on search snippets without reading full sources
-- ❌ Searching only one aspect of a multi-faceted topic
-- ❌ Ignoring contradicting viewpoints or challenges
-- ❌ Using outdated information when current data exists
-- ❌ Starting content generation before research is complete
+-  Stopping after 1-2 searches
+-  Relying on search snippets without reading full sources
+-  Searching only one aspect of a multi-faceted topic
+-  Ignoring contradicting viewpoints or challenges
+-  Using outdated information when current data exists
+-  Starting content generation before research is complete
 
 ## Output
 

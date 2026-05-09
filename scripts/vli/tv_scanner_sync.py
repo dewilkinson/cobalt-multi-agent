@@ -70,6 +70,14 @@ def sync_vli_scanners():
             'float_shares_outstanding', 'average_volume_30d_calc', 'Recommend.All', 'change_from_open', 'RSI',
             'relative_volume_intraday|5'
         ]
+        # Set dynamic volume threshold based on time of day
+        now = datetime.now()
+        if now.hour < 10 or (now.hour == 10 and now.minute < 30):
+            vol_shield_sniper = 100_000
+            vol_sword = 50_000
+        else:
+            vol_shield_sniper = 1_000_000
+            vol_sword = 500_000
 
         # --- 1. APEX SHIELD SCAN (Core / Institutional Leaders) ---
         shield_query = (Query()
@@ -78,9 +86,9 @@ def sync_vli_scanners():
             .where(
                 col('exchange').isin(['NASDAQ', 'NYSE', 'AMEX']),
                 col('close') > 15,
-                col('change').between(3, 8),
+                col('change') >= 3,
                 col('market_cap_basic') > 300_000_000,
-                col('volume') > 1_000_000,
+                col('volume') > vol_shield_sniper,
                 col('float_shares_outstanding') > 100_000_000,
                 col('ATR') > 1,
                 col('close') > col('SMA200'),
@@ -97,7 +105,7 @@ def sync_vli_scanners():
                 col('type').isin(['stock', 'fund']),
                 col('close').between(1, 20),
                 col('market_cap_basic').between(100_000_000, 2_000_000_000),
-                col('volume') > 500_000,
+                col('volume') > vol_sword,
                 col('float_shares_outstanding') < 100_000_000,
                 col('ATR') > 0.75,
                 col('close') > col('SMA50'),
@@ -116,8 +124,8 @@ def sync_vli_scanners():
                 col('exchange').isin(['NASDAQ', 'NYSE', 'AMEX']),
                 col('type').isin(['stock', 'fund']),
                 col('close') >= 5,
-                col('change').between(3, 8),
-                col('volume') > 1_000_000,
+                col('change') >= 3,
+                col('volume') > vol_shield_sniper,
                 col('market_cap_basic').between(300_000_000, 2_000_000_000),
                 col('float_shares_outstanding').between(20_000_000, 100_000_000),
                 col('relative_volume_intraday|5') >= 1.2
@@ -137,12 +145,10 @@ def sync_vli_scanners():
         import pandas as pd
         empty_df = pd.DataFrame(columns=['name', 'close', 'change', 'volume', 'relative_volume_intraday|5', 'market_cap_basic'])
 
-        # Execute Queries based on Active Strategy
-        run_all = not ("shield" in active_strategy or "sword" in active_strategy or "sniper" in active_strategy)
-        
-        shield_df = shield_query.get_scanner_data()[1] if run_all or "shield" in active_strategy else empty_df
-        sword_df = sword_query.get_scanner_data()[1] if run_all or "sword" in active_strategy else empty_df
-        sniper_df = sniper_query.get_scanner_data()[1] if run_all or "sniper" in active_strategy else empty_df
+        # Execute Queries
+        shield_df = shield_query.get_scanner_data()[1]
+        sword_df = sword_query.get_scanner_data()[1]
+        sniper_df = sniper_query.get_scanner_data()[1]
 
         raw_all = shield_df['name'].tolist() + sword_df['name'].tolist() + sniper_df['name'].tolist()
         
@@ -157,19 +163,13 @@ def sync_vli_scanners():
             
             # [HARDENING] Strict sanitization
             if any(char in symbol for char in ['.', '-', '/', '^', '=']):
-                removed_trace.append(f"   ❌ Removed: **{symbol}** (Invalid Characters)")
+                removed_trace.append(f"    Removed: **{symbol}** (Invalid Characters)")
                 return None
             if len(symbol) > 4 and symbol[-1] in ['W', 'U', 'R', 'P']:
-                removed_trace.append(f"   ❌ Removed: **{symbol}** (Preferred/Warrant Filter)")
+                removed_trace.append(f"    Removed: **{symbol}** (Preferred/Warrant Filter)")
                 return None
             
-            # [RS PROXY FILTER]
-            if track_spy:
-                sym_perf_3m = float(row.get('Perf.3M') or 0.0)
-                if sym_perf_3m < spy_benchmark + 15.0:
-                    removed_trace.append(f"   ❌ Removed: **{symbol}** (Failed RS Proxy: {sym_perf_3m:.2f}% vs SPY {spy_benchmark:.2f}%)")
-                    return None
-                
+            # [RS PROXY FILTER] - Moved to Frontend for per-window isolation
             return row
 
         # Load Scanner Settings
@@ -205,10 +205,10 @@ def sync_vli_scanners():
             
             # [HARDENING] Strict sanitization to prevent preferred/warrants/units and hallucinated strings
             if any(char in symbol for char in ['.', '-', '/', '^', '=']):
-                removed_trace.append(f"   ❌ Removed: **{symbol}** (Invalid Characters)")
+                removed_trace.append(f"    Removed: **{symbol}** (Invalid Characters)")
                 return None
             if len(symbol) > 4 and symbol[-1] in ['W', 'U', 'R', 'P']:
-                removed_trace.append(f"   ❌ Removed: **{symbol}** (Preferred/Warrant Filter)")
+                removed_trace.append(f"    Removed: **{symbol}** (Preferred/Warrant Filter)")
                 return None
 
             sortino = sortino_map.get(symbol, 0.0)
@@ -264,7 +264,7 @@ def sync_vli_scanners():
                     
             # Minimum passing grade is C-
             if heat < 30 or grade in ["D", "F"]:
-                removed_trace.append(f"   ❌ Removed: **{symbol}** (Failed Quantitative Grading - Final Grade: {grade})")
+                removed_trace.append(f"    Removed: **{symbol}** (Failed Quantitative Grading - Final Grade: {grade})")
                 return None
                 
             report_path = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{symbol.lower()}.md')
@@ -281,7 +281,7 @@ def sync_vli_scanners():
                     with open(report_path, "r", encoding="utf-8") as rf:
                         report_text = rf.read()
                         if "[FAIL]" in report_text or "**FAIL**" in report_text or "[UNRATED]" in report_text or "UNRATED/FAIL" in report_text:
-                            removed_trace.append(f"   ❌ Removed: **{symbol}** (Failed LLM Structural Audit - Verdict: FAIL)")
+                            removed_trace.append(f"    Removed: **{symbol}** (Failed LLM Structural Audit - Verdict: FAIL)")
                             return None
                 except Exception:
                     pass
@@ -332,13 +332,14 @@ def sync_vli_scanners():
                 "shield_count": len(shield_candidates),
                 "sword_count": len(sword_candidates),
                 "sniper_count": len(sniper_candidates),
+                "spy_benchmark": spy_perf_3m,
                 "status": "active"
             }
         }
 
         # --- DIFF CALCULATION ---
         prev_symbols = set()
-        target_path = os.path.join(os.getcwd(), 'data', 'SCANNER_STRIKE_LIST.json')
+        target_path = os.path.join(os.getcwd(), 'data', 'STRIKE_LIST.json')
         if os.path.exists(target_path):
             try:
                 with open(target_path, 'r') as f:
@@ -358,7 +359,7 @@ def sync_vli_scanners():
             json.dump(dashboard_state, f, indent=4)
 
         # Persist to Obsidian Vault for real-time UI rendering
-        vault_path = r"c:\github\obsidian-vault\_cobalt\01_Transit\Buckets\SCANNER_RES_state.json"
+        vault_path = r"c:\github\obsidian-vault\_cobalt\01_Transit\Buckets\STRIKE_RES_state.json"
         if os.path.exists(os.path.dirname(vault_path)):
             with open(vault_path, 'w') as f:
                 json.dump(dashboard_state, f, indent=4)

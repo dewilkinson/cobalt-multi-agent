@@ -11,7 +11,7 @@ Without guardrails:                      With guardrails:
     │                                        │
     ▼                                        ▼
   ┌──────────┐                             ┌──────────┐
-  │ bash     │──▶ executes immediately     │ bash     │──▶ GuardrailMiddleware
+  │ bash     │── executes immediately     │ bash     │── GuardrailMiddleware
   │ rm -rf / │                             │ rm -rf / │        │
   └──────────┘                             └──────────┘        ▼
                                                          ┌──────────────┐

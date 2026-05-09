@@ -26,9 +26,9 @@ async def test_anti_rot():
         
     print(f"Transitions traced: {transitions}")
     if "reporter" in transitions:
-        print("❌ FAILED: Reporter was invoked! Short-circuit failed.")
+        print(" FAILED: Reporter was invoked! Short-circuit failed.")
     else:
-        print("✅ PASSED: Reporter was bypassed efficiently.")
+        print(" PASSED: Reporter was bypassed efficiently.")
 
 if __name__ == "__main__":
     asyncio.run(test_anti_rot())

@@ -94,9 +94,9 @@ class AssetBucket:
         priority = self.config.get("priority", "PRIORITY_NORMAL")
         
         if mode == "PERIODIC":
-            logger.info(f"⏰ Scheduler (Dormant): Registering recurring task for {self.bucket_id} every {interval}m [{priority}].")
+            logger.info(f" Scheduler (Dormant): Registering recurring task for {self.bucket_id} every {interval}m [{priority}].")
         elif mode == "ONE_SHOT":
-            logger.info(f"⏲️ Scheduler (Dormant): Registering single trigger for {self.bucket_id} in {interval}m [{priority}].")
+            logger.info(f" Scheduler (Dormant): Registering single trigger for {self.bucket_id} in {interval}m [{priority}].")
 
     async def update(self) -> Dict[str, Any]:
         """Iterates through assets concurrently and applies the operation sequence."""
@@ -104,11 +104,11 @@ class AssetBucket:
         assets = self.config.get("assets", [])
         
         if not assets:
-            logger.info(f"🪣 Systemic Update Bypassed: Bucket '{display_name}' has 0 registered assets.")
+            logger.info(f" Systemic Update Bypassed: Bucket '{display_name}' has 0 registered assets.")
             self._persist_state(self.current_data)
             return self.current_data
             
-        logger.info(f"🪣 Systemic Update Triggered: Bucket '{display_name}' ({len(assets)} assets)...")
+        logger.info(f" Systemic Update Triggered: Bucket '{display_name}' ({len(assets)} assets)...")
 
         # Gather tasks and run them concurrently
         tasks = [self._process_single_asset(asset) for asset in assets]
@@ -250,6 +250,6 @@ class AssetBucket:
         try:
             with open(self.state_path, 'w', encoding='utf-8') as f:
                 json.dump(state_payload, f, indent=4)
-            logger.info(f"✅ AssetBucket [{self.bucket_id}] state persisted transitively to {os.path.basename(self.state_path)}")
+            logger.info(f" AssetBucket [{self.bucket_id}] state persisted transitively to {os.path.basename(self.state_path)}")
         except Exception as e:
             logger.error(f"AssetBucket [{self.bucket_id}] failed to persist state: {e}")

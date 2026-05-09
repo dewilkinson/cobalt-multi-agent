@@ -247,8 +247,8 @@ def _format_artifact_text(artifacts: list[str]) -> str:
 
     filenames = [posixpath.basename(p) for p in artifacts]
     if len(filenames) == 1:
-        return f"Created File: 📎 {filenames[0]}"
-    return "Created Files: 📎 " + "、".join(filenames)
+        return f"Created File:  {filenames[0]}"
+    return "Created Files:  " + "、".join(filenames)
 
 
 _OUTPUTS_VIRTUAL_PREFIX = "/mnt/user-data/outputs/"

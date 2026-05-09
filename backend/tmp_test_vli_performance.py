@@ -33,22 +33,22 @@ def run_test(iterations=10):
                 result_text = data.get("response", str(data))
                 if "ERROR" in result_text or "failed" in result_text.lower() or "timeout" in result_text.lower():
                     failures += 1
-                    print(f"  ❌ FAIL: (Latency: {latency:.2f}s) - Error: {result_text[:100]}")
+                    print(f"   FAIL: (Latency: {latency:.2f}s) - Error: {result_text[:100]}")
                 else:
                     successes += 1
                     latencies.append(latency)
-                    print(f"  ✅ PASS: (Latency: {latency:.2f}s) - {result_text[:100]}")
+                    print(f"   PASS: (Latency: {latency:.2f}s) - {result_text[:100]}")
             else:
                 failures += 1
-                print(f"  ❌ FAIL: (Latency: {latency:.2f}s) - HTTP {resp.status_code}")
+                print(f"   FAIL: (Latency: {latency:.2f}s) - HTTP {resp.status_code}")
         except requests.exceptions.Timeout:
             latency = time.time() - start_time
             failures += 1
-            print(f"  ❌ FAIL: (Latency: {latency:.2f}s) - HTTP request timed out")
+            print(f"   FAIL: (Latency: {latency:.2f}s) - HTTP request timed out")
         except Exception as e:
             latency = time.time() - start_time
             failures += 1
-            print(f"  ❌ FAIL: (Latency: {latency:.2f}s) - Request exception: {e}")
+            print(f"   FAIL: (Latency: {latency:.2f}s) - Request exception: {e}")
 
         time.sleep(1)
 

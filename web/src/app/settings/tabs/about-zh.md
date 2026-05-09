@@ -1,4 +1,4 @@
-# 💠 [关于 Cobalt Multiagent](https://github.com/dewilkinson/cobalt-multi-agent)
+#  [关于 Cobalt Multiagent](https://github.com/dewilkinson/cobalt-multi-agent)
 
 > **源于开源，回馈开源**
 
@@ -6,19 +6,19 @@
 
 ---
 
-## 🌟 GitHub 仓库
+##  GitHub 仓库
 
 在 GitHub 上探索 Cobalt Multiagent：[github.com/dewilkinson/cobalt-multi-agent](https://github.com/dewilkinson/cobalt-multi-agent)
 
 ---
 
-## 📜 软件许可证
+##  软件许可证
 
 Cobalt Multiagent 作为开源项目，在 **MIT 许可证** 下分发。
 
 ---
 
-## 🙌 致谢
+##  致谢
 
 我们衷心感谢使 Cobalt Multiagent 成为现实的开源项目和贡献者。我们真正站在巨人的肩膀上。
 

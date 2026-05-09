@@ -30,7 +30,35 @@ class QuotaProtectedLLM:
         config: Optional[Any] = None,
         **kwargs: Any,
     ) -> Any:
-        input_str = str(input)
+        cache_name = None
+        cleaned_input = input
+        
+        if isinstance(input, list):
+            cleaned_input = []
+            for msg in input:
+                content = str(getattr(msg, 'content', msg))
+                if "[CACHED_PAYLOAD:" in content:
+                    import re
+                    match = re.search(r"\[CACHED_PAYLOAD:\s*([^\]]+)\]", content)
+                    if match:
+                        cache_name = match.group(1).strip()
+                        content = content.replace(match.group(0), "").strip()
+                        # Avoid mutating immutable messages directly
+                        try:
+                            msg = msg.model_copy(update={"content": content})
+                        except AttributeError:
+                            msg = msg.copy(update={"content": content})
+                cleaned_input.append(msg)
+                
+        llm_to_use = self.llm
+        if cache_name and hasattr(self.llm, "cached_content"):
+            logger.info(f"[CACHE_INTERCEPT] Routing invocation through native Gemini Cache: {cache_name}")
+            try:
+                llm_to_use = self.llm.model_copy(update={"cached_content": cache_name})
+            except AttributeError:
+                llm_to_use = self.llm.copy(update={"cached_content": cache_name})
+                
+        input_str = str(cleaned_input)
         estimated_input_tokens = len(input_str) // 4
         total_estimate = estimated_input_tokens + 1000 
         
@@ -52,7 +80,7 @@ class QuotaProtectedLLM:
                 
             # 2. Execute
             try:
-                result = await self.llm.ainvoke(input, config, **kwargs)
+                result = await llm_to_use.ainvoke(cleaned_input, config, **kwargs)
                 return result
             except Exception as e:
                 e_str = (str(e) + " " + e.__class__.__name__).upper()
@@ -79,7 +107,34 @@ class QuotaProtectedLLM:
         config: Optional[Any] = None,
         **kwargs: Any,
     ) -> Any:
-        input_str = str(input)
+        cache_name = None
+        cleaned_input = input
+        
+        if isinstance(input, list):
+            cleaned_input = []
+            for msg in input:
+                content = str(getattr(msg, 'content', msg))
+                if "[CACHED_PAYLOAD:" in content:
+                    import re
+                    match = re.search(r"\[CACHED_PAYLOAD:\s*([^\]]+)\]", content)
+                    if match:
+                        cache_name = match.group(1).strip()
+                        content = content.replace(match.group(0), "").strip()
+                        try:
+                            msg = msg.model_copy(update={"content": content})
+                        except AttributeError:
+                            msg = msg.copy(update={"content": content})
+                cleaned_input.append(msg)
+                
+        llm_to_use = self.llm
+        if cache_name and hasattr(self.llm, "cached_content"):
+            logger.info(f"[CACHE_INTERCEPT] Routing sync invocation through native Gemini Cache: {cache_name}")
+            try:
+                llm_to_use = self.llm.model_copy(update={"cached_content": cache_name})
+            except AttributeError:
+                llm_to_use = self.llm.copy(update={"cached_content": cache_name})
+                
+        input_str = str(cleaned_input)
         total_estimate = (len(input_str) // 4) + 1000
         
         max_retries = 6
@@ -98,7 +153,7 @@ class QuotaProtectedLLM:
                 continue
                 
             try:
-                return self.llm.invoke(input, config, **kwargs)
+                return llm_to_use.invoke(cleaned_input, config, **kwargs)
             except Exception as e:
                 e_str = (str(e) + " " + e.__class__.__name__).upper()
                 is_quota = any(x in e_str for x in ["RESOURCE_EXHAUSTED", "429", "QUOTA_EXHAUSTED", "RATE_LIMIT", "TOO MANY REQUESTS"])

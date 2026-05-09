@@ -230,7 +230,7 @@
 ### 6. `frontend/CLAUDE.md`
 
 ```diff
-@@ -30,7 +30,7 @@ Frontend (Next.js) ──▶ LangGraph SDK ──▶ LangGraph Backend (lead_age
+@@ -30,7 +30,7 @@ Frontend (Next.js) ── LangGraph SDK ── LangGraph Backend (lead_age
                                                └── Tools & Skills
  ```
  

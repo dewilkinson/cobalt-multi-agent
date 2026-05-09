@@ -305,6 +305,9 @@ async def get_daily_blotter(days_back: int = 2):
     cutoff_str = cutoff.strftime("%Y-%m-%d")
 
     for account_id, acct_data in cache.items():
+        if "TEST" in account_id.upper() or "DUMMY" in account_id.upper():
+            continue
+            
         activities = acct_data.get("activities", []) if isinstance(acct_data, dict) else acct_data
         for act in activities:
             t_date = str(act.get("trade_date", "") or act.get("time_placed", ""))
@@ -341,6 +344,8 @@ async def get_daily_blotter(days_back: int = 2):
     total_realized_pnl = 0.0
     end_date_str = datetime.now().strftime("%Y-%m-%d")
     for account_id in cache.keys():
+        if "TEST" in account_id.upper() or "DUMMY" in account_id.upper():
+            continue
         pnl_data = BrokerageCache.calculate_realized_pnl(account_id, cutoff_str, end_date_str)
         total_realized_pnl += pnl_data.get("total_pnl", 0.0)
 
@@ -354,10 +359,15 @@ async def get_daily_blotter(days_back: int = 2):
 
     single_day_pnl = 0.0
     for account_id in cache.keys():
+        if "TEST" in account_id.upper() or "DUMMY" in account_id.upper():
+            continue
         pnl_data = BrokerageCache.calculate_realized_pnl(account_id, latest_trade_date_str, latest_trade_date_str)
         single_day_pnl += pnl_data.get("total_pnl", 0.0)
 
-    blotter_text = f"**SINGLE-DAY PNL ({latest_trade_date_str})**: ${single_day_pnl:,.2f}\n**MULTI-DAY PERIOD PNL**: ${total_realized_pnl:,.2f}\n\nRecent Executions:\n" + "\n".join([str(t) for t in recent_trades])
+    if days_back <= 2:
+        blotter_text = f"**SINGLE-DAY PNL ({latest_trade_date_str})**: ${single_day_pnl:,.2f}\n\nRecent Executions:\n" + "\n".join([str(t) for t in recent_trades])
+    else:
+        blotter_text = f"**SINGLE-DAY PNL ({latest_trade_date_str})**: ${single_day_pnl:,.2f}\n**MULTI-DAY PERIOD PNL**: ${total_realized_pnl:,.2f}\n\nRecent Executions:\n" + "\n".join([str(t) for t in recent_trades])
     
     # Missing Reports Logic
     missing_reports = []

@@ -456,9 +456,9 @@ The report **MUST NOT** stop after the Conclusion — it **MUST** include Refere
 Every insight must connect **Data → User Psychology → Strategy Implication**:
 
 ```
-❌ Bad: "Females are 60%. Strategy: Target females."
+ Bad: "Females are 60%. Strategy: Target females."
 
-✅ Good: "Females constitute 60% with a high TGI of 180. **This suggests**
+ Good: "Females constitute 60% with a high TGI of 180. **This suggests**
    the purchase decision is driven by aesthetic and social validation
    rather than pure utility. **Consequently**, media spend should pivot
    towards visual-heavy platforms (e.g., RED/Instagram) to maximize CTR,

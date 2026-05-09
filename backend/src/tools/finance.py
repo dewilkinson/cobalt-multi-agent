@@ -674,16 +674,16 @@ async def get_cache_heat_map() -> str:
 
         # Determine Color/Category
         if heat >= 25:
-            status = "🟣 **Top 5**" if sorted_tickers.index(sym) < 5 else "🟢 **Top 10**"
+            status = " **Top 5**" if sorted_tickers.index(sym) < 5 else " **Top 10**"
             bar_char = "█"
         elif heat >= 8:
-            status = "🟠 **Active**"
+            status = " **Active**"
             bar_char = "▓"
         elif heat >= 4:
-            status = "🟡 **Lazy**"
+            status = " **Lazy**"
             bar_char = "▒"
         else:
-            status = "🔴 **Evictable**"
+            status = " **Evictable**"
             bar_char = "░"
 
         bar = bar_char * min(heat, 20)  # Cap bar length for UI

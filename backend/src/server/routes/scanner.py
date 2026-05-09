@@ -127,6 +127,8 @@ async def get_bunker_list():
     try:
         with open(strike_list_path, "r", encoding="utf-8") as f:
             data = json.load(f)
+            if isinstance(data, list):
+                return sanitize_data({"status": "success", "data": data})
             return sanitize_data({"status": "success", "data": data.get("strike_list", [])})
     except Exception as e:
         logger.error(f"Failed to read bunker: {e}")
@@ -152,6 +154,8 @@ async def get_shield_bunker_list():
     try:
         with open(strike_list_path, "r", encoding="utf-8") as f:
             data = json.load(f)
+            if isinstance(data, list):
+                return sanitize_data({"status": "success", "data": data})
             return sanitize_data({"status": "success", "data": data.get("strike_list", [])})
     except Exception as e:
         logger.error(f"Failed to read shield bunker: {e}")
@@ -293,6 +297,15 @@ async def scanner_stream():
                     p1_symbols = p1_data.get("watchlist", [])
                     p1_details = p1_data.get("detail", [])
                     
+                    # Re-inject SHIELD/SWORD/SNIPER candidates to bypass Phase 1 small-cap fundamental filters
+                    for s in symbols:
+                        match = next((x for x in phase0_raw if x["symbol"] == s), {})
+                        if match.get("tier") in ["SHIELD", "SWORD", "SNIPER"] and s not in p1_symbols:
+                            p1_symbols.append(s)
+                            if not any(d["symbol"] == s for d in p1_details):
+                                p1_details.append({"symbol": s, "grade": match.get("grade", "B"), "sortino": match.get("sortino", 0.0)})
+                    
+                    
                     # Report details including rejects
                     for d in p1_details:
                         if d["grade"] in ["C", "F"]:
@@ -348,8 +361,8 @@ async def scanner_stream():
                     match = next((x for x in phase0_raw if x["symbol"] == p["symbol"]), {})
                     merged = sanitize_data({**match, **p})
                     
-                    # Preserve origin tier to ensure UI filtering by SHIELD/SWORD doesn't break
-                    if "tier" in match and match["tier"] in ["SHIELD", "SWORD"]:
+                    # Preserve origin tier to ensure UI filtering by SHIELD/SWORD/SNIPER doesn't break
+                    if "tier" in match and match["tier"] in ["SHIELD", "SWORD", "SNIPER"]:
                         merged["tier"] = match["tier"]
                         
                     p2_full.append(merged)

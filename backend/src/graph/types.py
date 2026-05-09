@@ -19,6 +19,7 @@ class State(MessagesState):
     resources: list[Resource] = []
 
     # Planning & Orchestration (Hub-and-Spoke)
+    thinking_mode: bool = False
     current_plan: Plan | str = None
     steps_completed: int = 0
     is_plan_approved: bool = False
@@ -43,3 +44,4 @@ class State(MessagesState):
     direct_mode: bool = False
     raw_data_mode: bool = False
     silent_mode: bool = False
+    metadata: dict = {}

@@ -447,12 +447,12 @@ After generation:
 - Color restraint: one primary palette, 1-2 accent colors maximum
 
 **Common Mistakes to Avoid:**
-- ❌ Generic prompts like "professional slide" - be specific
-- ❌ Too many elements/text per slide - cluttered = unprofessional
-- ❌ Inconsistent colors between slides - always reference previous slide
-- ❌ Skipping the reference image parameter - this breaks visual consistency
-- ❌ Using different design styles within one presentation
-- ❌ Generating slides in parallel - slides MUST be generated one at a time in order (slide 1 → 2 → 3 ...), never concurrently
+-  Generic prompts like "professional slide" - be specific
+-  Too many elements/text per slide - cluttered = unprofessional
+-  Inconsistent colors between slides - always reference previous slide
+-  Skipping the reference image parameter - this breaks visual consistency
+-  Using different design styles within one presentation
+-  Generating slides in parallel - slides MUST be generated one at a time in order (slide 1 → 2 → 3 ...), never concurrently
 
 **Recommended Styles for Different Contexts:**
 - Tech product launch → `glassmorphism` or `gradient-modern`

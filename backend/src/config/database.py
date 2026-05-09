@@ -242,7 +242,7 @@ def init_database():
         # engine = get_database_engine()
         # with engine.connect() as conn:
         #     result = conn.execute(text("SELECT 1"))
-        # print("✅ Database connection successful")
+        # print(" Database connection successful")
 
         # Create tables
         print("VLI_SYSTEM: Initializing database schema...")

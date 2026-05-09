@@ -62,9 +62,9 @@ class TestRepairJsonOutput:
 
     def test_json_with_unicode(self):
         """Test JSON with unicode characters"""
-        content = '{"name": "测试", "emoji": "🎯"}'
+        content = '{"name": "测试", "emoji": ""}'
         result = repair_json_output(content)
-        expected = json.dumps({"name": "测试", "emoji": "🎯"}, ensure_ascii=False)
+        expected = json.dumps({"name": "测试", "emoji": ""}, ensure_ascii=False)
         assert result == expected
 
     def test_json_code_block_without_closing(self):

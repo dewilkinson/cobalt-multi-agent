@@ -133,34 +133,34 @@ class VLITestGUI:
                     self.update_telemetry(f"\n\n>>> API RESPONSE STATUS: [{status.upper()}] <<<\n")
                     
                     if status == "TIMEOUT":
-                        self.log(f"⏰ TEST ABORTED (TIMEOUT): {error_details or 'Agent processing timed out.'}", "#FF3D00")
+                        self.log(f" TEST ABORTED (TIMEOUT): {error_details or 'Agent processing timed out.'}", "#FF3D00")
                         self.log("Pipeline evaluation stopped.", "#FF3D00")
                         return
 
                     if status == "FAILED":
-                        self.log(f"❌ TEST ABORTED: {error_details or 'Unknown API Error'}", "#FF3D00")
+                        self.log(f" TEST ABORTED: {error_details or 'Unknown API Error'}", "#FF3D00")
                         self.log("Pipeline evaluation stopped.", "#FF3D00")
                         return
                         
                     if len(report) > 150:
-                        self.log(f"✅ STAGE PASSED: {symbol}\n", "#00E676")
+                        self.log(f" STAGE PASSED: {symbol}\n", "#00E676")
                     else:
-                        self.log(f"❌ TEST ABORTED: Invalid/short report for {symbol} (Length: {len(report)})", "#FF3D00")
+                        self.log(f" TEST ABORTED: Invalid/short report for {symbol} (Length: {len(report)})", "#FF3D00")
                         self.log("Pipeline evaluation stopped.", "#FF3D00")
                         return
                 else:
-                    self.log(f"❌ TEST ABORTED: Header/Network Error (HTTP {resp.status_code})", "#FF3D00")
+                    self.log(f" TEST ABORTED: Header/Network Error (HTTP {resp.status_code})", "#FF3D00")
                     return
             except httpx.ReadTimeout:
-                self.log(f"❌ TEST ABORTED: Agent execution timed out after {time.time() - start:.1f}s for {symbol}", "#FF3D00")
+                self.log(f" TEST ABORTED: Agent execution timed out after {time.time() - start:.1f}s for {symbol}", "#FF3D00")
                 return
             except Exception as e:
-                self.log(f"❌ TEST ABORTED: Exception raised: {e}", "#FF3D00")
+                self.log(f" TEST ABORTED: Exception raised: {e}", "#FF3D00")
                 return
                 
             time.sleep(2)
             
-        self.log(f"\n🎉 ALL STAGES VERIFIED. PIPELINE SUCCESSFUL.", "#00E676")
+        self.log(f"\n ALL STAGES VERIFIED. PIPELINE SUCCESSFUL.", "#00E676")
 
 if __name__ == "__main__":
     # Hide the default tk root window so we only see our styled one

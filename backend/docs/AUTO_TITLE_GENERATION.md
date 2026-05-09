@@ -14,7 +14,7 @@
 
 TitleMiddleware 会先把 LangChain message content 里的结构化 block/list 内容归一化为纯文本，再拼到 title prompt 里，避免把 Python/JSON 的原始 repr 泄漏到标题生成模型。
 
-## ⚠️ 重要：存储机制
+## ️ 重要：存储机制
 
 ### Title 存储位置
 
@@ -23,16 +23,16 @@ Title 存储在 **`ThreadState.title`** 中，而非 thread metadata：
 ```python
 class ThreadState(AgentState):
     sandbox: SandboxState | None = None
-    title: str | None = None  # ✅ Title stored here
+    title: str | None = None  #  Title stored here
 ```
 
 ### 持久化说明
 
 | 部署方式 | 持久化 | 说明 |
 |---------|--------|------|
-| **LangGraph Studio (本地)** | ❌ 否 | 仅内存存储，重启后丢失 |
-| **LangGraph Platform** | ✅ 是 | 自动持久化到数据库 |
-| **自定义 + Checkpointer** | ✅ 是 | 需配置 PostgreSQL/SQLite checkpointer |
+| **LangGraph Studio (本地)** |  否 | 仅内存存储，重启后丢失 |
+| **LangGraph Platform** |  是 | 自动持久化到数据库 |
+| **自定义 + Checkpointer** |  是 | 需配置 PostgreSQL/SQLite checkpointer |
 
 ### 如何启用持久化
 
@@ -168,12 +168,12 @@ sequenceDiagram
 
 ## 优势
 
-✅ **可靠持久化** - 使用 LangGraph 的 state 机制，自动持久化  
-✅ **完全后端处理** - 客户端无需额外逻辑  
-✅ **自动触发** - 首次对话后自动生成  
-✅ **可配置** - 支持自定义长度、模型等  
-✅ **容错性强** - 失败时使用 fallback 策略  
-✅ **架构一致** - 与现有 SandboxMiddleware 保持一致  
+ **可靠持久化** - 使用 LangGraph 的 state 机制，自动持久化  
+ **完全后端处理** - 客户端无需额外逻辑  
+ **自动触发** - 首次对话后自动生成  
+ **可配置** - 支持自定义长度、模型等  
+ **容错性强** - 失败时使用 fallback 策略  
+ **架构一致** - 与现有 SandboxMiddleware 保持一致  
 
 ## 注意事项
 
@@ -220,11 +220,11 @@ def test_title_generation():
 
 | 特性 | State | Metadata |
 |------|-------|----------|
-| **持久化** | ✅ 自动（通过 checkpointer） | ⚠️ 取决于实现 |
-| **版本控制** | ✅ 支持时间旅行 | ❌ 不支持 |
-| **类型安全** | ✅ TypedDict 定义 | ❌ 任意字典 |
-| **可追溯** | ✅ 每次更新都记录 | ⚠️ 只有最新值 |
-| **标准化** | ✅ LangGraph 核心机制 | ⚠️ 扩展功能 |
+| **持久化** |  自动（通过 checkpointer） | ️ 取决于实现 |
+| **版本控制** |  支持时间旅行 |  不支持 |
+| **类型安全** |  TypedDict 定义 |  任意字典 |
+| **可追溯** |  每次更新都记录 | ️ 只有最新值 |
+| **标准化** |  LangGraph 核心机制 | ️ 扩展功能 |
 
 ### 实现细节
 
@@ -237,7 +237,7 @@ def after_agent(self, state: TitleMiddlewareState, runtime: Runtime) -> dict | N
         title = self._generate_title(runtime)
         print(f"Generated thread title: {title}")
         
-        # ✅ 返回 state 更新，会被 checkpointer 自动持久化
+        #  返回 state 更新，会被 checkpointer 自动持久化
         return {"title": title}
     
     return None

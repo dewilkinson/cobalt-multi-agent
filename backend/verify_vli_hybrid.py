@@ -6,7 +6,7 @@ from src.tools.finance import get_stock_quote
 
 async def verify():
     logging.basicConfig(level=logging.INFO)
-    print("--- 🧪 VLI Hybrid Resolver Manual Verification ---")
+    print("---  VLI Hybrid Resolver Manual Verification ---")
 
     # 1. Test Fast-Path (Diagnostic Mock)
     print("\n1. Testing Fast-Path (Mock Ticker)...")
@@ -26,7 +26,7 @@ async def verify():
     print(f"Result: {res3}")
     # Should trigger Snapper or return error
 
-    print("\n--- ✅ Verification Complete ---")
+    print("\n---  Verification Complete ---")
 
 
 if __name__ == "__main__":

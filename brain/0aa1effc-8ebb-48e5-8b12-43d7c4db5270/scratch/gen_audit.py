@@ -46,15 +46,15 @@ def generate_audit_table(import_file):
             
             row_first_action = f"Buy ({b_trades[0]['Time']})"
             row_second_action = f"Sell ({s_trades[0]['Time']})"
-            result = "✅ Long"
+            result = " Long"
         elif has_buy:
             row_first_action = f"Buy ({group[0]['Time']})"
             row_second_action = "-"
-            result = "✅ Long-Open"
+            result = " Long-Open"
         else:
             row_first_action = f"Sell ({group[0]['Time']})"
             row_second_action = "-"
-            result = "✅ Long-Close"
+            result = " Long-Close"
             
         table_rows.append([date, symbol, row_first_action, row_second_action, result])
 

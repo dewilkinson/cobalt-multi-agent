@@ -33,6 +33,14 @@ async def _run_node_with_tiered_fallback(agent_type, state, config, tools=None, 
     """Universal tiered fallback executor for all VLI nodes."""
     current_tier = AGENT_LLM_MAP.get(agent_type, "basic")
     
+    # [NEW] Check for forced basic mode via Thinking Toggle
+    thinking_mode = state.get("thinking_mode", False) if isinstance(state, dict) else getattr(state, "thinking_mode", False)
+    if not thinking_mode and config and config.get("configurable"):
+        thinking_mode = config["configurable"].get("thinking_mode", False)
+        
+    if not thinking_mode:
+        current_tier = "basic"
+        
     try:
         start_idx = TIERS.index(current_tier)
     except ValueError:
@@ -227,7 +235,7 @@ async def _run_node_with_tiered_fallback(agent_type, state, config, tools=None, 
 
 async def _setup_and_execute_agent_step(state, config, agent_type, tools, agent_instructions: str = ""):
     """Executes the agent and captures the result for the reporter with multi-tier fallback."""
-    logger.info(f"🚀 Specialist `{agent_type.upper()}` is now executing `{agent_instructions[:50]}...` (Tiered Fallback Active).")
+    logger.info(f" Specialist `{agent_type.upper()}` is now executing `{agent_instructions[:50]}...` (Tiered Fallback Active).")
 
     audit_start = datetime.now()
     try:

@@ -50,30 +50,30 @@ def run_performance_test(ticker="VIX", iterations=10) -> float:
                 # Validation Logic
                 if "ERROR" in result_text or "failed" in result_text.lower() or "timeout" in result_text.lower():
                     failures += 1
-                    print(f"  ❌ FAIL: (Latency: {latency:.2f}s) - {result_text[:100]}...")
+                    print(f"   FAIL: (Latency: {latency:.2f}s) - {result_text[:100]}...")
                 elif "$" in result_text or "price" in result_text.lower() or "snapshot" in result_text.lower() or "SEE_IMAGE" in result_text or "vix" in result_text.lower() or "apologize" in result_text.lower():
                     successes += 1
                     latencies.append(latency)
-                    print(f"  ✅ PASS: (Latency: {latency:.2f}s) - {result_text[:100]}...")
+                    print(f"   PASS: (Latency: {latency:.2f}s) - {result_text[:100]}...")
                 else:
                     failures += 1
-                    print(f"  ❌ FAIL: (Latency: {latency:.2f}s) - Unexpected response: {result_text[:100]}...")
+                    print(f"   FAIL: (Latency: {latency:.2f}s) - Unexpected response: {result_text[:100]}...")
             else:
                 failures += 1
                 try:
                     err_msg = resp.json().get("detail", f"HTTP {resp.status_code}")
                 except:
                     err_msg = f"HTTP {resp.status_code}"
-                print(f"  ❌ FAIL: (Latency: {latency:.2f}s) - {err_msg}")
+                print(f"   FAIL: (Latency: {latency:.2f}s) - {err_msg}")
 
         except requests.exceptions.Timeout:
             latency = time.time() - start_time
             failures += 1
-            print(f"  ❌ FAIL: (Latency: {latency:.2f}s) - HTTP request timed out (45s max limit)")
+            print(f"   FAIL: (Latency: {latency:.2f}s) - HTTP request timed out (45s max limit)")
         except Exception as e:
             latency = time.time() - start_time
             failures += 1
-            print(f"  ❌ FAIL: (Latency: {latency:.2f}s) - Internal Exception: {e}")
+            print(f"   FAIL: (Latency: {latency:.2f}s) - Internal Exception: {e}")
 
         time.sleep(1)  # Prevent slamming the loop
 

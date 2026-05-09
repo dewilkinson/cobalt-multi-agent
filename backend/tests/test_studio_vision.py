@@ -15,28 +15,28 @@ from src.tools.screenshot import _snapper_worker
 
 
 async def diagnostic_test():
-    print("🚀 Starting AI Studio Diagnostic Test...")
+    print(" Starting AI Studio Diagnostic Test...")
 
     # 1. Take snapshot
-    print("📸 Taking snapshot of primary monitor...")
+    print(" Taking snapshot of primary monitor...")
     snapshot_json_str = await asyncio.to_thread(_snapper_worker, "desktop")
     snapshot_data = json.loads(snapshot_json_str)
 
     if "error" in snapshot_data:
-        print(f"❌ Error taking snapshot: {snapshot_data['error']}")
+        print(f" Error taking snapshot: {snapshot_data['error']}")
         return
 
     b64_image = snapshot_data["images"][0]
 
     # Save the snapshot to disk for inspection
-    print("💾 Saving snapshot to 'studio_diagnostic_capture.png'...")
+    print(" Saving snapshot to 'studio_diagnostic_capture.png'...")
     image_data = base64.b64decode(b64_image.split(",")[1])
     with open("studio_diagnostic_capture.png", "wb") as f:
         f.write(image_data)
-    print(f"✅ Snapshot saved to {os.path.abspath('studio_diagnostic_capture.png')}")
+    print(f" Snapshot saved to {os.path.abspath('studio_diagnostic_capture.png')}")
 
     # 2. Vision Extraction
-    print("🧠 Invoking Gemini Vision for extraction...")
+    print(" Invoking Gemini Vision for extraction...")
     vision_llm = get_llm_by_type("vision")
 
     prompt = (
@@ -52,7 +52,7 @@ async def diagnostic_test():
     try:
         response = await vision_llm.ainvoke([message])
         content = response.content.strip()
-        print(f"🤖 LLM Response:\n{content}")
+        print(f" LLM Response:\n{content}")
 
         # Try parsing
         if "```json" in content:
@@ -62,13 +62,13 @@ async def diagnostic_test():
 
         try:
             parsed = json.loads(content)
-            print("✅ Parsed JSON successfully:")
+            print(" Parsed JSON successfully:")
             print(json.dumps(parsed, indent=2))
         except:
-            print("⚠️ Failed to parse LLM response as JSON.")
+            print(" Failed to parse LLM response as JSON.")
 
     except Exception as e:
-        print(f"❌ LLM error: {e}")
+        print(f" LLM error: {e}")
 
 
 if __name__ == "__main__":

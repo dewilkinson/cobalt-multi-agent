@@ -9,7 +9,7 @@ for root, dirs, files in os.walk(root_dir):
             try:
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     for i, line in enumerate(f, 1):
-                        if "✅" in line and "TV_SYNC" in line:
+                        if "" in line and "TV_SYNC" in line:
                             print(f"{file_path}:{i}: {line.strip()}")
             except:
                 pass

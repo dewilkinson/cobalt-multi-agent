@@ -15,7 +15,7 @@ Automate the detection of trade chronology to ensure all day-trades are sequence
 
 ## Proposed Changes
 
-### 🛠️ CSV Processor Refactor
+### ️ CSV Processor Refactor
 #### [MODIFY] [csv-to-tradezella.py](file:///c:/github/cobalt-multi-agent/tools/csv-to-tradezella/csv-to-tradezella.py)
 *   **Lookback Engine (Execution Splitting)**: Implement a reverse-chronological search through `all_trades_by_date` to backfill missing entries for unresolved trades. Dynamically splits bulk historical executions to fulfill exact share deficits without generating phantom open trades.
 *   **Time Filtering**: Supports automated start dates via `--week`, `--month`, and `--ytd` (Year-to-Date) flags.

@@ -120,26 +120,26 @@ def calculate_sortino_ratio(returns: pd.Series, annual_rf: float = 0.0428, inter
     sortino = ((avg_return - periodic_rf) / downside_std) * np.sqrt(annual_factor)
     return round(float(sortino), 2)
 
-async def batch_fetch_sortino(tickers: List[str], period: str = "20d") -> Dict[str, float]:
+async def batch_fetch_sortino(tickers: List[str], period: str = "60d") -> Dict[str, float]:
     """Fetches history and calculates Sortino for a batch of tickers concurrently."""
     if not tickers:
         return {}
     
     interval = "1d"
     trading_style = os.getenv("VLI_TRADING_STYLE", "day_trading")
-    if trading_style == "day_trading":
-        period = "2d"
-        interval = "5m"
+    
+    # [HARDENING] Enforce strict 60-day rolling window for scanner evaluations
+    period = "60d"
+    interval = "1d"
         
     try:
         # download can be slow for many tickers, so we use the yf.Tickers object or gather
         # yfinance download is generally faster for batches
         # [HARDENING] Add 25s timeout to prevent infinite hang on thread execution
         # Inject ^TNX to fetch the dynamic risk-free rate simultaneously
-        fetch_list = tickers + ["^TNX"] if trading_style != "day_trading" else tickers
-        use_prepost = trading_style == "day_trading"
+        fetch_list = tickers + ["^TNX"]
         data = await asyncio.wait_for(
-            asyncio.to_thread(yf.download, fetch_list, period=period, interval=interval, group_by='ticker', progress=False, prepost=use_prepost),
+            asyncio.to_thread(yf.download, fetch_list, period=period, interval=interval, group_by='ticker', progress=False, prepost=False),
             timeout=25.0
         )
         
@@ -539,12 +539,8 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
                 letter_grade = calculate_static_grade(price, cap, float_shares, config, q_type)
                 
                 trading_style = os.getenv("VLI_TRADING_STYLE", "day_trading")
-                period = "20d"
+                period = "60d"
                 interval = "1d"
-                if trading_style == "day_trading":
-                    period = "2d"
-                    interval = "5m"
-                    dynamic_rf = 0.0
 
                 from src.tools.finance import _fetch_stock_history
                 hist_sortino = await asyncio.to_thread(_fetch_stock_history, ticker, period, interval)
@@ -574,15 +570,11 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
                 
                 heat_score = int(max(0, min(100, base_score)))
                 
-                # Dynamic Grading mapping (Absolute)
-                if heat_score >= 95: letter_grade = "S"
-                elif heat_score >= 90: letter_grade = "A+"
-                elif heat_score >= 82: letter_grade = "A"
-                elif heat_score >= 75: letter_grade = "B+"
-                elif heat_score >= 65: letter_grade = "B"
-                elif heat_score >= 58: letter_grade = "C+"
-                elif heat_score >= 50: letter_grade = "C"
-                elif heat_score >= 35: letter_grade = "C-"
+                # Dynamic Grading mapping (Absolute Institutional Sortino Scale)
+                if sortino >= 5.0: letter_grade = "S"
+                elif sortino >= 2.5: letter_grade = "A"
+                elif sortino >= 2.0: letter_grade = "B"
+                elif sortino >= 1.0: letter_grade = "C"
                 else: letter_grade = "F"
 
                 # Force MISS candidates to reflect a failing grade
@@ -683,7 +675,7 @@ async def clear_scanner_cache() -> str:
     purged = []
     for path, name in [(strike_list_path, "STRIKE_LIST.json")]:
         try:
-            with open(path, "w", encoding="utf-8") as f: json.dump([], f)
+            with open(path, "w", encoding="utf-8") as f: json.dump({"strike_list": []}, f)
             purged.append(name)
         except: pass
     for path, name in [(transit_path, "STRIKE_RES_state.json")]:

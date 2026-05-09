@@ -260,8 +260,8 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
             ticker = c["symbol"]
             sortino = sortino_map.get(ticker, 0.0)
             
-            if sortino < effective_hurdle:
-                return None
+            # if sortino < effective_hurdle:
+            #     return None
                 
             try:
                 # Precision Fundamental Verification
@@ -303,7 +303,7 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                     "float": f_shares,
                     "market_cap": m_cap,
                     "tier": "SNIPER",
-                    "grade": "S" if sortino >= effective_hurdle * 1.5 else "A" if sortino >= effective_hurdle * 1.2 else "B",
+                    "grade": "S" if sortino >= 5.0 else ("A" if sortino >= 2.5 else ("B" if sortino >= 2.0 else "C")),
                     "timestamp": datetime.now().isoformat()
                 }
             except Exception as e:
@@ -321,7 +321,7 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
         try:
             with open(STRIKE_LIST_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                existing_list = data.get("strike_list", [])
+                existing_list = data if isinstance(data, list) else data.get("strike_list", [])
         except Exception as e:
             logger.warning(f"Could not read existing STRIKE_LIST: {e}")
 

@@ -122,9 +122,9 @@ def sync_watchlist_to_journal(watchlist_name: str = "Daily Picks", config: Runna
 
     # Baseline Template
     template = f"# Daily Analysis Journal - {date_str}\n\n"
-    template += "### 🎯 Targeted Candidates\n\n"
-    template += "### 📈 Morning Session Notes\n- \n\n"
-    template += "### ⚠️ Risk Multipliers (VIX/Gamma)\n- \n\n"
+    template += "###  Targeted Candidates\n\n"
+    template += "###  Morning Session Notes\n- \n\n"
+    template += "###  Risk Multipliers (VIX/Gamma)\n- \n\n"
 
     os.makedirs(full_journal_dir, exist_ok=True)
 
@@ -136,7 +136,7 @@ def sync_watchlist_to_journal(watchlist_name: str = "Daily Picks", config: Runna
         content = template
 
     # Fixed-Function Section Replacement (Regex-free for reliability)
-    header = "### 🎯 Targeted Candidates"
+    header = "###  Targeted Candidates"
     new_list_str = "\n".join([f"- [ ] **{t}**" for t in tickers]) + "\n\n"
 
     if header in content:

@@ -8,6 +8,7 @@
     "dev": "electron . --dev"
   },
   "devDependencies": {
-    "electron": "^30.0.0"
+    "electron": "^30.5.1",
+    "playwright": "^1.59.1"
   }
 }

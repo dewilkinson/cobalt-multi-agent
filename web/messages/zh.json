@@ -81,7 +81,7 @@
       "starOnGitHub": "在 GitHub 上点赞"
     },
     "welcome": {
-      "greeting": "👋 你好！",
+      "greeting": " 你好！",
       "description": "欢迎来到 Cobalt Multiagent，一个基于前沿语言模型构建的深度研究助手，帮助您搜索网络、浏览信息并处理复杂任务。"
     },
     "conversationStarters": [

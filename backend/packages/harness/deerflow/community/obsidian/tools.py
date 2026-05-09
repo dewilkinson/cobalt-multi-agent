@@ -122,7 +122,7 @@ def list_obsidian_notes(path: str = "") -> str:
 
         notes = []
         for item in full_path.iterdir():
-            icon = "📁" if item.is_dir() else "📄"
+            icon = "" if item.is_dir() else ""
             notes.append(f"{icon} {item.name}")
 
         if not notes:

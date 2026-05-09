@@ -20,7 +20,7 @@ def cleanup():
 
 
 def run_gui_test():
-    print("🚀 Starting VLI Dashboard GUI Verification...")
+    print(" Starting VLI Dashboard GUI Verification...")
     print("=============================================")
     cleanup()
 
@@ -37,7 +37,7 @@ def run_gui_test():
         try:
             page.goto(DASHBOARD_URL, timeout=10000)
         except Exception as e:
-            print(f"❌ FAIL: Could not reach the dashboard. Is the HTTP server running on port 8089?\nError: {e}")
+            print(f" FAIL: Could not reach the dashboard. Is the HTTP server running on port 8089?\nError: {e}")
             cleanup()
             return
 
@@ -46,7 +46,7 @@ def run_gui_test():
         # Assert connection state
         conn_status = page.locator("#conn-status").inner_text()
         if conn_status != "VLI Linked":
-            print(f"⚠️ Dashboard connection status check warning: Found '{conn_status}' instead of 'VLI Linked'.")
+            print(f" Dashboard connection status check warning: Found '{conn_status}' instead of 'VLI Linked'.")
 
         # Step 2: Validate Vault Inbox (Before test file)
         print("3. Validating Initial Vault Inbox Monitor state...")
@@ -63,9 +63,9 @@ def run_gui_test():
         # Since polling is every 2s, wait up to 6 seconds for the span element with the file name to appear inside inbox-pane
         try:
             page.locator("#inbox-pane span", has_text="gui_test_draft.txt").wait_for(state="visible", timeout=6000)
-            print("   ✅ SUCCESS: 'gui_test_draft.txt' detected organically in the VLI Dashboard!")
+            print("    SUCCESS: 'gui_test_draft.txt' detected organically in the VLI Dashboard!")
         except Exception as e:
-            print("   ❌ FAIL: The test draft did not appear in the Vault Inbox Monitor.")
+            print("    FAIL: The test draft did not appear in the Vault Inbox Monitor.")
             print(f"      (Ensure the backend is running and watching the inbox: {e})")
 
         # Step 4: Validate Dynamic Live UI panel triggering
@@ -90,17 +90,17 @@ def run_gui_test():
 
             # Verify panel has content (the sortino indicators we added)
             title = dynamic_panel.locator(".card-header").inner_text()
-            print(f"   ✅ SUCCESS: Dynamic Panel generated! Title -> '{title}'")
+            print(f"    SUCCESS: Dynamic Panel generated! Title -> '{title}'")
 
             # Optionally check that the sortino indicator is visible inside the card
             indicator = dynamic_panel.locator(".sortino-indicator")
             if indicator.count() > 0:
-                print("   ✅ SUCCESS: Sortino Indicators successfully rendered inside the dynamic panel.")
+                print("    SUCCESS: Sortino Indicators successfully rendered inside the dynamic panel.")
             else:
-                print("   ⚠️ WARNING: Dynamic panel appeared but 'sortino-indicator' CSS elements are missing.")
+                print("    WARNING: Dynamic panel appeared but 'sortino-indicator' CSS elements are missing.")
 
         except Exception as e:
-            print("   ❌ FAIL: Dynamic Panel did not appear. (Check if the symbol extraction triggered).")
+            print("    FAIL: Dynamic Panel did not appear. (Check if the symbol extraction triggered).")
             print(e)
 
         print("8. Pausing for human verification (3s)...")
@@ -109,7 +109,7 @@ def run_gui_test():
         browser.close()
         cleanup()
         print("=============================================")
-        print("✨ Automated GUI Verification Complete.")
+        print(" Automated GUI Verification Complete.")
 
 
 if __name__ == "__main__":

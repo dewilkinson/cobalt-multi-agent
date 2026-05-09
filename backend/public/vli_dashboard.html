@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0054";
+        const VLI_CLIENT_VERSION = "00.000.0071";
     </script>
     
     <link
@@ -100,13 +100,7 @@
             z-index: 99999 !important;
             box-shadow: 0 0 30px rgba(88, 166, 255, 0.4) !important;
             opacity: 0.3 !important;
-            height: auto !important;
-            min-height: 0 !important;
             pointer-events: none !important;
-        }
-
-        .card.is-dragging .card-body {
-            display: none !important;
         }
 
         .vli-input {
@@ -343,6 +337,18 @@
         .macro-table td {
             padding: 2px 4px;
             border-bottom: 1px solid #1e1e1e;
+        }
+
+        .scanner-table tbody tr:nth-child(even) {
+            background-color: #1a1a1a;
+        }
+
+        .scanner-table tbody tr:nth-child(odd) {
+            background-color: #000000;
+        }
+
+        .scanner-table tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.05) !important;
         }
 
         .symbol-bold {
@@ -1463,7 +1469,7 @@
             <div class="menu-item" accesskey="f"><u>F</u>ile
                 <div class="menu-dropdown">
                     <div class="dropdown-submenu">
-                        <div class="dropdown-item" style="cursor: default;"><span><u>N</u>ew Window</span> <span style="font-size: 10px; color: var(--text-muted); margin-left:25px;">▶</span></div>
+                        <div class="dropdown-item" style="cursor: default;"><span><u>N</u>ew Window</span> <span style="font-size: 10px; color: var(--text-muted); margin-left:25px;"></span></div>
                         <div class="menu-dropdown">
                             <div class="dropdown-item" onclick="UXManager.createCard('MACRO_WL')">Macro Watchlist Node</div>
                             <div class="dropdown-item" onclick="UXManager.createCard('STRUCTURAL_ANALY')">Structural Analysis Node</div>
@@ -1491,10 +1497,10 @@
                     </div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-submenu">
-                        <div class="dropdown-item" style="cursor: default;"><span><u>W</u>orkspace</span> <span style="font-size: 10px; color: var(--text-muted); margin-left:25px;">▶</span></div>
+                        <div class="dropdown-item" style="cursor: default;"><span><u>W</u>orkspace</span> <span style="font-size: 10px; color: var(--text-muted); margin-left:25px;"></span></div>
                         <div class="menu-dropdown">
                             <div class="dropdown-submenu">
-                                <div class="dropdown-item" style="cursor: default;"><span><u>A</u>rrange</span> <span style="font-size: 10px; color: var(--text-muted); margin-left:25px;">▶</span></div>
+                                <div class="dropdown-item" style="cursor: default;"><span><u>A</u>rrange</span> <span style="font-size: 10px; color: var(--text-muted); margin-left:25px;"></span></div>
                                 <div class="menu-dropdown">
                                     <div class="dropdown-item" onclick="arrangeWorkspace()"><span><u>S</u>mart Arrange</span></div>
                                     <div class="dropdown-item" onclick="resetLayout()"><span><u>R</u>eset to Default</span></div>
@@ -1531,6 +1537,19 @@
     <script>
         window.VLI_DEBUG = true;
         let refreshCountdown = 60;
+        let isThinkingMode = false;
+
+        function toggleThinkingMode() {
+            isThinkingMode = !isThinkingMode;
+            const badge = document.getElementById('thinking-badge');
+            if (isThinkingMode) {
+                badge.textContent = "ON";
+                badge.style.color = "var(--emerald-green)";
+            } else {
+                badge.textContent = "OFF";
+                badge.style.color = "var(--text-muted)";
+            }
+        }
         
         const getSnaptradeSettings = () => ({
             SNAPTRADE_CLIENT_ID: localStorage.getItem('SNAPTRADE_CLIENT_ID') || '',
@@ -1614,7 +1633,7 @@
         };
 
         // --- UX CARD FACTORY MANAGER ---
-        const UX_CARD_LIMIT = 8;
+        const UX_CARD_LIMIT = 16;
         
         const CARD_TYPES = {
             'VLI_CHAT': { idPrefix: 'CI', title: 'Coordinator Interface', isSingleton: true },
@@ -1910,6 +1929,12 @@
                 document.getElementById('wm-workspace').appendChild(cardBox);
                 this.instances[instanceGuid] = cardBox;
                 
+                if (typeGuid === 'SCAN_RES' && typeof updateScannerResultsUI === 'function') {
+                    setTimeout(() => {
+                        updateScannerResultsUI();
+                    }, 50);
+                }
+                
                 if (typeGuid === 'VLI_CHAT') {
                     const inputElement = document.getElementById('chat-input');
                     if (inputElement) {
@@ -1924,7 +1949,8 @@
                         if(box && box.style.display !== 'none') {
                             // Only auto-fetch if we are looking at 'today'
                             const startVal = document.getElementById(`order-hist-start-${instanceGuid}`).value;
-                            const todayStr = new Date().toISOString().split('T')[0];
+                            const d = new Date();
+                            const todayStr = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0];
                             if(startVal === todayStr) {
                                 fetchOrderHistory(instanceGuid, true);
                             }
@@ -2095,22 +2121,23 @@
                     }
                 }
                 
-                let isOffCanvas = winManager.dragging.dataset.artifactPath && e.clientX < 300;
-                
-                if (isOffCanvas) {
-                    document.querySelectorAll('.tree-folder > .tree-item').forEach(node => {
-                        node.style.backgroundColor = '';
-                    });
-                    
+                document.querySelectorAll('.tree-folder > .tree-item').forEach(node => {
+                    node.style.backgroundColor = '';
+                });
+
+                let isOffCanvas = false;
+                if (winManager.dragging.dataset.artifactPath) {
+                    const prevEvents = winManager.dragging.style.pointerEvents;
+                    winManager.dragging.style.pointerEvents = 'none';
                     const elemUnder = document.elementFromPoint(e.clientX, e.clientY);
+                    winManager.dragging.style.pointerEvents = prevEvents;
+                    
                     if (elemUnder) {
-                        const fileNode = elemUnder.closest('.tree-file');
-                        if (!fileNode) {
-                            const treeNode = elemUnder.closest('.tree-folder');
-                            if (treeNode) {
-                                const treeItem = treeNode.querySelector(':scope > .tree-item');
-                                if (treeItem) treeItem.style.backgroundColor = 'rgba(88, 166, 255, 0.2)';
-                            }
+                        const treeNode = elemUnder.closest('.tree-folder');
+                        if (treeNode) {
+                            isOffCanvas = true;
+                            const treeItem = treeNode.querySelector(':scope > .tree-item');
+                            if (treeItem) treeItem.style.backgroundColor = 'rgba(88, 166, 255, 0.2)';
                         }
                     }
                 }
@@ -2252,7 +2279,7 @@
                     // UXManager.createCard('VLI_CHAT', {top: '2%', left: '66%', width: '33%', height: '96%'}, 'coordinator');
                     UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '19%', height: '55%'}, 'watchlist');
                     UXManager.createCard('SCAN_RES', {top: '2%', left: '21%', width: '21%', height: '55%'}, 'scanner');
-                    UXManager.createCard('SHIELD_RES', {top: '2%', left: '43%', width: '22%', height: '55%'}, 'shield');
+                    UXManager.createCard('SCAN_RES', {top: '2%', left: '43%', width: '22%', height: '55%'}, 'shield');
                     
                     // Add RUN button to Scanner Results header for backup
                     setTimeout(() => {
@@ -2297,6 +2324,14 @@
                     const state = layout[id];
                     if (!state.typeGuid) continue;
                     
+                    if (state.typeGuid === 'SHIELD_RES') {
+                        state.typeGuid = 'SCAN_RES';
+                        state.instanceGuid = 'shield';
+                    }
+                    if (state.typeGuid === 'SCAN_RES' && state.instanceGuid !== 'scanner' && state.instanceGuid !== 'shield') {
+                        continue; // Self-heal: Drop anomalous/legacy scan windows that lack proper initialization GUIDs
+                    }
+                    
                     let card;
                     if (state.typeGuid === 'VLI_CHAT' && UXManager.instances[state.instanceGuid]) {
                         card = UXManager.instances[state.instanceGuid];
@@ -2332,6 +2367,14 @@
                             }
                         }, 50);
                     }
+                }
+                
+                // Self-healing: Ensure both institutional scanners are always present
+                if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'scanner')) {
+                    UXManager.createCard('SCAN_RES', {top: '2%', left: '21%', width: '21%', height: '55%'}, 'scanner');
+                }
+                if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'shield')) {
+                    UXManager.createCard('SCAN_RES', {top: '2%', left: '43%', width: '22%', height: '55%'}, 'shield');
                 }
             } catch(e) {}
         }
@@ -2384,8 +2427,11 @@
                  viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('VLI_TELEMETRY')" style="color:var(--emerald-green);">[+] Spawn System Telemetry</div>`;
             }
             
-            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCAN_RES')) {
-                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES')" style="color:var(--emerald-green);">[+] Spawn Market Scan</div>`;
+            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'scanner')) {
+                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES', {}, 'scanner')" style="color:var(--emerald-green);">[+] Spawn Sortino Sniper</div>`;
+            }
+            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'shield')) {
+                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES', {}, 'shield')" style="color:var(--emerald-green);">[+] Spawn Apex Core Scan</div>`;
             }
             if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCHEDULER_LOG')) {
                  viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCHEDULER_LOG')" style="color:var(--emerald-green);">[+] Spawn Scheduler Log</div>`;
@@ -2414,7 +2460,7 @@
                 
                 const isVisible = card.style.display !== 'none';
                 
-                const check = isVisible ? '☑' : '☐';
+                const check = isVisible ? '' : '☐';
                 const el = document.createElement('div');
                 el.className = 'dropdown-item';
                 el.innerHTML = `<span>[${badge}] ${title}</span> <span style="font-size: 11px; margin-left: 20px;">${check}</span>`;
@@ -2427,22 +2473,22 @@
                     }
                     saveLayout();
     
-            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCAN_RES')) {
+            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'scanner')) {
                  UXManager.createCard('SCAN_RES', {top: '2%', left: '33.5%', width: '31%', height: '47%'}, 'scanner');
             }
-            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SHIELD_RES')) {
-                 UXManager.createCard('SHIELD_RES', {top: '51%', left: '33.5%', width: '31%', height: '47%'}, 'shield');
+            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'shield')) {
+                 UXManager.createCard('SCAN_RES', {top: '51%', left: '33.5%', width: '31%', height: '47%'}, 'shield');
             }
             if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCHEDULER_LOG')) {
                  UXManager.createCard('SCHEDULER_LOG', {top: '51%', left: '66%', width: '33%', height: '47%'}, 'scheduler');
             }
 
 
-            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCAN_RES')) {
+            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'scanner')) {
                  UXManager.createCard('SCAN_RES', {top: '2%', left: '33.5%', width: '31%', height: '47%'}, 'scanner');
             }
-            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SHIELD_RES')) {
-                 UXManager.createCard('SHIELD_RES', {top: '51%', left: '33.5%', width: '31%', height: '47%'}, 'shield');
+            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'shield')) {
+                 UXManager.createCard('SCAN_RES', {top: '51%', left: '33.5%', width: '31%', height: '47%'}, 'shield');
             }
 
                 updateViewMenu();
@@ -2458,12 +2504,13 @@
             
             if (winManager.dragging) {
                 if (e && winManager.dragging.dataset.artifactPath) {
+                    const prevEvents = winManager.dragging.style.pointerEvents;
+                    winManager.dragging.style.pointerEvents = 'none';
                     const elemUnder = document.elementFromPoint(e.clientX, e.clientY);
+                    winManager.dragging.style.pointerEvents = prevEvents;
                     if (elemUnder) {
-                        const fileNode = elemUnder.closest('.tree-file');
-                        if (!fileNode) {
-                            const treeNode = elemUnder.closest('.tree-folder');
-                            if (treeNode) {
+                        const treeNode = elemUnder.closest('.tree-folder');
+                        if (treeNode) {
                                 const dragged = winManager.dragging;
                                 const rect = dragged.getBoundingClientRect();
                                 const targetRect = treeNode.getBoundingClientRect();
@@ -2526,7 +2573,6 @@
                             }
                         }
                     }
-                }
                 winManager.dragging.style.zIndex = winManager.draggingOriginalZ || winManager.maxZ;
                 winManager.dragging.classList.remove('is-dragging');
                 saveLayout();
@@ -2839,7 +2885,7 @@
             const msgContent = btn.closest('.msg-ai-content').querySelector('.chat-inline-markdown').innerText;
             await navigator.clipboard.writeText(msgContent);
             const oldHtml = btn.innerHTML;
-            btn.innerHTML = '✅';
+            btn.innerHTML = '';
             setTimeout(() => btn.innerHTML = oldHtml, 2000);
         }
 
@@ -3282,14 +3328,8 @@
 
                 if (data.session_config && data.session_config.active_strategy) {
                     const strategy = data.session_config.active_strategy.toUpperCase();
-                    document.querySelectorAll('select[id^="scan-filter-"]').forEach(select => {
-                        if (document.activeElement !== select) {
-                            if (strategy.includes('SNIPER')) select.value = 'SNIPER';
-                            else if (strategy.includes('SHIELD')) select.value = 'SHIELD';
-                            else if (strategy.includes('SWORD')) select.value = 'SWORD';
-                            else select.value = 'ALL';
-                        }
-                    });
+                    // [REMOVED] Logic that overwrites scanner-filter dropdowns across all windows
+                    // This allows individual windows to maintain their own filter state (e.g. one for Sortino, one for Core)
                 }
 
                 bc.postMessage({ type: 'STATE_UPDATE', state: data });
@@ -3549,6 +3589,19 @@
         let activeScannerCandidates = []; 
         window.vliNewSymbols.clear();
         
+        // Initialize scanner candidates from the backend bunker on startup
+        fetch('/api/scanner/bunker')
+            .then(r => r.json())
+            .then(d => {
+                console.log("BUNKER FETCH RESOLVED. success:", d.status, "data length:", d.data ? d.data.length : 0);
+                if(d.status === 'success' && d.data) {
+                    activeScannerCandidates = d.data;
+                    console.log("CALLING updateScannerResultsUI");
+                    updateScannerResultsUI();
+                }
+            })
+            .catch(e => console.log('Failed to fetch initial scanner bunker', e));
+        
         // GLOBAL Telemetry Stream
         const globalTelemetrySource = new EventSource('/api/telemetry/stream');
         globalTelemetrySource.onmessage = (e) => {
@@ -3683,78 +3736,21 @@
             updateScannerResultsUI();
         }
 
-        async function toggleTrackSpy(checked) {
-            window._vliTrackSpy = checked;
-            // Update all checkboxes to match and disable them
-            document.querySelectorAll('.track-spy-cb').forEach(cb => {
-                cb.checked = checked;
-                cb.disabled = true;
-                cb.parentElement.style.opacity = '0.5';
-                cb.parentElement.style.pointerEvents = 'none';
-            });
+        function toggleTrackSpy(cb) {
+            const card = cb.closest('.card');
+            if (!card) return;
+            const instanceGuid = card.dataset.instanceGuid;
             
-            // Dim the scanner results to show loading state
-            document.querySelectorAll('.card[data-type-guid="SCAN_RES"] tbody tr').forEach(r => r.style.opacity = '0.3');
+            if (!window.vliScannerTrackSpy) window.vliScannerTrackSpy = {};
+            window.vliScannerTrackSpy[instanceGuid] = cb.checked;
             
-            try {
-                await fetch('/api/vli/scanner-settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ track_spy: checked })
-                });
-                
-                // Trigger background rescan and wait for completion
-                await fetch('/api/vli/force-scanner-sync', { method: 'POST' });
-                
-                // Refresh the UI with the newly fetched data
-                initScannerSSE();
-                
-            } catch (e) {
-                console.error("Failed to update scanner settings", e);
-            } finally {
-                // Restore checkbox state
-                document.querySelectorAll('.track-spy-cb').forEach(cb => {
-                    cb.disabled = false;
-                    cb.parentElement.style.opacity = '1';
-                    cb.parentElement.style.pointerEvents = 'auto';
-                });
-            }
+            // Force re-render of local scanner results without refetching from backend
+            updateScannerResultsUI();
         }
 
-        async function handleScannerTierChange(selectElement) {
-            const newTier = selectElement.value;
-            
-            // Re-filter locally first (will likely be empty if switching to un-cached strategy)
+        function handleScannerTierChange(selectElement) {
+            // Decoupled: Only refilter locally, do not trigger global backend rescans
             updateScannerResultsUI();
-            
-            // Dim the scanner results to show loading state
-            document.querySelectorAll('.card[data-type-guid="SCAN_RES"] tbody tr').forEach(r => r.style.opacity = '0.3');
-            selectElement.disabled = true;
-            
-            try {
-                let strategyFile = "cma_strategy_sortino_sniper.md";
-                if (newTier === "SHIELD") strategyFile = "cma_strategy_apex_shield.md";
-                else if (newTier === "SWORD") strategyFile = "cma_strategy_apex_sword.md";
-                
-                // Update active strategy in vli_session_config
-                await fetch('/api/v1/trader-profile/active-modules', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ active_strategy: strategyFile })
-                });
-                
-                // Trigger background rescan and wait for completion
-                window._vliIsScanning = true;
-                updateScannerResultsUI();
-                await fetch('/api/vli/force-scanner-sync', { method: 'POST' });
-                
-                // Refresh the UI with the newly fetched data
-                initScannerSSE();
-            } catch (e) {
-                console.error("Failed to sync tier change", e);
-            } finally {
-                selectElement.disabled = false;
-            }
         }
 
         async function initScannerSettings() {
@@ -3813,6 +3809,7 @@
             }
             previousSwordSymbols = currentSymbols;
 
+            const spyBenchmark = data.scanner_results.metadata?.spy_benchmark || 0.0;
             const res = { ...data.scanner_results, candidates: allCandidates };
             
             document.querySelectorAll('.card[data-type-guid="SCAN_RES"]').forEach(card => {
@@ -3838,23 +3835,22 @@
                         <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
                             <div style="display:flex; gap: 8px; align-items: center;">
                                 <select id="scan-filter-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="handleScannerTierChange(this)">
-                                    <option value="ALL">All Algorithms</option>
-                                    <option value="SNIPER" selected>Sortino Sniper</option>
-                                    <option value="SHIELD">Apex Core Scan</option>
+                                    <option value="SNIPER" ${card.dataset.instanceGuid === 'scanner' ? 'selected' : ''}>Sortino Sniper</option>
+                                    <option value="SHIELD" ${card.dataset.instanceGuid === 'shield' ? 'selected' : ''}>Apex Core Scan</option>
                                     <option value="SWORD">Apex Satellite Scan</option>
                                 </select>
                             </div>
                             <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
                         <div style="flex-grow: 1; overflow-y: auto;">
-                            <table style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
+                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        <th style="padding: 8px 4px; text-align: left;">SYMBOL</th>
-                                        <th style="padding: 8px 4px; text-align: right;">PRICE</th>
-                                        <th style="padding: 8px 4px; text-align: right;">CHANGE</th>
-                                        <th style="padding: 8px 4px; text-align: right;">SORTINO</th>
-                                        <th style="padding: 8px 4px; text-align: center;">GRADE</th>
+                                        <th style="padding: 4px 2px; text-align: left;">SYMBOL</th>
+                                        <th style="padding: 4px 2px; text-align: right;">PRICE</th>
+                                        <th style="padding: 4px 2px; text-align: right;">CHANGE</th>
+                                        <th style="padding: 4px 2px; text-align: right;">SORTINO</th>
+                                        <th style="padding: 4px 2px; text-align: center;">GRADE</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -3862,9 +3858,9 @@
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
                             <label style="display: flex; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 600; text-transform: uppercase;" title="Filter by Relative Strength against S&P">
-                                <input type="checkbox" class="track-spy-cb" onchange="toggleTrackSpy(this.checked)" style="accent-color: var(--emerald-green); cursor: pointer;"> RS Filter
+                                <input type="checkbox" class="track-spy-cb" onchange="toggleTrackSpy(this)" style="accent-color: var(--emerald-green); cursor: pointer;" ${window.vliScannerTrackSpy && window.vliScannerTrackSpy[card.dataset.instanceGuid] ? 'checked' : ''}> RS Filter
                             </label>
-                            <button class="scanner-refresh-btn" onclick="document.querySelectorAll('.card[data-type-guid=\\'SCAN_RES\\'] tbody tr').forEach(r => r.style.opacity = '0.3'); initScannerSSE();" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Refresh">
+                            <button class="scanner-refresh-btn" onclick="let b=this.closest('.card-body'); b.querySelectorAll('tbody tr').forEach(r => r.style.opacity = '0.3'); fetch('/api/scanner/bunker').then(r=>r.json()).then(d=>{if(d.status==='success'){activeScannerCandidates=d.data;updateScannerResultsUI();}});" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Refresh">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
                                 Refresh
                             </button>
@@ -3887,15 +3883,21 @@
                 tbody.innerHTML = '';
                 
                 const filterEl = body.querySelector('#scan-filter-' + card.dataset.instanceGuid);
-                const activeFilter = filterEl ? filterEl.value : 'SNIPER';
+                const activeFilter = filterEl ? filterEl.value : 'SHIELD';
                 
-                const filteredCandidates = res.candidates.filter(c => {
-                    if (activeFilter === 'ALL') return true;
+                let filteredCandidates = res.candidates.filter(c => {
                     if (activeFilter === 'SNIPER' && c.tier === 'SNIPER') return true;
                     if (activeFilter === 'SHIELD' && c.tier === 'SHIELD') return true;
                     if (activeFilter === 'SWORD' && (c.tier === 'SWORD' || !c.tier)) return true;
                     return false;
                 });
+                
+                if (window.vliScannerTrackSpy && window.vliScannerTrackSpy[card.dataset.instanceGuid]) {
+                    filteredCandidates = filteredCandidates.filter(c => {
+                        const sym_perf_3m = parseFloat(c.perf_3m) || 0.0;
+                        return sym_perf_3m >= (spyBenchmark + 15.0);
+                    });
+                }
                 
                 if (filteredCandidates.length === 0) {
                     const statusText = window._vliIsScanning ? "Scanning..." : "Empty List: No candidates passed institutional criteria.";
@@ -3989,13 +3991,8 @@
                             window.vliNewSymbols.delete(c.symbol);
                             c.isNew = false;
                         }
-                        tr.style.background = 'rgba(255,255,255,0.02)';
-
                     };
-                    tr.onmouseleave = () => {
-                        tr.style.background = 'transparent';
-
-                    };
+                    tr.onmouseleave = () => {};
                     
                     tr.onclick = () => insertCardIdIntoChat(`analyze ${c.symbol}`);
                     
@@ -4003,11 +4000,11 @@
                     const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
                     
                     tr.innerHTML = `
-                        <td style="padding: 10px 4px; color: #fff; font-weight: 700;">${c.symbol}</td>
-                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</td>
-                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
-                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
-                        <td style="padding: 10px 4px;">
+                        <td style="padding: 4px 2px; color: #fff; font-weight: 700;">${c.symbol}</td>
+                        <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</td>
+                        <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
+                        <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
+                        <td style="padding: 4px 2px;">
                             <div style="display: flex; align-items: center; justify-content: flex-end;">
                                 <span style="display: inline-block; width: 32px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; padding: 2px 0; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid ${gradeBorder};">${c.grade || 'F'}</span>
                                 <div style="width: 24px; display: flex; justify-content: flex-end;">
@@ -4045,13 +4042,13 @@
                     let safeTelemetry = newTelemetry.replace(/\\n/g, '\n');
                     const leakKeywords = ["# SECURITY OVERRIDE", "APEX 500 SYSTEM", "USER IDENTITY: DAVE", "OPERATIONAL MANDATE"];
                     if (leakKeywords.some(k => safeTelemetry.toUpperCase().includes(k))) {
-                        safeTelemetry = "**⚠️ [VLI_MONITOR]: TECHNICAL STATE LEAKAGE SUPPRESSED.**";
+                        safeTelemetry = "** [VLI_MONITOR]: TECHNICAL STATE LEAKAGE SUPPRESSED.**";
                     }
                     
                     // Color code task prefixes
                     let lines = safeTelemetry.split('\n');
                     let processedLines = lines.map(line => {
-                        let match = line.match(/^(\[\d{2}:\d{2}:\d{2}\]\s*(?:.*?(?:\*\*|🤖|📋|📡|🔄|✅|❌|⚠️)\s*)?)?\[([A-Z0-9_ -]+)\](.*)/i);
+                        let match = line.match(/^(\[\d{2}:\d{2}:\d{2}\]\s*(?:.*?(?:\*\*|||||||)\s*)?)?\[([A-Z0-9_ -]+)\](.*)/i);
                         if (match) {
                             let prefix = match[1] || '';
                             let taskName = match[2];
@@ -4401,6 +4398,7 @@
                             body: JSON.stringify({
                                 text: rawText,
                                 direct_mode: directMode,
+                                thinking_mode: window.isThinkingMode
                                 raw_data_mode: false,
                                 background_synthesis: asyncMode,
                                 thread_id: lastVliThreadId,
@@ -4474,6 +4472,7 @@
                             body: JSON.stringify({
                                 text: requestText,
                                 direct_mode: directMode,
+                                thinking_mode: window.isThinkingMode
                                 raw_data_mode: rawDataMode,
                                 background_synthesis: asyncMode,
                                 thread_id: lastVliThreadId,
@@ -4498,12 +4497,60 @@
                                     const url = URL.createObjectURL(blob);
                                     const artifactId = 'artifact_' + Date.now() + Math.floor(Math.random() * 1000);
                                     sessionArtifacts[artifactId] = responseText;
-                                    aiMsg.innerHTML = `<div class="msg-ai-content"><strong>[HEADLESS DATA ENGINE - RAW JSON]:</strong><br>Returned <a href="${url}" download="vli_raw_payload.json" onclick="renderArtifactToReport(event, '${artifactId}')" style="color: #e5e7eb; font-weight: 700; text-decoration: underline; background: rgba(128, 128, 128, 0.25); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 10px; cursor: pointer;">vli_raw_payload.json</a><div style="font-size:10px; color:var(--text-muted); margin-top:8px;">⏱️ Latency: ${durationSec}s</div></div>`;
+                                    aiMsg.innerHTML = `<div class="msg-ai-content"><strong>[HEADLESS DATA ENGINE - RAW JSON]:</strong><br>Returned <a href="${url}" download="vli_raw_payload.json" onclick="renderArtifactToReport(event, '${artifactId}')" style="color: #e5e7eb; font-weight: 700; text-decoration: underline; background: rgba(128, 128, 128, 0.25); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 10px; cursor: pointer;">vli_raw_payload.json</a><div style="font-size:10px; color:var(--text-muted); margin-top:8px;"> Latency: ${durationSec}s</div></div>`;
                                 } catch (e) {
-                                    aiMsg.innerHTML = `<div class="msg-ai-content"><strong>[HEADLESS DATA ENGINE - RAW JSON]:</strong> Data array returned successfully.<div style="font-size:10px; color:var(--text-muted); margin-top:8px;">⏱️ Latency: ${durationSec}s</div></div>`;
+                                    aiMsg.innerHTML = `<div class="msg-ai-content"><strong>[HEADLESS DATA ENGINE - RAW JSON]:</strong> Data array returned successfully.<div style="font-size:10px; color:var(--text-muted); margin-top:8px;"> Latency: ${durationSec}s</div></div>`;
                                 }
                                 if (!isRegen) msgBox.appendChild(aiMsg);
                                 vliChatSyncPointer++;
+                            } else {
+                                  // Process metadata directives for standard UI
+                                  if (data.metadata && data.metadata.action === "OPEN_REPORT") {
+                                      if (data.metadata.artifact_type === "REPORT") {
+                                          window.openReportModal(data.metadata.symbol);
+                                      }
+                                      const aiMsg = document.createElement('div');
+                                      aiMsg.className = 'msg msg-ai';
+                                      aiMsg.style.borderColor = 'var(--emerald-green)';
+                                      aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Opening ${data.metadata.artifact_type} UX Panel for **${data.metadata.symbol}**.`);
+                                      msgBox.appendChild(aiMsg);
+                                      vliChatSyncPointer++;
+                                  } else if (data.metadata && data.metadata.action === "OPEN_CARD") {
+                                      UXManager.createCard(data.metadata.card_type);
+                                      const aiMsg = document.createElement('div');
+                                      aiMsg.className = 'msg msg-ai';
+                                      aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Spawned UX Module **${data.metadata.card_type}**.`);
+                                      msgBox.appendChild(aiMsg);
+                                      vliChatSyncPointer++;
+                                  } else if (data.metadata && data.metadata.action === "CLOSE_CARD") {
+                                      if (data.metadata.card_id === "ALL") {
+                                          Object.keys(UXManager.instances).forEach(id => UXManager.removeCard(id));
+                                          const aiMsg = document.createElement('div');
+                                          aiMsg.className = 'msg msg-ai';
+                                          aiMsg.style.borderColor = 'var(--ruby-red)';
+                                          aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Terminated ALL UX Modules.`);
+                                          msgBox.appendChild(aiMsg);
+                                          vliChatSyncPointer++;
+                                      } else {
+                                          let found = false;
+                                          Object.keys(UXManager.instances).forEach(id => {
+                                              if (UXManager.instances[id].dataset.badge === data.metadata.card_id) {
+                                                  UXManager.removeCard(id);
+                                                  found = true;
+                                              }
+                                          });
+                                          const aiMsg = document.createElement('div');
+                                          aiMsg.className = 'msg msg-ai';
+                                          if (found) {
+                                              aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Terminated UX Module **${data.metadata.card_id}**.`);
+                                          } else {
+                                              aiMsg.style.borderColor = 'var(--ruby-red)';
+                                              aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: UX Module **${data.metadata.card_id}** not found or already closed.`);
+                                          }
+                                          msgBox.appendChild(aiMsg);
+                                          vliChatSyncPointer++;
+                                      }
+                                  }
                             }
                             msgBox.scrollTop = msgBox.scrollHeight;
                         }
@@ -4675,7 +4722,7 @@
                     body: JSON.stringify(profileState)
                 });
                 if(res.ok) {
-                    document.getElementById('profile-status').innerText = '✔ Backup created & Config saved successfully.';
+                    document.getElementById('profile-status').innerText = ' Backup created & Config saved successfully.';
                     setTimeout(closeTraderProfile, 1500);
                 } else {
                     document.getElementById('profile-status').innerText = 'Failed to save';
@@ -5056,8 +5103,9 @@
             }
             
             // Format to YYYY-MM-DD
-            startEl.value = start.toISOString().split('T')[0];
-            endEl.value = end.toISOString().split('T')[0];
+            const getLocalIso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+            startEl.value = getLocalIso(start);
+            endEl.value = getLocalIso(end);
             
             // Automatically fetch if account is already loaded
             if (!skipFetch) {
@@ -5580,8 +5628,8 @@
                     <textarea id="chat-input" placeholder="Enter directive or query..." style="width:100%; background:transparent; border:none; color:#fff; resize:none; outline:none; min-height:60px; font-family:var(--font-main); font-size: 11px;"></textarea>
                     <div class="panel-controls" style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
                         <div style="display:flex; gap:15px;">
-                            <div style="font-size:11px; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:5px;" title="Thinking Mode Toggle">
-                                🧠 THINKING <span style="color:var(--emerald-green);">ON</span>
+                            <div id="thinking-toggle" style="font-size:11px; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:5px;" title="Thinking Mode Toggle" onclick="toggleThinkingMode()">
+                                 THINKING <span id="thinking-badge" style="color:var(--text-muted);">OFF</span>
                             </div>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
@@ -5853,9 +5901,9 @@
                 
                 let extraBtns = '';
                 if (node.name === 'Notes') {
-                    extraBtns = `<div class="tree-add-btn" title="Add New Note" style="margin-left: auto; cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px;">➕</div>`;
+                    extraBtns = `<div class="tree-add-btn" title="Add New Note" style="margin-left: auto; cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px;"></div>`;
                 }
-                item.innerHTML = `<div style="display:flex; flex:1; align-items:center; width:100%;"><div class="tree-icon">▶</div><div class="tree-label" style="font-weight:700; color:${textColor};">${node.name}</div>${extraBtns}</div>`;
+                item.innerHTML = `<div style="display:flex; flex:1; align-items:center; width:100%;"><div class="tree-icon"></div><div class="tree-label" style="font-weight:700; color:${textColor};">${node.name}</div>${extraBtns}</div>`;
                 item.onclick = (e) => {
                     if (e.target.closest('.tree-add-btn')) {
                         e.stopPropagation();
@@ -5903,11 +5951,11 @@
                 
                 let buttonsHtml = '<div style="display:flex; margin-left: auto;">';
                 if (node.canRename) {
-                    buttonsHtml += `<div class="tree-rename-btn" title="Rename Report" style="cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px;">🏷️</div>`;
+                    buttonsHtml += `<div class="tree-rename-btn" title="Rename Report" style="cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px;"></div>`;
                 }
-                buttonsHtml += `<div class="tree-local-btn" title="Edit File Locally" style="cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px;">✏️</div>`;
+                buttonsHtml += `<div class="tree-local-btn" title="Edit File Locally" style="cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px;"></div>`;
                 if (node.canDelete) {
-                    buttonsHtml += `<div class="tree-delete-btn" title="Delete Report" style="cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px; color: #f85149;">❌</div>`;
+                    buttonsHtml += `<div class="tree-delete-btn" title="Delete Report" style="cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px; color: #f85149;"></div>`;
                 }
                 buttonsHtml += '</div>';
 

@@ -16,7 +16,7 @@ MOCK_SMC_DATA = """
 ## MTF SMC Alignment Scan: GOOGL (Apex 500 Scanner)
 
 - **OHLC**: O: `140.20` | H: `142.50` | L: `139.80` | C: `141.90` | V: `18500000`
-- **State**: 📈 **Break of Structure (BOS)** confirmed on 1h TF.
+- **State**:  **Break of Structure (BOS)** confirmed on 1h TF.
 - **Order Blocks**: 3 mapping (Bullish OB at 139.50).
 - **FVGs**: 2 Bullish FVGs detected.
 - **Apex Authorization**: STRIKE (Alignment confirmed on 1d/1h).

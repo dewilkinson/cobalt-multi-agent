@@ -13,7 +13,7 @@ logger = logging.getLogger("vli_trace")
 
 
 async def trace_oxy():
-    print("🚀 TRACING VLI GRAPH for 'What is the price of oxy'")
+    print(" TRACING VLI GRAPH for 'What is the price of oxy'")
 
     workflow_config = {"configurable": {"thread_id": "trace-thread-123"}, "recursion_limit": 100}
     workflow_input = {"messages": [HumanMessage(content="What is the price of oxy")], "is_test_mode": True}
@@ -30,7 +30,7 @@ async def trace_oxy():
             print("No final report found.")
 
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f" ERROR: {e}")
 
 
 if __name__ == "__main__":

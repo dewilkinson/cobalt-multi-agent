@@ -60,9 +60,9 @@ async def get_ema_analysis(ticker: str, periods: list[int] | None = [20, 50, 200
 
         if last_row.get("ema_20") is not None and last_row.get("ema_50") is not None and last_row.get("ema_200") is not None:
             if last_row["ema_20"] > last_row["ema_50"] > last_row["ema_200"]:
-                report += "\n📈 **Trend Sentiment:** Strong Bullish Alignment (20 > 50 > 200)."
+                report += "\n **Trend Sentiment:** Strong Bullish Alignment (20 > 50 > 200)."
             elif last_row["ema_20"] < last_row["ema_50"] < last_row["ema_200"]:
-                report += "\n📉 **Trend Sentiment:** Strong Bearish Alignment (20 < 50 < 200)."
+                report += "\n **Trend Sentiment:** Strong Bearish Alignment (20 < 50 < 200)."
 
         report += f"\n\n[EMA_DATA_FETCHED]: Sampled {len(df)} bars over the last {ts}."
         return report

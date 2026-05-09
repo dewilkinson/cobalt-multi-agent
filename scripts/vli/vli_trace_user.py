@@ -13,7 +13,7 @@ logger = logging.getLogger("vli_trace")
 
 
 async def trace_oxy_loop():
-    print("🚀 TRACING VLI GRAPH (User Thread) for 'What is the price of oxy'")
+    print(" TRACING VLI GRAPH (User Thread) for 'What is the price of oxy'")
 
     workflow_config = {"configurable": {"thread_id": "vli-session-default"}, "recursion_limit": 100}
     workflow_input = {"messages": [HumanMessage(content="What is the price of oxy")], "is_test_mode": True}
@@ -25,7 +25,7 @@ async def trace_oxy_loop():
         print(f"LAST NODE: {final_state.get('last_node')}")
 
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f" ERROR: {e}")
 
 
 if __name__ == "__main__":

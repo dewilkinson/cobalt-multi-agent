@@ -12,7 +12,7 @@ Project Cobalt is an agentic framework designed to bridge the gap between raw ma
 
 ---
 
-## 🛠 Core Architecture: The CMA Framework
+##  Core Architecture: The CMA Framework
 
 Cobalt operates through the CMA (Cobalt Multiagent) logic, which decentralizes the analytical process to ensure data integrity and prevent AI hallucination.
 - **VLI (VibeLink Interface)**: The primary command layer. Interprets natural language "vibes" and context to coordinate agent workflows.
@@ -20,20 +20,20 @@ Cobalt operates through the CMA (Cobalt Multiagent) logic, which decentralizes t
 - **The Analyst**: The logic engine. Scans for Liquidity Sweeps, Market Structure Shifts (MSS), and Fair Value Gaps (FVG).
 - **The Hub (Obsidian)**: The local "Source of Truth" where all agent dispatches are stored, archived, and audited.
 
-## 🛡 Security & Philosophy
+##  Security & Philosophy
 
 Cobalt is built with a Security-First mindset:
 - **Read-Only by Design**: This system has zero execution capability. It cannot place trades or move funds. You are the only "Human-in-the-Loop."
 - **Asynchronous Git Bridge**: Data moves from the cloud to your local machine via a private Git buffer, allowing for full auditability and offline persistence.
 - **Zero-Vault Secrets**: No API keys are ever stored in your Markdown files. All credentials reside in encrypted environment variables.
 
-## ⚖️ License
+## ️ License
 
 Project Cobalt is released under the PolyForm Noncommercial License 1.0.0.
 - **Individual Investors**: Free to use, modify, and study for personal trading activities.
 - **Commercial Entities**: Institutional use, for-profit redistribution, or commercial integration is strictly prohibited.
 
-## 🚀 Getting Started
+##  Getting Started
 1. **Clone the Repo**: Initialize your Obsidian vault as a Git repository.
 2. **Configure Railway**: Deploy the Scout agent to Railway and input your SnapTrade credentials as environment variables.
 3. **Define your SOP**: Set your SMC grading thresholds in the VLI configuration.
@@ -41,7 +41,7 @@ Project Cobalt is released under the PolyForm Noncommercial License 1.0.0.
 
 ---
 
-## 🧰 Toolbox: Scripts & Utilities
+##  Toolbox: Scripts & Utilities
 The `scripts/` directory contains various tools to manage and debug the system:
 - **`scripts/vli/`**: Essential VLI lifecycle tools (e.g., `vli_refresh.sh` for emergency system restarts).
 - **`scripts/diagnostic/`**: High-fidelity scanners and verification tools for the data pipeline.

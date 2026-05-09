@@ -1057,8 +1057,100 @@ async def run_idle_analysis(manual_trigger: bool = False):
         except Exception:
             pass
 
-        total = len(candidates_to_process)
-        for i, c in enumerate(candidates_to_process, 1):
+        # Segregate into full analysis vs batch analysis
+        full_analysis_queue = []
+        batch_analysis_queue = []
+        for c in candidates_to_process:
+            grade = c.get("grade", "C")
+            if grade in ["S", "A+", "A"]:
+                full_analysis_queue.append(c)
+            else:
+                batch_analysis_queue.append(c)
+                
+        # 1. Process Batch Queue
+        if batch_analysis_queue:
+            logger.info(f"[BG_ANALYST] Spawning batch analysis for {len(batch_analysis_queue)} lower-tier candidates.")
+            try:
+                from src.llms.llm import get_llm_by_type
+                from src.config.vli import get_vli_path
+                import yfinance as yf
+                from langchain_core.messages import HumanMessage
+                
+                basic_llm = get_llm_by_type("basic")
+                batch_prompts = []
+                
+                # Fetch prices concurrently using asyncio.to_thread
+                async def fetch_price(sym):
+                    try:
+                        ticker = await asyncio.to_thread(yf.Ticker, sym)
+                        info = await asyncio.to_thread(lambda: ticker.info)
+                        return float(info.get("preMarketPrice") or info.get("postMarketPrice") or info.get("currentPrice") or info.get("regularMarketPrice") or 0.0)
+                    except:
+                        return 0.0
+                        
+                prices = await asyncio.gather(*[fetch_price(c.get("symbol")) for c in batch_analysis_queue])
+                
+                for c, price in zip(batch_analysis_queue, prices):
+                    sym = c.get("symbol")
+                    tier = c.get("tier", "Scout")
+                    sortino = c.get("sortino", 0.0)
+                    prompt = f"""Generate a concise, single-paragraph trading analysis report for {sym}.
+                    
+Active Strategy: {tier.capitalize()} Strategy
+Current Real-Time Price: ${price:.2f}
+Scanner Metrics: Grade {c.get("grade", "C")}, Sortino: {sortino}, RVOL: {c.get("rvol", 0.0)}
+
+Synthesize these metrics into a brief technical outlook. Focus on risk management."""
+                    # Use standard message array format for LangChain abatch
+                    batch_prompts.append([HumanMessage(content=prompt)])
+                    
+                # Use LangChain abatch API for concurrent Flash generation
+                batch_results = await basic_llm.abatch(batch_prompts)
+                
+                # Save batch results
+                for c, res in zip(batch_analysis_queue, batch_results):
+                    sym = c.get("symbol")
+                    result_text = res.content if hasattr(res, 'content') else str(res)
+                    r_path = os.path.join(os.getcwd(), 'data', 'reports', f"analyze_{sym.lower()}.md")
+                    os.makedirs(os.path.dirname(r_path), exist_ok=True)
+                    generation_ts = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
+                    header = f"> **Generated:** {generation_ts} (Batch Pipeline)\n\n"
+                    with open(r_path, "w", encoding="utf-8") as rf:
+                        rf.write(header + result_text)
+                    
+                    # Update scanner UI state
+                    try:
+                        for target_state in ["STRIKE_RES_state.json", "STRIKE_LIST.json"]:
+                            s_path = get_vli_path(os.path.join("01_Transit", "Buckets", target_state)) if "state" in target_state else os.path.join(os.getcwd(), 'data', target_state)
+                            if os.path.exists(s_path):
+                                with open(s_path, "r", encoding="utf-8") as f:
+                                    s_data = json.load(f)
+                                updated = False
+                                target_list = s_data.get("candidates", []) if "candidates" in s_data else s_data.get("strike_list", [])
+                                for c_item in target_list:
+                                    if isinstance(c_item, dict) and c_item.get("symbol", "").upper() == sym.upper():
+                                        c_item["has_report"] = True
+                                        c_item["updated_at"] = datetime.now().isoformat()
+                                        updated = True
+                                if updated:
+                                    with open(s_path, "w", encoding="utf-8") as f:
+                                        json.dump(s_data, f, indent=4)
+                    except Exception as e:
+                        logger.error(f"[BG_ANALYST] Failed to update scanner state for {sym} during batch: {e}")
+                        
+                try:
+                    timestamp = datetime.now().strftime("[%H:%M:%S]")
+                    with open(telemetry_file, "a", encoding="utf-8") as tf:
+                        tf.write(f"\n{timestamp}  **[ANALYST]** Batch generated reports for {len(batch_analysis_queue)} candidates.\n")
+                        tf.flush()
+                except Exception:
+                    pass
+            except Exception as e:
+                logger.error(f"[BG_ANALYST] Batch generation failed: {e}")
+
+        # 2. Process Full Queue
+        total = len(full_analysis_queue)
+        for i, c in enumerate(full_analysis_queue, 1):
             sym = c.get("symbol")
             tier = c.get("tier", "War Barbell") # Default to old behavior if missing
             logger.info(f"[BG_ANALYST] Spawning background LangGraph for {sym} (Tier: {tier})...")
@@ -1066,7 +1158,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
             try:
                 timestamp = datetime.now().strftime("[%H:%M:%S]")
                 with open(telemetry_file, "a", encoding="utf-8") as tf:
-                    tf.write(f"\\n{timestamp}  **[ANALYST]** Spawning deep-dive intelligence for **{sym}** ({i}/{total})...\\n")
+                    tf.write(f"\n{timestamp}  **[ANALYST]** Spawning deep-dive intelligence for **{sym}** ({i}/{total})...\n")
                     tf.flush()
             except Exception:
                 pass
@@ -1122,7 +1214,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
             try:
                 timestamp = datetime.now().strftime("[%H:%M:%S]")
                 with open(telemetry_file, "a", encoding="utf-8") as tf:
-                    tf.write(f"\\n{timestamp}  **[ANALYST]** Report generated for **{sym}** (Rate limit stagger: 30s).\\n")
+                    tf.write(f"\n{timestamp}  **[ANALYST]** Report generated for **{sym}** (Rate limit stagger: 30s).\n")
                     tf.flush()
             except Exception:
                 pass
@@ -1416,7 +1508,7 @@ async def startup_event():
             task_id="INTRADAY_COMBAT_TRAWL",
             name="Intraday Momentum Trawl Watchdog",
             type="REPEAT",
-            schedule=60,
+            schedule=15,
             period_unit="minutes",
             priority="LOW",
             callback=run_intraday_trawl
@@ -1835,11 +1927,11 @@ class VLIActionPlanRequest(BaseModel):
     is_action_plan: bool = False
     direct_mode: bool = False
     raw_data_mode: bool = False
-    reporter_llm_type: str = "reasoning"
-    vli_llm_type: str = "core"
-    background_synthesis: bool = False
+    reporter_llm_type: str = "basic"
+    vli_llm_type: str = "reasoning"
     thread_id: str | None = None
     snaptrade_settings: dict | None = None
+    thinking_mode: bool = False
 
 
 # --- VLI SCANNER SETTINGS ---
@@ -2765,6 +2857,7 @@ async def _invoke_vli_agent(
     vli_llm_type: str = "reasoning",
     thread_id: str | None = None,
     snaptrade_settings: dict | None = None,
+    thinking_mode: bool = False,
 ) -> tuple[str, dict]:
     logger.info(f"[VLI_TRACE] _invoke_vli_agent called with text: '{text}' (thread_id: {thread_id})")
     """Invoke the agent graph in a non-streaming way for the VLI dashboard."""
@@ -3117,6 +3210,7 @@ async def _invoke_vli_agent(
             "vli_llm_type": vli_llm_type,
             "intent_mode": intent_mode,
             "snaptrade_settings": snaptrade_settings if snaptrade_settings else {},
+            "thinking_mode": thinking_mode,
         },
         "recursion_limit": 50,
     }
@@ -3183,7 +3277,7 @@ async def _invoke_vli_agent(
         return scrub_vli_output(f"Agent reasoning encountered a failure: {str(e)}"), {}
 
 
-async def _background_synthesis_task(text: str, image: str | None, direct_mode: bool, reporter_llm_type: str, vli_llm_type: str, thread_id: str, silent: bool = False, snaptrade_settings: dict | None = None):
+async def _background_synthesis_task(text: str, image: str | None, direct_mode: bool, reporter_llm_type: str, vli_llm_type: str, thread_id: str, silent: bool = False, snaptrade_settings: dict | None = None, thinking_mode: bool = False):
     """Executes the deep analysis graph asynchronously."""
     try:
         from src.config.vli import get_vli_path
@@ -3716,14 +3810,21 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
                 clean_text = request.text.replace("--raw", "").replace("--RAW", "").strip()
                 _persist_vli_report(clean_text, report)
 
+                # Apply global basic model override
+                actual_vli_llm = request.vli_llm_type if request.thinking_mode else "basic"
+                actual_reporter_llm = request.reporter_llm_type if request.thinking_mode else "basic"
+
                 # Dispatch deep learning agent to background
-                background_tasks.add_task(_background_synthesis_task, request.text, request.image, request.direct_mode, request.reporter_llm_type, request.vli_llm_type, transaction_id, False, request.snaptrade_settings)
+                background_tasks.add_task(_background_synthesis_task, request.text, request.image, request.direct_mode, actual_reporter_llm, actual_vli_llm, transaction_id, False, request.snaptrade_settings, request.thinking_mode)
                 return {"response": report, "status": "ASYNC_PENDING", "error_details": None, "state": {}}
             except Exception as fe:
                 logger.warning(f"VLI Async-Path: Atomic resolution failed for '{ticker}': {fe}")
 
     try:
-        response_text, final_vli_state = await _invoke_vli_agent(request.text, request.image, request.direct_mode, request.raw_data_mode, request.reporter_llm_type, request.vli_llm_type, thread_id=transaction_id, snaptrade_settings=request.snaptrade_settings)
+        actual_vli_llm = request.vli_llm_type if request.thinking_mode else "basic"
+        actual_reporter_llm = request.reporter_llm_type if request.thinking_mode else "basic"
+        
+        response_text, final_vli_state = await _invoke_vli_agent(request.text, request.image, request.direct_mode, request.raw_data_mode, actual_reporter_llm, actual_vli_llm, thread_id=transaction_id, snaptrade_settings=request.snaptrade_settings, thinking_mode=request.thinking_mode)
         
         # [FIX] Manually dispatch background regeneration if returned by non-streaming agent
         if "[BACKGROUND_REGENERATE_DATA]" in response_text:

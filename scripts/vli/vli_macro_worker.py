@@ -24,7 +24,7 @@ logger = logging.getLogger("VLI-Macro-Worker")
 
 
 async def run_worker():
-    logger.info("🚀 VLI Standalone Macro Worker Initialized.")
+    logger.info(" VLI Standalone Macro Worker Initialized.")
     logger.info(f"Target Snapshot: {SNAPSHOT_FILE}")
 
     os.makedirs(os.path.dirname(SNAPSHOT_FILE), exist_ok=True)

@@ -1,4 +1,4 @@
-# 💠 Cobalt Multiagent Web UI
+#  Cobalt Multiagent Web UI
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

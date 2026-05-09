@@ -1,4 +1,4 @@
-# 🦌 DeerFlow - 2.0
+#  DeerFlow - 2.0
 
 [English](./README.md) | [中文](./README_zh.md) | [日本語](./README_ja.md) | Français | [Русский](./README_ru.md)
 
@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 <a href="https://trendshift.io/repositories/14699" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14699" alt="bytedance%2Fdeer-flow | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-> Le 28 février 2026, DeerFlow a décroché la 🏆 1re place sur GitHub Trending suite au lancement de la version 2. Un immense merci à notre incroyable communauté — c'est grâce à vous ! 💪🔥
+> Le 28 février 2026, DeerFlow a décroché la  1re place sur GitHub Trending suite au lancement de la version 2. Un immense merci à notre incroyable communauté — c'est grâce à vous ! 
 
 DeerFlow (**D**eep **E**xploration and **E**fficient **R**esearch **Flow**) est un **super agent harness** open source qui orchestre des **sub-agents**, de la **mémoire** et des **sandboxes** pour accomplir pratiquement n'importe quelle tâche — le tout propulsé par des **skills extensibles**.
 
@@ -44,7 +44,7 @@ DeerFlow intègre désormais le toolkit de recherche et de crawling intelligent 
 
 ## Table des matières
 
-- [🦌 DeerFlow - 2.0](#-deerflow---20)
+- [ DeerFlow - 2.0](#-deerflow---20)
   - [Site officiel](#site-officiel)
   - [InfoQuest](#infoquest)
   - [Table des matières](#table-des-matières)
@@ -70,7 +70,7 @@ DeerFlow intègre désormais le toolkit de recherche et de crawling intelligent 
   - [Modèles recommandés](#modèles-recommandés)
   - [Client Python intégré](#client-python-intégré)
   - [Documentation](#documentation)
-  - [⚠️ Avertissement de sécurité](#️-avertissement-de-sécurité)
+  - [️ Avertissement de sécurité](#️-avertissement-de-sécurité)
   - [Contribuer](#contribuer)
   - [Licence](#licence)
   - [Remerciements](#remerciements)
@@ -555,7 +555,7 @@ Toutes les méthodes retournant des dicts sont validées en CI contre les modèl
 - [Vue d'ensemble de l'architecture](backend/CLAUDE.md) - Détails de l'architecture technique
 - [Architecture backend](backend/README.md) - Architecture backend et référence API
 
-## ⚠️ Avertissement de sécurité
+## ️ Avertissement de sécurité
 
 ### Un déploiement inapproprié peut introduire des risques de sécurité
 

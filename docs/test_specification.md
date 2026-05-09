@@ -8,7 +8,7 @@
 
 This document outlines the test suite for the Cobalt Multiagent system, including unit tests and integration workflows.
 
-## 🧪 Unit Tests
+##  Unit Tests
 
 ### 1. Graph Modules
 | Test Name | Module | Description | Expected Input | Expected Output |
@@ -29,7 +29,7 @@ This document outlines the test suite for the Cobalt Multiagent system, includin
 | :--- | :--- | :--- | :--- | :--- |
 | `test_sanitize_content` | `text_utils.py` | Strips malicious code and excess markup from text. | Raw HTML/Script string. | Clean, play text. |
 
-## 🕹 Integration Workflows (Real-Life Scenarios)
+##  Integration Workflows (Real-Life Scenarios)
 
 ### Scenario A: High-Fidelity SMC Analysis
 *   **Workflow**: VLI: Parser -> VLI: Coordinator -> VLI: Human Review -> VLI: Scheduler -> Analyst -> Reporter.
@@ -41,5 +41,5 @@ This document outlines the test suite for the Cobalt Multiagent system, includin
 *   **Input**: "What happened to the yield curve today?" (with `enable_background_investigation: true`)
 *   **Success Criteria**: `observations` contains sanitized news blurbs used by the Reporter.
 
-## 🛑 Pre-Commit Hook
+##  Pre-Commit Hook
 All tests are integrated into a single verification script located at `backend/scripts/verify_system.py`. This script must return a success code (0) before any code is committed.

@@ -1,4 +1,4 @@
-# 💠 [About Cobalt Multiagent](https://github.com/dewilkinson/cobalt-multi-agent)
+#  [About Cobalt Multiagent](https://github.com/dewilkinson/cobalt-multi-agent)
 
 > **From Open Source, Back to Open Source**
 
@@ -6,19 +6,19 @@
 
 ---
 
-## 🌟 GitHub Repository
+##  GitHub Repository
 
 Explore Cobalt Multiagent on GitHub: [github.com/dewilkinson/cobalt-multi-agent](https://github.com/dewilkinson/cobalt-multi-agent)
 
 ---
 
-## 📜 License
+##  License
 
 Cobalt Multiagent is proudly open source and distributed under the **MIT License**.
 
 ---
 
-## 🙌 Acknowledgments
+##  Acknowledgments
 
 We extend our heartfelt gratitude to the open source projects and contributors who have made Cobalt Multiagent a reality. We truly stand on the shoulders of giants.
 

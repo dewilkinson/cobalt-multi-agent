@@ -410,7 +410,7 @@ This XML tag is not properly closed
 
         special_content = """<enhanced_prompt>
 Enhanced prompt with special chars: @#$%^&*()
-Unicode: 🚀 ✨ 💡
+Unicode:   
 Quotes: "double" and 'single'
 Backslashes: \\n \\t \\r
 </enhanced_prompt>"""
@@ -421,7 +421,7 @@ Backslashes: \\n \\t \\r
         result = prompt_enhancer_node(state)
 
         expected_output = """Enhanced prompt with special chars: @#$%^&*()
-Unicode: 🚀 ✨ 💡
+Unicode:   
 Quotes: "double" and 'single'
 Backslashes: \\n \\t \\r"""
         assert result == {"output": expected_output}

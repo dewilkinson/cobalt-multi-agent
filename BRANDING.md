@@ -1,7 +1,7 @@
 # Brand Guidelines & Trademark Policy
 
 ## Trademarks
-**VibeLink™** and **Project Cobalt™** are proprietary trademarks belonging exclusively to **BlueShell Securities LLC**.
+**VibeLink** and **Project Cobalt** are proprietary trademarks belonging exclusively to **BlueShell Securities LLC**.
 
 While the software itself is released as open-source for individual investors under the PolyForm Noncommercial License 1.0.0, the branding, names, and logos cannot be used in derivative works, commercial distributions, or third-party products without written authorization.
 

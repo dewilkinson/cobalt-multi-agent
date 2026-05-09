@@ -1,4 +1,4 @@
-# 🦌 DeerFlow - 2.0
+#  DeerFlow - 2.0
 
 [English](./README.md) | 中文 | [日本語](./README_ja.md) | [Français](./README_fr.md) | [Русский](./README_ru.md)
 
@@ -32,7 +32,7 @@ https://github.com/user-attachments/assets/a8bcadc4-e040-4cf2-8fda-dd768b999c18
 
 ## 目录
 
-- [🦌 DeerFlow - 2.0](#-deerflow---20)
+- [ DeerFlow - 2.0](#-deerflow---20)
   - [官网](#官网)
   - [InfoQuest](#infoquest)
   - [目录](#目录)
@@ -58,7 +58,7 @@ https://github.com/user-attachments/assets/a8bcadc4-e040-4cf2-8fda-dd768b999c18
   - [推荐模型](#推荐模型)
   - [内嵌 Python Client](#内嵌-python-client)
   - [文档](#文档)
-  - [⚠️ 安全使用](#️-安全使用)
+  - [️ 安全使用](#️-安全使用)
   - [参与贡献](#参与贡献)
   - [许可证](#许可证)
   - [致谢](#致谢)
@@ -498,7 +498,7 @@ client.upload_files("thread-1", ["./report.pdf"])  # {"success": True, "files": 
 - [架构概览](backend/CLAUDE.md) - 技术架构说明
 - [后端架构](backend/README.md) - 后端架构与 API 参考
 
-## ⚠️ 安全使用
+## ️ 安全使用
 
 ### 不恰当的部署可能导致安全风险
 

@@ -1,4 +1,4 @@
-# 🦌 DeerFlow - 2.0
+#  DeerFlow - 2.0
 
 [English](./README.md) | [中文](./README_zh.md) | [日本語](./README_ja.md) | [Français](./README_fr.md) | Русский
 
@@ -8,7 +8,7 @@
 
 <a href="https://trendshift.io/repositories/14699" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14699" alt="bytedance%2Fdeer-flow | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-> 28 февраля 2026 года DeerFlow занял 🏆 #1 в GitHub Trending после релиза версии 2. Спасибо огромное нашему сообществу — всё благодаря вам! 💪🔥
+> 28 февраля 2026 года DeerFlow занял  #1 в GitHub Trending после релиза версии 2. Спасибо огромное нашему сообществу — всё благодаря вам! 
 
 DeerFlow (**D**eep **E**xploration and **E**fficient **R**esearch **Flow**) — open-source **Super Agent Harness**, который управляет **Sub-Agents**, **Memory** и **Sandbox** для решения почти любой задачи. Всё на основе расширяемых **Skills**.
 
@@ -46,7 +46,7 @@ DeerFlow интегрирован с инструментарием для ум�
 
 ## Содержание
 
-- [🦌 DeerFlow - 2.0](#-deerflow---20)
+- [ DeerFlow - 2.0](#-deerflow---20)
   - [Официальный сайт](#официальный-сайт)
   - [InfoQuest](#infoquest)
   - [Содержание](#содержание)
@@ -72,7 +72,7 @@ DeerFlow интегрирован с инструментарием для ум�
   - [Рекомендуемые модели](#рекомендуемые-модели)
   - [Встроенный Python-клиент](#встроенный-python-клиент)
   - [Документация](#документация)
-  - [⚠️ Безопасность](#️-безопасность)
+  - [️ Безопасность](#️-безопасность)
   - [Участие в разработке](#участие-в-разработке)
   - [Лицензия](#лицензия)
   - [Благодарности](#благодарности)
@@ -441,7 +441,7 @@ client.upload_files("thread-1", ["./report.pdf"])  # {"success": True, "files": 
 - [Обзор архитектуры](backend/CLAUDE.md) — технические детали
 - [Архитектура бэкенда](backend/README.md) — бэкенд и справочник API
 
-## ⚠️ Безопасность
+## ️ Безопасность
 
 ### Неправильное развёртывание может привести к угрозам безопасности
 

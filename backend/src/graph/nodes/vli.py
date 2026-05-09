@@ -201,7 +201,7 @@ async def vli_node(
             telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
             timestamp = datetime.now().strftime("[%H:%M:%S]")
             with open(telemetry_file, "a", encoding="utf-8") as tf:
-                tf.write(f"\n{timestamp} 📈 **[TRADE_ANALYSIS]** Ingesting session blotter for post-trade efficiency audit.\n")
+                tf.write(f"\n{timestamp}  **[TRADE_ANALYSIS]** Ingesting session blotter for post-trade efficiency audit.\n")
                 tf.flush()
         except:
             pass

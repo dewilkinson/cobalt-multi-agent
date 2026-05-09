@@ -68,12 +68,12 @@ class TestObsidianTools(unittest.TestCase):
         with patch("deerflow.community.obsidian.tools._get_obsidian_vault_path", return_value=self.vault_path):
             # List root
             res = list_obsidian_notes.run("")
-            self.assertIn("📁 Meetings", res)
-            self.assertIn("📄 Note1.md", res)
+            self.assertIn(" Meetings", res)
+            self.assertIn(" Note1.md", res)
 
             # List subfolder
             res = list_obsidian_notes.run("Meetings")
-            self.assertIn("📄 Meeting1.md", res)
+            self.assertIn(" Meeting1.md", res)
 
     def test_search_notes(self):
         with patch("deerflow.community.obsidian.tools._get_obsidian_vault_path", return_value=self.vault_path):

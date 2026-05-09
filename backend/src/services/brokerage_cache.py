@@ -216,9 +216,9 @@ class BrokerageCache:
         Returns the FULL updated list of activities for the account.
         """
         cache = cls._load_cache()
-        acct_data = cache.get(account_id, {"activities": [], "positions": []})
+        acct_data = cache.get(account_id, {"activities": [], "positions": [], "closed_positions": []})
         if isinstance(acct_data, list):
-            acct_data = {"activities": acct_data, "positions": []}
+            acct_data = {"activities": acct_data, "positions": [], "closed_positions": []}
             
         existing_activities = acct_data.get("activities", [])
         
@@ -290,6 +290,38 @@ class BrokerageCache:
                     fuzzy_existing[key] = []
                 fuzzy_existing[key].append(act)
                 added += 1
+                
+                # [NEW] Reconciliation Logic: Deduct sold units from Open Positions
+                action_upper = action.upper()
+                if "SELL" in action_upper or "SOLD" in action_upper:
+                    open_positions = acct_data.get("positions", [])
+                    closed_positions = acct_data.get("closed_positions", [])
+                    sell_units = abs(float(act.get("units", 0)))
+                    
+                    if sell_units > 0:
+                        pos_to_remove = []
+                        for idx, p in enumerate(open_positions):
+                            p_sym_obj = p.get('symbol', {})
+                            p_sym = p_sym_obj.get('symbol', '') if isinstance(p_sym_obj, dict) else p_sym_obj
+                            
+                            if p_sym == sym:
+                                p_units = float(p.get("units", 0))
+                                deduction = min(p_units, sell_units)
+                                p["units"] = p_units - deduction
+                                sell_units -= deduction
+                                
+                                if p["units"] <= 0.0001:
+                                    pos_to_remove.append(idx)
+                                
+                                if sell_units <= 0.0001:
+                                    break
+                                    
+                        for idx in reversed(pos_to_remove):
+                            closed_p = open_positions.pop(idx)
+                            closed_positions.append(closed_p)
+                            
+                        acct_data["positions"] = open_positions
+                        acct_data["closed_positions"] = closed_positions
                 
         if added > 0:
             # Sort by trade_date or time_placed descending (newest first)

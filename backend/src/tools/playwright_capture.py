@@ -81,8 +81,8 @@ class PlaywrightCapturer:
             await page.goto(url)
 
             print("--------------------------------------------------")
-            print("🔑 BROWSER OPEN: Please log in to Google AI Studio.")
-            print("🛑 CLOSE the browser window manually when finished.")
+            print(" BROWSER OPEN: Please log in to Google AI Studio.")
+            print(" CLOSE the browser window manually when finished.")
             print("--------------------------------------------------")
 
             # Keep the browser open until it's closed manually

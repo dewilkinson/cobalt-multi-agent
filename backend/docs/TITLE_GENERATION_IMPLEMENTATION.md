@@ -1,37 +1,37 @@
 # 自动 Title 生成功能实现总结
 
-## ✅ 已完成的工作
+##  已完成的工作
 
 ### 1. 核心实现文件
 
 #### [`packages/harness/deerflow/agents/thread_state.py`](../packages/harness/deerflow/agents/thread_state.py)
-- ✅ 添加 `title: str | None = None` 字段到 `ThreadState`
+-  添加 `title: str | None = None` 字段到 `ThreadState`
 
 #### [`packages/harness/deerflow/config/title_config.py`](../packages/harness/deerflow/config/title_config.py) (新建)
-- ✅ 创建 `TitleConfig` 配置类
-- ✅ 支持配置：enabled, max_words, max_chars, model_name, prompt_template
-- ✅ 提供 `get_title_config()` 和 `set_title_config()` 函数
-- ✅ 提供 `load_title_config_from_dict()` 从配置文件加载
+-  创建 `TitleConfig` 配置类
+-  支持配置：enabled, max_words, max_chars, model_name, prompt_template
+-  提供 `get_title_config()` 和 `set_title_config()` 函数
+-  提供 `load_title_config_from_dict()` 从配置文件加载
 
 #### [`packages/harness/deerflow/agents/title_middleware.py`](../packages/harness/deerflow/agents/title_middleware.py) (新建)
-- ✅ 创建 `TitleMiddleware` 类
-- ✅ 实现 `_should_generate_title()` 检查是否需要生成
-- ✅ 实现 `_generate_title()` 调用 LLM 生成标题
-- ✅ 实现 `after_agent()` 钩子，在首次对话后自动触发
-- ✅ 包含 fallback 策略（LLM 失败时使用用户消息前几个词）
+-  创建 `TitleMiddleware` 类
+-  实现 `_should_generate_title()` 检查是否需要生成
+-  实现 `_generate_title()` 调用 LLM 生成标题
+-  实现 `after_agent()` 钩子，在首次对话后自动触发
+-  包含 fallback 策略（LLM 失败时使用用户消息前几个词）
 
 #### [`packages/harness/deerflow/config/app_config.py`](../packages/harness/deerflow/config/app_config.py)
-- ✅ 导入 `load_title_config_from_dict`
-- ✅ 在 `from_file()` 中加载 title 配置
+-  导入 `load_title_config_from_dict`
+-  在 `from_file()` 中加载 title 配置
 
 #### [`packages/harness/deerflow/agents/lead_agent/agent.py`](../packages/harness/deerflow/agents/lead_agent/agent.py)
-- ✅ 导入 `TitleMiddleware`
-- ✅ 注册到 `middleware` 列表：`[SandboxMiddleware(), TitleMiddleware()]`
+-  导入 `TitleMiddleware`
+-  注册到 `middleware` 列表：`[SandboxMiddleware(), TitleMiddleware()]`
 
 ### 2. 配置文件
 
 #### [`config.yaml`](../config.yaml)
-- ✅ 添加 title 配置段：
+-  添加 title 配置段：
 ```yaml
 title:
   enabled: true
@@ -43,31 +43,31 @@ title:
 ### 3. 文档
 
 #### [`docs/AUTO_TITLE_GENERATION.md`](../docs/AUTO_TITLE_GENERATION.md) (新建)
-- ✅ 完整的功能说明文档
-- ✅ 实现方式和架构设计
-- ✅ 配置说明
-- ✅ 客户端使用示例（TypeScript）
-- ✅ 工作流程图（Mermaid）
-- ✅ 故障排查指南
-- ✅ State vs Metadata 对比
+-  完整的功能说明文档
+-  实现方式和架构设计
+-  配置说明
+-  客户端使用示例（TypeScript）
+-  工作流程图（Mermaid）
+-  故障排查指南
+-  State vs Metadata 对比
 
 #### [`BACKEND_TODO.md`](../BACKEND_TODO.md)
-- ✅ 添加功能完成记录
+-  添加功能完成记录
 
 ### 4. 测试
 
 #### [`tests/test_title_generation.py`](../tests/test_title_generation.py) (新建)
-- ✅ 配置类测试
-- ✅ Middleware 初始化测试
-- ✅ TODO: 集成测试（需要 mock Runtime）
+-  配置类测试
+-  Middleware 初始化测试
+-  TODO: 集成测试（需要 mock Runtime）
 
 ---
 
-## 🎯 核心设计决策
+##  核心设计决策
 
 ### 为什么使用 State 而非 Metadata？
 
-| 方面 | State (✅ 采用) | Metadata (❌ 未采用) |
+| 方面 | State ( 采用) | Metadata ( 未采用) |
 |------|----------------|---------------------|
 | **持久化** | 自动（通过 checkpointer） | 取决于实现，不可靠 |
 | **版本控制** | 支持时间旅行 | 不支持 |
@@ -96,7 +96,7 @@ Checkpointer 自动持久化（如果配置了）
 
 ---
 
-## 📋 使用指南
+##  使用指南
 
 ### 后端配置
 
@@ -148,11 +148,11 @@ const title = state.values.title || "New Conversation";
 <li>{title}</li>
 ```
 
-**⚠️ 注意**：Title 在 `state.values.title`，而非 `thread.metadata.title`
+**️ 注意**：Title 在 `state.values.title`，而非 `thread.metadata.title`
 
 ---
 
-## 🧪 测试
+##  测试
 
 ```bash
 # 运行测试
@@ -164,7 +164,7 @@ pytest
 
 ---
 
-## 🔍 故障排查
+##  故障排查
 
 ### Title 没有生成？
 
@@ -186,7 +186,7 @@ pytest
 
 ---
 
-## 📊 性能影响
+##  性能影响
 
 - **延迟增加**：约 0.5-1 秒（LLM 调用）
 - **并发安全**：在 `after_agent` 中运行，不阻塞主流程
@@ -200,7 +200,7 @@ pytest
 
 ---
 
-## 🚀 下一步
+##  下一步
 
 - [ ] 添加集成测试（需要 mock LangGraph Runtime）
 - [ ] 支持自定义 prompt template
@@ -210,7 +210,7 @@ pytest
 
 ---
 
-## 📚 相关资源
+##  相关资源
 
 - [完整文档](../docs/AUTO_TITLE_GENERATION.md)
 - [LangGraph Middleware](https://langchain-ai.github.io/langgraph/concepts/middleware/)

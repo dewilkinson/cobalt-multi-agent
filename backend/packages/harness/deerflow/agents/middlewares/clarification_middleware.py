@@ -62,14 +62,14 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
 
         # Type-specific icons
         type_icons = {
-            "missing_info": "❓",
-            "ambiguous_requirement": "🤔",
-            "approach_choice": "🔀",
-            "risk_confirmation": "⚠️",
-            "suggestion": "💡",
+            "missing_info": "",
+            "ambiguous_requirement": "",
+            "approach_choice": "",
+            "risk_confirmation": "",
+            "suggestion": "",
         }
 
-        icon = type_icons.get(clarification_type, "❓")
+        icon = type_icons.get(clarification_type, "")
 
         # Build the message naturally
         message_parts = []

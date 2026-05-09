@@ -1,10 +1,10 @@
 # 思考块设计系统规范
 
-## 🎯 设计目标
+##  设计目标
 
 确保思考块组件与整个应用的设计语言保持完全一致，提供统一的用户体验。
 
-## 📐 设计规范
+##  设计规范
 
 ### 字体系统
 ```css
@@ -81,7 +81,7 @@ color: hsl(var(--foreground));
 }
 ```
 
-## 🔄 状态变化
+##  状态变化
 
 ### 状态映射
 | 状态 | 边框 | 背景 | 图标颜色 | 文字颜色 | 阴影 |
@@ -94,7 +94,7 @@ color: hsl(var(--foreground));
 transition: all 200ms ease-in-out;
 ```
 
-## 📱 响应式设计
+##  响应式设计
 
 ### 间距适配
 - 移动端：保持相同的内边距比例
@@ -104,30 +104,30 @@ transition: all 200ms ease-in-out;
 - 所有设备：保持 `font-semibold` 字体权重
 - 图标尺寸：固定 18px，确保清晰度
 
-## 🎨 与现有组件的对比
+##  与现有组件的对比
 
 ### CardTitle 对比
 | 属性 | CardTitle | ThoughtBlock |
 |------|-----------|--------------|
-| 字体权重 | font-semibold | font-semibold ✅ |
-| 行高 | leading-none | leading-none ✅ |
+| 字体权重 | font-semibold | font-semibold  |
+| 行高 | leading-none | leading-none  |
 | 颜色 | foreground | primary/foreground |
 
 ### Card 对比
 | 属性 | Card | ThoughtBlock |
 |------|------|--------------|
 | 圆角 | rounded-lg | rounded-xl |
-| 边框 | border | border ✅ |
-| 背景 | card | card/primary ✅ |
+| 边框 | border | border  |
+| 背景 | card | card/primary  |
 
 ### Button 对比
 | 属性 | Button | ThoughtBlock Trigger |
 |------|--------|---------------------|
-| 内边距 | 标准 | px-6 py-4 ✅ |
-| 悬停 | hover:bg-accent | hover:bg-accent ✅ |
+| 内边距 | 标准 | px-6 py-4  |
+| 悬停 | hover:bg-accent | hover:bg-accent  |
 | 圆角 | rounded-md | rounded-xl |
 
-## ✅ 设计检查清单
+##  设计检查清单
 
 ### 视觉一致性
 - [ ] 字体权重与 CardTitle 一致
@@ -145,7 +145,7 @@ transition: all 200ms ease-in-out;
 - [ ] 图标尺寸适合点击/触摸
 - [ ] 状态变化有明确的视觉反馈
 
-## 🔧 实现要点
+##  实现要点
 
 1. **使用设计系统变量**: 所有颜色都使用 CSS 变量，确保主题切换正常
 2. **保持组件一致性**: 与现有 Card、Button 组件的样式保持一致

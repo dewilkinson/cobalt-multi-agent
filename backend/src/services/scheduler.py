@@ -277,7 +277,7 @@ class CobaltScheduler:
                         self.log(f"Status: FAILED {task.task_id}: {stderr.decode()}", level=logging.ERROR)
                     
             except Exception as e:
-                self.log(f"⚠️ Runtime Error for {task.task_id}: {e}", level=logging.ERROR)
+                self.log(f" Runtime Error for {task.task_id}: {e}", level=logging.ERROR)
             finally:
                 task.start_time = None
                 if task.task_id in self.executing_tasks:
@@ -302,7 +302,7 @@ class CobaltScheduler:
         )
         self.tasks[task_id] = task
         self._schedule_in_engine(task)
-        self.log(f"📅 Registered {type}: {name} ({task_id}) [Priority: {priority}]")
+        self.log(f" Registered {type}: {name} ({task_id}) [Priority: {priority}]")
         if command:
             self._save_registry()
 
@@ -317,7 +317,7 @@ class CobaltScheduler:
     def adjust_priority(self, task_id, priority):
         if task_id in self.tasks:
             self.tasks[task_id].priority = priority
-            self.log(f"🔄 Adjusted priority for {task_id} to {priority}")
+            self.log(f" Adjusted priority for {task_id} to {priority}")
             self._save_registry()
 
     def query_active_timers(self) -> List[Dict[str, Any]]:
@@ -480,11 +480,11 @@ class CobaltScheduler:
                         delta = now - next_time
                         time_missed_str = f"MISSED by {(delta.total_seconds() / 3600):.1f}hrs"
                         if delta <= timedelta(hours=24):
-                            self.log(f"🕒 MISFIRE DETECTED for {task.task_id} ({time_missed_str}). Executing CATCH-UP inside HIGH queue.")
+                            self.log(f" MISFIRE DETECTED for {task.task_id} ({time_missed_str}). Executing CATCH-UP inside HIGH queue.")
                             if self.loop:
                                 self.loop.call_soon_threadsafe(self.queues["HIGH"].put_nowait, task.task_id)
                         else:
-                            self.log(f"⚠️ MISFIRE STALE for {task.task_id} ({time_missed_str}). Ignored because > 24 hours.")
+                            self.log(f" MISFIRE STALE for {task.task_id} ({time_missed_str}). Ignored because > 24 hours.")
         except Exception as e:
             self.log(f"Failed to evaluate misfire for {task.task_id}: {e}", level=logging.ERROR)
 

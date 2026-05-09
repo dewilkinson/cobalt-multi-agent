@@ -81,7 +81,7 @@
         "starOnGitHub": "Star Cobalt Multiagent on GitHub"
     },
     "welcome": {
-      "greeting": "👋 Hello, there!",
+      "greeting": " Hello, there!",
       "description": "Welcome to Cobalt Multiagent, a deep research assistant built on cutting-edge language models, helps you search on web, browse information, and handle complex tasks."
     },
     "conversationStarters": [

@@ -111,7 +111,7 @@ Ronaldo's international career is filled with records and achievements.
 
 - [REWIND | Cristiano Ronaldo's First for Juve - Juventus.com](https://www.juventus.com/en/news/articles/rewind-cristiano-ronaldo-s-first-for-juve)
 
-- [Al Nassr (KSA) - Esteghlal FC (IRN) | Highlights ACL Elite™ - YouTube](https://www.youtube.com/watch?v=CUbYX4s-n8A)
+- [Al Nassr (KSA) - Esteghlal FC (IRN) | Highlights ACL Elite - YouTube](https://www.youtube.com/watch?v=CUbYX4s-n8A)
 
 - [Cristiano Ronaldo FINISHED? Al Orobah 2-1 Al Nassr HIGHLIGHTS](https://www.youtube.com/watch?v=FRhpTh0Eauk)
 

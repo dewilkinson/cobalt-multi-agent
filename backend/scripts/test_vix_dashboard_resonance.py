@@ -10,7 +10,7 @@ TICKER = "VIX"
 
 
 def run_resonance_test():
-    print(f"🚀 Starting VIX Dashboard Resonance Test ({ITERATIONS} iterations)...")
+    print(f" Starting VIX Dashboard Resonance Test ({ITERATIONS} iterations)...")
     print("=============================================")
 
     with sync_playwright() as p:
@@ -25,7 +25,7 @@ def run_resonance_test():
         try:
             page.goto(DASHBOARD_URL, timeout=15000)
         except Exception as e:
-            print(f"❌ FAIL: Could not reach the dashboard. Is the HTTP server running?\nError: {e}")
+            print(f" FAIL: Could not reach the dashboard. Is the HTTP server running?\nError: {e}")
             return
 
         page.wait_for_load_state("networkidle")
@@ -74,11 +74,11 @@ def run_resonance_test():
 
                 # Get the response text for logging
                 response_text = page.locator(".ai-message").last.inner_text()
-                print(f"  ✅ PASS: (Latency: {latency:.2f}s) - {response_text[:80]}...")
+                print(f"   PASS: (Latency: {latency:.2f}s) - {response_text[:80]}...")
 
             except Exception:
                 latency = time.time() - start_time
-                print(f"  ❌ FAIL: (Latency: {latency:.2f}s) - Response timed out or unexpected.")
+                print(f"   FAIL: (Latency: {latency:.2f}s) - Response timed out or unexpected.")
                 # print(f"      Debug Error: {e}")
 
             # Check if UI is "blocked" - try to type something into the input
@@ -86,7 +86,7 @@ def run_resonance_test():
                 chat_input.fill("Still alive?")
                 # If fill doesn't throw, the UI is likely not completely frozen
             except Exception as e:
-                print(f"  🚨 CRITICAL: UI is BLOCKED! Cannot interact with input. {e}")
+                print(f"   CRITICAL: UI is BLOCKED! Cannot interact with input. {e}")
                 break
 
             # Short cooldown

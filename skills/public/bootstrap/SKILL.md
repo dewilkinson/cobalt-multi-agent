@@ -47,16 +47,16 @@ Mentally track these fields as the conversation progresses. You need **all requi
 
 | Field | Required | Source Phase |
 |-------|----------|-------------|
-| Preferred language | ✅ | 1 |
-| User's name | ✅ | 2 |
-| User's role / context | ✅ | 2 |
-| AI name | ✅ | 2 |
-| Relationship framing | ✅ | 2 |
-| Core traits (3–5 behavioral rules) | ✅ | 3 |
-| Communication style | ✅ | 3 |
-| Pushback / honesty preference | ✅ | 3 |
-| Autonomy level | ✅ | 3 |
-| Failure philosophy | ✅ | 4 |
+| Preferred language |  | 1 |
+| User's name |  | 2 |
+| User's role / context |  | 2 |
+| AI name |  | 2 |
+| Relationship framing |  | 2 |
+| Core traits (3–5 behavioral rules) |  | 3 |
+| Communication style |  | 3 |
+| Pushback / honesty preference |  | 3 |
+| Autonomy level |  | 3 |
+| Failure philosophy |  | 4 |
 | Long-term vision | nice-to-have | 4 |
 | Blind spots / boundaries | nice-to-have | 4 |
 
@@ -75,7 +75,7 @@ Once you have enough information:
    setup_agent(soul="<full SOUL.md content>", description="<one-line description>")
    ```
    The tool will persist the SOUL.md and finalize the agent setup automatically.
-6. After the tool returns successfully, confirm: "✅ [Name] is officially real."
+6. After the tool returns successfully, confirm: " [Name] is officially real."
 
 **Generation rules:**
 - The final SOUL.md **must always be written in English**, regardless of the user's preferred language or conversation language.

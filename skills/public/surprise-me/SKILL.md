@@ -49,5 +49,5 @@ If no other skills are discovered (only surprise-me exists), use one of these fa
 
 Present the surprise with minimal spoilers. A short teaser line, then the artifact.
 
-- **Good reveal:** "I made you something ✨" + [the artifact]
+- **Good reveal:** "I made you something " + [the artifact]
 - **Bad reveal:** "I decided to combine the pptx skill with the canvas-design skill to create a presentation about..." (kills the surprise)

@@ -1301,7 +1301,7 @@ class TestFormatArtifactText:
         from app.channels.manager import _format_artifact_text
 
         text = _format_artifact_text(["/mnt/user-data/outputs/report.md"])
-        assert text == "Created File: 📎 report.md"
+        assert text == "Created File:  report.md"
 
     def test_multiple_artifacts(self):
         from app.channels.manager import _format_artifact_text
@@ -1309,7 +1309,7 @@ class TestFormatArtifactText:
         text = _format_artifact_text(
             ["/mnt/user-data/outputs/a.txt", "/mnt/user-data/outputs/b.csv"],
         )
-        assert text == "Created Files: 📎 a.txt、b.csv"
+        assert text == "Created Files:  a.txt、b.csv"
 
 
 class TestHandleChatWithArtifacts:

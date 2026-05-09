@@ -34,7 +34,7 @@ Please create me a new watchlist window for Futures to monitor these shields.
 
 
 def run_functional_test():
-    print("--- 🚀 STARTING VLI FUNCTIONAL TEST ---")
+    print("---  STARTING VLI FUNCTIONAL TEST ---")
 
     # 1. Cleanup & Preparation
     os.makedirs(inbox_path, exist_ok=True)
@@ -54,13 +54,13 @@ def run_functional_test():
 
     while time.time() - start_time < max_wait:
         if not os.path.exists(test_file):
-            print("   ✅ Inbox file captured!")
+            print("    Inbox file captured!")
             found = True
             break
         time.sleep(0.5)
 
     if not found:
-        print("   ❌ TIMEOUT: Watcher did not capture the file.")
+        print("    TIMEOUT: Watcher did not capture the file.")
         return
 
     # 3. Verify Active State via API
@@ -78,30 +78,30 @@ def run_functional_test():
         missing = [s for s in expected_syms if s not in symbols]
 
         if not missing:
-            print(f"   ✅ SUCCESS: All symbols extracted: {symbols}")
+            print(f"    SUCCESS: All symbols extracted: {symbols}")
         else:
-            print(f"   ⚠️ WARNING: Missing symbols from extraction: {missing}")
+            print(f"    WARNING: Missing symbols from extraction: {missing}")
 
         # 4. Verify Dynamic Panels
         print("4. Verifying dynamic panel creation (Futures Watchlist)...")
         panels = data.get("dynamic_panels", [])
         if any(p["id"] == "watch-futures-01" for p in panels):
-            print("   ✅ SUCCESS: Futures Watchlist dynamic panel found in state.")
+            print("    SUCCESS: Futures Watchlist dynamic panel found in state.")
         else:
-            print("   ❌ FAIL: Futures Watchlist dynamic panel NOT found.")
+            print("    FAIL: Futures Watchlist dynamic panel NOT found.")
 
     except Exception as e:
-        print(f"   ⚠️ API verification failed (is server running?): {e}")
+        print(f"    API verification failed (is server running?): {e}")
 
     # 5. Verify Archive
     print("5. Verifying archive protocol...")
     archived_files = os.listdir(archive_path)
     if any("bunker_mode_test" in f for f in archived_files):
-        print("   ✅ SUCCESS: File moved to archives.")
+        print("    SUCCESS: File moved to archives.")
     else:
-        print("   ❌ FAIL: File not found in archives.")
+        print("    FAIL: File not found in archives.")
 
-    print("\n--- ✅ TEST COMPLETE ---")
+    print("\n---  TEST COMPLETE ---")
 
 
 if __name__ == "__main__":

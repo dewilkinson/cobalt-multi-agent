@@ -487,7 +487,7 @@ body {
 }
 
 .character-portrait.elizabeth::after {
-    content: '👒';
+    content: '';
     position: absolute;
     top: 50%;
     left: 50%;
@@ -497,7 +497,7 @@ body {
 }
 
 .character-portrait.darcy::after {
-    content: '🎩';
+    content: '';
     position: absolute;
     top: 50%;
     left: 50%;
@@ -507,7 +507,7 @@ body {
 }
 
 .character-portrait.jane::after {
-    content: '🌸';
+    content: '';
     position: absolute;
     top: 50%;
     left: 50%;
@@ -517,7 +517,7 @@ body {
 }
 
 .character-portrait.bingley::after {
-    content: '🎭';
+    content: '';
     position: absolute;
     top: 50%;
     left: 50%;
@@ -527,7 +527,7 @@ body {
 }
 
 .character-portrait.lydia::after {
-    content: '💃';
+    content: '';
     position: absolute;
     top: 50%;
     left: 50%;
@@ -537,7 +537,7 @@ body {
 }
 
 .character-portrait.wickham::after {
-    content: '🎪';
+    content: '';
     position: absolute;
     top: 50%;
     left: 50%;

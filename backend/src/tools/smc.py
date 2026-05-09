@@ -117,11 +117,11 @@ async def run_smc_analysis(ticker: str, interval: str = "auto") -> str:
 
             last_struct = structure.iloc[-1]
             if last_struct.get("CHOCH") or last_struct.get("choch"):
-                report.append("- **State**: ⚡ **Change of Character (ChoCh)** detected.")
+                report.append("- **State**:  **Change of Character (ChoCh)** detected.")
             elif last_struct.get("BOS") or last_struct.get("bos"):
-                report.append("- **State**: 📈 **Break of Structure (BOS)** confirmed.")
+                report.append("- **State**:  **Break of Structure (BOS)** confirmed.")
             else:
-                report.append("- **State**: ⚖️ Stable market structure.")
+                report.append("- **State**:  Stable market structure.")
 
             report.append(f"- **Order Blocks**: {ob_count} mapped.")
             active_obs = ob[ob["OB"].fillna(0) != 0] if "OB" in ob.columns else pd.DataFrame()
@@ -319,6 +319,20 @@ async def get_raw_smc_tables(ticker: str, interval: str = "1d", period: str = "1
         })
 
         DatastoreManager.store_artifact(norm_ticker, "smc_analysis", interval + "_raw", final_json, price=float(df["close"].iloc[-1]))
+        
+        # [CONTEXT CACHING] Upload massive raw payload to Gemini cache to save input tokens
+        from src.llms.cache_manager import GeminiCacheManager
+        cache_name = GeminiCacheManager.create_session_cache(
+            model_name="gemini-1.5-flash", # Always fallback to flash for caching
+            system_instruction="You are analyzing raw SMC financial tables. Extract exact structural data as requested.",
+            large_payload=final_json,
+            ttl_mins=15,
+            key=f"smc_raw_{norm_ticker}_{interval}"
+        )
+        
+        if cache_name:
+            return f"[CACHED_PAYLOAD: {cache_name}]\nThe raw JSON data has been successfully securely cached in Gemini. You have full access to it."
+        
         return final_json
     except Exception as e:
         return json.dumps([{"error": str(e)}])
