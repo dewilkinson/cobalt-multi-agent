@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0071";
+        const VLI_CLIENT_VERSION = "00.000.0073";
     </script>
     
     <link
@@ -4398,7 +4398,7 @@
                             body: JSON.stringify({
                                 text: rawText,
                                 direct_mode: directMode,
-                                thinking_mode: window.isThinkingMode
+                                thinking_mode: window.isThinkingMode,
                                 raw_data_mode: false,
                                 background_synthesis: asyncMode,
                                 thread_id: lastVliThreadId,
@@ -4472,7 +4472,7 @@
                             body: JSON.stringify({
                                 text: requestText,
                                 direct_mode: directMode,
-                                thinking_mode: window.isThinkingMode
+                                thinking_mode: window.isThinkingMode,
                                 raw_data_mode: rawDataMode,
                                 background_synthesis: asyncMode,
                                 thread_id: lastVliThreadId,
