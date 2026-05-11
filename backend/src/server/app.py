@@ -1372,10 +1372,14 @@ async def run_meta_analysis(manual_trigger: bool = False):
         prompt = (
             "You are the Chief Market Strategist for Blueshell Securities. "
             "Synthesize an 'Executive Morning Briefing' from the following institutional reports. "
-            "Focus on: 1. Sector Concentration/Convergence, 2. Aggregate Risk Profile (Volatility/ATR), "
-            f"3. The absolute best 2 high-conviction setups of the day, and 4. Strategic Guidance (The active strategy is '{active_strat_name}'. Frame your guidance entirely around this strategy's mathematical requirements and logic). "
+            "Your objective is to provide a comprehensive macro-level overview for the upcoming trading session. "
+            "Focus on: 1. Broad Market Sentiment and Key Catalysts, 2. Sector Performance and Rotation (highlighting relative strength/weakness), "
+            "3. Aggregate Risk Profile (Volatility/VIX), and 4. General Market Outlook and Guidance. "
+            "CRITICAL: Do NOT provide specific 'Strike Authorizations', tactical execution parameters, or trade plans for individual tickers like SPY or QQQ. "
+            "This is a high-level strategic briefing to help the trader understand market movements and sector outlooks, not a single-ticker trade alert. "
+            f"The active strategy framework is '{active_strat_name}'. You may optionally frame the overall market condition relative to this strategy's general viability. "
             f"CRITICAL INSTRUCTION: You MUST include the exact following line at the end of your briefing to cite the source documents: '{source_str}'. "
-            "Be concise, tactical, and highly professional. DO NOT hallucinate other strategies or use incorrect terminology (e.g. 'Barbell') unless explicitly appropriate for the active strategy.\n\n"
+            "Be concise, analytical, and highly professional.\n\n"
             f"{bundle}\n\n--FORCE-GRAPH"
         )
         
@@ -1620,6 +1624,13 @@ async def startup_event():
         callback=poll_5m_patterns
     )
     
+    from datetime import datetime
+    now = datetime.now()
+    if now.hour >= 6:
+        if not os.path.exists(get_daily_briefing_path()):
+            logger.info("VLI_SYSTEM: Missed Morning Scan detected. Triggering catch-up sequence...")
+            asyncio.create_task(run_daily_morning_analysis())
+
     cobalt_scheduler.start()
     
     # Note: Macro Sync is now handled by the standalone vli_macro_worker.py process.
@@ -1932,6 +1943,7 @@ class VLIActionPlanRequest(BaseModel):
     thread_id: str | None = None
     snaptrade_settings: dict | None = None
     thinking_mode: bool = False
+    background_synthesis: bool = False
 
 
 # --- VLI SCANNER SETTINGS ---
@@ -2131,7 +2143,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
             for cand in scanner_res_content.get(key, []):
                 sym = cand.get("symbol", "")
                 if sym:
-                    r_path = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym.lower()}.md')
+                    r_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
                     cand["has_report"] = False
                     if os.path.exists(r_path):
                         cand["has_report"] = True
@@ -3425,6 +3437,24 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
             }
         }
 
+    # [NEW] Show Daily Briefing
+    briefing_match = re.match(r"^show\s+daily\s+briefing(\s+report)?$", command_text)
+    if briefing_match:
+        if os.path.exists(get_daily_briefing_path()):
+            _append_to_vli_history("ai", "Retrieving Daily Briefing...", thread_id=transaction_id)
+            return {
+                "response": "Retrieving Daily Briefing...",
+                "status": "OK",
+                "error_details": None,
+                "metadata": {
+                    "action": "OPEN_REPORT",
+                    "artifact_type": "REPORT",
+                    "symbol": "DAILY_BRIEFING"
+                }
+            }
+        else:
+            return {"response": "Daily Briefing has not been generated yet today.", "status": "OK", "error_details": None}
+
     # [NEW] Show Report / Artifact Interception
     show_match = re.match(r"^show\s+([a-zA-Z]+)\s+(report|analysis)$", command_text)
     if show_match:
@@ -3823,6 +3853,10 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     try:
         actual_vli_llm = request.vli_llm_type if request.thinking_mode else "basic"
         actual_reporter_llm = request.reporter_llm_type if request.thinking_mode else "basic"
+        
+        if request.text.strip().lower().startswith("analyze "):
+            actual_reporter_llm = "reasoning"
+            actual_vli_llm = "reasoning"
         
         response_text, final_vli_state = await _invoke_vli_agent(request.text, request.image, request.direct_mode, request.raw_data_mode, actual_reporter_llm, actual_vli_llm, thread_id=transaction_id, snaptrade_settings=request.snaptrade_settings, thinking_mode=request.thinking_mode)
         
@@ -4774,7 +4808,10 @@ async def generate_prose(request: GenerateProseRequest):
 async def get_vli_report(symbol: str):
     """Serve generated Markdown analysis report for a symbol."""
 
-    report_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{symbol.lower()}.md')
+    if symbol == "DAILY_BRIEFING":
+        report_path = get_daily_briefing_path()
+    else:
+        report_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{symbol.lower()}.md')
     if os.path.exists(report_path):
         with open(report_path, "r", encoding="utf-8") as f:
             content = f.read()

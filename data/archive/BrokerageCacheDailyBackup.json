@@ -2,6 +2,28 @@
   "Health Savings Account *6937": {
     "activities": [
       {
+        "id": "ATP-RXT-2026-05-08T130428.000Z-30.0-SELL",
+        "type": "SELL",
+        "units": 30.0,
+        "price": 5.625,
+        "trade_date": "2026-05-08T13:04:28.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "RXT"
+        }
+      },
+      {
+        "id": "ATP-RXT-2026-05-08T125756.000Z-30.0-BUY",
+        "type": "BUY",
+        "units": 30.0,
+        "price": 5.98,
+        "trade_date": "2026-05-08T12:57:56.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "RXT"
+        }
+      },
+      {
         "id": "HIST-EDSA-2026-04-30T000000.000Z-11.0-SELL",
         "type": "SELL",
         "units": 11.0,
@@ -266,10 +288,88 @@
         }
       }
     ],
-    "positions": []
+    "positions": [],
+    "closed_positions": []
   },
   "Rollover IRA *5513": {
     "activities": [
+      {
+        "id": "ATP-RXT-2026-05-08T132314.000Z-45.0-SELL",
+        "type": "SELL",
+        "units": 45.0,
+        "price": 5.4702,
+        "trade_date": "2026-05-08T13:23:14.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "RXT"
+        }
+      },
+      {
+        "id": "ATP-RXT-2026-05-08T125713.000Z-45.0-BUY",
+        "type": "BUY",
+        "units": 45.0,
+        "price": 5.975,
+        "trade_date": "2026-05-08T12:57:13.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "RXT"
+        }
+      },
+      {
+        "id": "ATP-XLK-2026-05-08T124530.000Z-15.0-SELL",
+        "type": "SELL",
+        "units": 15.0,
+        "price": 174.13,
+        "trade_date": "2026-05-08T12:45:30.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLK"
+        }
+      },
+      {
+        "id": "ATP-XLK-2026-05-08T122803.000Z-15.0-BUY",
+        "type": "BUY",
+        "units": 15.0,
+        "price": 174.45,
+        "trade_date": "2026-05-08T12:28:03.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLK"
+        }
+      },
+      {
+        "id": "ATP-GTX-2026-05-08T114746.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 28.66,
+        "trade_date": "2026-05-08T11:47:46.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GTX"
+        }
+      },
+      {
+        "id": "ATP-CEVA-2026-05-08T112102.000Z-150.0-SELL",
+        "type": "SELL",
+        "units": 150.0,
+        "price": 35.1401,
+        "trade_date": "2026-05-08T11:21:02.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CEVA"
+        }
+      },
+      {
+        "id": "ATP-GRPN-2026-05-08T112012.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 18.3201,
+        "trade_date": "2026-05-08T11:20:12.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GRPN"
+        }
+      },
       {
         "id": "ATP-GRPN-2026-05-08T111413.000Z-100.0-SELL",
         "type": "SELL",
@@ -315,6 +415,17 @@
         }
       },
       {
+        "id": "ATP-MRNA-2026-05-08T105236.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 56.35,
+        "trade_date": "2026-05-08T10:52:36.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MRNA"
+        }
+      },
+      {
         "id": "ATP-MRNA-2026-05-08T105046.000Z-100.0-SELL",
         "type": "SELL",
         "units": 100.0,
@@ -323,6 +434,17 @@
         "status": "Executed",
         "symbol": {
           "symbol": "MRNA"
+        }
+      },
+      {
+        "id": "ATP-CSCO-2026-05-08T104810.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 95.72,
+        "trade_date": "2026-05-08T10:48:10.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CSCO"
         }
       },
       {
@@ -345,6 +467,17 @@
         "status": "Open",
         "symbol": {
           "symbol": "GTX"
+        }
+      },
+      {
+        "id": "ATP-XLK-2026-05-08T103602.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 173.015,
+        "trade_date": "2026-05-08T10:36:02.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLK"
         }
       },
       {
@@ -378,6 +511,17 @@
         "status": "Executed",
         "symbol": {
           "symbol": "INTC"
+        }
+      },
+      {
+        "id": "ATP-MRNA-2026-05-08T102753.000Z-125.0-SELL",
+        "type": "SELL",
+        "units": 125.0,
+        "price": 54.43,
+        "trade_date": "2026-05-08T10:27:53.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MRNA"
         }
       },
       {
@@ -425,6 +569,17 @@
         }
       },
       {
+        "id": "ATP-MRNA-2026-05-08T102142.000Z-250.0-SELL",
+        "type": "SELL",
+        "units": 250.0,
+        "price": 54.365,
+        "trade_date": "2026-05-08T10:21:42.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MRNA"
+        }
+      },
+      {
         "id": "ATP-MRNA-2026-05-08T102126.000Z-250.0-SELL",
         "type": "SELL",
         "units": 250.0,
@@ -452,6 +607,17 @@
         "units": 250.0,
         "price": 52.765,
         "trade_date": "2026-05-08T10:14:53.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MRNA"
+        }
+      },
+      {
+        "id": "ATP-MRNA-2026-05-08T101323.000Z-300.0-SELL",
+        "type": "SELL",
+        "units": 300.0,
+        "price": 52.51,
+        "trade_date": "2026-05-08T10:13:23.000Z",
         "status": "Executed",
         "symbol": {
           "symbol": "MRNA"
@@ -10547,14 +10713,6 @@
     ],
     "positions": [
       {
-        "symbol": "CEVA",
-        "quantity": 150.0,
-        "average_cost": 35.33,
-        "todays_gl_dol": -12.0,
-        "total_gl_dol": -12.0,
-        "total_cost": 5299.5
-      },
-      {
         "symbol": "Cash (SPAXX)",
         "quantity": 100541.12,
         "average_cost": 0.0,
@@ -10569,22 +10727,6 @@
         "todays_gl_dol": 0.0,
         "total_gl_dol": 0.0,
         "total_cost": 0.0
-      },
-      {
-        "symbol": "GTX",
-        "quantity": 100.0,
-        "average_cost": 27.99,
-        "todays_gl_dol": 34.0,
-        "total_gl_dol": 34.0,
-        "total_cost": 2799.0
-      },
-      {
-        "symbol": "GRPN",
-        "quantity": 100.0,
-        "average_cost": 18.72,
-        "todays_gl_dol": -30.5,
-        "total_gl_dol": -30.5,
-        "total_cost": 1872.0
       }
     ],
     "closed_positions": [
@@ -11157,6 +11299,63 @@
         "close_date": "2026-05-06 09:31:54",
         "pnl": -68.99,
         "pnl_pct": -0.7685738684884853
+      },
+      {
+        "symbol": "GTX",
+        "quantity": 100.0,
+        "average_cost": 27.99,
+        "todays_gl_dol": 34.0,
+        "total_gl_dol": 34.0,
+        "total_cost": 2799.0,
+        "units": 0.0
+      },
+      {
+        "symbol": "CEVA",
+        "quantity": 150.0,
+        "average_cost": 35.33,
+        "todays_gl_dol": -12.0,
+        "total_gl_dol": -12.0,
+        "total_cost": 5299.5,
+        "units": 0.0
+      },
+      {
+        "symbol": "GRPN",
+        "quantity": 100.0,
+        "average_cost": 18.72,
+        "todays_gl_dol": -30.5,
+        "total_gl_dol": -30.5,
+        "total_cost": 1872.0,
+        "units": 0.0
+      }
+    ]
+  },
+  "TEST_ACCT_123": {
+    "activities": [
+      {
+        "id": "test_sell_1",
+        "symbol": "AAPL",
+        "type": "SELL",
+        "units": 50,
+        "price": 160.0,
+        "trade_date": "2026-05-09"
+      },
+      {
+        "id": "test_sell_2",
+        "symbol": "AAPL",
+        "type": "SELL",
+        "units": 50,
+        "price": 165.0,
+        "trade_date": "2026-05-09"
+      }
+    ],
+    "positions": [],
+    "closed_positions": [
+      {
+        "symbol": {
+          "symbol": "AAPL"
+        },
+        "units": 0.0,
+        "average_price": 150.0
       }
     ]
   }

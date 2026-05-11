@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0073";
+        const VLI_CLIENT_VERSION = "00.000.0076";
     </script>
     
     <link
@@ -233,7 +233,10 @@
         }
         body.standalone .vli-menubar,
         body.standalone .card:not(.popout-target),
-        body.standalone #wm-workspace::before {
+        body.standalone #wm-workspace::before,
+        body.standalone .vli-sidebar,
+        body.standalone .sidebar-tabs-container,
+        body.standalone #vli-version-watermark {
             display: none !important;
         }
 
@@ -266,7 +269,8 @@
         }
         body.standalone .popout-target .win-pop,
         body.standalone .popout-target .win-min,
-        body.standalone .popout-target .win-max {
+        body.standalone .popout-target .win-max,
+        body.standalone .popout-target .win-close {
             display: none !important;
         }
 
@@ -1537,19 +1541,29 @@
     <script>
         window.VLI_DEBUG = true;
         let refreshCountdown = 60;
-        let isThinkingMode = false;
+        window.isThinkingMode = localStorage.getItem('vli_thinking_mode') === 'true';
 
-        function toggleThinkingMode() {
-            isThinkingMode = !isThinkingMode;
-            const badge = document.getElementById('thinking-badge');
-            if (isThinkingMode) {
-                badge.textContent = "ON";
-                badge.style.color = "var(--emerald-green)";
+        function toggleThinkingMode(forceVal = null) {
+            if (forceVal !== null) {
+                window.isThinkingMode = forceVal;
             } else {
-                badge.textContent = "OFF";
-                badge.style.color = "var(--text-muted)";
+                window.isThinkingMode = !window.isThinkingMode;
+            }
+            localStorage.setItem('vli_thinking_mode', window.isThinkingMode);
+            const badge = document.getElementById('thinking-badge');
+            if (badge) {
+                if (window.isThinkingMode) {
+                    badge.textContent = "ON";
+                    badge.style.color = "var(--emerald-green)";
+                } else {
+                    badge.textContent = "OFF";
+                    badge.style.color = "var(--text-muted)";
+                }
             }
         }
+        document.addEventListener('DOMContentLoaded', () => {
+            toggleThinkingMode(window.isThinkingMode);
+        });
         
         const getSnaptradeSettings = () => ({
             SNAPTRADE_CLIENT_ID: localStorage.getItem('SNAPTRADE_CLIENT_ID') || '',
@@ -1642,13 +1656,14 @@
             'STRUCTURAL_ANALY': { idPrefix: 'AR', title: 'Structural Analysis', isSingleton: false },
             'SCAN_RES': { idPrefix: 'SR', title: 'Market Scan', isSingleton: false },
             'ORDER_HIST': { idPrefix: 'OH', title: 'Portfolio', isSingleton: true },
-            'SCHEDULER_LOG': { idPrefix: 'SL', title: 'Scheduler Telemetry', isSingleton: true }
+            'SCHEDULER_LOG': { idPrefix: 'SL', title: 'Scheduler Telemetry', isSingleton: true },
+            'ARTIFACT_VIEWER': { idPrefix: 'ART', title: 'Artifact Viewer', isSingleton: false, initContent: () => `<div class="artifact-content msg-ai" style="padding:15px; overflow-y:auto; height:100%;"></div>`, onAttach: () => {} }
         };
 
         class UXCardManager {
             constructor() {
                 this.instances = {};
-                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'STRUCTURAL_ANALY': 0, 'SCAN_RES': 0, 'ORDER_HIST': 0, 'SCHEDULER_LOG': 0 };
+                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'STRUCTURAL_ANALY': 0, 'SCAN_RES': 0, 'ORDER_HIST': 0, 'SCHEDULER_LOG': 0, 'ARTIFACT_VIEWER': 0 };
             }
 
             generateGUID() {
@@ -2430,6 +2445,9 @@
             if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'scanner')) {
                  viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES', {}, 'scanner')" style="color:var(--emerald-green);">[+] Spawn Sortino Sniper</div>`;
             }
+            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'MACRO_WL')) {
+                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('MACRO_WL', {}, 'watchlist')" style="color:var(--emerald-green);">[+] Spawn Macro Watchlist</div>`;
+            }
             if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'shield')) {
                  viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES', {}, 'shield')" style="color:var(--emerald-green);">[+] Spawn Apex Core Scan</div>`;
             }
@@ -2647,7 +2665,16 @@
                 const popoutType = urlParams.get('type');
                 if (popoutType) {
                     const instanceGuid = popoutId.replace('win-', '');
-                    UXManager.createCard(popoutType, {}, instanceGuid);
+                    const newCard = UXManager.createCard(popoutType, {}, instanceGuid);
+                    if (newCard) {
+                        try {
+                            const savedHTML = localStorage.getItem('popout_content_' + popoutId);
+                            if (savedHTML) {
+                                newCard.innerHTML = savedHTML;
+                                localStorage.removeItem('popout_content_' + popoutId);
+                            }
+                        } catch(e) { console.error("Failed to load popout content", e); }
+                    }
                 }
                 
                 const target = document.getElementById(popoutId);
@@ -2692,6 +2719,41 @@
                 document.body.addEventListener('drop', (e) => {
                     e.preventDefault();
                     document.body.classList.remove('drag-hover');
+                    
+                    // Native OS File Drop Support (Electron-specific `.path`)
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        const elemUnder = document.elementFromPoint(e.clientX, e.clientY);
+                        let targetFolder = null;
+                        if (elemUnder) {
+                            const treeNode = elemUnder.closest('.tree-folder');
+                            if (treeNode) {
+                                targetFolder = treeNode.dataset.path || treeNode.querySelector('.tree-label').innerText.trim();
+                            }
+                        }
+                        
+                        if (targetFolder) {
+                            Array.from(e.dataTransfer.files).forEach(file => {
+                                if (file.path) { // Electron specific!
+                                    fetch('/api/vli/artifacts/copy_to_folder', {
+                                        method: 'POST',
+                                        headers: {'Content-Type': 'application/json'},
+                                        body: JSON.stringify({ source_path: file.path, target_folder: targetFolder })
+                                    }).then(res => res.json())
+                                      .then(data => {
+                                          if (data.status === 'OK') loadArtifactTree();
+                                          else alert('Copy failed: ' + (data.detail || data));
+                                      })
+                                      .catch(err => alert('Copy Error: ' + err));
+                                } else {
+                                    alert('Error: File path could not be resolved. This feature requires the Electron client.');
+                                }
+                            });
+                        } else {
+                            alert("Please drop the file directly onto a folder in the left sidebar.");
+                        }
+                        return;
+                    }
+                    
                     try {
                         const dataStr = e.dataTransfer.getData('text/plain');
                         if (dataStr) {
@@ -2719,6 +2781,13 @@
             const height = 600;
             const left = (screen.width - width) / 2;
             const top = (screen.height - height) / 2;
+            
+            if (cardEl) {
+                try {
+                    localStorage.setItem('popout_content_' + id, cardEl.innerHTML);
+                } catch(e) { console.error("Failed to save popout content", e); }
+            }
+
             window.open(window.location.href.split('?')[0] + '?popout=' + id + '&type=' + typeGuid, id, 
                 `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,status=no`);
             
@@ -3246,6 +3315,7 @@
         let isPolling = false;
         let isProcessing = false;
         async function poll() {
+            if (urlParams.get('popout')) return;
             if (isPolling) return;
             if (typeof vliPollingEnabled !== 'undefined' && !vliPollingEnabled) return;
             console.log("[VLI_TRACE] " + new Date().toLocaleTimeString() + " - Starting poll check...");
@@ -3521,7 +3591,6 @@
                     
                     const isRefreshing = window.vliRefreshingSymbols.has(ticker);
                     const tr = document.createElement('tr');
-                    tr.style.fontSize = '14px';
                     tr.style.cursor = 'pointer';
                     tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
                     tr.style.background = rowBg;
@@ -3539,18 +3608,18 @@
                     tr.onclick = () => insertCardIdIntoChat(`analyze ${ticker}`);
 
                     tr.innerHTML = `
-                        <td class="symbol-bold" style="padding: 6px 0; vertical-align: middle; max-width: 110px;" data-ticker="${ticker}">
+                        <td class="symbol-bold" style="padding: 4px 2px; vertical-align: middle; max-width: 110px;" data-ticker="${ticker}">
                             <div style="font-size: 11px; color: var(--text-muted); line-height: 1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${label}</div>
                             <div style="line-height: 1; display: flex; align-items: center; gap: 4px;">
                                 ${ticker}
                             </div>
                         </td>
-                        <td class="val-mono" style="color: ${color}; transition: color 0.5s ease; padding: 6px 0; vertical-align: middle;">${priceDisplay}</td>
-                        <td class="val-mono" style="color: ${pctChange >= 0 ? 'var(--price-up)' : 'var(--price-down)'}; padding: 6px 0; vertical-align: middle;">
+                        <td class="val-mono" style="color: ${color}; transition: color 0.5s ease; padding: 4px 2px; vertical-align: middle;">${priceDisplay}</td>
+                        <td class="val-mono" style="color: ${pctChange >= 0 ? 'var(--price-up)' : 'var(--price-down)'}; padding: 4px 2px; vertical-align: middle;">
                             ${pctChange >= 0 ? '▲' : '▼'} ${Math.abs(pctChange).toFixed(2)}%
                         </td>
-                        <td class="val-mono" style="color: ${sortinoColor}; font-weight: 700; padding: 6px 0; vertical-align: middle;">${sortino}</td>
-                        <td style="padding: 6px 0; vertical-align: middle;">
+                        <td class="val-mono" style="color: ${sortinoColor}; font-weight: 700; padding: 4px 2px; vertical-align: middle;">${sortino}</td>
+                        <td style="padding: 4px 2px; vertical-align: middle;">
                             <div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding-right: 16px;">
                                 ${drawSparkline(sparklineObj.value, ticker)}
                                 <div style="width: 24px; display: flex; justify-content: center;">
@@ -6252,6 +6321,7 @@
             
             // Wait a brief moment to ensure UI frames are ready before fetching scanner
             setTimeout(() => {
+                if (window.location.search.includes('popout')) return;
                 initScannerSSE();
             }, 500);
         });
