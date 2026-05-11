@@ -129,7 +129,7 @@ async def get_bunker_list():
             data = json.load(f)
             if isinstance(data, list):
                 return sanitize_data({"status": "success", "data": data})
-            return sanitize_data({"status": "success", "data": data.get("strike_list", [])})
+            return sanitize_data({"status": "success", "data": data.get("candidates", data.get("strike_list", []))})
     except Exception as e:
         logger.error(f"Failed to read bunker: {e}")
         return {"status": "error", "message": str(e)}
@@ -156,7 +156,7 @@ async def get_shield_bunker_list():
             data = json.load(f)
             if isinstance(data, list):
                 return sanitize_data({"status": "success", "data": data})
-            return sanitize_data({"status": "success", "data": data.get("strike_list", [])})
+            return sanitize_data({"status": "success", "data": data.get("candidates", data.get("strike_list", []))})
     except Exception as e:
         logger.error(f"Failed to read shield bunker: {e}")
         return {"status": "error", "message": str(e)}
