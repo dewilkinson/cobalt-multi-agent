@@ -22,6 +22,7 @@ import yfinance
 from curl_cffi.requests import Session
 from langchain_core.tools import tool
 from src.services.datastore import DatastoreManager
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
 
@@ -49,23 +50,24 @@ _RAW_DATA_LOCK = threading.Lock()
 
 # Global semaphore to prevent slamming Yahoo Finance API
 # We limit to 3 concurrent network requests to prevent rate limiting and head-of-line blocking.
-_YF_SEMAPHORE: asyncio.Semaphore | None = None
-
-
-_AV_SEMAPHORE: asyncio.Semaphore | None = None
+import weakref
+_YF_SEMAPHORE = weakref.WeakKeyDictionary()
+_AV_SEMAPHORE = weakref.WeakKeyDictionary()
 
 def _get_av_semaphore() -> asyncio.Semaphore:
     global _AV_SEMAPHORE
-    if _AV_SEMAPHORE is None:
-        _AV_SEMAPHORE = asyncio.Semaphore(15)
-    return _AV_SEMAPHORE
+    loop = asyncio.get_running_loop()
+    if loop not in _AV_SEMAPHORE:
+        _AV_SEMAPHORE[loop] = asyncio.Semaphore(15)
+    return _AV_SEMAPHORE[loop]
 
 def _get_yf_semaphore() -> asyncio.Semaphore:
     """Lazy initialization of the semaphore in the correct event loop."""
     global _YF_SEMAPHORE
-    if _YF_SEMAPHORE is None:
-        _YF_SEMAPHORE = asyncio.Semaphore(3)
-    return _YF_SEMAPHORE
+    loop = asyncio.get_running_loop()
+    if loop not in _YF_SEMAPHORE:
+        _YF_SEMAPHORE[loop] = asyncio.Semaphore(3)
+    return _YF_SEMAPHORE[loop]
 
 
 # Thread-local storage for sessions to avoid pickling/multiprocessing issues
@@ -171,6 +173,7 @@ def _bucket_sparkline_data(df: pd.DataFrame, ref_time: datetime, current_price: 
     return output_values
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
 def _fetch_av_history(ticker: str, period: str = "5d", interval: str = "1d") -> pd.DataFrame:
     import os
     import httpx
@@ -201,7 +204,7 @@ def _fetch_av_history(ticker: str, period: str = "5d", interval: str = "1d") -> 
         
         if "Error Message" in resp.text or "Information" in resp.text:
             logger.error(f"[AV_FETCH] API Error for {ticker}: {resp.text[:100]}")
-            return pd.DataFrame()
+            raise RuntimeError("Alpha Vantage Rate Limit or API Error")
             
         df = pd.read_csv(StringIO(resp.text))
         if df.empty or 'timestamp' not in df.columns:
@@ -298,18 +301,21 @@ def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str =
         logger.debug(f"[WEB REQUEST] Yahoo Finance fetching {len(mapped_tickers)} tickers: {mapped_tickers}")
         start_time = time.time()
         try:
-            data = yfinance.download(
-                tickers=mapped_tickers,
-                period=period,
-                interval=interval,
-                group_by="ticker",
-                session=_get_session(),
-                progress=False,
-                threads=False,
-                timeout=20.0,    # [HARDEN] Increased from 15.0
-                auto_adjust=False,
-                prepost=True,
-            )
+            @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+            def _do_yf_download():
+                return yfinance.download(
+                    tickers=mapped_tickers,
+                    period=period,
+                    interval=interval,
+                    group_by="ticker",
+                    session=_get_session(),
+                    progress=False,
+                    threads=False,
+                    timeout=20.0,
+                    auto_adjust=False,
+                    prepost=True,
+                )
+            data = _do_yf_download()
             duration_ms = (time.time() - start_time) * 1000
             if data is not None and not data.empty:
                 logger.debug(f"[WEB RESPONSE] Yahoo Finance fetch successful in {duration_ms:.2f}ms for {mapped_tickers}")
@@ -553,6 +559,11 @@ async def get_symbol_history_data(symbols: list[str], period: str = "1d", interv
                     if ticker_df.empty:
                         # Fallback to Finviz
                         try:
+                            from src.config.vli import write_api_telemetry
+                            provider_name = "Alpha Vantage" if os.environ.get("DATA_PROVIDER", "yfinance").lower() == "alpha_vantage" else "Yahoo Finance"
+                            write_api_telemetry(provider_name, False, f"Missing data for {sym}", fallback="Finviz Scraper")
+                        except Exception: pass
+                        try:
                             f_data = await fetch_finviz_quotes([sym])
                             if sym.upper() in f_data:
                                 q = f_data[sym.upper()]
@@ -582,11 +593,27 @@ async def get_symbol_history_data(symbols: list[str], period: str = "1d", interv
                     current_price = raw_ohlcv["Close"]
                     DatastoreManager.store_artifact(sym, "history", interval, {"data": data_str, "raw": raw_ohlcv}, price=current_price)
                     results.append(data_str)
+                    
+                    try:
+                        from src.config.vli import write_api_telemetry
+                        provider_name = "Alpha Vantage" if os.environ.get("DATA_PROVIDER", "yfinance").lower() == "alpha_vantage" else "Yahoo Finance"
+                        write_api_telemetry(provider_name, True, f"Successfully retrieved {sym} ({interval})")
+                    except Exception: pass
             except TimeoutError:
                 logger.error(f"Timeout: Fetch for {others} timed out.")
+                try:
+                    from src.config.vli import write_api_telemetry
+                    provider_name = "Alpha Vantage" if os.environ.get("DATA_PROVIDER", "yfinance").lower() == "alpha_vantage" else "Yahoo Finance"
+                    write_api_telemetry(provider_name, False, f"Timeout on {others}", fallback="None")
+                except Exception: pass
                 results.append(f"### {others}\n- [ERROR]: Timeout during data retrieval.")
             except Exception as e:
                 logger.error(f"Fetch error: {e}")
+                try:
+                    from src.config.vli import write_api_telemetry
+                    provider_name = "Alpha Vantage" if os.environ.get("DATA_PROVIDER", "yfinance").lower() == "alpha_vantage" else "Yahoo Finance"
+                    write_api_telemetry(provider_name, False, f"Error: {str(e)[:50]}", fallback="None")
+                except Exception: pass
                 results.append(f"### {others}\n- [ERROR]: {str(e)}")
 
     report = f"# Stock History Report\nGenerated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"

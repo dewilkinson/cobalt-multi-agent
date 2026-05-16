@@ -9,6 +9,7 @@ from tradingview_screener import Query, col
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'backend')))
 from src.tools.scanner import batch_fetch_sortino
 import httpx
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 async def batch_fetch_news_sentiment(tickers: list) -> dict:
     import os
@@ -19,24 +20,24 @@ async def batch_fetch_news_sentiment(tickers: list) -> dict:
     chunks = [tickers[i:i+10] for i in range(0, len(tickers), 10)]
     sentiment_map = {}
     
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     async def fetch_chunk(chunk):
         url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={','.join(chunk)}&apikey={api_key}&limit=50"
-        try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(url, timeout=15.0)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    for item in data.get("feed", []):
-                        for ts in item.get("ticker_sentiment", []):
-                            tk = ts.get("ticker")
-                            if tk in chunk:
-                                score = float(ts.get("ticker_sentiment_score", 0))
-                                if tk in sentiment_map:
-                                    sentiment_map[tk] = (sentiment_map[tk] + score) / 2
-                                else:
-                                    sentiment_map[tk] = score
-        except Exception:
-            pass
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, timeout=15.0)
+            if resp.status_code == 200:
+                if "Error Message" in resp.text or "Information" in resp.text:
+                    raise RuntimeError("Alpha Vantage Rate Limit")
+                data = resp.json()
+                for item in data.get("feed", []):
+                    for ts in item.get("ticker_sentiment", []):
+                        tk = ts.get("ticker")
+                        if tk in chunk:
+                            score = float(ts.get("ticker_sentiment_score", 0))
+                            if tk in sentiment_map:
+                                sentiment_map[tk] = (sentiment_map[tk] + score) / 2
+                            else:
+                                sentiment_map[tk] = score
             
     await asyncio.gather(*(fetch_chunk(c) for c in chunks))
     return sentiment_map
@@ -56,7 +57,10 @@ def sync_vli_scanners():
         # Fetch SPY benchmark for RS Proxy
         spy_perf_3m = 0.0
         try:
-            spy_hist = yf.Ticker("SPY").history(period="3mo")
+            @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+            def _get_spy():
+                return yf.Ticker("SPY").history(period="3mo")
+            spy_hist = _get_spy()
             if not spy_hist.empty:
                 spy_perf_3m = ((spy_hist['Close'].iloc[-1] - spy_hist['Close'].iloc[0]) / spy_hist['Close'].iloc[0]) * 100
             print(f"SPY 3-Month Benchmark Performance: {spy_perf_3m:.2f}%")
@@ -321,6 +325,30 @@ def sync_vli_scanners():
                 seen_symbols.add(c['symbol'])
                 deduped_candidates.append(c)
 
+        # [HARDENING] Rank-Based Uniform Percentile Curve Grading
+        # Override the initial absolute grading gate with a true bell curve
+        deduped_candidates.sort(key=lambda x: -x.get("sortino", 0.0))
+        n = len(deduped_candidates)
+        for i, v in enumerate(deduped_candidates):
+            if n > 1:
+                percentile = (n - 1 - i) / (n - 1)
+            else:
+                percentile = 1.0
+            
+            heat_score = int(40 + (percentile * 60))
+            if heat_score >= 95: grade = "S"
+            elif heat_score >= 90: grade = "A+"
+            elif heat_score >= 82: grade = "A"
+            elif heat_score >= 75: grade = "B+"
+            elif heat_score >= 65: grade = "B"
+            elif heat_score >= 58: grade = "C+"
+            elif heat_score >= 50: grade = "C"
+            elif heat_score >= 35: grade = "D"
+            else: grade = "F"
+            
+            v["grade"] = grade
+            v["heat_score"] = heat_score
+
         # Final Dashboard State
         dashboard_state = {
             "pulse_mode": "TradingView (HIGH-FIDELITY)",
@@ -339,7 +367,10 @@ def sync_vli_scanners():
 
         # --- DIFF CALCULATION ---
         prev_symbols = set()
-        target_path = os.path.join(os.getcwd(), 'data', 'STRIKE_LIST.json')
+        target_path = os.path.join(os.getcwd(), 'backend', 'data', 'STRIKE_LIST.json')
+        if not os.path.exists(os.path.dirname(target_path)):
+            # Fallback if run directly from backend folder
+            target_path = os.path.join(os.getcwd(), 'data', 'STRIKE_LIST.json')
         if os.path.exists(target_path):
             try:
                 with open(target_path, 'r') as f:

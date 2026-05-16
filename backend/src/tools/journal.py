@@ -64,7 +64,7 @@ def set_journal_folder(new_journal_dir: str, config: RunnableConfig):
 @tool
 def write_daily_journal(content: str, date_str: str = None, config: RunnableConfig = None):
     """
-    Writes a daily trading journal entry to the Obsidian vault.
+    Writes a Daily Trading Report to the Obsidian vault.
 
     Args:
         content: The full markdown content of the journal entry.
@@ -82,7 +82,7 @@ def write_daily_journal(content: str, date_str: str = None, config: RunnableConf
     if not os.path.exists(full_journal_dir):
         os.makedirs(full_journal_dir, exist_ok=True)
 
-    base_filename = f"Trading_Journal_{date_str}"
+    base_filename = f"Daily_Trading_Report_{date_str}"
     file_path = os.path.join(full_journal_dir, f"{base_filename}.md")
 
     # Handle conflicts with numerical suffix
@@ -117,11 +117,11 @@ def sync_watchlist_to_journal(watchlist_name: str = "Daily Picks", config: Runna
 
     date_str = datetime.now().strftime("%Y-%m-%d")
     full_journal_dir = os.path.join(vault_path, journal_dir)
-    filename = f"Trading_Journal_{date_str}.md"
+    filename = f"Daily_Trading_Report_{date_str}.md"
     file_path = os.path.join(full_journal_dir, filename)
 
     # Baseline Template
-    template = f"# Daily Analysis Journal - {date_str}\n\n"
+    template = f"# Daily Trading Report - {date_str}\n\n"
     template += "###  Targeted Candidates\n\n"
     template += "###  Morning Session Notes\n- \n\n"
     template += "###  Risk Multipliers (VIX/Gamma)\n- \n\n"
@@ -163,8 +163,8 @@ def sync_watchlist_to_journal(watchlist_name: str = "Daily Picks", config: Runna
 @tool
 def list_journal_entries(config: RunnableConfig):
     """
-    Lists all available trading journal entries in the Obsidian vault.
-    Use this to see which dates have existing journals.
+    Lists all available Daily Trading Reports in the Obsidian vault.
+    Use this to see which dates have existing reports.
     """
     vault_path, journal_dir = _get_obsidian_config(config)
 
@@ -175,7 +175,7 @@ def list_journal_entries(config: RunnableConfig):
     if not os.path.exists(full_journal_dir):
         return "No journal entries found (directory does not exist)."
 
-    files = glob.glob(os.path.join(full_journal_dir, "Trading_Journal_*.md"))
+    files = glob.glob(os.path.join(full_journal_dir, "Daily_Trading_Report_*.md"))
     if not files:
         return "No journal entries found."
 
@@ -187,10 +187,10 @@ def list_journal_entries(config: RunnableConfig):
 @tool
 def read_journal_entry(filename: str, config: RunnableConfig):
     """
-    Reads the content of a specific trading journal entry from Obsidian.
+    Reads the content of a specific Daily Trading Report from Obsidian.
 
     Args:
-        filename: The name of the file (e.g., 'Trading_Journal_2026-03-20.md').
+        filename: The name of the file (e.g., 'Daily_Trading_Report_2026-03-20.md').
     """
     vault_path, journal_dir = _get_obsidian_config(config)
 

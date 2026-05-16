@@ -90,7 +90,7 @@ class ResearchDocumentResponse(BaseModel):
 
 # API Endpoints
 @router.get("/projects", response_model=list[ResearchProjectResponse])
-async def get_research_projects():
+def get_research_projects():
     """Get all research projects."""
     try:
         projects = research_db.get_all_research_projects()
@@ -100,7 +100,7 @@ async def get_research_projects():
 
 
 @router.get("/projects/{project_id}", response_model=ResearchProjectResponse)
-async def get_research_project(project_id: int):
+def get_research_project(project_id: int):
     """Get a specific research project."""
     try:
         project = research_db.get_research_project(project_id)
@@ -115,7 +115,7 @@ async def get_research_project(project_id: int):
 
 
 @router.get("/projects/{project_id}/sessions", response_model=list[ResearchSessionResponse])
-async def get_project_sessions(project_id: int):
+def get_project_sessions(project_id: int):
     """Get all sessions for a research project."""
     try:
         sessions = research_db.get_research_sessions(project_id)
@@ -130,7 +130,7 @@ async def get_project_sessions(project_id: int):
 
 
 @router.get("/sessions/{session_id}/messages", response_model=list[SessionMessageResponse])
-async def get_session_messages(session_id: int):
+def get_session_messages(session_id: int):
     """Get all messages for a research session."""
     try:
         messages = research_db.get_session_messages(session_id)
@@ -140,7 +140,7 @@ async def get_session_messages(session_id: int):
 
 
 @router.get("/projects/{project_id}/findings", response_model=list[ResearchFindingResponse])
-async def get_project_findings(project_id: int):
+def get_project_findings(project_id: int):
     """Get all findings for a research project."""
     try:
         findings = research_db.get_research_findings(project_id)
@@ -164,7 +164,7 @@ async def get_project_findings(project_id: int):
 
 
 @router.get("/projects/{project_id}/documents", response_model=list[ResearchDocumentResponse])
-async def get_project_documents(project_id: int):
+def get_project_documents(project_id: int):
     """Get all documents for a research project."""
     try:
         documents = research_db.get_research_documents(project_id)
@@ -174,7 +174,7 @@ async def get_project_documents(project_id: int):
 
 
 @router.post("/projects")
-async def create_research_project(title: str, description: str = "", tags: str = ""):
+def create_research_project(title: str, description: str = "", tags: str = ""):
     """Create a new research project."""
     try:
         project = research_db.create_research_project(title, description, tags)
@@ -184,7 +184,7 @@ async def create_research_project(title: str, description: str = "", tags: str =
 
 
 @router.post("/findings")
-async def create_research_finding(project_id: int, title: str, content: str, category: str = "insight", confidence: float = 0.0, source_documents: str = "", tags: str = ""):
+def create_research_finding(project_id: int, title: str, content: str, category: str = "insight", confidence: float = 0.0, source_documents: str = "", tags: str = ""):
     """Create a research finding."""
     try:
         finding = research_db.create_research_finding(project_id, title, content, category, confidence, source_documents, tags)
@@ -194,7 +194,7 @@ async def create_research_finding(project_id: int, title: str, content: str, cat
 
 
 @router.post("/documents")
-async def create_research_document(project_id: int, title: str, content: str = "", source_url: str = "", document_type: str = "web"):
+def create_research_document(project_id: int, title: str, content: str = "", source_url: str = "", document_type: str = "web"):
     """Create a research document."""
     try:
         document = research_db.create_research_document(project_id, title, content, source_url, document_type)

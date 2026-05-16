@@ -173,6 +173,34 @@ class QuotaProtectedLLM:
                     
         raise VLIQuotaExhaustedError(f"[QUOTA_SHIELD] Exhausted retries for {self.tier}")
 
+    async def abatch(
+        self,
+        inputs: List[Union[str, List[BaseMessage]]],
+        config: Optional[Union[dict, List[dict]]] = None,
+        **kwargs: Any,
+    ) -> List[Any]:
+        import asyncio
+        if isinstance(config, list):
+            tasks = [self.ainvoke(inp, config=cfg, **kwargs) for inp, cfg in zip(inputs, config)]
+        else:
+            tasks = [self.ainvoke(inp, config=config, **kwargs) for inp in inputs]
+        return await asyncio.gather(*tasks)
+
+    def batch(
+        self,
+        inputs: List[Union[str, List[BaseMessage]]],
+        config: Optional[Union[dict, List[dict]]] = None,
+        **kwargs: Any,
+    ) -> List[Any]:
+        results = []
+        if isinstance(config, list):
+            for inp, cfg in zip(inputs, config):
+                results.append(self.invoke(inp, config=cfg, **kwargs))
+        else:
+            for inp in inputs:
+                results.append(self.invoke(inp, config=config, **kwargs))
+        return results
+
     # Note: For full coverage, especially when used in LangGraph, 
     # we should also ensure stream() and astream() are covered if used.
-    # For now, ainvoke and invoke cover 90% of VLI usage.
+    # For now, ainvoke, invoke, batch, and abatch cover 90% of VLI usage.

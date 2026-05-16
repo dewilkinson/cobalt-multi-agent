@@ -681,10 +681,41 @@ async def vli_node(
         telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
         timestamp = datetime.now().strftime("[%H:%M:%S]")
         with open(telemetry_file, "a", encoding="utf-8") as tf:
-            display_model = llm_type.upper()
+            from src.config.agents import AGENT_LLM_MAP
+            from src.llms.llm import get_llm_by_type
+            
+            # The coordinator optimally uses reasoning if configured to
+            coord_tier = "reasoning" if os.environ.get("VLI_COORDINATOR_TIER") == "reasoning" else AGENT_LLM_MAP.get("coordinator", "basic")
+            actual_tier = coord_tier
+            
+            thinking_mode = state.get("thinking_mode", False) if isinstance(state, dict) else getattr(state, "thinking_mode", False)
+            if not thinking_mode and config and config.get("configurable"):
+                thinking_mode = config["configurable"].get("thinking_mode", False)
+                
+            if not thinking_mode:
+                actual_tier = "basic"
+                
+            display_model = actual_tier.upper()
             if os.environ.get("BYPASS_REASONING_MODEL", "false").lower() == "true":
-                display_model = f"{llm_type.upper()} [BYPASSED -> FLASH]"
-            tf.write(f"\n{timestamp} **PHASE_B_EXECUTION:** Coordinator triggered. Model: `{display_model}`. Context: {len(str(messages_coord))} chars.\n")
+                display_model = f"{actual_tier.upper()} [BYPASSED -> FLASH]"
+                actual_tier = "basic"
+                
+            try:
+                temp_llm = get_llm_by_type(actual_tier)
+                model_name = getattr(temp_llm, "model", getattr(temp_llm, "model_name", "unknown"))
+            except Exception:
+                model_name = "unknown"
+                
+            # If the user toggled thinking mode OFF, we definitely highlight in orange
+            if actual_tier == coord_tier and thinking_mode:
+                color_hex = "#4CAF50" # Green
+            else:
+                color_hex = "#FF9800" # Orange
+                
+            # Use safe tokens to survive marked.js parsing
+            colored_model = f"[[{model_name}|{color_hex}]]"
+                
+            tf.write(f"\n{timestamp} **PHASE_B_EXECUTION:** Coordinator triggered. Model: {display_model} {colored_model}. Context: {len(str(messages_coord))} chars.\n")
             tf.flush()
     except:
         pass

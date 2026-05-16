@@ -1,4 +1,4 @@
-# Trade Journal Template
+# Daily Trading Report Template
 
 ## Overview
 - **Date**: {{DATE}}
@@ -8,8 +8,17 @@
 ## Trading Activity
 {{TRADING_ACTIVITY_TABLE}}
 
+## Market & Scanner Context
+{{MARKET_CONTEXT}}
+
 ## Summary of Moves
 {{TRADING_SUMMARY}}
+
+## Individual Trade Breakdown
+{{TICKER_DEEP_DIVE}}
+
+## Execution Efficiency & SMC Audit
+{{EFFICIENCY_ANALYSIS}}
 
 ## Performance Notes
 - **Gains/Losses**: {{PERFORMANCE_SUMMARY}}

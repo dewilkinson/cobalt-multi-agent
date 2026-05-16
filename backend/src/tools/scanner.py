@@ -5,8 +5,10 @@ import json
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from collections import defaultdict
 import yfinance as yf
+from tenacity import retry, stop_after_attempt, wait_exponential
+from typing import Any, Dict, List
 import traceback
 import sys
 
@@ -135,12 +137,15 @@ async def batch_fetch_sortino(tickers: List[str], period: str = "60d") -> Dict[s
     try:
         # download can be slow for many tickers, so we use the yf.Tickers object or gather
         # yfinance download is generally faster for batches
-        # [HARDENING] Add 25s timeout to prevent infinite hang on thread execution
+        # [HARDENING] Relax timeout to 120s to ensure success for large batch sizes and prevent aggressive 'F' grading
         # Inject ^TNX to fetch the dynamic risk-free rate simultaneously
         fetch_list = tickers + ["^TNX"]
+        @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+        def _do_yf_dl():
+            return yf.download(fetch_list, period=period, interval=interval, group_by='ticker', progress=False, prepost=False)
         data = await asyncio.wait_for(
-            asyncio.to_thread(yf.download, fetch_list, period=period, interval=interval, group_by='ticker', progress=False, prepost=False),
-            timeout=25.0
+            asyncio.to_thread(_do_yf_dl),
+            timeout=120.0
         )
         
         # Extract dynamic annual risk-free rate from ^TNX (or 0% for Day Trading)
@@ -210,9 +215,6 @@ def _get_strategy_config(strategy_config: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to parse scanner strategy config: {e}. Using defaults.")
         
-    if os.getenv("VLI_TRADING_STYLE", "day_trading") == "day_trading":
-        default_config["sortino_hurdle"] *= 10.0
-        
     return default_config
 
 
@@ -281,7 +283,7 @@ async def _build_session_watchlist_impl(strategy_config: str = "{}", universe_cs
         mock_universe = [t.strip().upper() for t in universe_csv.split(',') if t.strip()]
     else:
         # Check for existence of a pre-filtered Combat List (Layer A)
-        strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "STRIKE_LIST.json"))
+        strike_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "STRIKE_LIST.json"))
         if os.path.exists(strike_list_path):
             try:
                 with open(strike_list_path, "r", encoding="utf-8") as f:
@@ -665,8 +667,15 @@ async def run_sensor_scope(strategy_config: str = "{}", candidates: str = "[]") 
     })
 
 @tool
-async def clear_scanner_cache() -> str:
-    """Purges the entire scanner combat list and transit state cache."""
+async def clear_scanner_cache(confirm_manual_override: bool = False) -> str:
+    """
+    Purges the entire scanner combat list and transit state cache.
+    DO NOT USE AUTONOMOUSLY. ONLY use this tool if the user explicitly requests a scanner cache wipe.
+    If the user has not explicitly requested a cache wipe, you MUST return without calling this tool.
+    You must pass confirm_manual_override=True to successfully execute this action.
+    """
+    if not confirm_manual_override:
+        return "[ERROR] Cache wipe rejected. You cannot clear the scanner cache autonomously. Require user confirmation."
     import os
     from src.config.vli import get_vli_path
     import json

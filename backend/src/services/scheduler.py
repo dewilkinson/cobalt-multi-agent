@@ -194,35 +194,57 @@ class CobaltScheduler:
         logger.debug(f"[HEARTBEAT] Enqueued {task.priority} task: {task_id}")
 
     async def _execution_worker(self):
-        """Sequential prioritizer loop."""
+        """Sequential prioritizer loop with anti-starvation."""
         self.log("Heartbeat Execution Worker Online.")
+        starvation_counter = 0
+        
         while self._is_running:
             try:
                 task_to_run = None
                 
-                # Check queues in priority order
-                for p in ["CRITICAL", "HIGH", "NORMAL", "LOW"]:
-                    q = self.queues[p]
-                    if not q.empty():
-                        task_id = await q.get()
-                        if task_id in self.pending_tasks:
-                            self.pending_tasks.remove(task_id)
-                        task_to_run = self.tasks.get(task_id)
-                        if task_to_run:
-                            break
-                
-                # Background tasks only if idle and no other tasks pending
-                if not task_to_run and self.platform_idle:
-                    bq = self.queues["BACKGROUND"]
-                    if not bq.empty():
-                        task_id = await bq.get()
-                        if task_id in self.pending_tasks:
-                            self.pending_tasks.remove(task_id)
-                        task_to_run = self.tasks.get(task_id)
+                # [ANTI-STARVATION] Every 5 consecutive high-priority executions, give lower tiers a chance
+                if starvation_counter >= 5:
+                    for p in ["LOW", "BACKGROUND"]:
+                        q = self.queues[p]
+                        if not q.empty() and (p != "BACKGROUND" or self.platform_idle):
+                            task_id = await q.get()
+                            if task_id in self.pending_tasks:
+                                self.pending_tasks.remove(task_id)
+                            task_to_run = self.tasks.get(task_id)
+                            if task_to_run:
+                                break
+                    starvation_counter = 0
+
+                if not task_to_run:
+                    # Check queues in priority order
+                    for p in ["CRITICAL", "HIGH", "NORMAL", "LOW"]:
+                        q = self.queues[p]
+                        if not q.empty():
+                            task_id = await q.get()
+                            if task_id in self.pending_tasks:
+                                self.pending_tasks.remove(task_id)
+                            task_to_run = self.tasks.get(task_id)
+                            if task_to_run:
+                                break
+                    
+                    # Background tasks only if idle and no other tasks pending
+                    if not task_to_run and self.platform_idle:
+                        bq = self.queues["BACKGROUND"]
+                        if not bq.empty():
+                            task_id = await bq.get()
+                            if task_id in self.pending_tasks:
+                                self.pending_tasks.remove(task_id)
+                            task_to_run = self.tasks.get(task_id)
 
                 if task_to_run:
+                    if task_to_run.priority in ["CRITICAL", "HIGH", "NORMAL"]:
+                        starvation_counter += 1
+                    else:
+                        starvation_counter = 0
+                        
                     await self._execute_task(task_to_run)
                 else:
+                    starvation_counter = 0
                     await asyncio.sleep(0.5) # Heartbeat tic
                     
             except Exception as e:
@@ -472,6 +494,8 @@ class CobaltScheduler:
                 
             if trigger:
                 last_run_dt = datetime.fromisoformat(task.last_run)
+                if last_run_dt.tzinfo is None:
+                    last_run_dt = last_run_dt.replace(tzinfo=datetime.now().astimezone().tzinfo)
                 next_time = trigger.get_next_fire_time(None, last_run_dt)
                 
                 if next_time:

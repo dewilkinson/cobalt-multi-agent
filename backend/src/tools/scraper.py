@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from playwright.async_api import async_playwright
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,7 @@ async def _save_cache(data: dict[str, Any], screenshot: str | None = None, tiles
         logger.error(f"Failed to save heatmap cache: {e}")
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
 async def fetch_finviz_quotes(symbols: list[str]) -> dict[str, Any]:
     requested_symbols = [s.upper() for s in symbols]
     target_symbols = [TICKER_MAP.get(s, s) for s in requested_symbols]

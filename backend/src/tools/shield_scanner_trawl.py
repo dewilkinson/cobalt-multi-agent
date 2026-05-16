@@ -71,9 +71,6 @@ def _get_shield_config(strategy_config: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to parse scanner strategy config: {e}. Using defaults.")
         
-    if os.getenv("VLI_TRADING_STYLE", "day_trading") == "day_trading":
-        default_config["sortino_hurdle"] *= 10.0
-        
     return default_config
 
 @tool
@@ -288,12 +285,8 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                 if c_sortino < 0.0: # Long-range Sortino Floor (No bleeding assets)
                     logger.info(f"Rejected {ticker} - Failed Long-Range Sortino Floor ({c_sortino})")
                     return None
-                
-                if c_sortino >= 5.0: grade = "S"
-                elif c_sortino >= 2.5: grade = "A"
-                elif c_sortino >= 2.0: grade = "B"
-                elif c_sortino >= 1.0: grade = "C"
-                else: grade = "F"
+                # Grade will be calculated via relative curve
+
                 
                 return {
                     **c,
@@ -305,7 +298,7 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                     "market_cap": m_cap,
                     "sortino": c_sortino,
                     "tier": "SHIELD",
-                    "grade": grade,
+                    "grade": "F", # Placeholder, updated via curve
                     "timestamp": datetime.now().isoformat()
                 }
             except Exception as e:
@@ -317,12 +310,33 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     verified_candidates = await asyncio.gather(*verification_tasks)
     verified_list = [v for v in verified_candidates if v is not None]
 
-    # Dynamically rank by highest Sortino ratio
+    # Dynamically rank by highest Sortino ratio FIRST
     verified_list.sort(key=lambda x: -x.get("sortino", 0.0))
-    
-    # Strictly limit to top 10
-    verified_list = verified_list[:10]
 
+    # [HARDENING] Rank-Based Uniform Percentile Curve Grading
+    # Replaces min/max scaling with pure rank percentiles to enforce a true bell curve of grades
+    if verified_list:
+        n = len(verified_list)
+        for i, v in enumerate(verified_list):
+            if n > 1:
+                percentile = (n - 1 - i) / (n - 1)
+            else:
+                percentile = 1.0
+            
+            heat_score = int(40 + (percentile * 60))
+            if heat_score >= 95: grade = "S"
+            elif heat_score >= 90: grade = "A+"
+            elif heat_score >= 82: grade = "A"
+            elif heat_score >= 75: grade = "B+"
+            elif heat_score >= 65: grade = "B"
+            elif heat_score >= 58: grade = "C+"
+            elif heat_score >= 50: grade = "C"
+            elif heat_score >= 35: grade = "D"
+            else: grade = "F"
+            
+            v["grade"] = grade
+            v["heat_score"] = heat_score
+    
     # 4. Persistence
     existing_list = []
     if STRIKE_LIST_PATH.exists():
@@ -349,8 +363,10 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
 
     clean_strike_list = sanitize_data(strike_list)
 
-    with open(STRIKE_LIST_PATH, "w", encoding="utf-8") as f:
+    tmp_path = f"{STRIKE_LIST_PATH}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(clean_strike_list, f, indent=4)
+    os.replace(tmp_path, STRIKE_LIST_PATH)
 
     logger.info(f"SHIELD Combat List synchronized. {len(verified_list)} verified shields in the bunker.")
     return clean_strike_list

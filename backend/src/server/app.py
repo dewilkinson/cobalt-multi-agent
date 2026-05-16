@@ -433,7 +433,235 @@ def extract_vli_logic(text: str) -> list[dict[str, str]]:
 
 INTERNAL_SERVER_ERROR_DETAIL = "Internal Server Error"
 
-app = FastAPI(title="Cobalt Multi-Agent (CMA) - VibeLink Interface", description="Institutional-grade agentic financial monitoring pipeline.", version="10.2.1")
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    from datetime import datetime
+    now = datetime.now()
+    if now.hour >= 6:
+        if not os.path.exists(get_daily_briefing_path()):
+            logger.info("VLI_SYSTEM: Missed Morning Scan detected. Triggering catch-up sequence...")
+            asyncio.create_task(run_daily_morning_analysis())
+            
+    # [NEW] Dashboard Integrity Guard
+    b_dir = os.path.dirname(os.path.abspath(__file__))  # src/server
+    b_root = os.path.abspath(os.path.join(b_dir, "..", ".."))  # backend/
+    dashboard_path = os.path.join(b_root, "public", "vli_dashboard.html")
+    if not os.path.exists(dashboard_path):
+        logger.error(f"CRITICAL ERROR: VLI Dashboard file missing at {dashboard_path}")
+    else:
+        logger.info(f"VLI_SYSTEM: Dashboard integrity verified at {dashboard_path}")
+
+    logger.info("Cobalt Multiagent: Launching Unified Heartbeat Engine.")
+    from src.services.scheduler import cobalt_scheduler
+    
+    # Register Internal System Tasks
+    from src.services.atp_importer import process_dropzone_files
+    cobalt_scheduler.add_timer(
+        task_id="DROPZONE_WATCHER",
+        name="VLI Dropzone CSV Processor",
+        type="REPEAT",
+        schedule=1,
+        period_unit="minutes",
+        priority="NORMAL",
+        callback=process_dropzone_files
+    )
+
+    cobalt_scheduler.add_timer(
+        task_id="INBOX_WATCHER",
+        name="VLI Inbox & Archiver Watcher",
+        type="REPEAT",
+        schedule=2,
+        period_unit="seconds",
+        priority="NORMAL",
+        callback=vli_inbox_tick
+    )
+    
+    from src.services.brokerage_cache import BrokerageCache
+    cobalt_scheduler.add_timer(
+        task_id="CACHE_BACKUP_DAILY",
+        name="Brokerage Cache Daily Backup",
+        type="CALENDAR",
+        schedule="0 19 * * 1-5",
+        priority="BACKGROUND",
+        callback=BrokerageCache.backup_cache_daily
+    )
+    
+    cobalt_scheduler.add_timer(
+        task_id="CACHE_BACKUP_WEEKLY",
+        name="Brokerage Cache Weekly Archival",
+        type="CALENDAR",
+        schedule="0 19 * * 5",
+        priority="BACKGROUND",
+        callback=BrokerageCache.backup_cache_weekly
+    )
+    
+    # [HARDENING] Conditional Scanner Logic
+    scanner_engine = get_str_env("VLI_SCANNER_ENGINE", "cobalt").lower()
+    logger.info(f"VLI_SYSTEM: Using scanner engine: {scanner_engine.upper()}")
+
+    if scanner_engine == "tradingview":
+        # Register TradingView Sync Task (Bypasses internal Sortino/Pulse logic)
+        cobalt_scheduler.add_timer(
+            task_id="TV_SCANNER_SYNC",
+            name="TradingView Apex Scanner Sync",
+            type="REPEAT",
+            schedule=1,
+            period_unit="minutes",
+            priority="LOW",
+            callback=run_tv_sync
+        )
+        logger.info("VLI_SYSTEM: Internal Cobalt scanner logic BYPASSED (Using TradingView Engine)")
+    else:
+        # Register Internal Cobalt Scanner Logic
+        from src.tools.sortino_sniper_trawl import run_background_trawl, run_intraday_trawl
+        
+        cobalt_scheduler.add_timer(
+            task_id="EXECUTIVE_BRIEFING",
+            name="Daily Executive Briefing",
+            type="CALENDAR",
+            schedule="15 7 * * *",
+            priority="HIGH",
+            callback=run_meta_analysis
+        )
+        
+        cobalt_scheduler.add_timer(
+            task_id="INTRADAY_COMBAT_TRAWL",
+            name="Intraday Momentum Trawl Watchdog",
+            type="REPEAT",
+            schedule=15,
+            period_unit="minutes",
+            priority="LOW",
+            callback=run_intraday_trawl
+        )
+        
+        cobalt_scheduler.add_timer(
+            task_id="PULSE_TRACKER",
+            name="Phase 2 Pulse Signal Watchdog",
+            type="REPEAT",
+            schedule=5,
+            period_unit="minutes",
+            priority="LOW",
+            callback=poll_market_pulse
+        )
+
+
+
+    async def trigger_daily_postmortem():
+        """
+        Cron task running at 5:00 PM EST.
+        Generates the Daily Trading Report (post-mortem) and condenses Symbol Analysis reports generated today.
+        """
+        logger.info("[POSTMORTEM_AUTO] Initiating 5:00 PM Daily Trading Report sequence.")
+        import os
+        from datetime import datetime
+        
+        # 1. Trigger the post-mortem analysis
+        try:
+            from src.services.historical_reports import PERFORMANCE_DIR
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            report_path = os.path.join(PERFORMANCE_DIR, f"Daily_PostMortem_{date_str}.md")
+            
+            # Delete if it exists and was created before 16:00
+            if os.path.exists(report_path):
+                mtime = datetime.fromtimestamp(os.path.getmtime(report_path))
+                if mtime.hour < 16:
+                    os.remove(report_path)
+                    logger.info(f"Deleted premature post-mortem report: {report_path}")
+                    
+            # Trigger background synthesis
+            import asyncio
+            asyncio.create_task(_background_synthesis_task(
+                text="Analyze today's executed trades and generate a detailed Daily Trading Report post-mortem.",
+                image=None,
+                thread_id=f"POSTMORTEM_{date_str}",
+                direct_mode=False
+            ))
+        except Exception as e:
+            logger.error(f"Failed to trigger daily post-mortem: {e}")
+            
+        # 2. Condense any raw Symbol Analysis reports generated today into rolling summaries
+        try:
+            from src.services.historical_reports import REPORTS_DIR, update_symbol_rolling_summary
+            import glob
+            
+            symbol_reports = glob.glob(os.path.join(REPORTS_DIR, "analyze_*.md"))
+            today_date = datetime.now().date()
+            
+            for r_path in symbol_reports:
+                if not os.path.basename(r_path).startswith("analyze_meta"):
+                    mtime = datetime.fromtimestamp(os.path.getmtime(r_path))
+                    if mtime.date() == today_date:
+                        sym = os.path.basename(r_path).replace("analyze_", "").replace(".md", "")
+                        with open(r_path, "r", encoding="utf-8") as f:
+                            content = f.read()
+                        
+                        logger.info(f"Condensing today's analysis for {sym.upper()} into rolling summary.")
+                        update_symbol_rolling_summary(sym.upper(), content)
+                        
+        except Exception as e:
+            logger.error(f"Failed to run symbol report condensation: {e}")
+            
+    # Register 5:00 PM Daily Post-Mortem
+    cobalt_scheduler.add_timer(
+        task_id="DAILY_POSTMORTEM",
+        name="5:00 PM Daily Trading Post-Mortem",
+        type="CALENDAR",
+        schedule="0 17 * * 1-5",
+        priority="HIGH",
+        callback=trigger_daily_postmortem
+    )
+    
+    # Register 7:00 AM Full Generation Cron
+    cobalt_scheduler.add_timer(
+        task_id="DAILY_ANALYST",
+        name="7:00 AM Morning Analyst Prep",
+        type="CALENDAR",
+        schedule="0 7 * * *",
+        priority="HIGH",
+        callback=run_daily_morning_analysis
+    )
+
+    cobalt_scheduler.add_timer(
+        task_id="SMC_5M_POLLER",
+        name="5-Minute Structure Alert Watchdog",
+        type="REPEAT",
+        schedule=5,
+        period_unit="minutes",
+        priority="NORMAL",
+        callback=poll_5m_patterns
+    )
+
+    cobalt_scheduler.start()
+    
+    # Load examples into Milvus if configured
+    try:
+        load_examples()
+    except Exception as e:
+        logger.error(f"Failed to load examples: {e}")
+    
+    # Initialize research database
+    try:
+        db_success = init_database()
+        if db_success:
+            logger.info("Research database initialized successfully")
+        else:
+            logger.warning("Research database initialization skipped - some features may be limited")
+    except Exception as e:
+        logger.error(f"Failed to initialize research database: {e}")
+        
+    yield
+    
+    # Shutdown
+    try:
+        from src.services.scheduler import cobalt_scheduler
+        cobalt_scheduler.stop()
+    except Exception as e:
+        logger.error(f"Failed to shutdown scheduler: {e}")
+
+app = FastAPI(title="Cobalt Multi-Agent (CMA) - VibeLink Interface", description="Institutional-grade agentic financial monitoring pipeline.", version="10.2.1", lifespan=lifespan)
 
 @app.get("/api/telemetry/stream")
 async def ui_telemetry_stream():
@@ -624,12 +852,12 @@ async def rename_artifact(request: RenameArtifactRequest):
 class CreateArtifactRequest(BaseModel):
     folder: str
 
-class CopyToFolderRequest(BaseModel):
+class MoveToFolderRequest(BaseModel):
     source_path: str
     target_folder: str
 
-@app.post("/api/vli/artifacts/copy_to_folder")
-async def copy_to_folder(request: CopyToFolderRequest):
+@app.post("/api/vli/artifacts/move_to_folder")
+async def move_to_folder(request: MoveToFolderRequest):
     import os
     import shutil
     from datetime import datetime
@@ -663,10 +891,10 @@ async def copy_to_folder(request: CopyToFolderRequest):
         counter += 1
         
     try:
-        shutil.copy2(source_path, dest_path)
-        return {"status": "OK", "message": "Copied to Folder", "path": dest_path.replace("\\", "/")}
+        shutil.move(source_path, dest_path)
+        return {"status": "OK", "message": "Moved to Folder", "path": dest_path.replace("\\", "/")}
     except Exception as e:
-        logger.error(f"Failed to copy to notes: {e}")
+        logger.error(f"Failed to move to notes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/vli/artifacts/create")
@@ -960,6 +1188,28 @@ async def run_tv_sync():
     except Exception as e:
         logger.error(f"[TV SYNC] Synchronization failed: {e}")
 
+def update_global_thinking_mode(is_thinking: bool):
+    settings_path = os.path.join(os.getcwd(), 'data', 'vli_settings.json')
+    try:
+        settings = {}
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+        settings["thinking_mode"] = is_thinking
+        with open(settings_path, 'w', encoding='utf-8') as f:
+            json.dump(settings, f)
+    except:
+        pass
+
+def get_global_thinking_mode() -> bool:
+    settings_path = os.path.join(os.getcwd(), 'data', 'vli_settings.json')
+    try:
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                return json.load(f).get("thinking_mode", False)
+    except:
+        pass
+    return False
 async def run_idle_analysis(manual_trigger: bool = False):
     """
     Background orchestrator that diffs the scanner state against generated reports
@@ -968,6 +1218,10 @@ async def run_idle_analysis(manual_trigger: bool = False):
     import asyncio
     from datetime import datetime
     
+    if not manual_trigger and datetime.now().hour < 7:
+        logger.info("[BG_ANALYST] System idle. Holding report generation until 07:00 AM.")
+        return
+        
     target_path = os.path.join(os.getcwd(), 'data', 'STRIKE_LIST.json')
     if not os.path.exists(target_path):
         return
@@ -1019,13 +1273,18 @@ async def run_idle_analysis(manual_trigger: bool = False):
             
         if active_path:
             mtime = datetime.fromtimestamp(os.path.getmtime(active_path))
-            if mtime.date() == datetime.now().date():
+            if mtime.date() == datetime.now().date() and os.path.getsize(active_path) > 100:
                 needs_report = False
                 
         logger.info(f"DEBUG: {sym} needs_report: {needs_report}")
         if needs_report:
-            candidates_to_process.append(c)
-            added_trace.append(f"    Added: **{sym}**")
+            grade = c.get("grade", "F") if isinstance(c, dict) else "F"
+            if grade not in ["S", "A+", "A", "A-"]:
+                skipped_symbols.append(sym)
+                skipped_trace.append(f"    Skipped: **{sym}** (Grade {grade} beneath A threshold)")
+            else:
+                candidates_to_process.append(c)
+                added_trace.append(f"    Added: **{sym}**")
         else:
             skipped_symbols.append(sym)
             skipped_trace.append(f"    Skipped: **{sym}** (Cached Report Active)")
@@ -1061,8 +1320,8 @@ async def run_idle_analysis(manual_trigger: bool = False):
         full_analysis_queue = []
         batch_analysis_queue = []
         for c in candidates_to_process:
-            grade = c.get("grade", "C")
-            if grade in ["S", "A+", "A"]:
+            grade = c.get("grade", "A") if isinstance(c, dict) else "A"
+            if grade in ["S", "A+", "A", "A-"]:
                 full_analysis_queue.append(c)
             else:
                 batch_analysis_queue.append(c)
@@ -1079,14 +1338,16 @@ async def run_idle_analysis(manual_trigger: bool = False):
                 basic_llm = get_llm_by_type("basic")
                 batch_prompts = []
                 
-                # Fetch prices concurrently using asyncio.to_thread
+                sem = asyncio.Semaphore(5)
+                # Fetch prices concurrently using asyncio.to_thread but limited by semaphore
                 async def fetch_price(sym):
-                    try:
-                        ticker = await asyncio.to_thread(yf.Ticker, sym)
-                        info = await asyncio.to_thread(lambda: ticker.info)
-                        return float(info.get("preMarketPrice") or info.get("postMarketPrice") or info.get("currentPrice") or info.get("regularMarketPrice") or 0.0)
-                    except:
-                        return 0.0
+                    async with sem:
+                        try:
+                            ticker = await asyncio.to_thread(yf.Ticker, sym)
+                            info = await asyncio.to_thread(lambda: ticker.info)
+                            return float(info.get("preMarketPrice") or info.get("postMarketPrice") or info.get("currentPrice") or info.get("regularMarketPrice") or 0.0)
+                        except:
+                            return 0.0
                         
                 prices = await asyncio.gather(*[fetch_price(c.get("symbol")) for c in batch_analysis_queue])
                 
@@ -1104,19 +1365,36 @@ Synthesize these metrics into a brief technical outlook. Focus on risk managemen
                     # Use standard message array format for LangChain abatch
                     batch_prompts.append([HumanMessage(content=prompt)])
                     
-                # Use LangChain abatch API for concurrent Flash generation
-                batch_results = await basic_llm.abatch(batch_prompts)
+                # Bypass LangChain abatch silently crashing the process by using a secure sequential loop
+                batch_results = []
+                for i, p in enumerate(batch_prompts):
+                    try:
+                        res = await basic_llm.ainvoke(p)
+                        batch_results.append(res)
+                    except Exception as e:
+                        logger.error(f"[BG_ANALYST] Error generating batch item {i}: {e}")
+                        batch_results.append("Batch generation failed for this item.")
                 
-                # Save batch results
                 for c, res in zip(batch_analysis_queue, batch_results):
                     sym = c.get("symbol")
-                    result_text = res.content if hasattr(res, 'content') else str(res)
+                    if hasattr(res, 'content'):
+                        if isinstance(res.content, list):
+                            result_text = " ".join([b.get("text", "") if isinstance(b, dict) else str(b) for b in res.content])
+                        else:
+                            result_text = str(res.content)
+                    else:
+                        result_text = str(res)
+                        
                     r_path = os.path.join(os.getcwd(), 'data', 'reports', f"analyze_{sym.lower()}.md")
+                    
                     os.makedirs(os.path.dirname(r_path), exist_ok=True)
                     generation_ts = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
                     header = f"> **Generated:** {generation_ts} (Batch Pipeline)\n\n"
-                    with open(r_path, "w", encoding="utf-8") as rf:
-                        rf.write(header + result_text)
+                    try:
+                        with open(r_path, "w", encoding="utf-8") as rf:
+                            rf.write(header + result_text)
+                    except Exception as err:
+                        logger.error(f"[BG_ANALYST] FAILED TO WRITE {sym}: {err}")
                     
                     # Update scanner UI state
                     try:
@@ -1163,7 +1441,7 @@ Synthesize these metrics into a brief technical outlook. Focus on risk managemen
             except Exception:
                 pass
             
-            result_text, _ = await _invoke_vli_agent(f"analyze {sym}. Ensure you include a line 'Active Strategy: {tier.capitalize()} Strategy' at the top of the report, and frame the analysis using {tier} terminology.", thread_id=f"bg_{sym}")
+            result_text, _ = await _invoke_vli_agent(f"analyze {sym}. Ensure you include a line 'Active Strategy: {tier.capitalize()} Strategy' at the top of the report, and frame the analysis using {tier} terminology.", thread_id=f"bg_{sym}", thinking_mode=get_global_thinking_mode())
             
             # [HARDENING] Only persist valid reports. Prevent caching of LLM errors.
             is_valid = True
@@ -1237,7 +1515,7 @@ Synthesize these metrics into a brief technical outlook. Focus on risk managemen
 
 async def run_daily_morning_analysis():
     """
-    Cron task running at 6:00 AM EDT. Pulls TV Sync and then triggers idle analysis.
+    Cron task running at 7:00 AM EDT. Pulls TV Sync and then triggers idle analysis.
     """
     global _is_morning_scan_running
     if _is_morning_scan_running:
@@ -1245,7 +1523,7 @@ async def run_daily_morning_analysis():
         return
 
     _is_morning_scan_running = True
-    logger.info("[BG_ANALYST] Triggering 6:00 AM Morning Market Scan.")
+    logger.info("[BG_ANALYST] Triggering 7:00 AM Morning Market Scan.")
     try:
         from src.config.vli import get_vli_path
         from datetime import datetime
@@ -1294,18 +1572,19 @@ async def run_meta_analysis(manual_trigger: bool = False):
         from src.config.vli import get_vli_path, VAULT_ROOT
         from datetime import datetime
         
+        now = datetime.now()
         telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
         timestamp = datetime.now().strftime("[%H:%M:%S]")
         
-        scanner_bucket_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "STRIKE_RES_state.json")
+        scanner_bucket_path = os.path.join(os.getcwd(), 'data', 'STRIKE_LIST.json')
         if not os.path.exists(scanner_bucket_path):
-            if manual_trigger: return "Error: STRIKE_RES_state.json not found."
+            if manual_trigger: return "Error: STRIKE_LIST.json not found."
             return
             
         with open(scanner_bucket_path, encoding="utf-8") as f:
             scanner_res_content = json.load(f)
             
-        candidates = scanner_res_content.get("candidates", [])
+        candidates = scanner_res_content if isinstance(scanner_res_content, list) else (scanner_res_content.get("candidates", []) or scanner_res_content.get("strike_list", []))
         if not candidates:
             if manual_trigger: return "Error: No scanner candidates found."
             return
@@ -1326,6 +1605,10 @@ async def run_meta_analysis(manual_trigger: bool = False):
         for c in candidates:
             sym = c.get("symbol")
             if not sym: continue
+            
+            grade = c.get("grade", "F") if isinstance(c, dict) else "F"
+            if grade not in ["S", "A+", "A", "A-"]:
+                continue
             
             r_path = os.path.join(reports_dir, f"analyze_{sym.lower()}.md")
             if os.path.exists(r_path):
@@ -1368,22 +1651,42 @@ async def run_meta_analysis(manual_trigger: bool = False):
             active_strat_name = active_strat_file.replace(".md", "").replace("cma_strategy_", "").replace("_", " ").title()
         else:
             active_strat_name = "Active Strategy"
+            
+        # [NEW] Inject News and Calendar Data
+        from src.tools.macros import fetch_economic_calendar
+        from src.tools.news import get_macro_news
+        
+        try:
+            cal_data = await fetch_economic_calendar.ainvoke({})
+            bundle += f"\n\n### MACRO ECONOMIC CALENDAR\n{cal_data}\n---\n"
+        except Exception as e:
+            logger.error(f"[META_ANALYST] Failed to fetch calendar: {e}")
+            
+        try:
+            news_data = await get_macro_news.ainvoke({"refresh": True})
+            if isinstance(news_data, dict) and "data" in news_data:
+                news_data = news_data["data"]
+            bundle += f"\n\n### GLOBAL MACRO NEWS\n{news_data}\n---\n"
+        except Exception as e:
+            logger.error(f"[META_ANALYST] Failed to fetch macro news: {e}")
 
         prompt = (
             "You are the Chief Market Strategist for Blueshell Securities. "
-            "Synthesize an 'Executive Morning Briefing' from the following institutional reports. "
+            "Synthesize an 'Executive Morning Briefing' from the following institutional reports, macroeconomic calendar, and breaking news. "
             "Your objective is to provide a comprehensive macro-level overview for the upcoming trading session. "
             "Focus on: 1. Broad Market Sentiment and Key Catalysts, 2. Sector Performance and Rotation (highlighting relative strength/weakness), "
-            "3. Aggregate Risk Profile (Volatility/VIX), and 4. General Market Outlook and Guidance. "
+            "3. Aggregate Risk Profile (Volatility/VIX), 4. General Market Outlook and Guidance, and 5. Macroeconomic Calendar. "
+            "CRITICAL: The briefing MUST feature a dedicated 'Macroeconomic Calendar' section that explicitly lists both daily and weekly events, including their exact times and expected results/forecasts as provided in the context. "
             "CRITICAL: Do NOT provide specific 'Strike Authorizations', tactical execution parameters, or trade plans for individual tickers like SPY or QQQ. "
             "This is a high-level strategic briefing to help the trader understand market movements and sector outlooks, not a single-ticker trade alert. "
+            "You MUST incorporate the 'GLOBAL MACRO NEWS' into your broader sentiment analysis. "
             f"The active strategy framework is '{active_strat_name}'. You may optionally frame the overall market condition relative to this strategy's general viability. "
             f"CRITICAL INSTRUCTION: You MUST include the exact following line at the end of your briefing to cite the source documents: '{source_str}'. "
             "Be concise, analytical, and highly professional.\n\n"
             f"{bundle}\n\n--FORCE-GRAPH"
         )
         
-        result_text, _ = await _invoke_vli_agent(prompt, thread_id="bg_meta_analysis")
+        result_text, _ = await _invoke_vli_agent(prompt, thread_id="bg_meta_analysis", thinking_mode=get_global_thinking_mode())
         
         if result_text and "Agent reasoning encountered a failure" not in result_text and "timed out" not in result_text.lower():
             meta_path = get_daily_briefing_path()
@@ -1421,234 +1724,7 @@ async def run_meta_analysis(manual_trigger: bool = False):
         if manual_trigger:
             return f"System Error during Meta-Analysis: {e}"
 
-@app.on_event("startup")
-async def startup_event():
-    logger.info("VLI_SYSTEM: API Server booting...")
 
-    # [NEW] Dashboard Integrity Guard
-    # Ensure backend_root is defined for the startup event
-    b_dir = os.path.dirname(os.path.abspath(__file__))  # src/server
-    b_root = os.path.abspath(os.path.join(b_dir, "..", ".."))  # backend/
-    dashboard_path = os.path.join(b_root, "public", "vli_dashboard.html")
-    if not os.path.exists(dashboard_path):
-        logger.error(f"CRITICAL ERROR: VLI Dashboard file missing at {dashboard_path}")
-    else:
-        logger.info(f"VLI_SYSTEM: Dashboard integrity verified at {dashboard_path}")
-
-    logger.info("Cobalt Multiagent: Launching Unified Heartbeat Engine.")
-    from src.services.scheduler import cobalt_scheduler
-    
-    # Register Internal System Tasks
-    from src.services.atp_importer import process_dropzone_files
-    cobalt_scheduler.add_timer(
-        task_id="DROPZONE_WATCHER",
-        name="VLI Dropzone CSV Processor",
-        type="REPEAT",
-        schedule=1,
-        period_unit="minutes",
-        priority="BACKGROUND",
-        callback=process_dropzone_files
-    )
-
-    cobalt_scheduler.add_timer(
-        task_id="INBOX_WATCHER",
-        name="VLI Inbox & Archiver Watcher",
-        type="REPEAT",
-        schedule=2,
-        period_unit="seconds",
-        priority="NORMAL",
-        callback=vli_inbox_tick
-    )
-    
-    from src.services.brokerage_cache import BrokerageCache
-    cobalt_scheduler.add_timer(
-        task_id="CACHE_BACKUP_DAILY",
-        name="Brokerage Cache Daily Backup",
-        type="CALENDAR",
-        schedule="0 19 * * 1-5",
-        priority="BACKGROUND",
-        callback=BrokerageCache.backup_cache_daily
-    )
-    
-    cobalt_scheduler.add_timer(
-        task_id="CACHE_BACKUP_WEEKLY",
-        name="Brokerage Cache Weekly Archival",
-        type="CALENDAR",
-        schedule="0 19 * * 5",
-        priority="BACKGROUND",
-        callback=BrokerageCache.backup_cache_weekly
-    )
-    
-    # [HARDENING] Conditional Scanner Logic
-    scanner_engine = get_str_env("VLI_SCANNER_ENGINE", "cobalt").lower()
-    logger.info(f"VLI_SYSTEM: Using scanner engine: {scanner_engine.upper()}")
-
-    if scanner_engine == "tradingview":
-        # Register TradingView Sync Task (Bypasses internal Sortino/Pulse logic)
-        cobalt_scheduler.add_timer(
-            task_id="TV_SCANNER_SYNC",
-            name="TradingView Apex Scanner Sync",
-            type="REPEAT",
-            schedule=1,
-            period_unit="minutes",
-            priority="LOW",
-            callback=run_tv_sync
-        )
-        logger.info("VLI_SYSTEM: Internal Cobalt scanner logic BYPASSED (Using TradingView Engine)")
-    else:
-        # Register Internal Cobalt Scanner Logic
-        from src.tools.sortino_sniper_trawl import run_background_trawl, run_intraday_trawl
-        
-        cobalt_scheduler.add_timer(
-            task_id="DAILY_COMBAT_TRAWL",
-            name="Daily Combat List Update",
-            type="CALENDAR",
-            schedule="15 7 * * *",
-            priority="HIGH",
-            callback=run_background_trawl
-        )
-        
-        cobalt_scheduler.add_timer(
-            task_id="INTRADAY_COMBAT_TRAWL",
-            name="Intraday Momentum Trawl Watchdog",
-            type="REPEAT",
-            schedule=15,
-            period_unit="minutes",
-            priority="LOW",
-            callback=run_intraday_trawl
-        )
-        
-        cobalt_scheduler.add_timer(
-            task_id="PULSE_TRACKER",
-            name="Phase 2 Pulse Signal Watchdog",
-            type="REPEAT",
-            schedule=5,
-            period_unit="minutes",
-            priority="LOW",
-            callback=poll_market_pulse
-        )
-
-    # Register Background Idle Analyst (Runs every 10 minutes)
-    cobalt_scheduler.add_timer(
-        task_id="IDLE_ANALYST",
-        name="Background LLM Analyst Scanner",
-        type="REPEAT",
-        schedule=10,
-        period_unit="minutes",
-        priority="NORMAL",
-        callback=run_idle_analysis
-    )
-
-    async def trigger_daily_postmortem():
-        """
-        Cron task running at 5:00 PM EST.
-        Generates the Daily Trading Report (post-mortem) and condenses Symbol Analysis reports generated today.
-        """
-        logger.info("[POSTMORTEM_AUTO] Initiating 5:00 PM Daily Trading Report sequence.")
-        import os
-        from datetime import datetime
-        
-        # 1. Trigger the post-mortem analysis
-        try:
-            from src.services.historical_reports import PERFORMANCE_DIR
-            date_str = datetime.now().strftime("%Y-%m-%d")
-            report_path = os.path.join(PERFORMANCE_DIR, f"Daily_PostMortem_{date_str}.md")
-            
-            # Delete if it exists and was created before 16:00
-            if os.path.exists(report_path):
-                mtime = datetime.fromtimestamp(os.path.getmtime(report_path))
-                if mtime.hour < 16:
-                    os.remove(report_path)
-                    logger.info(f"Deleted premature post-mortem report: {report_path}")
-                    
-            # Trigger background synthesis
-            import asyncio
-            asyncio.create_task(_background_synthesis_task(
-                text="Analyze today's executed trades and generate a detailed Daily Trading Report post-mortem.",
-                image=None,
-                thread_id=f"POSTMORTEM_{date_str}",
-                direct_mode=False
-            ))
-        except Exception as e:
-            logger.error(f"Failed to trigger daily post-mortem: {e}")
-            
-        # 2. Condense any raw Symbol Analysis reports generated today into rolling summaries
-        try:
-            from src.services.historical_reports import REPORTS_DIR, update_symbol_rolling_summary
-            import glob
-            
-            symbol_reports = glob.glob(os.path.join(REPORTS_DIR, "analyze_*.md"))
-            today_date = datetime.now().date()
-            
-            for r_path in symbol_reports:
-                if not os.path.basename(r_path).startswith("analyze_meta"):
-                    mtime = datetime.fromtimestamp(os.path.getmtime(r_path))
-                    if mtime.date() == today_date:
-                        sym = os.path.basename(r_path).replace("analyze_", "").replace(".md", "")
-                        with open(r_path, "r", encoding="utf-8") as f:
-                            content = f.read()
-                        
-                        logger.info(f"Condensing today's analysis for {sym.upper()} into rolling summary.")
-                        update_symbol_rolling_summary(sym.upper(), content)
-                        
-        except Exception as e:
-            logger.error(f"Failed to run symbol report condensation: {e}")
-            
-    # Register 5:00 PM Daily Post-Mortem
-    cobalt_scheduler.add_timer(
-        task_id="DAILY_POSTMORTEM",
-        name="5:00 PM Daily Trading Post-Mortem",
-        type="CALENDAR",
-        schedule="0 17 * * 1-5",
-        priority="HIGH",
-        callback=trigger_daily_postmortem
-    )
-    
-    # Register 6:00 AM Full Generation Cron
-    cobalt_scheduler.add_timer(
-        task_id="DAILY_ANALYST",
-        name="6:00 AM Morning Analyst Prep",
-        type="CALENDAR",
-        schedule="0 6 * * *",
-        priority="HIGH",
-        callback=run_daily_morning_analysis
-    )
-
-    cobalt_scheduler.add_timer(
-        task_id="SMC_5M_POLLER",
-        name="5-Minute Structure Alert Watchdog",
-        type="REPEAT",
-        schedule=5,
-        period_unit="minutes",
-        priority="NORMAL",
-        callback=poll_5m_patterns
-    )
-    
-    from datetime import datetime
-    now = datetime.now()
-    if now.hour >= 6:
-        if not os.path.exists(get_daily_briefing_path()):
-            logger.info("VLI_SYSTEM: Missed Morning Scan detected. Triggering catch-up sequence...")
-            asyncio.create_task(run_daily_morning_analysis())
-
-    cobalt_scheduler.start()
-    
-    # Note: Macro Sync is now handled by the standalone vli_macro_worker.py process.
-
-
-# Load examples into Milvus if configured
-load_examples()
-
-# Initialize research database
-try:
-    db_success = init_database()
-    if db_success:
-        logger.info("Research database initialized successfully")
-    else:
-        logger.warning("Research database initialization skipped - some features may be limited")
-except Exception as e:
-    logger.error(f"Failed to initialize research database: {e}")
-    logger.warning("Continuing without database - some features may be limited")
 
 in_memory_store = InMemoryStore()
 graph = build_graph_with_memory()
@@ -2075,7 +2151,9 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                 
         # 6. Read SCANNER_RES state
         scanner_res_content = {"candidates": [], "pulse_mode": "Automated Pulse"}
-        sword_path = os.path.join(os.getcwd(), "data", "STRIKE_LIST.json")
+        sword_path = os.path.join(os.getcwd(), "backend", "data", "STRIKE_LIST.json")
+        if not os.path.exists(sword_path):
+            sword_path = os.path.join(os.getcwd(), "data", "STRIKE_LIST.json")
         scanner_bucket_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "STRIKE_RES_state.json")
         
         try:
@@ -2496,6 +2574,12 @@ class SnapTradeRegisterRequest(BaseModel):
     client_id: str = ""
     consumer_key: str = ""
     user_id: str = ""
+
+@app.get("/api/vli/telemetry/tokens")
+async def get_token_tally():
+    from fastapi.responses import JSONResponse
+    from src.utils.token_tracker import token_tracker
+    return JSONResponse(token_tracker.get_tally())
 
 @app.post("/api/brokerage/register")
 async def register_snaptrade(req: SnapTradeRegisterRequest):
@@ -3359,6 +3443,7 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     try:
         from src.config.vli_context import vli_client_id
         vli_client_id.set(client_id)
+        update_global_thinking_mode(request.thinking_mode)
     except Exception:
         pass
     plan_file = get_action_plan_path()
@@ -3570,7 +3655,7 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
         import glob
         from src.config.vli import VAULT_ROOT
         obsidian_journals_dir = os.path.join(VAULT_ROOT, "bluesec-obsidian-vault", "trading", "journals")
-        obsidian_pattern = os.path.join(obsidian_journals_dir, f"Trade Journal - {today_str}*.md")
+        obsidian_pattern = os.path.join(obsidian_journals_dir, f"Daily_Trading_Report_{today_str}*.md")
         
         cleared_files = 0
         if os.path.exists(perf_path):
@@ -4055,6 +4140,15 @@ async def vli_inbox_tick():
                 os.remove(meta_path)
             except Exception as e:
                 logger.error(f"VLI: Failed to expire Morning Briefing: {e}")
+                
+        # [NEW] Evict all individual ticker analysis reports at midnight
+        if os.path.exists(reports_dir):
+            for file in os.listdir(reports_dir):
+                if file.startswith("analyze_") and file.endswith(".md"):
+                    try:
+                        os.remove(os.path.join(reports_dir, file))
+                    except Exception as e:
+                        logger.error(f"VLI: Failed to expire report {file}: {e}")
                 
         global _vli_last_async_report
         if "Executive Morning Briefing" in _vli_last_async_report:
@@ -4815,7 +4909,7 @@ async def get_vli_report(symbol: str):
     if os.path.exists(report_path):
         with open(report_path, "r", encoding="utf-8") as f:
             content = f.read()
-        return {"success": True, "content": content}
+        return {"success": True, "content": content, "path": report_path.replace("\\", "/")}
     return {"success": False, "error": "Report not found or not yet generated."}
 
 @app.post("/api/prompt/enhance")

@@ -91,3 +91,22 @@ def get_scheduler_log_path() -> str:
 from src.services.inbox_rules import InboxRuleEngine
 
 inbox_rule_engine = InboxRuleEngine(VAULT_ROOT)
+
+def write_api_telemetry(service_name: str, success: bool, details: str = "", fallback: str = ""):
+    """Writes API health status directly to the VLI telemetry dashboard."""
+    try:
+        from datetime import datetime
+        tf_path = get_vli_path("VLI_Raw_Telemetry.md")
+        timestamp = datetime.now().strftime("[%H:%M:%S]")
+        color = "#00ff00" if success else "#ff0000"
+        status = "SUCCESS" if success else "FAILED"
+        
+        fallback_str = f" | Fallback: {fallback}" if fallback and not success else ""
+        details_str = f" - {details}" if details else ""
+        
+        log_line = f"\n<span style='color: {color}'>{timestamp} [{service_name}] API {status}{details_str}{fallback_str}</span>\n"
+        
+        with open(tf_path, "a", encoding="utf-8") as f:
+            f.write(log_line)
+    except Exception:
+        pass

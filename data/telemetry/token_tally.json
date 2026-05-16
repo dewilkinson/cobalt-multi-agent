@@ -1,0 +1,11 @@
+{
+  "date": "2026-05-13",
+  "flash": {
+    "input_tokens": 4,
+    "output_tokens": 119
+  },
+  "pro": {
+    "input_tokens": 0,
+    "output_tokens": 0
+  }
+}

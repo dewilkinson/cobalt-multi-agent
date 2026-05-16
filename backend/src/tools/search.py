@@ -24,6 +24,7 @@ from langchain_community.utilities import (
     BraveSearchWrapper,
     WikipediaAPIWrapper,
 )
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from src.config import SELECTED_SEARCH_ENGINE, SearchEngine, load_yaml_config
 from src.tools.decorators import create_logged_tool
@@ -89,7 +90,7 @@ def _persist_results(query: str, results: Any):
         logger.error(f"[SEARCH_PERSISTENCE] Error saving results: {e}")
 
 
-def patch_tool_with_persistence(tool_instance):
+def patch_tool_with_persistence(tool_instance, engine_name="Search"):
     """Patches a search tool to persist its results to the Research Database without changing its type."""
     
     original_run = tool_instance._run
@@ -101,9 +102,41 @@ def patch_tool_with_persistence(tool_instance):
         return result
 
     async def _arun_with_persistence(query: str, *args, **kwargs):
-        result = await original_arun(query, *args, **kwargs)
-        _persist_results(query, result)
-        return result
+        try:
+            @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+            async def _do_original():
+                return await original_arun(query, *args, **kwargs)
+            result = await _do_original()
+            try:
+                from src.config.vli import write_api_telemetry
+                write_api_telemetry(engine_name, True, f"Query: {query[:30]}")
+            except Exception: pass
+            _persist_results(query, result)
+            return result
+        except Exception as e:
+            is_tavily = engine_name.lower() == "tavily"
+            
+            if is_tavily:
+                try:
+                    from src.config.vli import write_api_telemetry
+                    write_api_telemetry(engine_name, False, f"Error: {str(e)[:40]}", fallback="DuckDuckGo")
+                except Exception: pass
+                
+                logger.warning(f"[SEARCH_FALLBACK] {engine_name} failed. Falling back to DuckDuckGo. Error: {e}")
+                from langchain_community.tools import DuckDuckGoSearchResults
+                @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+                async def _do_ddg():
+                    ddg_tool = DuckDuckGoSearchResults(name="web_search", num_results=5)
+                    return await ddg_tool._arun(query)
+                result = await _do_ddg()
+                _persist_results(query, result)
+                return result
+            else:
+                try:
+                    from src.config.vli import write_api_telemetry
+                    write_api_telemetry(engine_name, False, f"Error: {str(e)[:40]}", fallback="None")
+                except Exception: pass
+                raise e
 
     tool_instance._run = _run_with_persistence
     tool_instance._arun = _arun_with_persistence
@@ -132,13 +165,13 @@ def get_web_search_tool(max_search_results: int):
             include_domains=include_domains,
             exclude_domains=exclude_domains,
         )
-        return patch_tool_with_persistence(tool)
+        return patch_tool_with_persistence(tool, engine_name="Tavily")
     elif SELECTED_SEARCH_ENGINE == SearchEngine.DUCKDUCKGO.value:
         tool = LoggedDuckDuckGoSearch(
             name="web_search",
             num_results=max_search_results,
         )
-        return patch_tool_with_persistence(tool)
+        return patch_tool_with_persistence(tool, engine_name="DuckDuckGo")
     elif SELECTED_SEARCH_ENGINE == SearchEngine.BRAVE_SEARCH.value:
         tool = LoggedBraveSearch(
             name="web_search",
@@ -147,7 +180,7 @@ def get_web_search_tool(max_search_results: int):
                 search_kwargs={"count": max_search_results},
             ),
         )
-        return patch_tool_with_persistence(tool)
+        return patch_tool_with_persistence(tool, engine_name="BraveSearch")
     elif SELECTED_SEARCH_ENGINE == SearchEngine.ARXIV.value:
         tool = LoggedArxivSearch(
             name="web_search",
@@ -157,7 +190,7 @@ def get_web_search_tool(max_search_results: int):
                 load_all_available_meta=True,
             ),
         )
-        return patch_tool_with_persistence(tool)
+        return patch_tool_with_persistence(tool, engine_name="ArXiv")
     elif SELECTED_SEARCH_ENGINE == SearchEngine.WIKIPEDIA.value:
         wiki_lang = search_config.get("wikipedia_lang", "en")
         wiki_doc_content_chars_max = search_config.get("wikipedia_doc_content_chars_max", 4000)
@@ -170,6 +203,6 @@ def get_web_search_tool(max_search_results: int):
                 doc_content_chars_max=wiki_doc_content_chars_max,
             ),
         )
-        return patch_tool_with_persistence(tool)
+        return patch_tool_with_persistence(tool, engine_name="Wikipedia")
     else:
         raise ValueError(f"Unsupported search engine: {SELECTED_SEARCH_ENGINE}")

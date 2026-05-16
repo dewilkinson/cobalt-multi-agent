@@ -72,16 +72,16 @@ async def _run_node_with_tiered_fallback(agent_type, state, config, tools=None, 
         # Execution
         t0 = time.time()
         
-        # [DYNAMIC BUDGET] Calculate remaining global time relative to 180s server limit
+        # [DYNAMIC BUDGET] Calculate remaining global time relative to 300s server limit
         configurable = config.get("configurable", {})
         execution_start_time = configurable.get("execution_start_time", t0)
         elapsed_global = time.time() - execution_start_time
-        remaining_global = 175.0 - elapsed_global # Use 175s to leave buffer for 180s master limit
+        remaining_global = 290.0 - elapsed_global # Use 290s to leave buffer for 300s master limit
         
         tier_timeouts = {
-            "reasoning": 180.0,
-            "basic": 150.0,
-            "legacy": 60.0
+            "reasoning": 240.0,
+            "basic": 180.0,
+            "legacy": 120.0
         }
         
         # [ADAPTIVE SKIP] If reasoning is requested but we have < 30s left, skip to basic
@@ -98,15 +98,29 @@ async def _run_node_with_tiered_fallback(agent_type, state, config, tools=None, 
             continue
             
         # Hard-cap the tier timeout by the remaining global budget
-        static_timeout = tier_timeouts.get(tier, 110.0)
-        tier_timeout = min(static_timeout, max(5.0, remaining_global))
+        static_timeout = tier_timeouts.get(tier, 150.0)
+        tier_timeout = min(static_timeout, max(30.0, remaining_global))
         
         # [TRACE] High-fidelity diagnostic probe
         # [HARDENING] We avoid str(state) or str(messages) here as they are extremely expensive
         # and block the event loop in bloated threads.
         msg_list = messages if messages is not None else state.get("messages", [])
         msgs_count = len(msg_list) if msg_list else 0
-        logger.info(f"[TRACE_START] Tier: {tier} | Agent: {agent_type} | Message Count: {msgs_count} | Timeout: {tier_timeout:.1f}s (Global Remaining: {remaining_global:.1f}s)")
+        
+        # [VISUALIZATION] Determine optimal tier and color code model name
+        try:
+            temp_llm = get_llm_by_type(tier)
+            model_name = getattr(temp_llm, "model", getattr(temp_llm, "model_name", "unknown"))
+        except Exception:
+            model_name = "unknown"
+            
+        optimal_tier = AGENT_LLM_MAP.get(agent_type, "basic")
+        if tier == optimal_tier:
+            colored_model = f"\033[92m[{model_name}]\033[0m" # Green
+        else:
+            colored_model = f"\033[33m[{model_name}]\033[0m" # Orange
+            
+        logger.info(f"[TRACE_START] Tier: {tier} {colored_model} | Agent: {agent_type} | Message Count: {msgs_count} | Timeout: {tier_timeout:.1f}s (Global Remaining: {remaining_global:.1f}s)")
         
         try:
             # Determine appropriate input format based on whether we are calling a graph or a raw LLM

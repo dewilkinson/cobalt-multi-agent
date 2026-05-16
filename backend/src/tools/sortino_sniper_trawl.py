@@ -77,8 +77,6 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
         effective_hurdle = 0.0
         logger.info("Bunker Trawl: Premarket Bypass Active. Sortino Hurdle bypassed.")
     else:
-        if os.getenv("VLI_TRADING_STYLE", "day_trading") == "day_trading":
-            effective_hurdle *= 10.0
         logger.info(f"Bunker Trawl: Effective Sortino Hurdle: {effective_hurdle}")
 
     candidates = []
@@ -260,8 +258,8 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
             ticker = c["symbol"]
             sortino = sortino_map.get(ticker, 0.0)
             
-            # if sortino < effective_hurdle:
-            #     return None
+            if sortino < effective_hurdle:
+                return None
                 
             try:
                 # Precision Fundamental Verification
@@ -303,7 +301,7 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                     "float": f_shares,
                     "market_cap": m_cap,
                     "tier": "SNIPER",
-                    "grade": "S" if sortino >= 5.0 else ("A" if sortino >= 2.5 else ("B" if sortino >= 2.0 else "C")),
+                    "grade": "F", # Placeholder, updated via curve
                     "timestamp": datetime.now().isoformat()
                 }
             except Exception as e:
@@ -314,6 +312,33 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     verification_tasks = [verify_candidate(c) for c in candidates]
     verified_candidates = await asyncio.gather(*verification_tasks)
     verified_list = [v for v in verified_candidates if v is not None]
+
+    # Dynamically rank by highest Sortino ratio FIRST
+    verified_list.sort(key=lambda x: -x.get("sortino", 0.0))
+
+    # [HARDENING] Rank-Based Uniform Percentile Curve Grading
+    # Replaces min/max scaling with pure rank percentiles to enforce a true bell curve of grades
+    if verified_list:
+        n = len(verified_list)
+        for i, v in enumerate(verified_list):
+            if n > 1:
+                percentile = (n - 1 - i) / (n - 1)
+            else:
+                percentile = 1.0
+            
+            heat_score = int(40 + (percentile * 60))
+            if heat_score >= 95: grade = "S"
+            elif heat_score >= 90: grade = "A+"
+            elif heat_score >= 82: grade = "A"
+            elif heat_score >= 75: grade = "B+"
+            elif heat_score >= 65: grade = "B"
+            elif heat_score >= 58: grade = "C+"
+            elif heat_score >= 50: grade = "C"
+            elif heat_score >= 35: grade = "D"
+            else: grade = "F"
+            
+            v["grade"] = grade
+            v["heat_score"] = heat_score
 
     # 4. Persistence
     existing_list = []
@@ -342,8 +367,10 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
 
     clean_strike_list = sanitize_data(strike_list)
 
-    with open(STRIKE_LIST_PATH, "w", encoding="utf-8") as f:
+    tmp_path = f"{STRIKE_LIST_PATH}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(clean_strike_list, f, indent=4)
+    os.replace(tmp_path, STRIKE_LIST_PATH)
 
     logger.info(f"Strike List synchronized. {len(verified_list)} verified swords in the bunker.")
     return clean_strike_list

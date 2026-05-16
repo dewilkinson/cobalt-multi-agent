@@ -294,6 +294,1315 @@
   "Rollover IRA *5513": {
     "activities": [
       {
+        "id": "ATP-ARMK-2026-05-14T124312.000Z-120.0-SELL",
+        "type": "SELL",
+        "units": 120.0,
+        "price": 52.9908,
+        "trade_date": "2026-05-14T12:43:12.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ARMK"
+        }
+      },
+      {
+        "id": "ATP-ARMK-2026-05-14T115259.000Z-20.0-BUY",
+        "type": "BUY",
+        "units": 20.0,
+        "price": 52.1858,
+        "trade_date": "2026-05-14T11:52:59.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ARMK"
+        }
+      },
+      {
+        "id": "ATP-STM-2026-05-14T112242.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 64.81,
+        "trade_date": "2026-05-14T11:22:42.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "STM"
+        }
+      },
+      {
+        "id": "ATP-XLK-2026-05-14T105915.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 179.215,
+        "trade_date": "2026-05-14T10:59:15.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLK"
+        }
+      },
+      {
+        "id": "ATP-NVDA-2026-05-14T105423.000Z-50.0-SELL",
+        "type": "SELL",
+        "units": 50.0,
+        "price": 234.8014,
+        "trade_date": "2026-05-14T10:54:23.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVDA"
+        }
+      },
+      {
+        "id": "ATP-CRWD-2026-05-14T105130.000Z-75.0-SELL",
+        "type": "SELL",
+        "units": 75.0,
+        "price": 572.37,
+        "trade_date": "2026-05-14T10:51:30.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CRWD"
+        }
+      },
+      {
+        "id": "ATP-STM-2026-05-14T103628.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 64.46,
+        "trade_date": "2026-05-14T10:36:28.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "STM"
+        }
+      },
+      {
+        "id": "ATP-KLAR-2026-05-14T103330.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 15.58,
+        "trade_date": "2026-05-14T10:33:30.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "KLAR"
+        }
+      },
+      {
+        "id": "ATP-ARMK-2026-05-14T103230.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 51.4,
+        "trade_date": "2026-05-14T10:32:30.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ARMK"
+        }
+      },
+      {
+        "id": "ATP-CRWD-2026-05-14T103149.000Z-15.0-BUY",
+        "type": "BUY",
+        "units": 15.0,
+        "price": 570.315,
+        "trade_date": "2026-05-14T10:31:49.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CRWD"
+        }
+      },
+      {
+        "id": "ATP-CRWD-2026-05-14T103128.000Z-10.0-BUY",
+        "type": "BUY",
+        "units": 10.0,
+        "price": 571.23,
+        "trade_date": "2026-05-14T10:31:28.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CRWD"
+        }
+      },
+      {
+        "id": "ATP-TSEM-2026-05-14T102630.000Z-50.0-SELL",
+        "type": "SELL",
+        "units": 50.0,
+        "price": 275.055,
+        "trade_date": "2026-05-14T10:26:30.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TSEM"
+        }
+      },
+      {
+        "id": "ATP-CRWD-2026-05-14T102541.000Z-25.0-BUY",
+        "type": "BUY",
+        "units": 25.0,
+        "price": 569.955,
+        "trade_date": "2026-05-14T10:25:41.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CRWD"
+        }
+      },
+      {
+        "id": "ATP-XLK-2026-05-14T102458.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 178.86,
+        "trade_date": "2026-05-14T10:24:58.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLK"
+        }
+      },
+      {
+        "id": "ATP-CRWD-2026-05-14T102217.000Z-25.0-BUY",
+        "type": "BUY",
+        "units": 25.0,
+        "price": 568.06,
+        "trade_date": "2026-05-14T10:22:17.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CRWD"
+        }
+      },
+      {
+        "id": "ATP-NVDA-2026-05-14T102024.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 233.37,
+        "trade_date": "2026-05-14T10:20:24.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVDA"
+        }
+      },
+      {
+        "id": "ATP-TSEM-2026-05-14T101920.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 278.0,
+        "trade_date": "2026-05-14T10:19:20.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TSEM"
+        }
+      },
+      {
+        "id": "ATP-KLAR-2026-05-14T101006.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 16.175,
+        "trade_date": "2026-05-14T10:10:06.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "KLAR"
+        }
+      },
+      {
+        "id": "ATP-OSCR-2026-05-13T112518.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 23.905,
+        "trade_date": "2026-05-13T11:25:18.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "OSCR"
+        }
+      },
+      {
+        "id": "ATP-UNH-2026-05-13T110151.000Z-25.0-SELL",
+        "type": "SELL",
+        "units": 25.0,
+        "price": 402.8851,
+        "trade_date": "2026-05-13T11:01:51.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UNH"
+        }
+      },
+      {
+        "id": "ATP-HUM-2026-05-13T110055.000Z-50.0-SELL",
+        "type": "SELL",
+        "units": 50.0,
+        "price": 304.455,
+        "trade_date": "2026-05-13T11:00:55.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HUM"
+        }
+      },
+      {
+        "id": "ATP-XLB-2026-05-13T105631.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 52.255,
+        "trade_date": "2026-05-13T10:56:31.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLB"
+        }
+      },
+      {
+        "id": "ATP-HUM-2026-05-13T104059.000Z-15.0-BUY",
+        "type": "BUY",
+        "units": 15.0,
+        "price": 304.135,
+        "trade_date": "2026-05-13T10:40:59.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HUM"
+        }
+      },
+      {
+        "id": "ATP-HIMX-2026-05-13T103951.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 21.2645,
+        "trade_date": "2026-05-13T10:39:51.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HIMX"
+        }
+      },
+      {
+        "id": "ATP-HIMX-2026-05-13T103423.000Z-200.0-BUY",
+        "type": "BUY",
+        "units": 200.0,
+        "price": 21.7173,
+        "trade_date": "2026-05-13T10:34:23.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HIMX"
+        }
+      },
+      {
+        "id": "ATP-HUM-2026-05-13T103143.000Z-10.0-BUY",
+        "type": "BUY",
+        "units": 10.0,
+        "price": 303.18,
+        "trade_date": "2026-05-13T10:31:43.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HUM"
+        }
+      },
+      {
+        "id": "ATP-UNH-2026-05-13T102710.000Z-75.0-SELL",
+        "type": "SELL",
+        "units": 75.0,
+        "price": 401.1601,
+        "trade_date": "2026-05-13T10:27:10.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UNH"
+        }
+      },
+      {
+        "id": "ATP-HUM-2026-05-13T102657.000Z-75.0-SELL",
+        "type": "SELL",
+        "units": 75.0,
+        "price": 303.36,
+        "trade_date": "2026-05-13T10:26:57.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HUM"
+        }
+      },
+      {
+        "id": "ATP-OSCR-2026-05-13T102225.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 24.06,
+        "trade_date": "2026-05-13T10:22:25.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "OSCR"
+        }
+      },
+      {
+        "id": "ATP-OSCR-2026-05-13T101642.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 23.7499,
+        "trade_date": "2026-05-13T10:16:42.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "OSCR"
+        }
+      },
+      {
+        "id": "ATP-UNH-2026-05-13T101149.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 397.5899,
+        "trade_date": "2026-05-13T10:11:49.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UNH"
+        }
+      },
+      {
+        "id": "ATP-UNH-2026-05-13T101029.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 397.63,
+        "trade_date": "2026-05-13T10:10:29.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UNH"
+        }
+      },
+      {
+        "id": "ATP-HUM-2026-05-13T100730.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 299.19,
+        "trade_date": "2026-05-13T10:07:30.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HUM"
+        }
+      },
+      {
+        "id": "ATP-XLB-2026-05-13T100508.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 52.4699,
+        "trade_date": "2026-05-13T10:05:08.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLB"
+        }
+      },
+      {
+        "id": "ATP-XLB-2026-05-13T100343.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 52.5,
+        "trade_date": "2026-05-13T10:03:43.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLB"
+        }
+      },
+      {
+        "id": "ATP-XLB-2026-05-12T144659.000Z-300.0-SELL",
+        "type": "SELL",
+        "units": 300.0,
+        "price": 52.2401,
+        "trade_date": "2026-05-12T14:46:59.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLB"
+        }
+      },
+      {
+        "id": "ATP-Q-2026-05-12T144640.000Z-70.0-SELL",
+        "type": "SELL",
+        "units": 70.0,
+        "price": 163.9901,
+        "trade_date": "2026-05-12T14:46:40.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "Q"
+        }
+      },
+      {
+        "id": "ATP-BWEN-2026-05-12T144629.000Z-550.0-SELL",
+        "type": "SELL",
+        "units": 550.0,
+        "price": 3.4201,
+        "trade_date": "2026-05-12T14:46:29.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "BWEN"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T143946.000Z-350.0-SELL",
+        "type": "SELL",
+        "units": 350.0,
+        "price": 19.19,
+        "trade_date": "2026-05-12T14:39:46.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-Q-2026-05-12T143024.000Z-20.0-BUY",
+        "type": "BUY",
+        "units": 20.0,
+        "price": 164.64,
+        "trade_date": "2026-05-12T14:30:24.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "Q"
+        }
+      },
+      {
+        "id": "ATP-XLB-2026-05-12T142519.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 52.215,
+        "trade_date": "2026-05-12T14:25:19.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLB"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T142236.000Z-150.0-BUY",
+        "type": "BUY",
+        "units": 150.0,
+        "price": 19.105,
+        "trade_date": "2026-05-12T14:22:36.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T142007.000Z-300.0-SELL",
+        "type": "SELL",
+        "units": 300.0,
+        "price": 19.0,
+        "trade_date": "2026-05-12T14:20:07.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-Q-2026-05-12T141529.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 162.625,
+        "trade_date": "2026-05-12T14:15:29.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "Q"
+        }
+      },
+      {
+        "id": "ATP-BWEN-2026-05-12T141011.000Z-250.0-BUY",
+        "type": "BUY",
+        "units": 250.0,
+        "price": 3.37,
+        "trade_date": "2026-05-12T14:10:11.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "BWEN"
+        }
+      },
+      {
+        "id": "ATP-BWEN-2026-05-12T140032.000Z-200.0-BUY",
+        "type": "BUY",
+        "units": 200.0,
+        "price": 3.26,
+        "trade_date": "2026-05-12T14:00:32.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "BWEN"
+        }
+      },
+      {
+        "id": "ATP-WMT-2026-05-12T135712.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 130.22,
+        "trade_date": "2026-05-12T13:57:12.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "WMT"
+        }
+      },
+      {
+        "id": "ATP-XLB-2026-05-12T135502.000Z-200.0-BUY",
+        "type": "BUY",
+        "units": 200.0,
+        "price": 52.155,
+        "trade_date": "2026-05-12T13:55:02.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "XLB"
+        }
+      },
+      {
+        "id": "ATP-BWEN-2026-05-12T135249.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 3.2166,
+        "trade_date": "2026-05-12T13:52:49.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "BWEN"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T134228.000Z-200.0-BUY",
+        "type": "BUY",
+        "units": 200.0,
+        "price": 18.2,
+        "trade_date": "2026-05-12T13:42:28.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T134138.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 18.2199,
+        "trade_date": "2026-05-12T13:41:38.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T132237.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 17.91,
+        "trade_date": "2026-05-12T13:22:37.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T131910.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 17.63,
+        "trade_date": "2026-05-12T13:19:10.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-PRCT-2026-05-12T131741.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 28.26,
+        "trade_date": "2026-05-12T13:17:41.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRCT"
+        }
+      },
+      {
+        "id": "ATP-BWEN-2026-05-12T123220.000Z-750.0-SELL",
+        "type": "SELL",
+        "units": 750.0,
+        "price": 2.905,
+        "trade_date": "2026-05-12T12:32:20.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "BWEN"
+        }
+      },
+      {
+        "id": "ATP-PBT-2026-05-12T122417.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 27.78,
+        "trade_date": "2026-05-12T12:24:17.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PBT"
+        }
+      },
+      {
+        "id": "ATP-NYC-2026-05-12T121635.000Z-99.0-SELL",
+        "type": "SELL",
+        "units": 99.0,
+        "price": 13.0001,
+        "trade_date": "2026-05-12T12:16:35.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NYC"
+        }
+      },
+      {
+        "id": "ATP-NYC-2026-05-12T121200.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 12.7301,
+        "trade_date": "2026-05-12T12:12:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NYC"
+        }
+      },
+      {
+        "id": "ATP-NYC-2026-05-12T120959.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 13.688,
+        "trade_date": "2026-05-12T12:09:59.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NYC"
+        }
+      },
+      {
+        "id": "ATP-NYC-2026-05-12T120824.000Z-150.0-SELL",
+        "type": "SELL",
+        "units": 150.0,
+        "price": 13.2229,
+        "trade_date": "2026-05-12T12:08:24.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NYC"
+        }
+      },
+      {
+        "id": "ATP-NYC-2026-05-12T120705.000Z-250.0-BUY",
+        "type": "BUY",
+        "units": 250.0,
+        "price": 13.09,
+        "trade_date": "2026-05-12T12:07:05.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NYC"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T115051.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 17.09,
+        "trade_date": "2026-05-12T11:50:51.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T114822.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 17.135,
+        "trade_date": "2026-05-12T11:48:22.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-NFLX-2026-05-12T113547.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 88.01,
+        "trade_date": "2026-05-12T11:35:47.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NFLX"
+        }
+      },
+      {
+        "id": "ATP-BWEN-2026-05-12T112853.000Z-250.0-BUY",
+        "type": "BUY",
+        "units": 250.0,
+        "price": 3.0694,
+        "trade_date": "2026-05-12T11:28:53.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "BWEN"
+        }
+      },
+      {
+        "id": "ATP-BWEN-2026-05-12T112628.000Z-300.0-BUY",
+        "type": "BUY",
+        "units": 300.0,
+        "price": 2.9799,
+        "trade_date": "2026-05-12T11:26:28.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "BWEN"
+        }
+      },
+      {
+        "id": "ATP-BWEN-2026-05-12T112613.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 2.9695,
+        "trade_date": "2026-05-12T11:26:13.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "BWEN"
+        }
+      },
+      {
+        "id": "ATP-BWEN-2026-05-12T112500.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 2.91,
+        "trade_date": "2026-05-12T11:25:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "BWEN"
+        }
+      },
+      {
+        "id": "ATP-WMT-2026-05-12T111800.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 130.465,
+        "trade_date": "2026-05-12T11:18:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "WMT"
+        }
+      },
+      {
+        "id": "ATP-NFLX-2026-05-12T111429.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 88.955,
+        "trade_date": "2026-05-12T11:14:29.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NFLX"
+        }
+      },
+      {
+        "id": "ATP-NFLX-2026-05-12T111342.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 88.97,
+        "trade_date": "2026-05-12T11:13:42.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NFLX"
+        }
+      },
+      {
+        "id": "ATP-PRCT-2026-05-12T105400.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 27.925,
+        "trade_date": "2026-05-12T10:54:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRCT"
+        }
+      },
+      {
+        "id": "ATP-PBT-2026-05-12T105250.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 26.915,
+        "trade_date": "2026-05-12T10:52:50.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PBT"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T105200.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 17.205,
+        "trade_date": "2026-05-12T10:52:00.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-PBT-2026-05-12T105022.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 26.88,
+        "trade_date": "2026-05-12T10:50:22.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PBT"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T104845.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 17.24,
+        "trade_date": "2026-05-12T10:48:45.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T104245.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 17.58,
+        "trade_date": "2026-05-12T10:42:45.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T104207.000Z-200.0-BUY",
+        "type": "BUY",
+        "units": 200.0,
+        "price": 17.55,
+        "trade_date": "2026-05-12T10:42:07.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-AMPX-2026-05-12T102651.000Z-300.0-SELL",
+        "type": "SELL",
+        "units": 300.0,
+        "price": 18.1606,
+        "trade_date": "2026-05-12T10:26:51.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AMPX"
+        }
+      },
+      {
+        "id": "ATP-PBT-2026-05-12T102356.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 27.5,
+        "trade_date": "2026-05-12T10:23:56.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PBT"
+        }
+      },
+      {
+        "id": "ATP-PBT-2026-05-12T102211.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 27.25,
+        "trade_date": "2026-05-12T10:22:11.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PBT"
+        }
+      },
+      {
+        "id": "ATP-AMPX-2026-05-12T102111.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 18.4199,
+        "trade_date": "2026-05-12T10:21:11.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AMPX"
+        }
+      },
+      {
+        "id": "ATP-AMPX-2026-05-12T101352.000Z-200.0-BUY",
+        "type": "BUY",
+        "units": 200.0,
+        "price": 18.375,
+        "trade_date": "2026-05-12T10:13:52.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AMPX"
+        }
+      },
+      {
+        "id": "ATP-PBT-2026-05-12T100840.000Z-200.0-BUY",
+        "type": "BUY",
+        "units": 200.0,
+        "price": 26.5,
+        "trade_date": "2026-05-12T10:08:40.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PBT"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T100647.000Z-150.0-BUY",
+        "type": "BUY",
+        "units": 150.0,
+        "price": 17.275,
+        "trade_date": "2026-05-12T10:06:47.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-AEVA-2026-05-12T100615.000Z-150.0-BUY",
+        "type": "BUY",
+        "units": 150.0,
+        "price": 17.15,
+        "trade_date": "2026-05-12T10:06:15.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AEVA"
+        }
+      },
+      {
+        "id": "ATP-GTX-2026-05-11T121453.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 29.235,
+        "trade_date": "2026-05-11T12:14:53.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GTX"
+        }
+      },
+      {
+        "id": "ATP-ASST-2026-05-11T121415.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 17.21,
+        "trade_date": "2026-05-11T12:14:15.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ASST"
+        }
+      },
+      {
+        "id": "ATP-NVDA-2026-05-11T115645.000Z-200.0-SELL",
+        "type": "SELL",
+        "units": 200.0,
+        "price": 221.585,
+        "trade_date": "2026-05-11T11:56:45.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVDA"
+        }
+      },
+      {
+        "id": "ATP-OUST-2026-05-11T113037.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 28.505,
+        "trade_date": "2026-05-11T11:30:37.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "OUST"
+        }
+      },
+      {
+        "id": "ATP-ASST-2026-05-11T111709.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 16.975,
+        "trade_date": "2026-05-11T11:17:09.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ASST"
+        }
+      },
+      {
+        "id": "ATP-VOR-2026-05-11T110415.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 17.955,
+        "trade_date": "2026-05-11T11:04:15.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "VOR"
+        }
+      },
+      {
+        "id": "ATP-PL-2026-05-11T110334.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 42.2,
+        "trade_date": "2026-05-11T11:03:34.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PL"
+        }
+      },
+      {
+        "id": "ATP-SATL-2026-05-11T110122.000Z-800.0-SELL",
+        "type": "SELL",
+        "units": 800.0,
+        "price": 8.57,
+        "trade_date": "2026-05-11T11:01:22.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SATL"
+        }
+      },
+      {
+        "id": "ATP-NVDA-2026-05-11T105727.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 221.065,
+        "trade_date": "2026-05-11T10:57:27.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVDA"
+        }
+      },
+      {
+        "id": "ATP-NVTS-2026-05-11T105349.000Z-100.0-SELL",
+        "type": "SELL",
+        "units": 100.0,
+        "price": 22.3678,
+        "trade_date": "2026-05-11T10:53:49.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVTS"
+        }
+      },
+      {
+        "id": "ATP-LINC-2026-05-11T105233.000Z-50.0-SELL",
+        "type": "SELL",
+        "units": 50.0,
+        "price": 49.09,
+        "trade_date": "2026-05-11T10:52:33.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "LINC"
+        }
+      },
+      {
+        "id": "ATP-LINC-2026-05-11T104536.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 51.09,
+        "trade_date": "2026-05-11T10:45:36.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "LINC"
+        }
+      },
+      {
+        "id": "ATP-NVTS-2026-05-11T104413.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 23.22,
+        "trade_date": "2026-05-11T10:44:13.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVTS"
+        }
+      },
+      {
+        "id": "ATP-GTX-2026-05-11T104307.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 29.3,
+        "trade_date": "2026-05-11T10:43:07.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GTX"
+        }
+      },
+      {
+        "id": "ATP-GTX-2026-05-11T104219.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 29.25,
+        "trade_date": "2026-05-11T10:42:19.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GTX"
+        }
+      },
+      {
+        "id": "ATP-SATL-2026-05-11T103922.000Z-400.0-BUY",
+        "type": "BUY",
+        "units": 400.0,
+        "price": 8.725,
+        "trade_date": "2026-05-11T10:39:22.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SATL"
+        }
+      },
+      {
+        "id": "ATP-PL-2026-05-11T103542.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 42.38,
+        "trade_date": "2026-05-11T10:35:42.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PL"
+        }
+      },
+      {
+        "id": "ATP-OUST-2026-05-11T103346.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 28.278,
+        "trade_date": "2026-05-11T10:33:46.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "OUST"
+        }
+      },
+      {
+        "id": "ATP-SATL-2026-05-11T102705.000Z-200.0-BUY",
+        "type": "BUY",
+        "units": 200.0,
+        "price": 8.545,
+        "trade_date": "2026-05-11T10:27:05.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SATL"
+        }
+      },
+      {
+        "id": "ATP-HIMX-2026-05-11T102357.000Z-750.0-SELL",
+        "type": "SELL",
+        "units": 750.0,
+        "price": 21.015,
+        "trade_date": "2026-05-11T10:23:57.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HIMX"
+        }
+      },
+      {
+        "id": "ATP-HIMX-2026-05-11T102345.000Z-150.0-BUY",
+        "type": "BUY",
+        "units": 150.0,
+        "price": 21.5699,
+        "trade_date": "2026-05-11T10:23:45.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HIMX"
+        }
+      },
+      {
+        "id": "ATP-HIMX-2026-05-11T102311.000Z-150.0-BUY",
+        "type": "BUY",
+        "units": 150.0,
+        "price": 21.635,
+        "trade_date": "2026-05-11T10:23:11.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HIMX"
+        }
+      },
+      {
+        "id": "ATP-VOR-2026-05-11T102227.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 18.27,
+        "trade_date": "2026-05-11T10:22:27.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "VOR"
+        }
+      },
+      {
+        "id": "ATP-VOR-2026-05-11T102149.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 18.275,
+        "trade_date": "2026-05-11T10:21:49.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "VOR"
+        }
+      },
+      {
+        "id": "ATP-INOD-2026-05-11T101843.000Z-50.0-SELL",
+        "type": "SELL",
+        "units": 50.0,
+        "price": 108.81,
+        "trade_date": "2026-05-11T10:18:43.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "INOD"
+        }
+      },
+      {
+        "id": "ATP-INOD-2026-05-11T101808.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 111.11,
+        "trade_date": "2026-05-11T10:18:08.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "INOD"
+        }
+      },
+      {
+        "id": "ATP-HIMX-2026-05-11T101616.000Z-200.0-BUY",
+        "type": "BUY",
+        "units": 200.0,
+        "price": 21.35,
+        "trade_date": "2026-05-11T10:16:16.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HIMX"
+        }
+      },
+      {
+        "id": "ATP-NVDA-2026-05-11T101428.000Z-100.0-BUY",
+        "type": "BUY",
+        "units": 100.0,
+        "price": 219.455,
+        "trade_date": "2026-05-11T10:14:28.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "NVDA"
+        }
+      },
+      {
+        "id": "ATP-INOD-2026-05-11T101155.000Z-50.0-SELL",
+        "type": "SELL",
+        "units": 50.0,
+        "price": 109.21,
+        "trade_date": "2026-05-11T10:11:55.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "INOD"
+        }
+      },
+      {
+        "id": "ATP-INOD-2026-05-11T101111.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 111.51,
+        "trade_date": "2026-05-11T10:11:11.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "INOD"
+        }
+      },
+      {
+        "id": "ATP-SATL-2026-05-11T100641.000Z-150.0-BUY",
+        "type": "BUY",
+        "units": 150.0,
+        "price": 8.425,
+        "trade_date": "2026-05-11T10:06:41.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SATL"
+        }
+      },
+      {
+        "id": "ATP-SATL-2026-05-11T100601.000Z-50.0-BUY",
+        "type": "BUY",
+        "units": 50.0,
+        "price": 8.395,
+        "trade_date": "2026-05-11T10:06:01.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SATL"
+        }
+      },
+      {
+        "id": "ATP-HIMX-2026-05-11T100331.000Z-250.0-BUY",
+        "type": "BUY",
+        "units": 250.0,
+        "price": 20.815,
+        "trade_date": "2026-05-11T10:03:31.000Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HIMX"
+        }
+      },
+      {
         "id": "ATP-RXT-2026-05-08T132314.000Z-45.0-SELL",
         "type": "SELL",
         "units": 45.0,
@@ -1504,6 +2813,39 @@
         }
       },
       {
+        "id": "HIST-AMPX-2026-04-30T000000.000Z-750.0-SELL",
+        "type": "SELL",
+        "units": 750.0,
+        "price": 20.81,
+        "trade_date": "2026-04-30T11:30:00Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AMPX"
+        }
+      },
+      {
+        "id": "HIST-AMPX-2026-04-30T000000.000Z-150.0-BUY",
+        "type": "BUY",
+        "units": 150.0,
+        "price": 21.16,
+        "trade_date": "2026-04-30T10:30:00Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AMPX"
+        }
+      },
+      {
+        "id": "HIST-AMPX-2026-04-30T000000.000Z-300.0-BUY",
+        "type": "BUY",
+        "units": 300.0,
+        "price": 21.33,
+        "trade_date": "2026-04-30T09:30:00Z",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AMPX"
+        }
+      },
+      {
         "id": "HIST-EDSA-2026-04-30T000000.000Z-15.0-BUY",
         "type": "BUY",
         "units": 15.0,
@@ -1603,17 +2945,6 @@
         }
       },
       {
-        "id": "HIST-AMPX-2026-04-30T000000.000Z-150.0-BUY",
-        "type": "BUY",
-        "units": 150.0,
-        "price": 21.16,
-        "trade_date": "2026-04-30T00:00:00.000Z",
-        "status": "Executed",
-        "symbol": {
-          "symbol": "AMPX"
-        }
-      },
-      {
         "id": "HIST-USAR-2026-04-30T000000.000Z-100.0-BUY",
         "type": "BUY",
         "units": 100.0,
@@ -1622,28 +2953,6 @@
         "status": "Executed",
         "symbol": {
           "symbol": "USAR"
-        }
-      },
-      {
-        "id": "HIST-AMPX-2026-04-30T000000.000Z-750.0-SELL",
-        "type": "SELL",
-        "units": 750.0,
-        "price": 20.81,
-        "trade_date": "2026-04-30T00:00:00.000Z",
-        "status": "Executed",
-        "symbol": {
-          "symbol": "AMPX"
-        }
-      },
-      {
-        "id": "HIST-AMPX-2026-04-30T000000.000Z-300.0-BUY",
-        "type": "BUY",
-        "units": 300.0,
-        "price": 21.33,
-        "trade_date": "2026-04-30T00:00:00.000Z",
-        "status": "Executed",
-        "symbol": {
-          "symbol": "AMPX"
         }
       },
       {

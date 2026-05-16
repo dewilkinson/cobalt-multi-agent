@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0076";
+        const VLI_CLIENT_VERSION = "00.000.0099";
     </script>
     
     <link
@@ -1519,6 +1519,9 @@
             </div>
         </div>
         <div class="menu-right">
+            <div id="vli-token-tally" style="font-family: var(--font-mono); color: var(--cobalt-blue); font-size: 10px; margin-right: 15px; background: rgba(88, 166, 255, 0.1); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(88, 166, 255, 0.2); white-space: nowrap;" title="Daily Token Usage (Gemini API)">
+                In: 0 | Out: 0
+            </div>
             <div class="status-pill" style="width: 175px; box-sizing: border-box; background: transparent; padding: 0;">
                 <button id="server-toggle-btn" onclick="toggleServerConnection()" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--emerald-green); padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 6px; width: 90px; justify-content: center;" title="Toggle Connection">
                     <div class="status-dot" id="server-status-dot" style="background-color: var(--emerald-green); width: 6px; height: 6px; border-radius: 50%;"></div>
@@ -1561,10 +1564,35 @@
                 }
             }
         }
+        
+        async function pollTokenTally() {
+            try {
+                const res = await fetch('/api/vli/telemetry/tokens');
+                if (res.ok) {
+                    const data = await res.json();
+                    const el = document.getElementById('vli-token-tally');
+                    if (el) {
+                        if (data.flash && data.pro) {
+                            const flashIn = data.flash.input_tokens > 1000 ? (data.flash.input_tokens/1000).toFixed(1) + 'K' : data.flash.input_tokens;
+                            const flashOut = data.flash.output_tokens > 1000 ? (data.flash.output_tokens/1000).toFixed(1) + 'K' : data.flash.output_tokens;
+                            const proIn = data.pro.input_tokens > 1000 ? (data.pro.input_tokens/1000).toFixed(1) + 'K' : data.pro.input_tokens;
+                            const proOut = data.pro.output_tokens > 1000 ? (data.pro.output_tokens/1000).toFixed(1) + 'K' : data.pro.output_tokens;
+                            el.innerText = `gemini 3 flash: IN:${flashIn} OUT:${flashOut} | gemini 3 pro: IN:${proIn} OUT:${proOut}`;
+                        } else {
+                            const inK = data.input_tokens > 1000 ? (data.input_tokens/1000).toFixed(1) + 'K' : (data.input_tokens || 0);
+                            const outK = data.output_tokens > 1000 ? (data.output_tokens/1000).toFixed(1) + 'K' : (data.output_tokens || 0);
+                            el.innerText = `In: ${inK} | Out: ${outK}`;
+                        }
+                    }
+                }
+            } catch(e) {}
+        }
+        
         document.addEventListener('DOMContentLoaded', () => {
             toggleThinkingMode(window.isThinkingMode);
+            pollTokenTally();
+            setInterval(pollTokenTally, 10000); // Check every 10 seconds
         });
-        
         const getSnaptradeSettings = () => ({
             SNAPTRADE_CLIENT_ID: localStorage.getItem('SNAPTRADE_CLIENT_ID') || '',
             SNAPTRADE_CONSUMER_KEY: localStorage.getItem('SNAPTRADE_CONSUMER_KEY') || '',
@@ -1713,8 +1741,46 @@
                 cardBox.dataset.instanceGuid = instanceGuid;
                 cardBox.dataset.badge = badgeLabel;
                 
-                cardBox.style.top = defaultStyles.top || '50px';
-                cardBox.style.left = defaultStyles.left || '50px';
+                let startLeft = defaultStyles.left || '50px';
+                let startTop = defaultStyles.top || '50px';
+                
+                // Position calculation to prevent overlap with expanded sidebars
+                if (!defaultStyles.left) {
+                    let safeLeft = 50;
+                    
+                    const leftSidebar = document.getElementById('vli-sidebar-left');
+                    const leftTabs = document.getElementById('sidebar-tabs-left');
+                    if (leftSidebar && leftTabs) {
+                        const leftRect = leftSidebar.getBoundingClientRect();
+                        const tabsRect = leftTabs.getBoundingClientRect();
+                        const totalLeftWidth = Math.max(leftRect.right, tabsRect.right);
+                        if (totalLeftWidth > 0) {
+                            safeLeft = totalLeftWidth + 20;
+                        }
+                    }
+                    
+                    const rightSidebar = document.getElementById('vli-sidebar-right');
+                    const rightTabs = document.getElementById('sidebar-tabs-right');
+                    let rightW = 0;
+                    if (rightSidebar && rightTabs) {
+                        const rightRect = rightSidebar.getBoundingClientRect();
+                        const tabsRect = rightTabs.getBoundingClientRect();
+                        const minLeft = Math.min(rightRect.left, tabsRect.left);
+                        if (minLeft < window.innerWidth) {
+                            rightW = window.innerWidth - minLeft;
+                        }
+                    }
+                    
+                    let cardW = parseInt(defaultStyles.width || '440');
+                    if (safeLeft + cardW > window.innerWidth - rightW - 20) {
+                        safeLeft = Math.max(20, window.innerWidth - rightW - cardW - 20);
+                    }
+                    
+                    startLeft = safeLeft + 'px';
+                }
+
+                cardBox.style.top = startTop;
+                cardBox.style.left = startLeft;
                 if (defaultStyles.right && defaultStyles.right !== 'auto') {
                     cardBox.style.left = 'auto';
                     cardBox.style.right = defaultStyles.right;
@@ -2265,6 +2331,8 @@
                 layout[card.id] = {
                     instanceGuid: card.dataset.instanceGuid,
                     typeGuid: card.dataset.typeGuid,
+                    artifactPath: card.dataset.artifactPath,
+                    artifactName: card.dataset.artifactName,
                     top: card.style.top,
                     left: card.style.left,
                     right: card.style.right,
@@ -2359,6 +2427,27 @@
                         card = UXManager.createCard(state.typeGuid, state, state.instanceGuid);
                     }
                     if (card) {
+                        // [NEW] Restore artifact content if present
+                        if (state.artifactPath) {
+                            card.dataset.artifactPath = state.artifactPath;
+                            if (state.artifactName) {
+                                card.dataset.artifactName = state.artifactName;
+                                const titleEl = card.querySelector('.card-header > div:first-child > div:nth-child(2)');
+                                if (titleEl) titleEl.innerText = state.artifactName;
+                            }
+                            fetch('/api/vli/artifacts/content?path=' + encodeURIComponent(state.artifactPath))
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.content) {
+                                        const contentEl = card.querySelector('.artifact-content');
+                                        if (contentEl) {
+                                            contentEl.innerHTML = marked.parse(data.content);
+                                            contentEl.style.color = "var(--text-muted)";
+                                        }
+                                    }
+                                }).catch(e => console.error('Failed to reload artifact content on layout restore', e));
+                        }
+
                         if (state.display) card.style.display = state.display;
                         if (state.collapsed) card.classList.add('collapsed');
                         const z = parseInt(state.zIndex) || 100;
@@ -2408,6 +2497,8 @@
                     layout[card.id] = {
                         instanceGuid: card.dataset.instanceGuid,
                         typeGuid: card.dataset.typeGuid,
+                        artifactPath: card.dataset.artifactPath,
+                        artifactName: card.dataset.artifactName,
                         top: card.style.top,
                         left: card.style.left,
                         right: card.style.right,
@@ -2521,17 +2612,27 @@
             });
             
             if (winManager.dragging) {
+                console.log("[DRAG_TRACE] onMouseUp fired. dragging element:", winManager.dragging.id);
+                console.log("[DRAG_TRACE] dataset.artifactPath:", winManager.dragging.dataset.artifactPath);
+                
                 if (e && winManager.dragging.dataset.artifactPath) {
                     const prevEvents = winManager.dragging.style.pointerEvents;
                     winManager.dragging.style.pointerEvents = 'none';
                     const elemUnder = document.elementFromPoint(e.clientX, e.clientY);
                     winManager.dragging.style.pointerEvents = prevEvents;
+                    
+                    console.log("[DRAG_TRACE] elemUnder:", elemUnder);
+                    
                     if (elemUnder) {
                         const treeNode = elemUnder.closest('.tree-folder');
+                        console.log("[DRAG_TRACE] treeNode found:", treeNode);
+                        
                         if (treeNode) {
                                 const dragged = winManager.dragging;
                                 const rect = dragged.getBoundingClientRect();
                                 const targetRect = treeNode.getBoundingClientRect();
+                                
+                                console.log("[DRAG_TRACE] Executing drop logic!");
                                 
                                 const ghost = document.createElement('div');
                                 ghost.style.position = 'fixed';
@@ -2547,6 +2648,7 @@
                                 document.body.appendChild(ghost);
                                 
                                 const cardId = dragged.id.replace('win-', '');
+                                console.log("[DRAG_TRACE] Removing card:", cardId);
                                 UXManager.removeCard(cardId);
                                 
                                 requestAnimationFrame(() => {
@@ -2570,7 +2672,7 @@
 
                                 const targetFolderName = treeNode.dataset.path || treeNode.querySelector('.tree-label').innerText.trim();
 
-                                fetch('/api/vli/artifacts/copy_to_folder', {
+                                fetch('/api/vli/artifacts/move_to_folder', {
                                     method: 'POST',
                                     headers: {'Content-Type': 'application/json'},
                                     body: JSON.stringify({ source_path: dragged.dataset.artifactPath, target_folder: targetFolderName })
@@ -2583,7 +2685,7 @@
                                           window.vliForceOpenFolder = folderBaseName;
                                           loadArtifactTree();
                                       } else {
-                                          console.error('Copy failed:', data.detail || data);
+                                          console.error('Move failed:', data.detail || data);
                                       }
                                   });
                                   
@@ -2591,8 +2693,10 @@
                             }
                         }
                     }
-                winManager.dragging.style.zIndex = winManager.draggingOriginalZ || winManager.maxZ;
-                winManager.dragging.classList.remove('is-dragging');
+                if (winManager.dragging) {
+                    winManager.dragging.style.zIndex = winManager.draggingOriginalZ || winManager.maxZ;
+                    winManager.dragging.classList.remove('is-dragging');
+                }
                 saveLayout();
             } else if (winManager.resizing) {
                 saveLayout();
@@ -3626,7 +3730,7 @@
                                     ${isRefreshing ? 
                                     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
                                     : 
-                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${hasReport ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${ticker}')" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
+                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${hasReport ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.handleReportIconClick(event, '${ticker}', ${hasReport}, this.closest('tr'))" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
                                 </div>
                             </div>
                         </td>
@@ -3941,10 +4045,8 @@
                     if (timeEl) timeEl.innerText = new Date().toLocaleTimeString();
                     
                     const cb = body.querySelector('.track-spy-cb');
-                    if (cb && typeof window._vliTrackSpy !== 'undefined') {
-                        cb.checked = window._vliTrackSpy;
-                    } else if (cb) {
-                        cb.checked = false; // Default off
+                    if (cb) {
+                        cb.checked = window.vliScannerTrackSpy && window.vliScannerTrackSpy[card.dataset.instanceGuid] ? true : false;
                     }
                 }
                 
@@ -3963,8 +4065,8 @@
                 
                 if (window.vliScannerTrackSpy && window.vliScannerTrackSpy[card.dataset.instanceGuid]) {
                     filteredCandidates = filteredCandidates.filter(c => {
-                        const sym_perf_3m = parseFloat(c.perf_3m) || 0.0;
-                        return sym_perf_3m >= (spyBenchmark + 15.0);
+                        const score = parseInt(c.heat_score) || 0;
+                        return score >= 80; // Only show 'A' and 'S' graded RS leaders
                     });
                 }
                 
@@ -3978,36 +4080,7 @@
                     `;
                 }
 
-                // [FRONTEND CURVE GRADING] Re-grade the elite list relative to each other using sortino
-                if (filteredCandidates.length > 0) {
-                    const validCandidates = filteredCandidates.filter(c => c.sortino !== undefined && c.sortino !== null);
-                    if (validCandidates.length > 0) {
-                        const maxPower = Math.max(...validCandidates.map(c => c.sortino));
-                        const minPower = Math.min(...validCandidates.map(c => c.sortino));
-                        
-                        filteredCandidates.forEach(c => {
-                            if (c.sortino === undefined || c.sortino === null) return;
-                            
-                            let percentile = 1.0;
-                            if (maxPower > minPower) {
-                                percentile = (c.sortino - minPower) / (maxPower - minPower);
-                            }
-                            
-                            // 40-100 UI visual sweep. S tier requires >= 95 (Top 8%)
-                            c.heat_score = Math.floor(40 + (percentile * 60));
-                            
-                            if (c.heat_score >= 95) c.grade = 'S';
-                            else if (c.heat_score >= 90) c.grade = 'A+';
-                            else if (c.heat_score >= 82) c.grade = 'A';
-                            else if (c.heat_score >= 75) c.grade = 'B+';
-                            else if (c.heat_score >= 65) c.grade = 'B';
-                            else if (c.heat_score >= 58) c.grade = 'C+';
-                            else if (c.heat_score >= 50) c.grade = 'C';
-                            else if (c.heat_score >= 35) c.grade = 'D';
-                            else c.grade = 'F';
-                        });
-                    }
-                }
+                // Preserve strict backend-calculated heat_scores and grades. Do not mutate on the frontend.
 
                 // Autonomously sort candidates from strongest to weakest using the internal heat score
                 filteredCandidates.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
@@ -4080,7 +4153,7 @@
                                     ${isRefreshing ? 
                                     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
                                     : 
-                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${c.symbol}')" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
+                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.handleReportIconClick(event, '${c.symbol}', ${c.has_report}, this.closest('tr'))" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
                                 </div>
                             </div>
                         </td>
@@ -4114,32 +4187,48 @@
                         safeTelemetry = "** [VLI_MONITOR]: TECHNICAL STATE LEAKAGE SUPPRESSED.**";
                     }
                     
-                    // Color code task prefixes
-                    let lines = safeTelemetry.split('\n');
+                    // Parse markdown FIRST so HTML spans don't get escaped
+                    let parsedHtml = marked.parse(safeTelemetry);
+                    
+                    // Color code task prefixes AFTER markdown parsing
+                    let lines = parsedHtml.split('\n');
                     let processedLines = lines.map(line => {
-                        let match = line.match(/^(\[\d{2}:\d{2}:\d{2}\]\s*(?:.*?(?:\*\*|||||||)\s*)?)?\[([A-Z0-9_ -]+)\](.*)/i);
+                        // 1. Convert our custom safe tokens back to HTML spans
+                        line = line.replace(/\[\[([^|]+)\|([^\]]+)\]\]/g, '<span style="color: $2;">($1)</span>');
+                        
+                        // 2. Regex matches standard HTML parsed formats for the Task Prefixes
+                        let match = line.match(/^(?:<p>)?(?:\[\d{2}:\d{2}:\d{2}\]\s*(?:.*?(?:\*\*|||||||)\s*)?)?(?:<strong>|\*\*)?([A-Z0-9_ -]+)(?::<\/strong>|:\*\*)?(.*)/i);
+                        
+                        // We do a more robust fallback check for our specific PHASE_B_EXECUTION pattern if the standard regex fails
+                        if (!match && line.includes("PHASE_B_EXECUTION")) {
+                           return line.replace("PHASE_B_EXECUTION:**", '<span style="color:#d2a8ff; font-weight:bold;">[PHASE_B_EXECUTION]</span>');
+                        }
+                        
                         if (match) {
-                            let prefix = match[1] || '';
-                            let taskName = match[2];
-                            let rest = match[3];
+                            let prefix = line.substring(0, line.indexOf(match[1]));
+                            let taskName = match[1];
+                            let rest = match[2];
                             
-                            let color = '#8b949e';
-                            let tUpper = taskName.toUpperCase();
-                            if (tUpper.includes('SPINE') || tUpper.includes('ROUTER')) color = '#58a6ff'; // Blue
-                            else if (tUpper.includes('NEWS') || tUpper.includes('BACKGROUND')) color = '#ff7b72'; // Red
-                            else if (tUpper.includes('FINANCE') || tUpper.includes('QUOTE')) color = '#3fb950'; // Green
-                            else if (tUpper.includes('ORCHESTRATOR') || tUpper.includes('COORDINATOR')) color = '#d2a8ff'; // Purple
-                            else if (tUpper.includes('WORKER') || tUpper.includes('ANALYST')) color = '#f0ad4e'; // Yellow
-                            else if (tUpper.includes('TELEMETRY')) color = '#a5d6ff'; // Light Blue
-                            else if (tUpper.includes('TV_SYNC')) color = '#6e7681'; // Mid-Gray
-                            
-                            return `${prefix}<span style="color:${color}; font-weight:bold;">[${taskName}]</span>${rest}`;
+                            // Let's only colorize if it looks like a task prefix (all caps, etc)
+                            if (taskName && taskName === taskName.toUpperCase() && taskName.length > 3) {
+                                let color = '#8b949e';
+                                let tUpper = taskName;
+                                if (tUpper.includes('SPINE') || tUpper.includes('ROUTER')) color = '#58a6ff'; // Blue
+                                else if (tUpper.includes('NEWS') || tUpper.includes('BACKGROUND')) color = '#ff7b72'; // Red
+                                else if (tUpper.includes('FINANCE') || tUpper.includes('QUOTE')) color = '#3fb950'; // Green
+                                else if (tUpper.includes('ORCHESTRATOR') || tUpper.includes('COORDINATOR') || tUpper.includes('PHASE_B_EXECUTION')) color = '#d2a8ff'; // Purple
+                                else if (tUpper.includes('WORKER') || tUpper.includes('ANALYST')) color = '#f0ad4e'; // Yellow
+                                else if (tUpper.includes('TELEMETRY')) color = '#a5d6ff'; // Light Blue
+                                else if (tUpper.includes('TV_SYNC')) color = '#6e7681'; // Mid-Gray
+                                
+                                // To avoid double-wrapping, replace the original text with the span
+                                return line.replace(taskName, `<span style="color:${color}; font-weight:bold;">[${taskName}]</span>`);
+                            }
                         }
                         return line;
                     });
-                    safeTelemetry = processedLines.join('\n');
-
-                    tBody.innerHTML = marked.parse(safeTelemetry);
+                    
+                    tBody.innerHTML = processedLines.join('\n');
                     tBody.dataset.lastContent = safeTelemetry;
 
                     if (wasAtBottom) {
@@ -4942,37 +5031,7 @@
                     tbody.innerHTML = `<tr style="border: none;"><td colspan="6" style="text-align: center; padding: 30px 10px; color: var(--text-muted); font-style: italic;">Scanner cache cleared. Standing by...</td></tr>`;
                 }
                 
-                // ELITE GRADING LOGIC (Shield: Sortino Momentum vs Core)
-                const validCandidates = res.candidates.filter(c => c.sortino !== undefined);
-                if (validCandidates.length > 0) {
-                    validCandidates.forEach(c => {
-                        c.raw_power = c.sortino; // Promote using purely structural momentum
-                    });
-                    
-                    const maxPower = Math.max(...validCandidates.map(c => c.raw_power));
-                    const minPower = Math.min(...validCandidates.map(c => c.raw_power));
-                    
-                    res.candidates.forEach(c => {
-                        if (c.raw_power === undefined) return;
-                        
-                        let percentile = 1.0;
-                        if (maxPower > minPower) {
-                            percentile = (c.raw_power - minPower) / (maxPower - minPower);
-                        }
-                        
-                        c.heat_score = Math.floor(40 + (percentile * 60));
-                        
-                        if (c.heat_score >= 95) c.grade = 'S';
-                        else if (c.heat_score >= 90) c.grade = 'A+';
-                        else if (c.heat_score >= 82) c.grade = 'A';
-                        else if (c.heat_score >= 75) c.grade = 'B+';
-                        else if (c.heat_score >= 65) c.grade = 'B';
-                        else if (c.heat_score >= 58) c.grade = 'C+';
-                        else if (c.heat_score >= 50) c.grade = 'C';
-                        else if (c.heat_score >= 35) c.grade = 'D';
-                        else c.grade = 'F';
-                    });
-                }
+                // Preserve strict backend-calculated heat_scores and grades. Do not mutate on the frontend.
                 
                 // Sort by elite heat_score
                 res.candidates.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
@@ -5048,7 +5107,7 @@
                                     ${isRefreshing ? 
                                     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
                                     : 
-                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.openReportModal('${c.symbol}')" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
+                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.handleReportIconClick(event, '${c.symbol}', ${c.has_report}, this.closest('tr'))" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
                                 </div>
                             </div>
                         </td>
@@ -5393,6 +5452,52 @@
             }
         };
         // --- REPORT VIEWER LOGIC ---
+        window.handleReportIconClick = async function(event, symbol, hasReport, rowElement) {
+            if (event) event.stopPropagation();
+            if (hasReport) {
+                window.openReportModal(symbol);
+            } else {
+                if (rowElement) {
+                    rowElement.style.opacity = '0.3';
+                    rowElement.style.filter = 'grayscale(1)';
+                }
+                try {
+                    const res = await fetch(`/api/vli/report/${symbol}?t=${Date.now()}`);
+                    const data = await res.json();
+                    
+                    if (data.success && data.content && data.content.length > 50) {
+                        appendSystemLog(`[ERROR] Resident report actually exists for ${symbol} despite GREY icon status! Cache inconsistency detected.`, 'var(--ruby-red)');
+                        if (rowElement) {
+                            rowElement.style.opacity = '1';
+                            rowElement.style.filter = 'none';
+                        }
+                    } else {
+                        appendSystemLog(`[SYSTEM] Initiating background generation for ${symbol}...`, 'var(--cobalt-blue)');
+                        const cliInput = document.getElementById('chat-input');
+                        const sendBtn = document.getElementById('chat-send-btn');
+                        if (cliInput && sendBtn) {
+                            const oldVal = cliInput.value;
+                            cliInput.value = `regenerate ${symbol}`;
+                            sendBtn.click();
+                            setTimeout(() => { cliInput.value = oldVal; }, 100);
+                        } else {
+                            // Fallback if elements named differently
+                            const inputAlt = document.querySelector('.vli-input');
+                            if (inputAlt) {
+                                inputAlt.value = `regenerate ${symbol}`;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error(e);
+                    if (rowElement) {
+                        rowElement.style.opacity = '1';
+                        rowElement.style.filter = 'none';
+                    }
+                }
+            }
+        };
+
         window.openReportModal = async function(symbol) {
             // Find a blank report viewer or spawn a new one via the UXManager
             let reportViewer = null;
@@ -5427,6 +5532,9 @@
                 const data = await res.json();
                 
                 if(data.success) {
+                    if (win) {
+                        win.dataset.artifactPath = data.path || `data/reports/analyze_${symbol.toLowerCase()}.md`;
+                    }
                     let formattedText = data.content;
                     let dynamicTitle = symbol.toUpperCase() + " Structural Analysis";
                     
@@ -6156,6 +6264,7 @@
                     
                     if (card) {
                         card.dataset.artifactPath = path;
+                        card.dataset.artifactName = name;
                         const titleEl = card.querySelector('.card-header > div:first-child > div:nth-child(2)');
                         if (titleEl) titleEl.innerText = name;
                         const contentEl = card.querySelector('.artifact-content');

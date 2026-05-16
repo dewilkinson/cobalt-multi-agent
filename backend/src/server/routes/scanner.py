@@ -127,9 +127,18 @@ async def get_bunker_list():
     try:
         with open(strike_list_path, "r", encoding="utf-8") as f:
             data = json.load(f)
+            updated_at = data.get("updated_at", data.get("metadata", {}).get("last_sync", None))
+            
+            payload = {"status": "success"}
             if isinstance(data, list):
-                return sanitize_data({"status": "success", "data": data})
-            return sanitize_data({"status": "success", "data": data.get("candidates", data.get("strike_list", []))})
+                payload["data"] = data
+            else:
+                payload["data"] = data.get("candidates", data.get("strike_list", []))
+                
+            if updated_at:
+                payload["updated_at"] = updated_at
+                
+            return sanitize_data(payload)
     except Exception as e:
         logger.error(f"Failed to read bunker: {e}")
         return {"status": "error", "message": str(e)}

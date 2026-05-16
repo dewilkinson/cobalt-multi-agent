@@ -10,12 +10,12 @@ LLMType = Literal["basic", "reasoning", "vision", "code", "core", "legacy"]
 
 # 1. Base dictionary for explicit mappings
 _BASE_AGENT_LLM_MAP: dict[str, LLMType] = {
-    "coordinator": "basic",
+    "coordinator": "reasoning",
     "parser": "basic",
     "planner": "basic",
     "synthesizer": "reasoning",
     "coder": "basic",
-    "reporter": "basic",
+    "reporter": "reasoning",
     "podcast_script_writer": "basic",
     "ppt_composer": "basic",
     "prose_writer": "basic",

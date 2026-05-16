@@ -5,6 +5,7 @@ from datetime import datetime
 from langchain_core.tools import tool
 import yfinance
 import httpx
+from tenacity import retry, stop_after_attempt, wait_exponential
 import os
 from src.services.datastore import DatastoreManager
 from src.utils.temporal import get_effective_now
@@ -51,10 +52,14 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
                 raise ValueError("[STABILITY] ALPHA_VANTAGE_API_KEY missing")
                 
             url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={t}&apikey={api_key}&entitlement=realtime&limit=20"
+            @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
             def _fetch_av_news():
-                return httpx.get(url, timeout=15.0)
+                r = httpx.get(url, timeout=45.0)
+                r.raise_for_status()
+                if "Error Message" in r.text or "Information" in r.text:
+                    raise RuntimeError("Alpha Vantage Rate Limit or API Error")
+                return r
             resp = await asyncio.to_thread(_fetch_av_news)
-            resp.raise_for_status()
             data = resp.json()
             
             feed = data.get("feed", [])
@@ -107,9 +112,10 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
         
     if not success and is_ticker:
         try:
+            @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
             def _fetch_yf_news():
                 return yfinance.Ticker(t).news[:5]
-            news_items = await asyncio.to_thread(_fetch_yf_news)
+            news_items = await asyncio.wait_for(asyncio.to_thread(_fetch_yf_news), timeout=15.0)
             
             if not news_items:
                 logger.warning(f"[NEWS] YFinance found no news for {t}, dropping to general web search.")
@@ -141,9 +147,12 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
             logger.info(f"[NEWS] Executing General Web Search for subject: {subject}")
             search_tool = get_web_search_tool(max_search_results=5)
             # Use ainvoke with strict timeout to prevent hanging the event loop
-            query_suffix = f" before:{ref_time.strftime('%Y-%m-%d')}"
-            query_str = f"{subject} latest breaking financial news{query_suffix}"
-            search_out = await asyncio.wait_for(search_tool.ainvoke(query_str), timeout=10.0)
+            @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+            async def _do_search():
+                query_suffix = f" before:{ref_time.strftime('%Y-%m-%d')}"
+                query_str = f"{subject} latest breaking financial news{query_suffix}"
+                return await asyncio.wait_for(search_tool.ainvoke(query_str), timeout=30.0)
+            search_out = await _do_search()
             
             report.append(f"### Web Search Intelligence")
             if isinstance(search_out, list):
@@ -154,12 +163,15 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
                         link = item.get("url", "#")
                         snippet = content[:250].replace('\n', ' ')
                         report.append(f"- **{title}**\n  > {snippet}...\n  [Source]({link})")
+                        raw_news_items.append(f"Headline: {title}\nSnippet: {snippet}...\nSource: {link}")
             else:
                 report.append(str(search_out)[:500])
+                raw_news_items.append(f"Web Search Results:\n{str(search_out)[:500]}")
             success = True
         except Exception as e:
             logger.error(f"Web Search fallback failed for {subject}: {e}")
-            return f"[ERROR]: Failed to fetch any news for {subject}: {e}"
+            error_msg = f"<span style='color:var(--ruby-red); font-weight:bold;'>[ERROR] NEWS RETRIEVAL FAILED FOR {subject}: {e}</span>"
+            return error_msg
 
     if is_ticker:
         try:
@@ -172,8 +184,11 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
                 source = source.strip()
                 if not source: continue
                 query = f"site:{source} {t} stock sentiment{query_suffix}"
+                @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+                async def _do_social_search(q):
+                    return await asyncio.wait_for(search_tool_social.ainvoke(q), timeout=25.0)
                 try:
-                    social_out = await asyncio.wait_for(search_tool_social.ainvoke(query), timeout=8.0)
+                    social_out = await _do_social_search(query)
                     report.append(f"#### {source.capitalize()}")
                     if isinstance(social_out, list):
                         for item in social_out:
@@ -185,8 +200,10 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
                                     continue
                                 snippet = content[:250].replace('\n', ' ')
                                 report.append(f"- **{title}**: {snippet}...")
+                                raw_news_items.append(f"Social Post: {title}\nSnippet: {snippet}...\nSource: {source}")
                     else:
                         report.append(str(social_out)[:500])
+                        raw_news_items.append(f"Social Results ({source}):\n{str(social_out)[:500]}")
                 except asyncio.TimeoutError:
                     logger.warning(f"Social search timeout for {source}")
                     report.append(f"#### {source.capitalize()}\nData Unavailable (Timeout)")
@@ -274,10 +291,14 @@ async def get_macro_news(refresh: bool = False) -> str:
     if api_key:
         try:
             url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=economy_macro&apikey={api_key}&entitlement=realtime&limit=10"
+            @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
             def _fetch_av_macro_news():
-                return httpx.get(url, timeout=15.0)
+                r = httpx.get(url, timeout=45.0)
+                r.raise_for_status()
+                if "Error Message" in r.text or "Information" in r.text:
+                    raise RuntimeError("Alpha Vantage Rate Limit or API Error")
+                return r
             resp = await asyncio.to_thread(_fetch_av_macro_news)
-            resp.raise_for_status()
             data = resp.json()
             
             feed = data.get("feed", [])

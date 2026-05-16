@@ -226,6 +226,12 @@ def get_llm_by_type(llm_type: LLMType) -> BaseChatModel:
     conf = load_yaml_config(_get_config_file_path())
     llm = _create_llm_use_conf(llm_type, conf)
     
+    # [NEW] Attach Token Tracker Callback
+    from src.utils.token_tracker import TokenUsageCallbackHandler
+    if not llm.callbacks:
+        llm.callbacks = []
+    llm.callbacks.append(TokenUsageCallbackHandler())
+    
     # [SAFETY] Wrap the LLM in the Quota Shield
     protected_llm = QuotaProtectedLLM(llm, llm_type)
     
