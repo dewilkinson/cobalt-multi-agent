@@ -416,16 +416,19 @@ async def vli_node(
                 plan_intent = getattr(current_plan, "intent", "") if isinstance(current_plan, Plan) else current_plan.get("intent", "")
                 is_direct_final = is_direct or (plan_intent == "EXECUTE_DIRECT")
                 
-                logger.info(f"[VLI_SPINE] Final Intent Audit: is_direct={is_direct}, plan_intent={plan_intent}, final={is_direct_final}")
+                # [FIX] Do not re-synthesize Journaler outputs to preserve strict markdown templates
+                is_journal_final = (msg_name == "journaler")
+                
+                logger.info(f"[VLI_SPINE] Final Intent Audit: is_direct={is_direct}, plan_intent={plan_intent}, final={is_direct_final}, journal={is_journal_final}")
                 
                 return Command(
                     update={
                         "steps_completed": steps_completed, 
-                        "intent": "EXECUTE_DIRECT" if is_direct_final else state_intent,
+                        "intent": "EXECUTE_DIRECT" if (is_direct_final or is_journal_final) else state_intent,
                         "current_plan": current_plan,
                         "metadata": state.get("metadata", {})
                     }, 
-                    goto=END if is_direct_final or state.get("raw_data_mode") else "reporter"
+                    goto=END if (is_direct_final or is_journal_final) or state.get("raw_data_mode") else "reporter"
                 )
             elif current_plan and steps_completed < plan_len:
                 logger.info(f"[VLI_SPINE] Plan in progress ({steps_completed}/{plan_len}). Routing to next step.")

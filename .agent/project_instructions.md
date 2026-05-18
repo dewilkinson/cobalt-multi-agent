@@ -13,7 +13,13 @@
 
 
 ## MANDATORY FOR BUG FIXES
-Due to a high number of 'hallucinated fixes', all AI generated code changes must be fully tested before returning a 'fixed' summary to the user. To determine which test to run, refer to the local chat context to determine which one to run. If no valid test exists, then create one and ensure a passing result
+Due to a high number of 'hallucinated fixes', all AI generated code changes must be fully tested before returning a 'fixed' summary to the user. To determine which test to run, refer to the local chat context to determine which one to run. If no valid test exists, then create one and ensure a passing result.
+
+**Unbreakable TDD Sequence for Code Modifications:**
+1. **Test Creation BEFORE Modification (Red Phase):** Before using code-editing tools (`replace_file_content` or `write_to_file`), first write a self-contained, automated test script (e.g., in `tests/unit/`) that explicitly tests the interface and expected output.
+2. **Forced Failure:** Run that test script and verify that it fails, proving that the test accurately captures the broken state.
+3. **Implementation (Green Phase):** Only after a proven failure will you modify the actual source code to implement the fix.
+4. **Automated Verification:** Run the exact same test script and achieve a clean, automated pass. Ad-hoc `python -c` terminal one-liners to manually read output files are permanently banned as "proof" of a fix.
 
 ## Operational Accuracy & Verification Protocol
 1. **Data Provenance Tracing:** Never assume the active generation engine based on filenames. Always start at the target output (e.g., final JSON cache, UI view) and trace the execution path backwards (checking config, env vars, and app routing) before modifying code.

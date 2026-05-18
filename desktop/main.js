@@ -23,7 +23,26 @@ async function waitForServer() {
                 }
             }
         } catch (error) {
-            // Ignore fetch errors while waiting for boot
+            console.log(`[VLI-Electron] Backend health check failed (attempt ${i + 1}/${maxRetries}):`, error.message);
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    return false;
+}
+
+async function waitForWeb() {
+    const webPort = isDev ? 3000 : 8080;
+    console.log(`[VLI-Electron] Waiting for Next.js web client to initialize on port ${webPort}...`);
+    const maxRetries = 120; // Wait up to 120 seconds (Next.js compilation takes time)
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const response = await fetch(`http://127.0.0.1:${webPort}/`);
+            if (response.ok) {
+                console.log('[VLI-Electron] Web client is online!');
+                return true;
+            }
+        } catch (error) {
+            console.log(`[VLI-Electron] Web client check failed (attempt ${i + 1}/${maxRetries}):`, error.message);
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
@@ -34,12 +53,7 @@ function startBackend() {
     const backendPath = path.join(__dirname, '..', 'backend');
     console.log('[VLI-Electron] Starting backend from:', backendPath);
     
-    try {
-        // Run bump_version.py synchronously
-        execSync('uv run python bump_version.py', { cwd: backendPath, stdio: 'ignore' });
-    } catch (e) {
-        console.error('[VLI-Electron] Failed to bump version:', e.message);
-    }
+    // Removed automatic version bumping on every launch
 
     const serverArgs = ['run', 'server.py'];
     if (isDev) {
@@ -91,16 +105,7 @@ function createWindow() {
     });
 
     // We start loading the URL only after the Python server confirms it is alive
-    mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(`
-        <html>
-            <body style="background-color: #0a0c10; color: #58a6ff; font-family: monospace; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
-                <div style="text-align: center;">
-                    <h2>VLI DESKTOP</h2>
-                    <p>Booting Backend and Orchestrator servers...</p>
-                </div>
-            </body>
-        </html>
-    `));
+    mainWindow.loadFile('boot.html');
 }
 
 app.whenReady().then(async () => {
@@ -111,20 +116,16 @@ app.whenReady().then(async () => {
 
     const isOnline = await waitForServer();
     
+    // We still start the web server in the background, but we don't block the Electron UI on it
+    waitForWeb().catch(err => console.error('[VLI-Electron] Web check error:', err));
+    
     if (isOnline) {
-        mainWindow.loadURL('http://127.0.0.1:8000/vli_dashboard.html');
+        console.log(`[VLI-Electron] Navigating to VLI Dashboard`);
+        mainWindow.loadURL(`http://127.0.0.1:8000/vli_dashboard.html`)
+            .then(() => console.log('[VLI-Electron] Successfully navigated to VLI Dashboard!'))
+            .catch(err => console.log('[VLI-Electron] Failed to navigate:', err));
     } else {
-        mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(`
-            <html>
-                <body style="background-color: #0a0c10; color: #f85149; font-family: monospace; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
-                    <div style="text-align: center;">
-                        <h2>BOOT FAILURE</h2>
-                        <p>The Python backend failed to boot within 60 seconds.</p>
-                        <p>Please check the terminal logs for errors.</p>
-                    </div>
-                </body>
-            </html>
-        `));
+        mainWindow.loadFile('error.html');
     }
 
     app.on('activate', () => {

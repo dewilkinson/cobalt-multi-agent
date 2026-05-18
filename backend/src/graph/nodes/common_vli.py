@@ -323,9 +323,14 @@ async def _setup_and_execute_agent_step(state, config, agent_type, tools, agent_
                  content_str = "\n".join(content_parts)
         else:
              content_str = str(content_val)
-        
-        new_messages[-1] = AIMessage(content=content_str, name=f"{agent_type}_finalize")
-        
+        # Preserve telemetry metadata for dashboard token tracking
+        new_kwargs = {}
+        if hasattr(last_msg, "usage_metadata") and last_msg.usage_metadata:
+            new_kwargs["usage_metadata"] = last_msg.usage_metadata
+        if hasattr(last_msg, "response_metadata") and last_msg.response_metadata:
+            new_kwargs["response_metadata"] = last_msg.response_metadata
+            
+        new_messages[-1] = AIMessage(content=content_str, name=f"{agent_type}_finalize", **new_kwargs)
     # [SILENT_MODE] Suppression prefix for UI
     if state.get("silent_mode"):
         for m in new_messages:

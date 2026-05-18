@@ -12,6 +12,8 @@ import traceback
 import sys
 from datetime import datetime
 from typing import Dict, Any, List
+from zoneinfo import ZoneInfo
+from src.tools.finance import _fetch_batch_history, _extract_ticker_data
 
 from src.tools.scanner import (
     _build_session_watchlist_impl, 
@@ -280,6 +282,32 @@ async def scanner_stream():
             for r in phase0_raw:
                 norm_s = normalized_map.get(r["symbol"])
                 r["sortino"] = sortino_map_norm.get(norm_s, 0.0)
+
+            yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Fetching 5-day Sparkline data for {len(search_symbols)} symbols...'}), cls=NpEncoder)}\n\n"
+            try:
+                NY_TZ = ZoneInfo("America/New_York")
+                sparkline_data = await asyncio.to_thread(_fetch_batch_history, search_symbols, "5d", "1h")
+                for r in phase0_raw:
+                    norm_s = normalized_map.get(r["symbol"])
+                    sparkline = []
+                    if norm_s:
+                        try:
+                            ticker_spark_df = _extract_ticker_data(sparkline_data, norm_s)
+                            if not ticker_spark_df.empty:
+                                last_10 = ticker_spark_df.tail(10)
+                                for _, row in last_10.iterrows():
+                                    ts = row.name
+                                    if ts.tzinfo is None:
+                                        ts = ts.replace(tzinfo=ZoneInfo("UTC"))
+                                    sparkline.append({"v": float(row["Close"]), "t": ts.astimezone(NY_TZ).strftime(" %m/%d  %I:%M %p").lower()})
+                        except Exception as e:
+                            logger.error(f"Sparkline error for {norm_s}: {e}")
+                    r["sparkline"] = sparkline
+            except Exception as e:
+                logger.error(f"Sparkline batch fetch failed: {e}")
+                for r in phase0_raw:
+                    if "sparkline" not in r:
+                        r["sparkline"] = []
 
             
             yield f"data: {json.dumps(sanitize_data({'type': 'telemetry', 'msg': f'Sortino calculations complete for {len(phase0_raw)} symbols.'}), cls=NpEncoder)}\n\n"

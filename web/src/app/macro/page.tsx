@@ -883,17 +883,22 @@ export default function MacroDashboard() {
                             className="group"
                           >
                             <td className="py-3">
-                              <div className="flex flex-col">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-emerald-400 font-bold text-sm">{c.symbol}</span>
-                                  {c.cvd_warning && (
-                                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/20 border border-rose-500/50 text-[9px] font-bold text-rose-400 uppercase tracking-tighter" title="BULL TRAP: Negative CVD Divergence (Volume eroding on Higher Highs)">
-                                      <AlertTriangle className="w-3 h-3 animate-pulse" />
-                                      TRAP
-                                    </div>
-                                  )}
+                              <div className="flex items-center gap-3">
+                                <div className="flex-shrink-0 opacity-80 ring-1 ring-emerald-500/20 rounded p-0.5 bg-emerald-500/5">
+                                  <Sparkline data={c.sparkline ?? []} color="#10b981" />
                                 </div>
-                                <span className="text-[9px] text-slate-600 font-mono">{c.timestamp}</span>
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-emerald-400 font-bold text-sm">{c.symbol}</span>
+                                    {c.cvd_warning && (
+                                      <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/20 border border-rose-500/50 text-[9px] font-bold text-rose-400 uppercase tracking-tighter" title="BULL TRAP: Negative CVD Divergence (Volume eroding on Higher Highs)">
+                                        <AlertTriangle className="w-3 h-3 animate-pulse" />
+                                        TRAP
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-[9px] text-slate-600 font-mono">{c.timestamp}</span>
+                                </div>
                               </div>
                             </td>
                             <td className="py-3 text-white font-mono text-xs">

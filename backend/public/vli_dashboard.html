@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0099";
+        const VLI_CLIENT_VERSION = "00.000.0107";
     </script>
     
     <link
@@ -4022,6 +4022,7 @@
                                         <th style="padding: 4px 2px; text-align: left;">SYMBOL</th>
                                         <th style="padding: 4px 2px; text-align: right;">PRICE</th>
                                         <th style="padding: 4px 2px; text-align: right;">CHANGE</th>
+                                        <th style="padding: 4px 2px; text-align: right;">TREND</th>
                                         <th style="padding: 4px 2px; text-align: right;">SORTINO</th>
                                         <th style="padding: 4px 2px; text-align: center;">GRADE</th>
                                     </tr>
@@ -4145,6 +4146,11 @@
                         <td style="padding: 4px 2px; color: #fff; font-weight: 700;">${c.symbol}</td>
                         <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</td>
                         <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
+                        <td style="padding: 4px 2px; text-align: right;">
+                            <div style="display: flex; justify-content: flex-end; opacity: 0.8;">
+                                ${drawSparkline(c.sparkline && c.sparkline.length > 0 ? c.sparkline.map(x => x.v) : [], c.symbol)}
+                            </div>
+                        </td>
                         <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
                         <td style="padding: 4px 2px;">
                             <div style="display: flex; align-items: center; justify-content: flex-end;">

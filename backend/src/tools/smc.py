@@ -204,7 +204,7 @@ async def run_smc_analysis(ticker: str, interval: str = "auto") -> str:
         m_struct_detail = ""
         if not mDF.empty:
             mDF.columns = [c.lower() for c in mDF.columns]
-            mSwings = smc.swing_highs_lows(mDF, swing_length=15)
+            mSwings = smc.swing_highs_lows(mDF, swing_length=5)
             mStruct = smc.bos_choch(mDF, mSwings)
             lb = mStruct[mStruct["BOS"].fillna(0) != 0].tail(1)
             lc = mStruct[mStruct["CHOCH"].fillna(0) != 0].tail(1)

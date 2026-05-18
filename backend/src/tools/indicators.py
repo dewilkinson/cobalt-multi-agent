@@ -460,6 +460,91 @@ async def get_sortino_ratio(ticker: str, target_price: float = 0.0, period: str 
             return {"error": str(e), "sortino": 0.0}
 
     res = await asyncio.to_thread(compute, ticker, target_price, period, interval, mode)
-    # ALWAYS return string for the tool infrastructure, but internal callers can json.loads
     return json.dumps(res)
 
+
+@tool
+async def get_intraday_snapshot(ticker: str, trade_time: str) -> str:
+    """
+    Primitive: Retrieves historical intraday metrics exactly up to the trade_time.
+    Used by Journaler to accurately grade the execution environment without morning-bias.
+    """
+    def compute(symbol: str, time_str: str):
+        try:
+            trade_dt = pd.to_datetime(time_str)
+        except Exception as e:
+            return f"Error parsing trade_time '{time_str}': {e}"
+            
+        # We fetch 5d 5m data to have enough history for RSI and Sortino
+        df = _fetch_stock_history(symbol, "5d", "5m")
+        if df.empty:
+            return f"Error: No data for {symbol}"
+            
+        df.columns = [str(c).lower() for c in df.columns]
+        
+        # Truncate to exact trade_time
+        # Convert df.index to naive if trade_dt is naive
+        if df.index.tz is not None and trade_dt.tzinfo is None:
+            df.index = df.index.tz_localize(None)
+        elif df.index.tz is None and trade_dt.tzinfo is not None:
+            trade_dt = trade_dt.tz_localize(None)
+            
+        df = df[df.index <= trade_dt]
+        if df.empty or len(df) < 10:
+            return f"Error: Not enough data for {symbol} before {time_str}"
+            
+        # 1. RSI
+        df_rsi = calculate_rsi(df.copy())
+        rsi = df_rsi["rsi"].iloc[-1] if not pd.isna(df_rsi["rsi"].iloc[-1]) else 50.0
+        
+        # 2. Sortino (Day Trading Mode: p_rf = 0)
+        returns = df["close"].pct_change().dropna()
+        downside_dev = calculate_downside_deviation(returns, 0.0)
+        annualization_factor = np.sqrt(78 * 252)
+        avg_return = returns.mean()
+        sortino = ((avg_return) / downside_dev) * annualization_factor if downside_dev > 0 else 0.0
+        
+        # 3. Volume Profile (POC)
+        bins = np.linspace(df["low"].min(), df["high"].max(), 25)
+        bin_vols = np.zeros(24)
+        for _, row in df.iterrows():
+            high, low, vol = row['high'], row['low'], row['volume']
+            if high > low:
+                for i in range(24):
+                    bin_low, bin_high = bins[i], bins[i+1]
+                    if high < bin_low or low > bin_high:
+                        continue
+                    overlap_high = min(high, bin_high)
+                    overlap_low = max(low, bin_low)
+                    fraction = (overlap_high - overlap_low) / (high - low)
+                    bin_vols[i] += vol * fraction
+            else:
+                for i in range(24):
+                     if low >= bins[i] and low <= bins[i+1]:
+                         bin_vols[i] += vol
+        poc_idx = np.argmax(bin_vols)
+        poc_price = (bins[poc_idx] + bins[poc_idx+1]) / 2
+
+        # 4. CVD (Cumulative Volume Delta)
+        df['delta'] = np.where(df['close'] >= df['open'], df['volume'], -df['volume'])
+        cvd = df['delta'].sum()
+        
+        # 5. RVOL
+        sma_vol = df['volume'].rolling(window=20).mean().iloc[-1]
+        current_vol = df['volume'].iloc[-1]
+        rvol = current_vol / sma_vol if not pd.isna(sma_vol) and sma_vol > 0 else 1.0
+        
+        payload = {
+            "ticker": symbol.upper(),
+            "trade_time": str(trade_dt),
+            "execution_price": float(df['close'].iloc[-1]),
+            "rsi": round(float(rsi), 2),
+            "sortino": round(float(sortino), 2),
+            "poc": round(float(poc_price), 2),
+            "current_volume": int(current_vol),
+            "cvd": int(cvd),
+            "rvol": round(float(rvol), 2)
+        }
+        return json.dumps(payload, indent=2)
+        
+    return await asyncio.to_thread(compute, ticker, trade_time)

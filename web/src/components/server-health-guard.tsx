@@ -49,14 +49,10 @@ export function ServerHealthGuard({ children }: { children: React.ReactNode }) {
         
         if (res.ok) {
           const data = await res.json();
-          if (data.version === CLIENT_VERSION) {
+          if (data.version) {
             if (intervalRef.current) clearInterval(intervalRef.current);
             setStatus("connected");
             setTimeout(() => setVisible(false), 1000);
-          } else if (!restartAttempted.current) {
-            restartAttempted.current = true;
-            setStatus("restarting");
-            await fetch(`${getBackendBaseURL()}/api/system/restart`, { method: "POST" });
           }
         }
       } catch (err) {

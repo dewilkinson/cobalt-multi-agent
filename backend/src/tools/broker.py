@@ -390,19 +390,41 @@ async def get_daily_blotter(days_back: int = 2):
             
     # Embed Reports
     blotter_text += "\n\n=== STRUCTURAL ANALYSIS REPORTS ===\n"
+    from src.utils.compression import condense_artifact
     for ticker in unique_tickers:
         r_path = os.path.join(reports_dir, f"analyze_{ticker.lower()}.md")
-        if os.path.exists(r_path):
+        dense_path = os.path.join(reports_dir, f"analyze_{ticker.lower()}.dense.md")
+        
+        if os.path.exists(dense_path):
             try:
-                with open(r_path, "r", encoding="utf-8") as f:
-                    blotter_text += f"\n\n--- Analysis for {ticker} ---\n"
+                with open(dense_path, "r", encoding="utf-8") as f:
+                    blotter_text += f"\n\n--- Analysis for {ticker} (Condensed) ---\n"
                     blotter_text += f.read()
             except Exception as e:
-                logger.error(f"Failed to read report for {ticker}: {e}")
+                logger.error(f"Failed to read condensed report for {ticker}: {e}")
+        elif os.path.exists(r_path):
+            try:
+                with open(r_path, "r", encoding="utf-8") as f:
+                    raw_text = f.read()
+                
+                # Compress on the fly
+                compressed_text = await condense_artifact(raw_text)
+                
+                # Cache it for future runs
+                try:
+                    with open(dense_path, "w", encoding="utf-8") as f:
+                        f.write(compressed_text)
+                except Exception as e:
+                    logger.warning(f"Failed to cache condensed report for {ticker}: {e}")
+                    
+                blotter_text += f"\n\n--- Analysis for {ticker} (Condensed) ---\n"
+                blotter_text += compressed_text
+            except Exception as e:
+                logger.error(f"Failed to read/condense report for {ticker}: {e}")
         else:
             blotter_text += f"\n\n--- Analysis for {ticker} ---\n[REPORT MISSING OR FAILED TO GENERATE]"
 
-    directive = "\n\n[CRITICAL DIRECTIVE TO AI: The text above contains the user's raw executions followed by the structural analysis for the tickers they traded. Your job is NOT to repeat the structural analysis. Your job is to ACT AS A POST-TRADE ANALYST. You must mathematically grade the user's entry and exit efficiency against the POC, VAH, VAL, and High/Low ranges mentioned in the analysis. Did they buy the top? Did they sell the bottom? Did they follow the strategy? Provide a highly critical Post-Trade Efficiency Report! CRITICAL: YOU ARE STRICTLY FORBIDDEN FROM ESTIMATING OR CALCULATING THE DRAWDOWN OR PNL. You MUST use the exact 'SINGLE-DAY PNL' figure provided at the top of the execution list for daily reports, to prevent confusing multi-day views with single session performance.]"
+    directive = "\n\n[CRITICAL DIRECTIVE TO AI: The text above contains the user's raw executions followed by the structural analysis for the tickers they traded. Your job is NOT to repeat the structural analysis. Your job is to ACT AS A POST-TRADE ANALYST. You must mathematically grade the user's entry and exit efficiency against the POC, VAH, VAL, and High/Low ranges mentioned in the analysis. Did they buy the top? Did they sell the bottom? Did they follow the strategy? CRITICAL: YOU ARE STRICTLY FORBIDDEN FROM ESTIMATING OR CALCULATING THE DRAWDOWN OR PNL. You MUST use the exact 'SINGLE-DAY PNL' figure provided at the top of the execution list. MOST IMPORTANTLY: You MUST format the final output EXACTLY matching the 'Journal Template Reference' found in your system prompt. Do not invent your own headings or structure. Follow the template perfectly.]"
     return blotter_text + directive
 
 

@@ -5,19 +5,26 @@ import hashlib
 BASE_DIR = os.path.dirname(__file__)
 VERSION_FILE = os.path.join(BASE_DIR, 'src', 'version.py')
 HTML_FILE = os.path.join(BASE_DIR, 'public', 'vli_dashboard.html')
+REACT_VERSION_FILE = os.path.join(BASE_DIR, '..', 'web', 'src', 'core', 'config', 'version.ts')
 HASH_FILE = os.path.join(BASE_DIR, '.version_hash')
 
 def get_dir_hash():
     hasher = hashlib.md5()
-    for root_dir in [os.path.join(BASE_DIR, 'src'), os.path.join(BASE_DIR, 'public')]:
+    dirs_to_hash = [
+        os.path.join(BASE_DIR, 'src'),
+        os.path.join(BASE_DIR, 'public'),
+        os.path.join(BASE_DIR, '..', 'web', 'src')
+    ]
+    for root_dir in dirs_to_hash:
+        if not os.path.exists(root_dir):
+            continue
         for root, _, files in os.walk(root_dir):
             for f in sorted(files):
-                if f.endswith(('.py', '.html', '.js', '.css')) and f != 'version.py':
+                if f.endswith(('.py', '.html', '.js', '.css', '.ts', '.tsx')) and f != 'version.py' and f != 'version.ts':
                     filepath = os.path.join(root, f)
                     with open(filepath, 'rb') as file_obj:
                         content = file_obj.read()
                         if f == 'vli_dashboard.html':
-                            # Exclude the version string from the hash so bumping doesn't trigger endless bumps
                             content = re.sub(rb'const VLI_CLIENT_VERSION\s*=\s*"[^"]+";', b'', content)
                         hasher.update(content)
     return hasher.hexdigest()
@@ -65,6 +72,17 @@ html_content = re.sub(
 
 with open(HTML_FILE, 'w', encoding='utf-8') as f:
     f.write(html_content)
+
+if os.path.exists(REACT_VERSION_FILE):
+    with open(REACT_VERSION_FILE, 'r', encoding='utf-8') as f:
+        react_content = f.read()
+    react_content = re.sub(
+        r'export const CLIENT_VERSION\s*=\s*"[^"]+";',
+        f'export const CLIENT_VERSION = "{new_version}";',
+        react_content
+    )
+    with open(REACT_VERSION_FILE, 'w', encoding='utf-8') as f:
+        f.write(react_content)
 
 with open(HASH_FILE, 'w') as f:
     f.write(current_hash)

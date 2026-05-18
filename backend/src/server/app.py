@@ -60,6 +60,11 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Qu
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 
+try:
+    from src.version import SERVER_VERSION
+except ImportError:
+    SERVER_VERSION = "00.000.0000"
+
 # --- VLI GLOBAL STATE ---
 _vli_extracted_alerts = []  # [{symbol, label, color}]
 _vli_macro_worker_task = None
@@ -697,9 +702,8 @@ async def reset_scheduler_logs():
 @app.get("/api/health")
 async def health_check():
     try:
-        from src.version import SERVER_VERSION
         return {"status": "ok", "version": SERVER_VERSION}
-    except ImportError:
+    except Exception:
         return {"status": "ok", "version": "00.000.0000"}
 
 
@@ -1042,8 +1046,10 @@ async def open_local_artifact(request: OpenLocalRequest):
 # Add CORS middleware
 # It's recommended to load the allowed origins from an environment variable
 # for better security and flexibility across different environments.
-allowed_origins_str = get_str_env("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8089,http://127.0.0.1:8089,http://localhost:8000,http://127.0.0.1:8000,https://digital.fidelity.com")
+allowed_origins_str = get_str_env("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8089,http://127.0.0.1:8089,http://localhost:8000,http://127.0.0.1:8000,https://digital.fidelity.com")
 allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
+if "http://127.0.0.1:3000" not in allowed_origins:
+    allowed_origins.append("http://127.0.0.1:3000")
 
 logger.info(f"Allowed origins: {allowed_origins}")
 
