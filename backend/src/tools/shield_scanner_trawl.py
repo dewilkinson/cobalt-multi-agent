@@ -336,6 +336,22 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
             
             v["grade"] = grade
             v["heat_score"] = heat_score
+
+        # Enforce grade caps (max 3 S grades, max 4 A/A+ grades)
+        s_count = 0
+        a_count = 0
+        for v in verified_list:
+            if v["grade"] == "S":
+                if s_count >= 3:
+                    v["grade"] = "A+"
+                else:
+                    s_count += 1
+            
+            if v["grade"] in ["A+", "A"]:
+                if a_count >= 4:
+                    v["grade"] = "B+"
+                else:
+                    a_count += 1
     
     # 4. Persistence
     existing_list = []

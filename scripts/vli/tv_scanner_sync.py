@@ -349,6 +349,22 @@ def sync_vli_scanners():
             v["grade"] = grade
             v["heat_score"] = heat_score
 
+        # Enforce grade caps (max 3 S grades, max 4 A/A+ grades)
+        s_count = 0
+        a_count = 0
+        for v in deduped_candidates:
+            if v["grade"] == "S":
+                if s_count >= 3:
+                    v["grade"] = "A+"
+                else:
+                    s_count += 1
+            
+            if v["grade"] in ["A+", "A"]:
+                if a_count >= 4:
+                    v["grade"] = "B+"
+                else:
+                    a_count += 1
+
         # Final Dashboard State
         dashboard_state = {
             "pulse_mode": "TradingView (HIGH-FIDELITY)",
@@ -390,7 +406,12 @@ def sync_vli_scanners():
             json.dump(dashboard_state, f, indent=4)
 
         # Persist to Obsidian Vault for real-time UI rendering
-        vault_path = r"c:\github\obsidian-vault\_cobalt\01_Transit\Buckets\STRIKE_RES_state.json"
+        try:
+            from src.config.vli import get_vli_path
+            vault_path = get_vli_path(os.path.join("01_Transit", "Buckets", "STRIKE_RES_state.json"))
+        except:
+            vault_path = r"c:\github\obsidian-vault\_cobalt\01_Transit\Buckets\STRIKE_RES_state.json"
+            
         if os.path.exists(os.path.dirname(vault_path)):
             with open(vault_path, 'w') as f:
                 json.dump(dashboard_state, f, indent=4)

@@ -624,6 +624,25 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
     miss_results.sort(key=lambda x: x["raw_power"], reverse=True)
     # scanned_results.extend(miss_results[:10])
 
+    # Enforce Grade Caps: max 3 'S' grades, max 4 'A' grades
+    scanned_results.sort(key=lambda x: x["raw_power"], reverse=True)
+    
+    s_count = 0
+    a_count = 0
+    
+    for res in scanned_results:
+        if res["grade"] == "S":
+            if s_count >= 3:
+                res["grade"] = "A"
+            else:
+                s_count += 1
+                
+        if res["grade"] == "A":
+            if a_count >= 4:
+                res["grade"] = "B"
+            else:
+                a_count += 1
+
     response_obj = sanitize_data({
         "pulse_mode": "AlphaVantage (PREMIUM)" if has_premium_av else "YFinance (FALLBACK)",
         "total_pulsed": int(len(t_list)),
