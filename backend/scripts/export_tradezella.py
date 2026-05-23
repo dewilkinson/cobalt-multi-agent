@@ -4,11 +4,12 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 import os
 
-cache_path = "C:/github/cobalt-multi-agent/data/brokerage_cache.json"
-output_path = "C:/github/cobalt-multi-agent/data/exports/tradezella-import-20260401-20260516.csv"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+cache_path = os.path.join(BASE_DIR, "data", "brokerage_cache.json")
+output_path = os.path.join(BASE_DIR, "data", "exports", "tradezella-import-20260401-20260516.csv")
 
 def process(start_date="2026-04-01", end_date="2026-05-16"):
-    output_path = f"C:/github/cobalt-multi-agent/data/exports/tradezella-import-{start_date.replace('-','')}-{end_date.replace('-','')}.csv"
+    output_path = os.path.join(BASE_DIR, "data", "exports", f"tradezella-import-{start_date.replace('-','')}-{end_date.replace('-','')}.csv")
     
     with open(cache_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -16,6 +17,8 @@ def process(start_date="2026-04-01", end_date="2026-05-16"):
     trades_to_export = []
     
     for account_name, account_data in data.items():
+        if account_name != "Rollover IRA *5513":
+            continue
         if "activities" not in account_data: continue
         
         all_activities = []
