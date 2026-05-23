@@ -1,6 +1,6 @@
 import os
 
-file_path = r"c:\github\cobalt-multi-agent\backend\src\server\app.py"
+file_path = r"C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\backend\src\server\app.py"
 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
     for i, line in enumerate(f, 1):
         if "TV_SYNC" in line:

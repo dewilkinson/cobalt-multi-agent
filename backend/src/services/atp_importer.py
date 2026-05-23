@@ -83,9 +83,14 @@ def parse_atp_history(csv_path: str):
         lines = f.readlines()
     
     header_idx = -1
+    is_activity = False
     for i, line in enumerate(lines):
         if line.startswith("Run Date,Account"):
             header_idx = i
+            break
+        elif line.startswith("Description,Symbol,Quantity"):
+            header_idx = i
+            is_activity = True
             break
             
     if header_idx == -1: return {}
@@ -96,15 +101,23 @@ def parse_atp_history(csv_path: str):
     activities_by_account = {}
     
     for row in reader:
-        action_desc = (row.get("Action") or "").upper()
-        sym = (row.get("Symbol") or "").upper().strip()
-        account_name = (row.get("Account") or "").strip()
-        account_num = (row.get("Account Number") or "").strip()
-        account = f"{account_name} *{account_num[-4:]}" if account_name and account_num else "mock-fidelity-1"
-        
-        qty_str = (row.get("Quantity") or "0").replace(',', '')
-        price_str = (row.get("Price ($)") or "0").replace(',', '')
-        date_str = row.get("Run Date") or ""
+        if is_activity:
+            action_desc = (row.get("Description") or "").upper()
+            sym = (row.get("Symbol") or "").upper().strip()
+            account = (row.get("Account") or "mock-fidelity-1").strip()
+            qty_str = (row.get("Quantity") or "0").replace(',', '')
+            price_str = (row.get("Price") or "0").replace(',', '').replace('$', '')
+            date_str = row.get("Settlement Date") or ""
+        else:
+            action_desc = (row.get("Action") or "").upper()
+            sym = (row.get("Symbol") or "").upper().strip()
+            account_name = (row.get("Account") or "").strip()
+            account_num = (row.get("Account Number") or "").strip()
+            account = f"{account_name} *{account_num[-4:]}" if account_name and account_num else "mock-fidelity-1"
+            
+            qty_str = (row.get("Quantity") or "0").replace(',', '')
+            price_str = (row.get("Price ($)") or "0").replace(',', '')
+            date_str = row.get("Run Date") or ""
         
         action = ""
         if "BOUGHT" in action_desc: action = "BUY"
@@ -307,7 +320,7 @@ def get_dropzone_csvs(optional_path=None):
         lower_name = os.path.basename(c).lower()
         if "orders" in lower_name and not csvs["orders"]:
             csvs["orders"] = c
-        elif "history" in lower_name and not csvs["history"]:
+        elif ("history" in lower_name or "activity" in lower_name) and not csvs["history"]:
             csvs["history"] = c
         elif "positions" in lower_name and "closed" not in lower_name and not csvs["positions"]:
             csvs["positions"] = c

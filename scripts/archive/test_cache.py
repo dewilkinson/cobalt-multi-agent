@@ -1,5 +1,5 @@
 import json
-with open('c:/github/cobalt-multi-agent/data/brokerage_cache.json', 'r') as f:
+with open('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/data/brokerage_cache.json', 'r') as f:
     data = json.load(f)
 for account, activities in data.items():
     print(f'Account {account}: {len(activities)} activities')

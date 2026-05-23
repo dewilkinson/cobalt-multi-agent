@@ -3,7 +3,7 @@ import json
 import os
 import shutil
 
-sys.path.append('c:/github/cobalt-multi-agent/backend')
+sys.path.append('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend')
 from src.services.brokerage_cache import BrokerageCache
 from src.services.atp_importer import parse_atp_orders
 
@@ -16,7 +16,7 @@ for account, data in cache.items():
 BrokerageCache._save_cache(cache)
 
 # 2. Re-parse the Orders CSV and merge
-orders_csv = 'c:/github/cobalt-multi-agent/data/dropzone/archive/Orders_All_Accounts.csv'
+orders_csv = 'C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/data/dropzone/archive/Orders_All_Accounts.csv'
 orders_data = parse_atp_orders(orders_csv)
 for account, acts in orders_data.items():
     if acts:

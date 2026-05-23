@@ -1,5 +1,5 @@
 import json
-d = json.load(open('c:/github/cobalt-multi-agent/data/brokerage_cache.json'))
+d = json.load(open('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/data/brokerage_cache.json'))
 acts = d.get('Rollover IRA *5513', {}).get('activities', [])
 acts = sorted(acts, key=lambda a: a.get('trade_date', a.get('time_placed', '')))
 

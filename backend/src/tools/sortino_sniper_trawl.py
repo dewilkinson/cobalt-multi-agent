@@ -226,6 +226,13 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
             finally:
                 await browser.close()
 
+    if csv_path.exists():
+        try:
+            os.rename(csv_path, str(csv_path) + f".processed_{int(time.time())}")
+            logger.info(f"Cleaned up {csv_path} to prevent stale data reuse.")
+        except Exception as e:
+            logger.warning(f"Could not clean up {csv_path}: {e}")
+
     if not candidates:
         return {"status": "error", "message": "No candidates identified during Stage 1."}
 

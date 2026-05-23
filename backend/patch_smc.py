@@ -1,6 +1,6 @@
 import os
 
-path = r'c:\github\cobalt-multi-agent\backend\src\tools\smc.py'
+path = r'C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\backend\src\tools\smc.py'
 with open(path, 'r', encoding='utf-8') as f:
     content = f.read()
 

@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timedelta, timezone
 
-with open('c:/github/cobalt-multi-agent/data/brokerage_cache.json', 'r', encoding='utf-8') as f:
+with open('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/data/brokerage_cache.json', 'r', encoding='utf-8') as f:
     cache = json.load(f)
 
 today_dt = datetime.now(timezone.utc)

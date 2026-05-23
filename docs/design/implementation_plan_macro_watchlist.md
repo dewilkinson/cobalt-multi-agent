@@ -4,12 +4,12 @@ This plan outlines the steps required to implement the "Unified Asset-Bucket Spe
 
 ## Proposed Changes
 
-### `c:/github/cobalt-multi-agent/backend/src/tools/`
+### `C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/src/tools/`
 #### [MODIFY] `finance.py`
 Build new distinct tool to fulfill the macro-bucket requirements.
 *   **`CALC_REGIME`**: Maps to a new `get_macro_regime(ticker)` async tool. It will check the latest price against basic thresholds (e.g., if `$VIX` > 20 return "STRESS", otherwise "NORMAL").
 
-### `c:/github/cobalt-multi-agent/backend/src/services/`
+### `C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/src/services/`
 #### [MODIFY] `asset_bucket.py`
 Upgrade the Asset-Bucket engine to evaluate "watchlist-class" features, multi-frequency operation scheduling, and background prioritization constraints.
 *   Update `load_config` and `_sync_with_external_scheduler` to properly handle operation-specific intervals (e.g., 1 minute for Price/Volume, 5 minutes for OHCL/SMC).

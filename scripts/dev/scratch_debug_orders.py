@@ -1,6 +1,6 @@
 import os, sys, json
 from dotenv import load_dotenv
-load_dotenv('C:\\github\\cobalt-multi-agent\\backend\\.env', override=True)
+load_dotenv('C:\\Users\\rende\\.gemini\\antigravity\\worktrees\\cobalt-multi-agent\\backend\\.env', override=True)
 from snaptrade_client import SnapTrade
 client = SnapTrade(client_id=os.getenv('SNAPTRADE_CLIENT_ID'), consumer_key=os.getenv('SNAPTRADE_CONSUMER_KEY'))
 uid = os.getenv('SNAPTRADE_USER_ID')

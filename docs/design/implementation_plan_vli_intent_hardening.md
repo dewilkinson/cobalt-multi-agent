@@ -14,7 +14,7 @@ This plan refactors the VLI Spine routing from simple keyword triggers (like "sm
 
 ### VLI Spine Routing Logic
 
-#### [MODIFY] [vli.py](file:///c:/github/cobalt-multi-agent/backend/src/graph/nodes/vli.py)
+#### [MODIFY] [vli.py](file:///C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/src/graph/nodes/vli.py)
 
 - **Define Semantic Intent Buckets**:
   - `QUESTION_WORDS`: `["what", "how", "why", "describe", "define", "meaning", "mean", "explain", "info"]`

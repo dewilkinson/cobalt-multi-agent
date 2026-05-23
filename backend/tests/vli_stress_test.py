@@ -200,7 +200,7 @@ def export_report(chunk_index, results):
         f.write("\n".join(md_lines))
 
     # Also save as JSON for the separate latency analysis test
-    log_dir = r"c:\github\cobalt-multi-agent\backend\logs"
+    log_dir = r"C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\backend\logs"
     os.makedirs(log_dir, exist_ok=True)
     json_file = os.path.join(log_dir, f"stress_test_report_chunk_{chunk_index}.json")
     with open(json_file, "w", encoding="utf-8") as f:

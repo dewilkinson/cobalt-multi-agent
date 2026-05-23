@@ -1,7 +1,7 @@
 import asyncio
 import sys
 
-sys.path.append("c:\\github\\cobalt-multi-agent\\backend")
+sys.path.append("C:\\Users\\rende\\.gemini\\antigravity\\worktrees\\cobalt-multi-agent\\backend")
 from src.tools.finance import run_smc_analysis
 
 

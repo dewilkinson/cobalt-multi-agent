@@ -7,14 +7,14 @@ from uuid import uuid4
 
 # Setup Environment
 os.environ["OBSIDIAN_VAULT_PATH"] = "c:/github/obsidian-vault"
-sys.path.append("c:/github/cobalt-multi-agent/backend")
+sys.path.append("C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend")
 
 from langchain_core.messages import AIMessage, HumanMessage
 
 from src.graph.builder import graph
 
 # Simulation Data Store
-SIM_HISTORY_PATH = "c:/github/cobalt-multi-agent/backend/simulation_history.json"
+SIM_HISTORY_PATH = "C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/simulation_history.json"
 
 
 async def get_vault_state():

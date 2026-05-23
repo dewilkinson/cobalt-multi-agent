@@ -7,7 +7,7 @@ This is the architectural draft to harden the Vision Specialist node, shifting i
 ### 1. Hybrid OCR Architecture (Local + Cloud Fallback)
 To ensure cross-platform compatibility across both desktop clients and mobile deployment, we will build a resilient OCR loader that prefers local execution but seamlessly fails over to cloud compute.
 
-#### [MODIFY] [backend/src/tools/vision.py](file:///c:/github/cobalt-multi-agent/backend/src/tools/vision.py)
+#### [MODIFY] [backend/src/tools/vision.py](file:///C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/src/tools/vision.py)
 * Add `extract_axis_ratio(image_b64: str) -> dict`.
 * **Logic Flow**:
   1. Detect platform/environment via `os.name` and configuration flags.
@@ -19,7 +19,7 @@ To ensure cross-platform compatibility across both desktop clients and mobile de
 ### 2. Environment & Configuration
 We must introduce the image manipulation libraries and update configuration variables to allow override controls.
 
-#### [MODIFY] [requirements.txt](file:///c:/github/cobalt-multi-agent/backend/requirements.txt)
+#### [MODIFY] [requirements.txt](file:///C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/requirements.txt)
 * Add `opencv-python>=4.8.0` for image numpy slicing.
 * Add `pytesseract>=0.3.10` for local OCR attempts.
 
@@ -29,7 +29,7 @@ We must introduce the image manipulation libraries and update configuration vari
 ### 3. Agent Instruction Overhaul
 We need to remove the LLM's permission to guess axis values globally.
 
-#### [MODIFY] [backend/src/prompts/vision_specialist.md](file:///c:/github/cobalt-multi-agent/backend/src/prompts/vision_specialist.md) (or node equivalent)
+#### [MODIFY] [backend/src/prompts/vision_specialist.md](file:///C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/src/prompts/vision_specialist.md) (or node equivalent)
 * **Instruction Additions**:
   1. "You are forbidden from visually estimating prices from the axis."
   2. "When evaluating a chart, first call `extract_axis_ratio` to fetch the mathematical pixel scale."
@@ -38,7 +38,7 @@ We need to remove the LLM's permission to guess axis values globally.
 ### 4. Bounding Box Interpolator Tool
 We will provide a pure mathematical tool to the LLM so it doesn't try to interpolate the float decimals itself.
 
-#### [MODIFY] [backend/src/tools/vision.py](file:///c:/github/cobalt-multi-agent/backend/src/tools/vision.py)
+#### [MODIFY] [backend/src/tools/vision.py](file:///C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/src/tools/vision.py)
 * Add `interpolate_price_from_pixel(pixel_y: int, ratio_data: dict) -> float`.
 * The LLM passes its visually identified pixel coordinate to the tool, and the backend handles the rigid arithmetic to return the exact price.
 

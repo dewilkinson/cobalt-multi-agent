@@ -1,5 +1,5 @@
 import csv
-with open(r'c:\github\cobalt-multi-agent\data\dropzone\archive\Orders_All_Accounts.csv', 'r', encoding='utf-8-sig') as f:
+with open(r'C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\data\dropzone\archive\Orders_All_Accounts.csv', 'r', encoding='utf-8-sig') as f:
     reader = csv.DictReader(f)
     for row in reader:
         sym = row.get("Symbol", "")

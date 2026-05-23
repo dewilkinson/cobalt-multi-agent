@@ -2,7 +2,7 @@ import json, os
 from collections import Counter
 
 files = [
-    'c:/github/cobalt-multi-agent/backend/data/STRIKE_LIST.json',
+    'C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/data/STRIKE_LIST.json',
     'c:/github/obsidian-vault/_cobalt/01_Transit/Buckets/SCANNER_RES_state.json',
     'c:/github/obsidian-vault/_cobalt/01_Transit/Buckets/STRIKE_RES_state.json'
 ]

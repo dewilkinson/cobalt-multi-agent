@@ -132,7 +132,7 @@ async def reporter_node(state: State, config: RunnableConfig):
         # Add the explicit directive
         messages.append(HumanMessage(content=f"DIRECTIVE: {state.get('directive', 'Generate summary report.')}"))
         
-        with open(r'c:\github\cobalt-multi-agent\backend\reporter_prompt_debug.txt', 'w', encoding='utf-8') as f:
+        with open(r'C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\backend\reporter_prompt_debug.txt', 'w', encoding='utf-8') as f:
             f.write("\n\n=== MESSAGE ===\n\n".join([str(m) for m in messages]))
         
         from src.graph.nodes.common_vli import _run_node_with_tiered_fallback
@@ -196,7 +196,7 @@ async def reporter_node(state: State, config: RunnableConfig):
         logger.error(f"Reporter Synthesis Error: {str(e)}", exc_info=True)
         # [DIAGNOSTIC] Provide visibility into the exact error triggering the recovery baseline
         try:
-            with open(r"c:\github\cobalt-multi-agent\backend\template_debug.log", "a") as df:
+            with open(r"C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\backend\template_debug.log", "a") as df:
                 import traceback
                 df.write(f"\n{datetime.now()}: REPORTER OUTAGE FATAL ERROR: {str(e)}\n{traceback.format_exc()}")
         except:

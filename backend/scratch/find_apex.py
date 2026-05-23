@@ -1,6 +1,6 @@
 import os
 
-root_dir = r"c:\github\cobalt-multi-agent\backend"
+root_dir = r"C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\backend"
 for root, dirs, files in os.walk(root_dir):
     if ".venv" in root: continue
     for file in files:

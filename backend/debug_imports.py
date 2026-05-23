@@ -3,7 +3,7 @@ import sys
 
 # Setup Environment AS SEEN in simulation script
 os.environ["OBSIDIAN_VAULT_PATH"] = "c:/github/obsidian-vault"
-sys.path.append("c:/github/cobalt-multi-agent/backend")
+sys.path.append("C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend")
 
 print("--- sys.path ---")
 for p in sys.path:

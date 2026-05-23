@@ -1,5 +1,5 @@
 import asyncio, json, sys, os
-sys.path.append(os.path.abspath('c:\\github\\cobalt-multi-agent\\backend'))
+sys.path.append(os.path.abspath('C:\\Users\\rende\\.gemini\\antigravity\\worktrees\\cobalt-multi-agent\\backend'))
 from src.server.routes.scanner import scanner_stream
 
 async def test():

@@ -8,7 +8,7 @@ if backend_dir not in sys.path:
 
 from src.services.brokerage_cache import BrokerageCache
 
-with open('c:/github/cobalt-multi-agent/data/fidelity_orders_dom.html', 'r', encoding='utf-8') as f:
+with open('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/data/fidelity_orders_dom.html', 'r', encoding='utf-8') as f:
     html = f.read()
 
 payload = {

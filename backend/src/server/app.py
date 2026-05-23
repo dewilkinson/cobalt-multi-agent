@@ -3373,7 +3373,7 @@ async def _invoke_vli_agent(
         return "Agent processing timed out (300s).", {}
     except Exception as e:
         import traceback
-        with open("C:\\github\\cobalt-multi-agent\\backend\\vli_error.txt", "w") as f:
+        with open("C:\\Users\\rende\\.gemini\\antigravity\\worktrees\\cobalt-multi-agent\\backend\\vli_error.txt", "w") as f:
             f.write(traceback.format_exc())
         logger.error(f"VLI Agent: Failed with error: {e}")
         return scrub_vli_output(f"Agent reasoning encountered a failure: {str(e)}"), {}

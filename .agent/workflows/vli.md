@@ -10,6 +10,6 @@ This workflow allows you to talk to your local VLI backend (running on 127.0.0.1
 ```bash
 python scripts/call_vli.py '<user_question_text>'
 ```
-*(Make sure your working directory is `c:\github\cobalt-multi-agent\backend`. Also note the single quotes around the question to prevent PowerShell eating dollar signs for Tickers!)*
+*(Make sure your working directory is `C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\backend`. Also note the single quotes around the question to prevent PowerShell eating dollar signs for Tickers!)*
     
 3. Print out the raw stdout exactly as returned from the VLI.

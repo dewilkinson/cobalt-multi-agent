@@ -1,6 +1,6 @@
 import os
 
-path_scanner = r'c:\github\cobalt-multi-agent\backend\src\tools\scanner.py'
+path_scanner = r'C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\backend\src\tools\scanner.py'
 with open(path_scanner, 'r', encoding='utf-8') as f:
     content = f.read()
 
@@ -12,7 +12,7 @@ content = content.replace('"float_max": 100_000_000,', '"float_max": 400_000_000
 with open(path_scanner, 'w', encoding='utf-8') as f:
     f.write(content)
 
-path_trawl = r'c:\github\cobalt-multi-agent\backend\src\tools\sortino_sniper_trawl.py'
+path_trawl = r'C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\backend\src\tools\sortino_sniper_trawl.py'
 with open(path_trawl, 'r', encoding='utf-8') as f:
     content_trawl = f.read()
 

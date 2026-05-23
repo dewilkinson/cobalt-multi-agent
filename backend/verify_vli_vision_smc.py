@@ -9,7 +9,7 @@ from src.graph.nodes.vision_specialist import vision_specialist_node
 
 
 async def run_vision_test():
-    image_path = r"C:\github\cobalt-multi-agent\samples\NVDA_1H.png"
+    image_path = r"C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\samples\NVDA_1H.png"
     if not os.path.exists(image_path):
         print(f"Error: {image_path} not found.")
         return

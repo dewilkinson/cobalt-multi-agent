@@ -38,7 +38,7 @@ graph TD
 
 ### 1. Tiered Execution Architecture
 
-#### [MODIFY] [vli.py](file:///c:/github/cobalt-multi-agent/backend/src/graph/nodes/vli.py)
+#### [MODIFY] [vli.py](file:///C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/src/graph/nodes/vli.py)
 
 | Layer | Type | Mechanism | Latency | Result Style |
 | :--- | :--- | :--- | :--- | :--- |
@@ -54,7 +54,7 @@ graph TD
 
 ### 2. Prompt & Schema Stabilization
 
-#### [MODIFY] [parser.md](file:///c:/github/cobalt-multi-agent/backend/src/prompts/parser.md)
+#### [MODIFY] [parser.md](file:///C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/src/prompts/parser.md)
 *   **Intent Definitions**:
     *   `EXECUTE_DIRECT`: Math, Algebra, and Administrative sync only.
     *   `MARKET_INSIGHT`: All pricing, macros, tickers, and analysis.

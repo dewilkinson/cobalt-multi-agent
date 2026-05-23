@@ -1,5 +1,5 @@
 import sys
-sys.path.append('c:/github/cobalt-multi-agent/backend')
+sys.path.append('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend')
 from src.services.brokerage_cache import BrokerageCache
 
 d = BrokerageCache._load_cache()

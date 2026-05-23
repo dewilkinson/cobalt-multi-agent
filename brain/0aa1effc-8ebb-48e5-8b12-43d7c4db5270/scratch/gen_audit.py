@@ -65,4 +65,4 @@ def generate_audit_table(import_file):
         print(f"| {row[0]} | **{row[1]}** | {row[2]} | {row[3]} | {row[4]} |")
 
 if __name__ == "__main__":
-    generate_audit_table("c:/github/cobalt-multi-agent/tools/csv-to-tradezella/logs/tradezella-import.txt")
+    generate_audit_table("C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/tools/csv-to-tradezella/logs/tradezella-import.txt")

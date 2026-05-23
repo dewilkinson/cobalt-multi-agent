@@ -5,7 +5,7 @@ from uuid import uuid4
 
 # Setup Environment
 os.environ["OBSIDIAN_VAULT_PATH"] = "c:/github/obsidian-vault"
-sys.path.append("c:/github/cobalt-multi-agent/backend")
+sys.path.append("C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend")
 
 from langchain_core.messages import HumanMessage
 

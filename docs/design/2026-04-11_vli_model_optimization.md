@@ -17,7 +17,7 @@ This plan re-configures the agent-to-model mapping (`AGENT_LLM_MAP`) to balance 
 
 ### [VLI Configuration]
 
-#### [MODIFY] [agents.py](file:///c:/github/cobalt-multi-agent/backend/src/config/agents.py)
+#### [MODIFY] [agents.py](file:///C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/src/config/agents.py)
 Update the `_BASE_AGENT_LLM_MAP` with the new optimized tiers.
 
 ```python

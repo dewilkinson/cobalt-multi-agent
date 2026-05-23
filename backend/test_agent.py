@@ -1,6 +1,6 @@
 import asyncio
 import sys
-sys.path.append('c:\\github\\cobalt-multi-agent\\backend')
+sys.path.append('C:\\Users\\rende\\.gemini\\antigravity\\worktrees\\cobalt-multi-agent\\backend')
 from src.server.app import _invoke_vli_agent
 
 async def main():

@@ -140,7 +140,7 @@ def apply_prompt_template(prompt_name: str, state: AgentState, configurable: Con
 
     try:
         # [DIAGNOSTIC] Log keys to a scratch file
-        with open(r"c:\github\cobalt-multi-agent\backend\template_debug.log", "a") as df:
+        with open(r"C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\backend\template_debug.log", "a") as df:
             df.write(f"\n{datetime.now()}: Rendering {prompt_name} | Keys: {list(state_vars.keys())}")
             
         template = env.get_template(f"{prompt_name}.md")

@@ -8,7 +8,7 @@ To implement `AssetBucket` as a robust, asynchronous component within the Cobalt
 ## Proposed Changes
 
 ### `src/services/`
-#### [NEW] `c:/github/cobalt-multi-agent/backend/src/services/asset_bucket.py`
+#### [NEW] `C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/src/services/asset_bucket.py`
 This will house the core `AssetBucket` class engine.
 *   **Upgrades from Spec:**
     *   **Asynchronous Engine:** `update()` and `_execute_op()` will be converted to `async def` and utilize `asyncio.gather` for concurrent fetching across the `assets` list to minimize latency.

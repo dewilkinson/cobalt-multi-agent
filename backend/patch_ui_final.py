@@ -1,5 +1,5 @@
 import os
-path = r'c:\github\cobalt-multi-agent\backend\public\vli_dashboard.html'
+path = r'C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\backend\public\vli_dashboard.html'
 with open(path, 'r', encoding='utf-8') as f:
     content = f.read()
 
