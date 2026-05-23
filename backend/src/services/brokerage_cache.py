@@ -120,6 +120,38 @@ class BrokerageCache:
             logger.error(f"Failed to save brokerage cache: {e}")
 
     @classmethod
+    def get_backup_dir(cls) -> str:
+        """
+        Resolves the backup directory from configuration (conf.yaml -> BACKUP_POLICY.archive_dir).
+        Defaults to 'G:\\Cobalt\\archive'.
+        Falls back to local project 'data/archive' if the configured directory is not writable/accessible.
+        """
+        from src.config.loader import get_config
+        
+        try:
+            config = get_config()
+        except Exception as e:
+            logger.warning(f"Failed to load application configuration: {e}. Using default values.")
+            config = {}
+            
+        backup_policy = config.get("BACKUP_POLICY", {})
+        archive_dir = backup_policy.get("archive_dir", "G:\\Cobalt\\archive")
+        
+        # Verify if archive_dir is accessible/writable
+        try:
+            os.makedirs(archive_dir, exist_ok=True)
+            if os.path.exists(archive_dir):
+                return archive_dir
+        except Exception as e:
+            logger.warning(f"Configured backup directory '{archive_dir}' is not accessible: {e}. Falling back to local data/archive.")
+            
+        # Fallback path (project root data/archive)
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+        fallback_dir = os.path.join(project_root, "data", "archive")
+        os.makedirs(fallback_dir, exist_ok=True)
+        return fallback_dir
+
+    @classmethod
     def backup_cache(cls, is_weekly: bool = False) -> None:
         """
         Takes a scheduled backup of the current brokerage cache.
@@ -129,13 +161,12 @@ class BrokerageCache:
             
         import shutil
         from datetime import datetime
+        import glob
         
-        base_dir = os.path.dirname(CACHE_FILE)
         filename = os.path.basename(CACHE_FILE)
         name, ext = os.path.splitext(filename)
         
-        archive_dir = os.path.join(base_dir, "archive")
-        os.makedirs(archive_dir, exist_ok=True)
+        archive_dir = cls.get_backup_dir()
         
         if is_weekly:
             date_str = datetime.now().strftime("%Y-%m-%d")
@@ -154,7 +185,7 @@ class BrokerageCache:
                         shutil.make_archive(journal_backup, 'zip', full_journal_dir)
                         logger.info(f"Backed up Obsidian journals to {journal_backup}.zip")
                         
-                reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
+                reports_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", 'data', 'reports'))
                 if os.path.exists(reports_dir):
                     reports_backup = os.path.join(archive_dir, f"AnalysisReportsBackup_{date_str}")
                     shutil.make_archive(reports_backup, 'zip', reports_dir)
@@ -165,9 +196,27 @@ class BrokerageCache:
             
             logger.info(f"Created weekly BrokerageCache backup: {backup_path}")
         else:
-            backup_path = os.path.join(archive_dir, f"BrokerageCacheDailyBackup{ext}")
-            shutil.copy2(CACHE_FILE, backup_path)
-            logger.info(f"Created daily BrokerageCache backup: {backup_path}")
+            # Daily backups rolling 7-day rotation
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            new_backup_filename = f"BrokerageCacheDailyBackup_{date_str}{ext}"
+            new_backup_path = os.path.join(archive_dir, new_backup_filename)
+            
+            shutil.copy2(CACHE_FILE, new_backup_path)
+            logger.info(f"Created daily BrokerageCache backup: {new_backup_path}")
+            
+            # Scan for existing daily backups to rotate
+            pattern = os.path.join(archive_dir, "BrokerageCacheDailyBackup_*json")
+            existing_backups = glob.glob(pattern)
+            existing_backups.sort()
+            
+            if len(existing_backups) > 7:
+                files_to_delete = existing_backups[:-7]
+                for file_path in files_to_delete:
+                    try:
+                        os.remove(file_path)
+                        logger.info(f"Deleted old daily backup: {file_path}")
+                    except Exception as e:
+                        logger.error(f"Failed to delete old backup {file_path}: {e}")
 
     @classmethod
     def backup_cache_daily(cls) -> None:

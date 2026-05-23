@@ -45,3 +45,6 @@ BASIC_MODEL:
 #   # Exclude results from these domains
 #   exclude_domains:
 #     - example.com
+
+BACKUP_POLICY:
+  archive_dir: "G:\\Cobalt\\archive"

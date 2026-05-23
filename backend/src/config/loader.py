@@ -88,4 +88,7 @@ def load_yaml_config(file_path: str) -> dict[str, Any]:
 
 def get_config() -> dict[str, Any]:
     """Retrieves the main application configuration (backend/conf.yaml)."""
+    default_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "conf.yaml"))
+    if os.path.exists(default_path):
+        return load_yaml_config(default_path)
     return load_yaml_config("conf.yaml")

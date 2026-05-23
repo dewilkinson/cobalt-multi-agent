@@ -329,6 +329,45 @@ def get_dropzone_csvs(optional_path=None):
             
     return csvs
 
+def check_and_backup_dropzone_file(csv_path: str):
+    """
+    Checks if a processed dropzone CSV file contains Date and Time of the trades.
+    If so, copies it to the configured backup directory (with fallback).
+    """
+    if not csv_path or not os.path.exists(csv_path):
+        return
+        
+    # Check if the file contains both Date and Time of the trades
+    # Fidelity ATP order files contain "Order Time" header
+    contains_date_time = False
+    try:
+        with open(csv_path, 'r', encoding='utf-8-sig', errors='ignore') as f:
+            first_lines = "".join([f.readline() for _ in range(50)])  # read first 50 lines
+            if "Order Time" in first_lines or ("Date" in first_lines and "Time" in first_lines):
+                contains_date_time = True
+    except Exception as e:
+        logger.error(f"Error checking headers of {csv_path}: {e}")
+        
+    if contains_date_time:
+        import shutil
+        from src.services.brokerage_cache import BrokerageCache
+        
+        try:
+            backup_dir = BrokerageCache.get_backup_dir()
+            os.makedirs(backup_dir, exist_ok=True)
+            
+            # Format filename to include a timestamp to prevent overwriting
+            base, ext = os.path.splitext(os.path.basename(csv_path))
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
+            backup_filename = f"{base}_{timestamp}{ext}"
+            backup_path = os.path.join(backup_dir, backup_filename)
+            
+            shutil.copy2(csv_path, backup_path)
+            logger.info(f"Backed up dropzone order history file {os.path.basename(csv_path)} to {backup_path}")
+        except Exception as e:
+            logger.error(f"Failed to backup dropzone file {csv_path}: {e}")
+
+
 def process_dropzone_files(optional_path=None):
     import shutil
     from src.services.brokerage_cache import BrokerageCache
@@ -359,6 +398,9 @@ def process_dropzone_files(optional_path=None):
         
     # Process Orders
     if csvs["orders"]:
+        # Backup before moving
+        check_and_backup_dropzone_file(csvs["orders"])
+        
         orders_data = parse_atp_orders(csvs["orders"])
         for account, acts in orders_data.items():
             if acts:

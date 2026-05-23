@@ -71,8 +71,6 @@ def extract_trades():
     export_paths = [
         output_path,  # data/exports/tradezella-import-this-week.csv
         output_path.replace('tradezella-import-this-week.csv', 'tradezella-import.csv'),  # data/exports/tradezella-import.csv
-        output_path.replace('/data/exports/tradezella-import-this-week.csv', '/backend/data/exports/tradezella-import-this-week.csv'),  # backend/data/exports/tradezella-import-this-week.csv
-        output_path.replace('/data/exports/tradezella-import-this-week.csv', '/backend/data/exports/tradezella-import.csv')  # backend/data/exports/tradezella-import.csv
     ]
     
     print(f'Writing {len(trades_to_export)} trades to exports:')
