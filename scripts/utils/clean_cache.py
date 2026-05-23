@@ -2,11 +2,11 @@ import json
 import os
 import sys
 
-sys.path.append(r'c:\github\cobalt-multi-agent\backend')
+sys.path.append(r'C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\backend')
 from src.services.brokerage_cache import BrokerageCache
 from src.services.atp_importer import parse_atp_history, parse_atp_orders
 
-cache_file = r'c:\github\cobalt-multi-agent\data\brokerage_cache.json'
+cache_file = r'C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\data\brokerage_cache.json'
 with open(cache_file, 'r') as f:
     data = json.load(f)
 
@@ -19,8 +19,8 @@ with open(cache_file, 'w') as f:
 
 print("Cache cleared. Re-importing...")
 
-hist = parse_atp_history(r'c:\github\cobalt-multi-agent\data\dropzone\archive\Accounts_History (27).csv')
-orders = parse_atp_orders(r'c:\github\cobalt-multi-agent\data\dropzone\archive\Orders_All_Accounts.csv')
+hist = parse_atp_history(r'C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\data\dropzone\archive\Accounts_History (27).csv')
+orders = parse_atp_orders(r'C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\data\dropzone\archive\Orders_All_Accounts.csv')
 
 for acct, acts in hist.items():
     if acts:

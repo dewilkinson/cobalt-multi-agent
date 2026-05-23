@@ -4,7 +4,7 @@ import httpx
 from datetime import datetime, timezone, timedelta
 
 async def test_endpoint():
-    with open('c:/github/cobalt-multi-agent/data/brokerage_cache.json', 'r') as f:
+    with open('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/data/brokerage_cache.json', 'r') as f:
         cache = json.load(f)
     account_id = list(cache.keys())[0]
 

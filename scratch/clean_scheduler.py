@@ -2,8 +2,8 @@ import json
 import os
 from datetime import datetime
 
-scheduler_json = 'c:\\github\\cobalt-multi-agent\\data\\scheduler.json'
-scheduler_log = 'c:\\github\\cobalt-multi-agent\\data\\scheduler.log'
+scheduler_json = 'C:\\Users\\rende\\.gemini\\antigravity\\worktrees\\cobalt-multi-agent\\data\\scheduler.json'
+scheduler_log = 'C:\\Users\\rende\\.gemini\\antigravity\\worktrees\\cobalt-multi-agent\\data\\scheduler.log'
 
 try:
     with open(scheduler_json, 'r') as f:

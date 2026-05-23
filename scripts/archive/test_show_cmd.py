@@ -8,7 +8,7 @@ query = 'show cpt report'
 show_match = re.match(r'^(show|display)\s+(?:(report|news|quote)\s+(?:for\s+)?)?([a-zA-Z\.\=\^]+)(?:\s+(report|news|quote))?$', query)
 print('Regex Match:', show_match.groups() if show_match else 'None')
 
-sys.path.append(r'c:\github\cobalt-multi-agent\backend')
+sys.path.append(r'C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\backend')
 try:
     from src.graph.nodes.vli import vli_node
     from langchain_core.messages import HumanMessage

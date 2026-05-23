@@ -1,5 +1,5 @@
 import sys, json, os, csv, io
-sys.path.append('c:/github/cobalt-multi-agent/backend')
+sys.path.append('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend')
 from src.services.brokerage_cache import BrokerageCache
 import datetime
 
@@ -36,8 +36,8 @@ def parse_history(csv_path):
         acts.append({'sym': sym, 'action': action, 'qty': qty, 'price': price, 'date': dt_obj})
     return acts
 
-acts_2025 = parse_history('c:/github/cobalt-multi-agent/data/dropzone/Activity_2025.csv')
-acts_2026 = parse_history('c:/github/cobalt-multi-agent/data/dropzone/Activity_2026.csv')
+acts_2025 = parse_history('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/data/dropzone/Activity_2025.csv')
+acts_2026 = parse_history('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/data/dropzone/Activity_2026.csv')
 all_acts = acts_2025 + acts_2026
 
 # Sort chronological (oldest first), and Buy before Sell if same day

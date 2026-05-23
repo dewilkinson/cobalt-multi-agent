@@ -1,5 +1,5 @@
 import json
-d = json.load(open('c:/github/cobalt-multi-agent/data/brokerage_cache.json'))
+d = json.load(open('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/data/brokerage_cache.json'))
 for act_id, acc_data in d.items():
     acts = acc_data.get('activities', [])
     ampx_acts = [a for a in acts if (isinstance(a.get('symbol'), dict) and a.get('symbol').get('symbol') == 'AMPX') or a.get('symbol') == 'AMPX']

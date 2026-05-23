@@ -29,7 +29,7 @@ Cobalt is built with a Security-First mindset:
 
 ## ️ License
 
-Project Cobalt is released under the PolyForm Noncommercial License 1.0.0.
+Project Cobalt is released under the Apache License 2.0.
 - **Individual Investors**: Free to use, modify, and study for personal trading activities.
 - **Commercial Entities**: Institutional use, for-profit redistribution, or commercial integration is strictly prohibited.
 

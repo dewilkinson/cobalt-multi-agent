@@ -1,7 +1,7 @@
 <!--
 # Cobalt Multiagent - High-fidelity financial analysis platform
 # Copyright (c) 2026 Dave Wilkinson <dwilkins@bluesec.ai>
-# License: PolyForm Noncommercial 1.0.0
+License: Apache License 2.0
 -->
 ---
 CURRENT_TIME: {{ CURRENT_TIME }}

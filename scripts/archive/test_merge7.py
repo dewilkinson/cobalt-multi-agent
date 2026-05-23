@@ -2,7 +2,7 @@ import json
 import re
 from bs4 import BeautifulSoup
 
-with open('c:/github/cobalt-multi-agent/data/fidelity_extension_debug_dom.html', 'r', encoding='utf-8') as f:
+with open('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/data/fidelity_extension_debug_dom.html', 'r', encoding='utf-8') as f:
     html = f.read()
 
 soup = BeautifulSoup(html, 'html.parser')
@@ -32,7 +32,7 @@ for row in rows:
 
 print(f"Total extracted: {len(extracted)}")
 
-with open('c:/github/cobalt-multi-agent/data/brokerage_cache.json', 'r', encoding='utf-8') as f:
+with open('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/data/brokerage_cache.json', 'r', encoding='utf-8') as f:
     cache = json.load(f)
 
 merged_count = 0

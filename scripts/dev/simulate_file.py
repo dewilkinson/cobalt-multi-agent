@@ -6,7 +6,7 @@ import os
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     page = browser.new_page()
-    page.goto("file:///c:/github/cobalt-multi-agent/backend/public/vli_dashboard.html")
+    page.goto("file:///C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend/public/vli_dashboard.html")
     print("Page loaded via file://")
     
     print("Waiting for SERVER OFFLINE dialog (should take ~60s)...")

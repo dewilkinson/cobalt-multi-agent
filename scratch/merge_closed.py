@@ -1,8 +1,8 @@
 import sys
-sys.path.append('c:/github/cobalt-multi-agent/backend')
+sys.path.append('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/backend')
 from src.services.atp_importer import parse_atp_closed_positions
 from src.services.brokerage_cache import BrokerageCache
-new_closed = parse_atp_closed_positions('c:/github/cobalt-multi-agent/data/dropzone/archive/Closed_Positions_Rollover_IRA__5513.csv')
+new_closed = parse_atp_closed_positions('C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/data/dropzone/archive/Closed_Positions_Rollover_IRA__5513.csv')
 existing_closed = BrokerageCache.get_closed_positions('Rollover IRA *5513') or []
 existing_sigs = {f"{c['symbol']}_{c['qty']}_{c['pnl']}" for c in existing_closed}
 added = 0

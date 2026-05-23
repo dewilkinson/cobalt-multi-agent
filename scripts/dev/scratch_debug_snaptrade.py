@@ -2,7 +2,7 @@ import os, sys, json
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
-load_dotenv("C:\\github\\cobalt-multi-agent\\backend\\.env", override=True)
+load_dotenv("C:\\Users\\rende\\.gemini\\antigravity\\worktrees\\cobalt-multi-agent\\backend\\.env", override=True)
 
 from snaptrade_client import SnapTrade
 

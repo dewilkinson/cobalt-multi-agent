@@ -1,5 +1,5 @@
 import json
-p = 'c:/github/cobalt-multi-agent/data/brokerage_cache.json'
+p = 'C:/Users/rende/.gemini/antigravity/worktrees/cobalt-multi-agent/data/brokerage_cache.json'
 with open(p, 'r') as f:
     d = json.load(f)
 
