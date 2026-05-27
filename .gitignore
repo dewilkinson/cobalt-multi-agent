@@ -71,3 +71,7 @@ vli_test.db
 test.log
 test_*.txt
 tmp/
+
+# Agent/System Generated Data
+brain/
+.gemini/
