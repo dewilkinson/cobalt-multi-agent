@@ -22,6 +22,17 @@ def parse_time(act):
     except Exception:
         return datetime.min
 
+def format_price(val):
+    # Formats price to match template decimal representation
+    val_float = float(val)
+    if val_float.is_integer():
+        return f"{val_float:.2f}"
+    # Keep up to 4 decimal places if it has fractional parts
+    str_val = f"{val_float:.4f}"
+    if str_val.endswith("00"):
+        return f"{val_float:.2f}"
+    return str_val.rstrip('0').rstrip('.') if '.' in str_val else str_val
+
 def run_workflow():
     print("Step 1: Running daily backup cache...")
     try:
@@ -119,7 +130,7 @@ def run_workflow():
                     sell_qty_remaining = 0.0
                     
             if sell_qty_remaining > 0.0001:
-                # Fallback matching with current sell price (PnL = 0, open_time = close_time)
+                # Fallback matching
                 closed_trades.append({
                     "open_time": trade_time,
                     "close_time": trade_time,
@@ -136,18 +147,18 @@ def run_workflow():
     for t in closed_trades:
         close_date_str = t["close_time"].strftime("%Y-%m-%d")
         if close_date_str == target_date:
-            # Map into the generic-trade template headers
+            # Map into the generic-trade template headers with precise decimal representation
             filtered_trades.append({
-                "Open Time": t["open_time"].strftime("%Y-%m-%d %H:%M:%S"),
-                "Close Time": t["close_time"].strftime("%Y-%m-%d %H:%M:%S"),
+                "Open Time": t["open_time"].strftime("%m/%d/%Y %H:%M:%S"),
+                "Close Time": t["close_time"].strftime("%m/%d/%Y %H:%M:%S"),
                 "Symbol": t["symbol"],
                 "Direction": t["direction"],
-                "Volume": int(t["volume"]) if t["volume"].is_integer() else t["volume"],
-                "Open Price": round(t["open_price"], 4),
-                "Close Price": round(t["close_price"], 4),
-                "P&L": round(t["pnl"], 2),
-                "Commission": 0.00,
-                "Swap": 0.00,
+                "Volume": f"{t['volume']:.2f}",
+                "Open Price": format_price(t["open_price"]),
+                "Close Price": format_price(t["close_price"]),
+                "P&L": f"{t['pnl']:.2f}",
+                "Commission": "0.00",
+                "Swap": "0.00",
                 "Spread": "stock",
                 "Currency": "USD"
             })
