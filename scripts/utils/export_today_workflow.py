@@ -179,6 +179,15 @@ def run_workflow():
             writer.writeheader()
             writer.writerows(filtered_trades)
         print(f"  - Written to {p}")
+        
+    print("Step 4: Generating TradingView Pine Script...")
+    try:
+        import sys
+        sys.path.append(os.path.dirname(__file__))
+        import generate_tradingview_script
+        generate_tradingview_script.main()
+    except Exception as e:
+        print(f"  - Warning: Failed to generate TradingView script: {e}")
 
 if __name__ == '__main__':
     run_workflow()

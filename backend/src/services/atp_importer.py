@@ -451,6 +451,16 @@ def process_dropzone_files(optional_path=None):
             messages.append(f"Failed to trigger TradeZella export: {e}")
             logger.error(f"TradeZella export failed during dropzone processing: {e}")
 
+        try:
+            import subprocess
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+            script_path = os.path.join(project_root, "scripts", "utils", "generate_tradingview_script.py")
+            subprocess.run(["python", script_path], check=True, capture_output=True)
+            messages.append("TradingView script updated successfully.")
+        except Exception as tv_err:
+            logger.error(f"TradingView script generation failed during dropzone processing: {tv_err}")
+            messages.append(f"Warning: Failed to generate TradingView script: {tv_err}")
+
     if not messages:
         return "No valid CSVs found to process."
         
