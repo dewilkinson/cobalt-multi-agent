@@ -1,17 +1,19 @@
 import os
 import json
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 
 def parse_time(act):
     t_str = act.get('trade_date', '') or act.get('time_placed', '')
+    eastern_tz = ZoneInfo("America/New_York")
     if not t_str:
-        return datetime.min.replace(tzinfo=timezone.utc)
+        return datetime.min.replace(tzinfo=eastern_tz)
     
     # Try parsing Month-Day-Year (e.g. Oct-7-2025 or May-20-2026)
     if '-' in t_str and not t_str.startswith('20'):
         try:
             dt = datetime.strptime(t_str, "%b-%d-%Y")
-            return dt.replace(tzinfo=timezone.utc)
+            return dt.replace(tzinfo=eastern_tz)
         except Exception:
             pass
             
@@ -19,17 +21,20 @@ def parse_time(act):
     if '/' in t_str:
         try:
             dt = datetime.strptime(t_str, "%m/%d/%Y")
-            return dt.replace(tzinfo=timezone.utc)
+            return dt.replace(tzinfo=eastern_tz)
         except Exception:
             try:
                 dt = datetime.strptime(t_str, "%m/%d/%y")
-                return dt.replace(tzinfo=timezone.utc)
+                return dt.replace(tzinfo=eastern_tz)
             except Exception:
                 pass
                 
     try:
-        if t_str.endswith('Z'):
-            t_str_clean = t_str[:-1]
+        t_str_clean = t_str
+        if t_str_clean.endswith('Z'):
+            t_str_clean = t_str_clean[:-1]
+            
+        if 'T' in t_str_clean:
             if '.' in t_str_clean:
                 parts = t_str_clean.split('.')
                 frac = parts[1][:3]
@@ -37,17 +42,20 @@ def parse_time(act):
                 dt = datetime.strptime(t_str_clean, "%Y-%m-%dT%H:%M:%S.%f")
             else:
                 dt = datetime.strptime(t_str_clean, "%Y-%m-%dT%H:%M:%S")
-            return dt.replace(tzinfo=timezone.utc)
         else:
-            dt = datetime.fromisoformat(t_str)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt
+            dt = datetime.fromisoformat(t_str_clean)
+            
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(eastern_tz)
+        else:
+            dt = dt.replace(tzinfo=eastern_tz)
+        return dt
     except Exception:
         try:
-            return datetime.fromisoformat(t_str.replace('Z', '+00:00'))
+            dt = datetime.fromisoformat(t_str.replace('Z', '+00:00'))
+            return dt.astimezone(eastern_tz)
         except Exception:
-            return datetime.min.replace(tzinfo=timezone.utc)
+            return datetime.min.replace(tzinfo=eastern_tz)
 
 def main():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
