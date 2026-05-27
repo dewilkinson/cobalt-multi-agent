@@ -1,1 +1,1 @@
-export const CLIENT_VERSION = "00.000.0107";
+export const CLIENT_VERSION = "00.000.0108";

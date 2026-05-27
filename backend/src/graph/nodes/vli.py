@@ -446,8 +446,19 @@ async def vli_node(
                 next_step = plan_steps[steps_completed]
                 # Handle dictionary representation of Step or Enum
                 next_node = next_step.step_type.value if hasattr(next_step, "step_type") else next_step.get("step_type", "analyst")
+                
+                # Append step instruction/description as a human message so the specialist knows what to do
+                next_desc = next_step.description if hasattr(next_step, "description") else next_step.get("description", "")
+                instruction_msg = HumanMessage(
+                    content=f"[VLI_SPINE_EXECUTE] Step {steps_completed + 1} Instructions: {next_desc}",
+                    name="vli_coordinator"
+                )
+                
                 return Command(
-                    update={"steps_completed": steps_completed},
+                    update={
+                        "steps_completed": steps_completed,
+                        "messages": raw_messages + [instruction_msg]
+                    },
                     goto=next_node
                 )
 
@@ -838,13 +849,21 @@ async def vli_node(
                     step_type=StepType.SYNTHESIZER
                 )
             ]
+            first_desc = plan_obj.steps[0].description if hasattr(plan_obj.steps[0], "description") else plan_obj.steps[0].get("description", "")
+            instruction_msg = HumanMessage(
+                content=f"[VLI_SPINE_EXECUTE] Step 1 Instructions: {first_desc}",
+                name="vli_coordinator"
+            )
             return Command(
                 update={
                     "current_plan": plan_obj,
                     "intent": "SENTIMENT_REPORT",
                     "steps_completed": 0,
                     "research_topic": plan_obj.title,
-                    "messages": fallback_msgs_all + [AIMessage(content=f"[VLI_SPINE] Orchestrating Sentiment Deep-Dive for {user_query}...", name="coordinator")],
+                    "messages": fallback_msgs_all + [
+                        AIMessage(content=f"[VLI_SPINE] Orchestrating Sentiment Deep-Dive for {user_query}...", name="coordinator"),
+                        instruction_msg
+                    ],
                     "metadata": state.get("metadata", {})
                 },
                 goto=plan_obj.steps[0].step_type.value
@@ -917,6 +936,12 @@ async def vli_node(
                     AIMessage(content=f"[SYSTEM_INJECTION] Resident News Data for {target_symbol}:\n\n{cached_news['data'][:15000]}", name="system_injector")
                 )
 
+    first_desc = plan_obj.steps[0].description if hasattr(plan_obj.steps[0], "description") else plan_obj.steps[0].get("description", "")
+    instruction_msg = HumanMessage(
+        content=f"[VLI_SPINE_EXECUTE] Step 1 Instructions: {first_desc}",
+        name="vli_coordinator"
+    )
+
     cmd = Command(
         update={
             "current_plan": plan_obj, 
@@ -924,7 +949,10 @@ async def vli_node(
             "steps_completed": 0, 
             "research_topic": plan_obj.title, 
             "locale": plan_obj.locale,
-            "messages": fallback_msgs_all + [AIMessage(content=f"[VLI_SPINE] Plan generated: {plan_obj.title}", name="coordinator")],
+            "messages": fallback_msgs_all + [
+                AIMessage(content=f"[VLI_SPINE] Plan generated: {plan_obj.title}", name="coordinator"),
+                instruction_msg
+            ],
             "metadata": state.get("metadata", {})
         }, 
         goto=next_agent

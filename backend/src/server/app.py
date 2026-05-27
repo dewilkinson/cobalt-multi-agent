@@ -2250,9 +2250,20 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
 
         logger.info(f"[VLI_TRACE] State compiled for return. Telemetry size: {len(telemetry_tail)} bytes.")
         
+        def sanitize_json_obj(obj):
+            import math
+            if isinstance(obj, dict):
+                return {k: sanitize_json_obj(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [sanitize_json_obj(x) for x in obj]
+            elif isinstance(obj, float):
+                if math.isnan(obj) or math.isinf(obj):
+                    return None
+            return obj
+
         from fastapi.responses import JSONResponse
         return JSONResponse(
-            content={
+            content=sanitize_json_obj({
                 "macros": json.loads(json.dumps(_get_vli_macro_snapshot(), default=str)),
                 "macro_watchlist_content": macro_watchlist_content,
                 "scanner_results": scanner_res_content,
@@ -2269,7 +2280,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                 "chat_history": json.loads(json.dumps(_vli_chat_history_store.get(client_id, []), default=str)),
                 "session_config": _get_vli_session_config(),
                 "client_id_echo": client_id
-            },
+            }),
             headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"}
         )
     except Exception as e:
