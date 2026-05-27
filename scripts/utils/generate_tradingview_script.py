@@ -1,6 +1,6 @@
 import os
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 def parse_time(act):
     t_str = act.get('trade_date', '') or act.get('time_placed', '')
@@ -139,13 +139,25 @@ def main():
                     lot["qty"] -= qty_matched
                     sell_qty_remaining = 0.0
 
-    # Group closed trades by symbol
-    closed_by_symbol = {}
+    # Get 7-day cutoff in UTC
+    cutoff_time = datetime.now(timezone.utc) - timedelta(days=7)
+    cutoff_ms = int(cutoff_time.timestamp() * 1000)
+    
+    # Filter executions to last 7 days
+    recent_executions_by_symbol = {}
+    for sym, execs in executions_by_symbol.items():
+        recent = [ex for ex in execs if ex["time_ms"] >= cutoff_ms]
+        if recent:
+            recent_executions_by_symbol[sym] = recent
+            
+    # Filter closed trades to last 7 days
+    recent_closed_by_symbol = {}
     for t in closed_trades:
-        sym = t["symbol"]
-        if sym not in closed_by_symbol:
-            closed_by_symbol[sym] = []
-        closed_by_symbol[sym].append(t)
+        if t["close_time_ms"] >= cutoff_ms:
+            sym = t["symbol"]
+            if sym not in recent_closed_by_symbol:
+                recent_closed_by_symbol[sym] = []
+            recent_closed_by_symbol[sym].append(t)
         
     # Get today's start timestamp in UTC
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -183,7 +195,7 @@ def main():
     pine_script.append('    has_plotted := true')
     
     # Sort symbols so code is deterministic
-    all_symbols = sorted(list(set(list(executions_by_symbol.keys()) + list(closed_by_symbol.keys()))))
+    all_symbols = sorted(list(set(list(recent_executions_by_symbol.keys()) + list(recent_closed_by_symbol.keys()))))
     
     first_sym = True
     for sym in all_symbols:
@@ -192,13 +204,13 @@ def main():
         pine_script.append(f'    {cond_keyword} current_sym == "{sym}"')
         
         # Plot executions
-        execs = executions_by_symbol.get(sym, [])
+        execs = recent_executions_by_symbol.get(sym, [])
         for ex in execs:
             is_buy_str = "true" if ex["is_buy"] else "false"
             pine_script.append(f'        draw_execution({ex["time_ms"]}, {ex["price"]}, {is_buy_str}, {ex["qty"]}, only_today, today_start)')
             
         # Plot trade lines
-        lines = closed_by_symbol.get(sym, [])
+        lines = recent_closed_by_symbol.get(sym, [])
         for ln in lines:
             pine_script.append(f'        draw_trade_line({ln["open_time_ms"]}, {ln["open_price"]}, {ln["close_time_ms"]}, {ln["close_price"]}, {ln["pnl"]}, only_today, today_start)')
             
