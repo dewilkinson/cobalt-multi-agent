@@ -59,8 +59,8 @@ def parse_time(act):
 
 def main():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    cache_file = os.path.join(project_root, "data", "brokerage_cache.json")
-    backup_file = os.path.join(project_root, "data", "archive", "BrokerageCacheDailyBackup.json")
+    cache_file = os.path.join(project_root, "backend", "data", "brokerage_cache.json")
+    backup_file = os.path.join(project_root, "backend", "data", "archive", "BrokerageCacheDailyBackup.json")
     
     # Read cache
     if os.path.exists(cache_file):
@@ -173,7 +173,7 @@ def main():
     
     # Generate Pine Script
     pine_script = []
-    pine_script.append('//@version=5')
+    pine_script.append('//@version=6')
     pine_script.append('indicator("Fidelity Trades Plotter", overlay=true, max_labels_count=500, max_lines_count=500)')
     pine_script.append('')
     pine_script.append('// Inputs')
@@ -184,15 +184,17 @@ def main():
     pine_script.append('// Helper to draw execution labels')
     pine_script.append('draw_execution(time_ms, price, is_buy, qty, only_today_flag, today_start_ms) =>')
     pine_script.append('    if show_labels and (not only_today_flag or time_ms >= today_start_ms)')
-    pine_script.append('        color_val = is_buy ? color.rgb(46, 204, 113) : color.rgb(231, 76, 60)')
-    pine_script.append('        style_val = is_buy ? label.style_label_up : label.style_label_down')
-    pine_script.append('        text_val  = (is_buy ? "B: " : "S: ") + str.tostring(qty) + "\\n$" + str.tostring(price)')
-    pine_script.append('        label.new(x=time_ms, y=price, text=text_val, xloc=xloc.bar_time, color=color_val, textcolor=color.white, style=style_val, size=size.small)')
+    pine_script.append('        color_val = is_buy ? color.rgb(38, 166, 154) : color.rgb(229, 115, 115)')
+    pine_script.append('        text_val  = is_buy ? "🢂   " : "   🢀"')
+    pine_script.append('        tooltip_val = (is_buy ? "Buy Entry" : "Sell Exit") + "\\nQty: " + str.tostring(qty) + "\\nPrice: $" + str.tostring(price)')
+    pine_script.append('        y_offset = price * 0.00025')
+    pine_script.append('        label.new(x=time_ms, y=price - y_offset, text=text_val, xloc=xloc.bar_time, textcolor=color.white, style=label.style_none, size=45, text_formatting=text.format_bold, tooltip=tooltip_val)')
+    pine_script.append('        label.new(x=time_ms, y=price, text=text_val, xloc=xloc.bar_time, textcolor=color_val, style=label.style_none, size=40, tooltip=tooltip_val)')
     pine_script.append('')
     pine_script.append('// Helper to draw trade path lines')
     pine_script.append('draw_trade_line(t1, p1, t2, p2, pnl, only_today_flag, today_start_ms) =>')
     pine_script.append('    if show_lines and (not only_today_flag or t2 >= today_start_ms)')
-    pine_script.append('        line_color = pnl >= 0 ? color.rgb(46, 204, 113, 50) : color.rgb(231, 76, 60, 50)')
+    pine_script.append('        line_color = pnl >= 0 ? color.rgb(38, 166, 154, 50) : color.rgb(229, 115, 115, 50)')
     pine_script.append('        line.new(x1=t1, y1=p1, x2=t2, y2=p2, xloc=xloc.bar_time, color=line_color, style=line.style_dashed, width=2)')
     pine_script.append('')
     pine_script.append(f'today_start = {today_start_ms} // {today_start.strftime("%Y-%m-%d %H:%M:%S")} UTC')
@@ -211,16 +213,16 @@ def main():
         first_sym = False
         pine_script.append(f'    {cond_keyword} current_sym == "{sym}"')
         
-        # Plot executions
+        # Plot trade lines first
+        lines = recent_closed_by_symbol.get(sym, [])
+        for ln in lines:
+            pine_script.append(f'        draw_trade_line({ln["open_time_ms"]}, {ln["open_price"]}, {ln["close_time_ms"]}, {ln["close_price"]}, {ln["pnl"]}, only_today, today_start)')
+            
+        # Plot executions second so they render on top of lines
         execs = recent_executions_by_symbol.get(sym, [])
         for ex in execs:
             is_buy_str = "true" if ex["is_buy"] else "false"
             pine_script.append(f'        draw_execution({ex["time_ms"]}, {ex["price"]}, {is_buy_str}, {ex["qty"]}, only_today, today_start)')
-            
-        # Plot trade lines
-        lines = recent_closed_by_symbol.get(sym, [])
-        for ln in lines:
-            pine_script.append(f'        draw_trade_line({ln["open_time_ms"]}, {ln["open_price"]}, {ln["close_time_ms"]}, {ln["close_price"]}, {ln["pnl"]}, only_today, today_start)')
             
     # Output file
     output_dir = os.path.join(project_root, "data", "exports")
