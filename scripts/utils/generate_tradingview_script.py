@@ -9,38 +9,34 @@ def parse_time(act):
     if not t_str:
         return datetime.min.replace(tzinfo=eastern_tz)
     
-    if t_str.endswith('Z'):
-        try:
-            dt = datetime.fromisoformat(t_str.replace('Z', '+00:00'))
-            return dt.astimezone(eastern_tz)
-        except Exception:
-            pass
-    
+    # Strip Z or timezone offset if present, to treat the hours as Eastern Time
+    t_str_clean = t_str
+    if t_str_clean.endswith('Z'):
+        t_str_clean = t_str_clean[:-1]
+    if '+' in t_str_clean:
+        t_str_clean = t_str_clean.split('+')[0]
+        
     # Try parsing Month-Day-Year (e.g. Oct-7-2025 or May-20-2026)
-    if '-' in t_str and not t_str.startswith('20'):
+    if '-' in t_str_clean and not t_str_clean.startswith('20'):
         try:
-            dt = datetime.strptime(t_str, "%b-%d-%Y")
+            dt = datetime.strptime(t_str_clean, "%b-%d-%Y")
             return dt.replace(tzinfo=eastern_tz)
         except Exception:
             pass
             
     # Try parsing Month/Day/Year (e.g. 10/7/2025)
-    if '/' in t_str:
+    if '/' in t_str_clean:
         try:
-            dt = datetime.strptime(t_str, "%m/%d/%Y")
+            dt = datetime.strptime(t_str_clean, "%m/%d/%Y")
             return dt.replace(tzinfo=eastern_tz)
         except Exception:
             try:
-                dt = datetime.strptime(t_str, "%m/%d/%y")
+                dt = datetime.strptime(t_str_clean, "%m/%d/%y")
                 return dt.replace(tzinfo=eastern_tz)
             except Exception:
                 pass
                 
     try:
-        t_str_clean = t_str
-        if t_str_clean.endswith('Z'):
-            t_str_clean = t_str_clean[:-1]
-            
         if 'T' in t_str_clean:
             if '.' in t_str_clean:
                 parts = t_str_clean.split('.')
@@ -52,17 +48,22 @@ def parse_time(act):
         else:
             dt = datetime.fromisoformat(t_str_clean)
             
-        if dt.tzinfo is not None:
-            dt = dt.astimezone(eastern_tz)
-        else:
-            dt = dt.replace(tzinfo=eastern_tz)
-        return dt
+        return dt.replace(tzinfo=eastern_tz)
     except Exception:
         try:
             dt = datetime.fromisoformat(t_str.replace('Z', '+00:00'))
             return dt.astimezone(eastern_tz)
         except Exception:
             return datetime.min.replace(tzinfo=eastern_tz)
+
+def format_price(val):
+    val_float = float(val)
+    if val_float.is_integer():
+        return f"{val_float:.2f}"
+    str_val = f"{val_float:.4f}"
+    if str_val.endswith("00"):
+        return f"{val_float:.2f}"
+    return str_val.rstrip('0').rstrip('.') if '.' in str_val else str_val
 
 def main():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -101,7 +102,12 @@ def main():
         qty = float(act.get('units', 0))
         price = float(act.get('price', 0))
         trade_time = parse_time(act)
-        time_ms = int(trade_time.timestamp() * 1000)
+        
+        time_str_tooltip = trade_time.strftime("%Y-%m-%d %H:%M:%S") + " ET"
+        
+        # Truncate to the beginning of the minute to align exactly with chart candles
+        trade_time_truncated = trade_time.replace(second=0, microsecond=0)
+        time_ms = int(trade_time_truncated.timestamp() * 1000)
         
         if sym not in executions_by_symbol:
             executions_by_symbol[sym] = []
@@ -111,7 +117,8 @@ def main():
             "time_ms": time_ms,
             "price": price,
             "qty": qty,
-            "is_buy": is_buy
+            "is_buy": is_buy,
+            "time_str": time_str_tooltip
         })
         
         if is_buy:
@@ -190,17 +197,11 @@ def main():
     pine_script.append('only_today  = input.bool(false, "Show Today\'s Trades Only")')
     pine_script.append('')
     pine_script.append('// Helper to draw execution labels')
-    pine_script.append('draw_execution(time_ms, price, is_buy, qty, only_today_flag, today_start_ms) =>')
+    pine_script.append('draw_execution(time_ms, price, is_buy, tooltip_val, only_today_flag, today_start_ms) =>')
     pine_script.append('    if show_labels and (not only_today_flag or time_ms >= today_start_ms)')
     pine_script.append('        color_val = is_buy ? color.rgb(0, 230, 118) : color.rgb(255, 23, 68)')
     pine_script.append('        text_val  = is_buy ? "▶" : "◀"')
-    pine_script.append('        time_str = str.format("{0,date,yyyy-MM-dd HH:mm:ss}", time_ms)')
-    pine_script.append('        tooltip_val = (is_buy ? "Buy Entry" : "Sell Exit") + "\\nTime: " + time_str + "\\nQty: " + str.tostring(qty) + "\\nPrice: $" + str.tostring(price)')
     pine_script.append('        label.new(x=time_ms, y=price, text=text_val, xloc=xloc.bar_time, textcolor=color_val, style=label.style_none, size=size.large, tooltip=tooltip_val)')
-
-
-
-
     pine_script.append('')
     pine_script.append('// Helper to draw trade path lines')
     pine_script.append('draw_trade_line(t1, p1, t2, p2, pnl, only_today_flag, today_start_ms) =>')
@@ -229,11 +230,11 @@ def main():
         for ln in lines:
             pine_script.append(f'        draw_trade_line({ln["open_time_ms"]}, {ln["open_price"]}, {ln["close_time_ms"]}, {ln["close_price"]}, {ln["pnl"]}, only_today, today_start)')
             
-        # Plot executions second so they render on top of lines
         execs = recent_executions_by_symbol.get(sym, [])
         for ex in execs:
             is_buy_str = "true" if ex["is_buy"] else "false"
-            pine_script.append(f'        draw_execution({ex["time_ms"]}, {ex["price"]}, {is_buy_str}, {ex["qty"]}, only_today, today_start)')
+            tooltip_val = f'{"Buy Entry" if ex["is_buy"] else "Sell Exit"}\\nTime: {ex["time_str"]}\\nQty: {ex["qty"]}\\nPrice: ${format_price(ex["price"])}'
+            pine_script.append(f'        draw_execution({ex["time_ms"]}, {ex["price"]}, {is_buy_str}, "{tooltip_val}", only_today, today_start)')
             
     # Output file
     output_dir = os.path.join(project_root, "data", "exports")

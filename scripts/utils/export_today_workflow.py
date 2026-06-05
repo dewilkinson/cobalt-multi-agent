@@ -16,26 +16,52 @@ def parse_time(act):
     if not t_str:
         return datetime.min.replace(tzinfo=eastern_tz)
     
-    if t_str.endswith('Z'):
+    # Strip Z or timezone offset if present, to treat the hours as Eastern Time
+    t_str_clean = t_str
+    if t_str_clean.endswith('Z'):
+        t_str_clean = t_str_clean[:-1]
+    if '+' in t_str_clean:
+        t_str_clean = t_str_clean.split('+')[0]
+        
+    # Try parsing Month-Day-Year (e.g. Oct-7-2025 or May-20-2026)
+    if '-' in t_str_clean and not t_str_clean.startswith('20'):
+        try:
+            dt = datetime.strptime(t_str_clean, "%b-%d-%Y")
+            return dt.replace(tzinfo=eastern_tz)
+        except Exception:
+            pass
+            
+    # Try parsing Month/Day/Year (e.g. 10/7/2025)
+    if '/' in t_str_clean:
+        try:
+            dt = datetime.strptime(t_str_clean, "%m/%d/%Y")
+            return dt.replace(tzinfo=eastern_tz)
+        except Exception:
+            try:
+                dt = datetime.strptime(t_str_clean, "%m/%d/%y")
+                return dt.replace(tzinfo=eastern_tz)
+            except Exception:
+                pass
+                
+    try:
+        if 'T' in t_str_clean:
+            if '.' in t_str_clean:
+                parts = t_str_clean.split('.')
+                frac = parts[1][:3]
+                t_str_clean = parts[0] + '.' + frac
+                dt = datetime.strptime(t_str_clean, "%Y-%m-%dT%H:%M:%S.%f")
+            else:
+                dt = datetime.strptime(t_str_clean, "%Y-%m-%dT%H:%M:%S")
+        else:
+            dt = datetime.fromisoformat(t_str_clean)
+            
+        return dt.replace(tzinfo=eastern_tz)
+    except Exception:
         try:
             dt = datetime.fromisoformat(t_str.replace('Z', '+00:00'))
             return dt.astimezone(eastern_tz)
         except Exception:
-            pass
-            
-    try:
-        if 'T' in t_str:
-            if '.' in t_str:
-                dt = datetime.strptime(t_str.split('.')[0], "%Y-%m-%dT%H:%M:%S")
-                return dt.replace(tzinfo=eastern_tz)
-            else:
-                dt = datetime.strptime(t_str.replace("Z", ""), "%Y-%m-%dT%H:%M:%S")
-                return dt.replace(tzinfo=eastern_tz)
-        else:
-            dt = datetime.fromisoformat(t_str)
-            return dt.replace(tzinfo=eastern_tz)
-    except Exception:
-        return datetime.min.replace(tzinfo=eastern_tz)
+            return datetime.min.replace(tzinfo=eastern_tz)
 
 def format_price(val):
     # Formats price to match template decimal representation
