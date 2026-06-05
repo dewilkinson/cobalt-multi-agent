@@ -10,7 +10,7 @@ only_today  = input.bool(false, "Show Today's Trades Only")
 draw_execution(time_ms, price, is_buy, tooltip_val, only_today_flag, today_start_ms) =>
     if show_labels and (not only_today_flag or time_ms >= today_start_ms)
         color_val = is_buy ? color.rgb(0, 230, 118) : color.rgb(255, 23, 68)
-        text_val  = is_buy ? "▶" : "◀"
+        text_val  = is_buy ? "▶  " : "  ◀"
         label.new(x=time_ms, y=price, text=text_val, xloc=xloc.bar_time, textcolor=color_val, style=label.style_none, size=size.large, tooltip=tooltip_val)
 
 // Helper to draw trade path lines
