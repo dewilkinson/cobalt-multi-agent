@@ -105,8 +105,13 @@ def main():
         
         time_str_tooltip = trade_time.strftime("%Y-%m-%d %H:%M:%S") + " ET"
         
-        # Truncate to the beginning of the minute to align exactly with chart candles
-        trade_time_truncated = trade_time.replace(second=0, microsecond=0)
+        # Shift back by 1 minute to account for broker reporting delay and align with the correct candle
+        # Prevent subtraction from datetime.min which causes an overflow error
+        if trade_time.year > 1:
+            trade_time_adjusted = trade_time - timedelta(minutes=1)
+        else:
+            trade_time_adjusted = trade_time
+        trade_time_truncated = trade_time_adjusted.replace(second=0, microsecond=0)
         time_ms = int(trade_time_truncated.timestamp() * 1000)
         
         if sym not in executions_by_symbol:

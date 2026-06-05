@@ -84,7 +84,7 @@ def run_workflow():
         
     print("Step 2: Copying current cache to BrokerageCacheDailyBackup.json...")
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    cache_file = os.path.join(project_root, "data", "brokerage_cache.json")
+    cache_file = os.path.join(project_root, "backend", "data", "brokerage_cache.json")
     backup_file = os.path.join(project_root, "data", "archive", "BrokerageCacheDailyBackup.json")
     
     if os.path.exists(cache_file):
