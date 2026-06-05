@@ -11,16 +11,31 @@ from src.services.brokerage_cache import BrokerageCache
 
 def parse_time(act):
     t_str = act.get('trade_date', '') or act.get('time_placed', '')
+    from zoneinfo import ZoneInfo
+    eastern_tz = ZoneInfo("America/New_York")
+    if not t_str:
+        return datetime.min.replace(tzinfo=eastern_tz)
+    
+    if t_str.endswith('Z'):
+        try:
+            dt = datetime.fromisoformat(t_str.replace('Z', '+00:00'))
+            return dt.astimezone(eastern_tz)
+        except Exception:
+            pass
+            
     try:
         if 'T' in t_str:
             if '.' in t_str:
-                return datetime.strptime(t_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                dt = datetime.strptime(t_str.split('.')[0], "%Y-%m-%dT%H:%M:%S")
+                return dt.replace(tzinfo=eastern_tz)
             else:
-                return datetime.strptime(t_str.replace("Z", ""), "%Y-%m-%dT%H:%M:%S")
+                dt = datetime.strptime(t_str.replace("Z", ""), "%Y-%m-%dT%H:%M:%S")
+                return dt.replace(tzinfo=eastern_tz)
         else:
-            return datetime.fromisoformat(t_str)
+            dt = datetime.fromisoformat(t_str)
+            return dt.replace(tzinfo=eastern_tz)
     except Exception:
-        return datetime.min
+        return datetime.min.replace(tzinfo=eastern_tz)
 
 def format_price(val):
     # Formats price to match template decimal representation

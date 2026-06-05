@@ -9,6 +9,13 @@ def parse_time(act):
     if not t_str:
         return datetime.min.replace(tzinfo=eastern_tz)
     
+    if t_str.endswith('Z'):
+        try:
+            dt = datetime.fromisoformat(t_str.replace('Z', '+00:00'))
+            return dt.astimezone(eastern_tz)
+        except Exception:
+            pass
+    
     # Try parsing Month-Day-Year (e.g. Oct-7-2025 or May-20-2026)
     if '-' in t_str and not t_str.startswith('20'):
         try:
@@ -167,8 +174,9 @@ def main():
                 recent_closed_by_symbol[sym] = []
             recent_closed_by_symbol[sym].append(t)
         
-    # Get today's start timestamp in UTC
-    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    # Get today's start timestamp in Eastern Time, then get its UTC timestamp
+    eastern_tz = ZoneInfo("America/New_York")
+    today_start = datetime.now(eastern_tz).replace(hour=0, minute=0, second=0, microsecond=0)
     today_start_ms = int(today_start.timestamp() * 1000)
     
     # Generate Pine Script
