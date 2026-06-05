@@ -12,8 +12,7 @@ draw_execution(time_ms, price, is_buy, qty, only_today_flag, today_start_ms) =>
         color_val = is_buy ? color.rgb(0, 230, 118) : color.rgb(255, 23, 68)
         text_val  = is_buy ? "▶" : "◀"
         tooltip_val = (is_buy ? "Buy Entry" : "Sell Exit") + "\nQty: " + str.tostring(qty) + "\nPrice: $" + str.tostring(price)
-        label.new(x=time_ms, y=price, text=text_val, xloc=xloc.bar_time, textcolor=color_val, style=label.style_none, size=24, tooltip=na)
-        label.new(x=time_ms, y=price, text=text_val, xloc=xloc.bar_time, textcolor=color.white, style=label.style_none, size=12, tooltip=tooltip_val)
+        label.new(x=time_ms, y=price, text=text_val, xloc=xloc.bar_time, textcolor=color_val, style=label.style_none, size=size.large, tooltip=tooltip_val)
 
 // Helper to draw trade path lines
 draw_trade_line(t1, p1, t2, p2, pnl, only_today_flag, today_start_ms) =>

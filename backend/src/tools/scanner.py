@@ -485,7 +485,17 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
             
             if is_premarket:
                 reg_prev_close = float(info.get("regularMarketPreviousClose") or prev_close)
-                current_price = float(info.get("preMarketPrice") or info.get("currentPrice") or info.get("regularMarketPrice") or curr_close)
+                pre_price = info.get("preMarketPrice")
+                if not pre_price:
+                    try:
+                        pm_df = yf.download(tickers=[ticker], period="1d", interval="1m", progress=False, prepost=True)
+                        if pm_df is not None and not pm_df.empty:
+                            ticker_df = _extract_ticker_data(pm_df, ticker)
+                            if not ticker_df.empty:
+                                pre_price = float(ticker_df.dropna(subset=["Close"]).iloc[-1]["Close"])
+                    except Exception as e:
+                        logger.warning(f"Scanner fallback pre-market price download failed for {ticker}: {e}")
+                current_price = float(pre_price or info.get("currentPrice") or info.get("regularMarketPrice") or curr_close)
                 if reg_prev_close > 0:
                     gap_pct = float(((current_price - reg_prev_close) / reg_prev_close) * 100.0)
                 else:

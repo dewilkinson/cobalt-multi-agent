@@ -1,6 +1,6 @@
-2026/04/28-22:31:32.182 760c Reusing MANIFEST C:\github\cobalt-multi-agent\data\fidelity_session\Default\IndexedDB\https_digital.fidelity.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/04/28-22:31:32.182 760c Reusing MANIFEST C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\data\fidelity_session\Default\IndexedDB\https_digital.fidelity.com_0.indexeddb.leveldb/MANIFEST-000001
 2026/04/28-22:31:32.182 760c Recovering log #22
-2026/04/28-22:31:32.182 760c Reusing old log C:\github\cobalt-multi-agent\data\fidelity_session\Default\IndexedDB\https_digital.fidelity.com_0.indexeddb.leveldb/000022.log 
+2026/04/28-22:31:32.182 760c Reusing old log C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\data\fidelity_session\Default\IndexedDB\https_digital.fidelity.com_0.indexeddb.leveldb/000022.log 
 2026/04/28-22:31:32.183 760c Delete type=2 #20
 2026/04/28-22:31:32.194 165c8 Level-0 table #27: started
 2026/04/28-22:31:32.200 165c8 Level-0 table #27: 1719 bytes OK
