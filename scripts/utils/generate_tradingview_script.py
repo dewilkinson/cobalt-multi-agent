@@ -186,7 +186,8 @@ def main():
     pine_script.append('    if show_labels and (not only_today_flag or time_ms >= today_start_ms)')
     pine_script.append('        color_val = is_buy ? color.rgb(0, 230, 118) : color.rgb(255, 23, 68)')
     pine_script.append('        text_val  = is_buy ? "▶" : "◀"')
-    pine_script.append('        tooltip_val = (is_buy ? "Buy Entry" : "Sell Exit") + "\\nQty: " + str.tostring(qty) + "\\nPrice: $" + str.tostring(price)')
+    pine_script.append('        time_str = str.format("{0,date,yyyy-MM-dd HH:mm:ss}", time_ms)')
+    pine_script.append('        tooltip_val = (is_buy ? "Buy Entry" : "Sell Exit") + "\\nTime: " + time_str + "\\nQty: " + str.tostring(qty) + "\\nPrice: $" + str.tostring(price)')
     pine_script.append('        label.new(x=time_ms, y=price, text=text_val, xloc=xloc.bar_time, textcolor=color_val, style=label.style_none, size=size.large, tooltip=tooltip_val)')
 
 
