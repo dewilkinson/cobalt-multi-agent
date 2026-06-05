@@ -460,6 +460,112 @@ def _get_ttl_seconds(interval: str) -> int:
     return 300  # default 5m
 
 
+def _get_active_prepost_price(ticker: str) -> dict | None:
+    try:
+        import yfinance
+        df = yfinance.download(
+            tickers=[ticker],
+            period="1d",
+            interval="1m",
+            group_by="ticker",
+            session=_get_session(),
+            progress=False,
+            threads=False,
+            timeout=5.0,
+            auto_adjust=False,
+            prepost=True
+        )
+        if df is not None and not df.empty:
+            ticker_df = _extract_ticker_data(df, ticker)
+            if not ticker_df.empty:
+                last_row = ticker_df.dropna(subset=["Close"]).iloc[-1]
+                return {
+                    "price": float(last_row["Close"]),
+                    "volume": int(last_row["Volume"]),
+                    "high": float(last_row["High"]) if "High" in last_row else float(last_row["Close"]),
+                    "low": float(last_row["Low"]) if "Low" in last_row else float(last_row["Close"]),
+                    "open": float(last_row["Open"]) if "Open" in last_row else float(last_row["Close"]),
+                }
+    except Exception as e:
+        logger.warning(f"Failed to fetch active pre/post price for {ticker}: {e}")
+    return None
+
+
+def _inject_prepost_price_to_df(df: pd.DataFrame, ticker: str, interval: str) -> pd.DataFrame:
+    if df is None or df.empty:
+        return df
+        
+    import pytz
+    from datetime import datetime
+    est = pytz.timezone('America/New_York')
+    now_est = datetime.now(est)
+    is_closed = now_est.weekday() >= 5 or now_est.time() < __import__('datetime').time(9, 30) or now_est.time() >= __import__('datetime').time(16, 0)
+    
+    if not is_closed:
+        return df
+        
+    logger.info(f"Market closed. Resolving active pre/post price for {ticker} (interval={interval})...")
+    quote_info = _get_active_prepost_price(ticker)
+    if not quote_info:
+        logger.warning(f"Could not resolve active pre/post price for {ticker}")
+        return df
+        
+    price = quote_info["price"]
+    volume = quote_info["volume"]
+    o_val = quote_info["open"]
+    h_val = quote_info["high"]
+    l_val = quote_info["low"]
+    
+    col_map = {col.lower(): col for col in df.columns}
+    close_col = col_map.get("close")
+    open_col = col_map.get("open")
+    high_col = col_map.get("high")
+    low_col = col_map.get("low")
+    vol_col = col_map.get("volume")
+    adj_col = col_map.get("adj close")
+    
+    if not close_col:
+        return df
+        
+    if interval == "1d":
+        today_date = now_est.date()
+        idx_dates = [ts.date() for ts in df.index] if hasattr(df.index, 'date') else []
+        if today_date in idx_dates:
+            exact_ts = df.index[idx_dates.index(today_date)]
+            df.loc[exact_ts, close_col] = price
+            if open_col: df.loc[exact_ts, open_col] = o_val
+            if high_col: df.loc[exact_ts, high_col] = h_val
+            if low_col: df.loc[exact_ts, low_col] = l_val
+            if vol_col: df.loc[exact_ts, vol_col] = volume
+            if adj_col: df.loc[exact_ts, adj_col] = price
+            logger.info(f"Updated daily row {exact_ts} with pre/post price {price}")
+        else:
+            if hasattr(df.index, 'tz') and df.index.tz is not None:
+                new_ts = pd.Timestamp(today_date).tz_localize('UTC').tz_convert(df.index.tz)
+            else:
+                new_ts = pd.Timestamp(today_date)
+                
+            new_row = pd.Series(index=df.columns, dtype=float)
+            new_row[close_col] = price
+            if open_col: new_row[open_col] = o_val
+            if high_col: new_row[high_col] = h_val
+            if low_col: new_row[low_col] = l_val
+            if vol_col: new_row[vol_col] = volume
+            if adj_col: new_row[adj_col] = price
+            
+            df.loc[new_ts] = new_row
+            logger.info(f"Appended new daily row {new_ts} with pre/post price {price}")
+            
+    elif interval in ["5m", "15m", "1h", "60m"]:
+        last_idx = df.index[-1]
+        df.loc[last_idx, close_col] = price
+        if adj_col:
+            df.loc[last_idx, adj_col] = price
+        logger.info(f"Updated last intraday bar {last_idx} close with pre/post price {price}")
+        
+    return df
+
+
 def _fetch_stock_history(ticker: str, period: str = "5d", interval: str = "1d") -> pd.DataFrame:
     """
     Standard single-ticker fetcher. Automatically flattens MultiIndex for the requested ticker.
@@ -485,6 +591,14 @@ def _fetch_stock_history(ticker: str, period: str = "5d", interval: str = "1d") 
 
     data = _fetch_batch_history([ticker], period, interval)
     df = _extract_ticker_data(data, ticker)
+
+    try:
+        from src.utils.temporal import get_effective_now
+        is_replay = abs((datetime.now() - get_effective_now()).total_seconds()) > 5
+        if not is_replay:
+            df = _inject_prepost_price_to_df(df, norm_ticker, interval)
+    except Exception as e:
+        logger.warning(f"Failed to inject pre/post price to history DataFrame: {e}")
 
     df_cache[cache_key] = {"df": df.copy(), "last_updated": datetime.now()}
     return df.copy()
@@ -567,6 +681,11 @@ async def get_symbol_history_data(symbols: list[str], period: str = "1d", interv
 
                 for sym in others:
                     ticker_df = _extract_ticker_data(full_df, sym)
+                    if not ticker_df.empty:
+                        try:
+                            ticker_df = _inject_prepost_price_to_df(ticker_df, sym, interval)
+                        except Exception as e:
+                            logger.warning(f"Failed to inject pre/post price in get_symbol_history_data: {e}")
                     if ticker_df.empty:
                         # Fallback to Finviz
                         try:
@@ -856,6 +975,52 @@ async def get_stock_quote(ticker: str, period: str = "1d", interval: str = "1m",
         # [REPLAY_INSTRUMENTATION] Bypass Fast-Path for Replay Mode to ensure temporal sync
         from src.utils.temporal import get_effective_now
         is_replay = abs((datetime.now() - get_effective_now()).total_seconds()) > 5
+
+        # [NEW] Pre/Post Market Price Engine
+        # If market is closed, fetch the active pre/post market price to override previous close values
+        if not is_replay:
+            try:
+                import pytz
+                est = pytz.timezone('America/New_York')
+                now_est = datetime.now(est)
+                is_closed = now_est.weekday() >= 5 or now_est.time() < __import__('datetime').time(9, 30) or now_est.time() >= __import__('datetime').time(16, 0)
+                if is_closed:
+                    logger.info(f"VLI Fast-Path: Market is closed. Fetching active pre/post market price for {norm_ticker}")
+                    df = await asyncio.to_thread(
+                        yfinance.download,
+                        tickers=[norm_ticker],
+                        period="1d",
+                        interval="1m",
+                        group_by="ticker",
+                        session=_get_session(),
+                        progress=False,
+                        threads=False,
+                        timeout=5.0,
+                        auto_adjust=False,
+                        prepost=True
+                    )
+                    if df is not None and not df.empty:
+                        ticker_df = _extract_ticker_data(df, norm_ticker)
+                        if not ticker_df.empty:
+                            last_row = ticker_df.dropna(subset=["Close"]).iloc[-1]
+                            price = float(last_row["Close"])
+                            
+                            # Fallback for previous close
+                            try:
+                                t_obj = await asyncio.wait_for(asyncio.to_thread(yfinance.Ticker, norm_ticker, session=_get_session()), timeout=3.0)
+                                prev_close = float(t_obj.fast_info.previous_close)
+                            except:
+                                prev_close = price
+                                
+                            return {
+                                "symbol": norm_ticker,
+                                "price": price,
+                                "change": ((price / prev_close) - 1) * 100 if prev_close else 0.0,
+                                "volume": int(last_row["Volume"]),
+                                "is_prepost_price": True,
+                            }
+            except Exception as e:
+                logger.warning(f"VLI Fast-Path: Pre/Post market fetch failed for {norm_ticker}: {e}")
         
         if use_fast_path and not is_replay:
             logger.info(f"VLI Fast-Path: Starting lock-free fast-fetch for {norm_ticker}")
