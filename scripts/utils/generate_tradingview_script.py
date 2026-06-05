@@ -184,12 +184,15 @@ def main():
     pine_script.append('// Helper to draw execution labels')
     pine_script.append('draw_execution(time_ms, price, is_buy, qty, only_today_flag, today_start_ms) =>')
     pine_script.append('    if show_labels and (not only_today_flag or time_ms >= today_start_ms)')
-    pine_script.append('        color_val = is_buy ? color.rgb(38, 166, 154) : color.rgb(229, 115, 115)')
-    pine_script.append('        text_val  = is_buy ? "🢂   " : "   🢀"')
+    pine_script.append('        color_val = is_buy ? color.rgb(0, 230, 118) : color.rgb(255, 23, 68)')
+    pine_script.append('        text_val  = is_buy ? "▶" : "◀"')
     pine_script.append('        tooltip_val = (is_buy ? "Buy Entry" : "Sell Exit") + "\\nQty: " + str.tostring(qty) + "\\nPrice: $" + str.tostring(price)')
-    pine_script.append('        y_offset = price * 0.00025')
-    pine_script.append('        label.new(x=time_ms, y=price - y_offset, text=text_val, xloc=xloc.bar_time, textcolor=color.white, style=label.style_none, size=45, text_formatting=text.format_bold, tooltip=tooltip_val)')
-    pine_script.append('        label.new(x=time_ms, y=price, text=text_val, xloc=xloc.bar_time, textcolor=color_val, style=label.style_none, size=40, tooltip=tooltip_val)')
+    pine_script.append('        label.new(x=time_ms, y=price, text=text_val, xloc=xloc.bar_time, textcolor=color_val, style=label.style_none, size=24, tooltip=na)')
+    pine_script.append('        label.new(x=time_ms, y=price, text=text_val, xloc=xloc.bar_time, textcolor=color.white, style=label.style_none, size=12, tooltip=tooltip_val)')
+
+
+
+
     pine_script.append('')
     pine_script.append('// Helper to draw trade path lines')
     pine_script.append('draw_trade_line(t1, p1, t2, p2, pnl, only_today_flag, today_start_ms) =>')
