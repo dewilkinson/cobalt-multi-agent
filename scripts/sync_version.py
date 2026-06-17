@@ -9,9 +9,34 @@ FRONTEND_VER_FILE = os.path.join(ROOT_DIR, 'web', 'src', 'core', 'config', 'vers
 PACKAGE_JSON_FILE = os.path.join(ROOT_DIR, 'web', 'package.json')
 
 def load_version():
-    with open(VERSION_JSON, 'r') as f:
-        data = json.load(f)
-    return data['version']
+    v_json = "00.000.0000"
+    if os.path.exists(VERSION_JSON):
+        try:
+            with open(VERSION_JSON, 'r') as f:
+                v_json = json.load(f).get('version', '00.000.0000')
+        except Exception:
+            pass
+            
+    v_py = "00.000.0000"
+    if os.path.exists(BACKEND_VER_FILE):
+        try:
+            with open(BACKEND_VER_FILE, 'r') as f:
+                match = re.search(r'SERVER_VERSION\s*=\s*"([^"]+)"', f.read())
+                if match:
+                    v_py = match.group(1)
+        except Exception:
+            pass
+            
+    def version_key(v):
+        try:
+            return [int(x) for x in v.split('.')]
+        except Exception:
+            return [0, 0, 0]
+            
+    if version_key(v_py) > version_key(v_json):
+        return v_py
+    return v_json
+
 
 def increment_version(version_str):
     parts = version_str.split('.')

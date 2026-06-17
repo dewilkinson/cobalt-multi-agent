@@ -533,11 +533,15 @@ def sync_brokerage_portfolio(config: RunnableConfig):
                 
             # 3. Fetch Recent Filled Orders (Activities)
             try:
+                # Query from 3 days ago to today to cover weekends and holidays
+                start_dt = datetime.now() - timedelta(days=3)
+                start_date_str = start_dt.strftime("%Y-%m-%d")
+                
                 activities_res = client.transactions_and_reporting.get_activities(
                     user_id=user_id, 
                     user_secret=user_secret, 
                     accounts=acc_id, 
-                    start_date=today_str, 
+                    start_date=start_date_str, 
                     end_date=today_str
                 )
                 activities = getattr(activities_res, 'body', activities_res)
@@ -547,7 +551,13 @@ def sync_brokerage_portfolio(config: RunnableConfig):
                     # SnapTrade returns newest first. Reverse to oldest first for chronological timestamping.
                     activities_chronological = list(reversed(activities))
                     for i, act in enumerate(activities_chronological):
-                        sym = act.get('symbol', {}).get('symbol', 'Unknown')
+                        sym_val = act.get('symbol')
+                        if isinstance(sym_val, dict):
+                            sym = sym_val.get('symbol', 'Unknown')
+                        elif isinstance(act.get('universal_symbol'), dict):
+                            sym = act['universal_symbol'].get('symbol', 'Unknown')
+                        else:
+                            sym = sym_val or 'Unknown'
                         action = act.get('type', act.get('action', 'Unknown'))
                         qty = act.get('units', 0)
                         price = act.get('price', 0)
@@ -556,9 +566,24 @@ def sync_brokerage_portfolio(config: RunnableConfig):
                         timestamp = None
                         if raw_time and isinstance(raw_time, str):
                             if 'T' in raw_time:
-                                timestamp = raw_time.split('T')[1][:8]
+                                date_part = raw_time.split('T')[0]
+                                time_part = raw_time.split('T')[1][:8]
+                                # If the trade occurred on a previous day, prefix with date (MM-DD)
+                                if date_part != today_str:
+                                    timestamp = f"{date_part[5:]} {time_part}"
+                                else:
+                                    timestamp = time_part
                             elif ':' in raw_time:
-                                timestamp = raw_time.split(' ')[-1]
+                                # e.g. '2026-06-12 13:30:11' or '13:30:11'
+                                if ' ' in raw_time:
+                                    dt_part = raw_time.split(' ')[0]
+                                    tm_part = raw_time.split(' ')[-1]
+                                    if dt_part != today_str and len(dt_part) == 10:
+                                        timestamp = f"{dt_part[5:]} {tm_part}"
+                                    else:
+                                        timestamp = tm_part
+                                else:
+                                    timestamp = raw_time.split(' ')[-1]
                                 
                         if not timestamp:
                             # Assign sequential timestamps starting at market open (09:30:xx)

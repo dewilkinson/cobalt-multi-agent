@@ -12,6 +12,7 @@ To accommodate slower reflex profiles, the system prohibits market chasing. All 
 - **No Market Orders:** Entries are set as limit orders at pre-defined structural levels.
 - **Timeframe Anchor:** 5-Minute (Execution) and 15-Minute (Trend/Structure).
 - **Execution Buffer:** 5–15 minute decision windows from alert to execution.
+- **TV Alert Entry Trigger:** Set TradingView alerts on the 5m timeframe for BoS or CHoCH on daily candidates to catch entry triggers, securing a better price execution rather than chasing market momentum.
 
 ## 3. Selection Criteria (Scout Agent)
 The Scout Agent filters the $20–$50 asset universe based on institutional participation:
@@ -19,6 +20,7 @@ The Scout Agent filters the $20–$50 asset universe based on institutional part
 - **RVOL Threshold:** Absolute RVOL must be **> 2.0**.
 - **Liquidity Sweep:** Mandatory sweep of Previous Session High (PSH) or Previous Session Low (PSL).
 - **Sortino Hurdle ($S_{DR}$):** Minimum projected **3.5** (Penalizing downside deviation over total volatility).
+- **Chaikin Money Flow (CMF):** CMF (20-period) must be $> 0$ (ideally $> 0.05$ and rising) on the 5m chart at entry to confirm institutional accumulation.
 
 ## 4. Technical Logic (Smart Money Concepts)
 The Analyst Node authorizes trades only when the following confluence exists:

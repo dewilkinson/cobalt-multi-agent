@@ -19,7 +19,7 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from src.tools import fetch_market_macros, get_portfolio_balance_report, get_smc_analysis, get_stock_quote, update_portfolio_ledger, update_watchlist, get_attribution_summary
+from src.tools import fetch_market_macros, get_portfolio_balance_report, get_smc_analysis, get_stock_quote, update_portfolio_ledger, update_watchlist, get_attribution_summary, export_scanner_watchlists
 from src.tools.broker import sync_brokerage_portfolio, export_to_tradezella
 from src.tools.shared_storage import GLOBAL_CONTEXT, PORTFOLIO_MANAGER_CONTEXT
 
@@ -44,7 +44,7 @@ async def portfolio_manager_node(state: State, config: RunnableConfig):
     logger.info("Portfolio Manager Node: Evaluating War Barbell balance and Watchlist integrity.")
 
     # Selection of tools for the Overseer
-    tools = [get_portfolio_balance_report, update_watchlist, update_portfolio_ledger, get_stock_quote, get_smc_analysis, fetch_market_macros, get_attribution_summary, sync_brokerage_portfolio, export_to_tradezella]
+    tools = [get_portfolio_balance_report, update_watchlist, update_portfolio_ledger, get_stock_quote, get_smc_analysis, fetch_market_macros, get_attribution_summary, sync_brokerage_portfolio, export_to_tradezella, export_scanner_watchlists]
 
     # Enforce objective reporting
     instructions = f"Report verbosity={state.get('verbosity', 1)}. "

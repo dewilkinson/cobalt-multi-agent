@@ -147,12 +147,13 @@ def _normalize_ticker(ticker: str) -> str:
     return t
 
 
-def _bucket_sparkline_data(df: pd.DataFrame, ref_time: datetime, current_price: float, num_points: int = 20, span_minutes: int = 390) -> list[float | None]:
+def _bucket_sparkline_data(df: pd.DataFrame, ref_time: datetime, current_price: float, num_points: int = 20, span_minutes: int = 390, session_mode: bool = False, step_minutes: int = 5) -> list[float | dict[str, Any] | None]:
     """
-    High-Fidelity Resampling: Uses row-index interpolation to prevent chronological stagnation.
-    Defaults to 20 points extracted across the last span_minutes rows of active trading.
+    High-Fidelity Resampling: Uses row-index interpolation or rolling active session windowing.
     """
     if df.empty:
+        if session_mode:
+            return [{"v": round(current_price, 4), "is_prev": False}] * num_points
         return [round(current_price, 4)] * num_points
 
     col = "Close" if "Close" in df.columns else "close"
@@ -166,8 +167,91 @@ def _bucket_sparkline_data(df: pd.DataFrame, ref_time: datetime, current_price: 
     target_data = target_data.dropna().sort_index()
     
     if target_data.empty:
+        if session_mode:
+            return [{"v": round(current_price, 4), "is_prev": False}] * num_points
         return [round(current_price, 4)] * num_points
-        
+
+    if session_mode:
+        # Align ref_time timezone to NY
+        ref_time_ts = pd.Timestamp(ref_time)
+        if ref_time_ts.tz is not None:
+            ref_time_naive = ref_time_ts.tz_convert('America/New_York').tz_localize(None)
+        else:
+            ref_time_naive = ref_time_ts
+
+        # Identify target date based on the latest available row's date
+        latest_row_time = target_data.index[-1]
+        target_date = latest_row_time.date()
+
+        # Define pre-market start (4:00 AM) and post-market end (7:00 PM) for the target date
+        start_dt = datetime.combine(target_date, datetime.min.time()).replace(hour=4, minute=0)
+        end_dt = datetime.combine(target_date, datetime.min.time()).replace(hour=19, minute=0)
+
+        # Set the active cutoff time for today's session
+        if target_date < ref_time_naive.date():
+            cutoff_dt = end_dt
+        elif target_date == ref_time_naive.date():
+            if ref_time_naive < start_dt:
+                cutoff_dt = start_dt
+            elif ref_time_naive > end_dt:
+                cutoff_dt = end_dt
+            else:
+                cutoff_dt = ref_time_naive
+        else:
+            cutoff_dt = ref_time_naive
+
+        # Anchor cutoff to the latest available data if it stopped trading before cutoff_dt
+        if latest_row_time < cutoff_dt:
+            cutoff_dt = latest_row_time
+
+        # Generate a list of naive NY datetimes going back in time
+        dts = []
+        curr = cutoff_dt
+
+        def is_weekend(d):
+            return d.weekday() >= 5
+
+        while len(dts) < num_points:
+            # Skip weekends
+            if is_weekend(curr):
+                curr = datetime.combine(curr.date(), datetime.min.time()).replace(hour=18, minute=55)
+                while is_weekend(curr):
+                    curr -= timedelta(days=1)
+                continue
+
+            # Skip non-active hours (overnight)
+            if curr.hour < 4:
+                prev_day = curr - timedelta(days=1)
+                curr = datetime.combine(prev_day.date(), datetime.min.time()).replace(hour=18, minute=55)
+                continue
+
+            if curr.hour >= 19:
+                curr = datetime.combine(curr.date(), datetime.min.time()).replace(hour=18, minute=55)
+                continue
+
+            dts.append(curr)
+            curr -= timedelta(minutes=step_minutes)
+
+        dts.reverse()
+
+        # Sample prices at each index
+        output_values = []
+        for i, dt in enumerate(dts):
+            # Check if this point is in the previous session
+            is_prev = dt.date() < target_date
+
+            if i == num_points - 1:
+                # Last slot is always the current real-time price
+                output_values.append({"v": round(float(current_price), 4), "is_prev": is_prev})
+            else:
+                val = target_data.asof(dt)
+                if pd.isna(val):
+                    output_values.append(None)
+                else:
+                    output_values.append({"v": round(float(val), 4), "is_prev": is_prev})
+
+        return output_values
+
     # Obtain the most recent `span_minutes` rows (equivalent to last 6.5 hours of active trading since 1 row = 1 min).
     # If the history is less than span_minutes, it uses whatever is valid.
     recent_data = target_data.tail(span_minutes)
@@ -566,6 +650,66 @@ def _inject_prepost_price_to_df(df: pd.DataFrame, ticker: str, interval: str) ->
     return df
 
 
+def _slice_df_to_period(df: pd.DataFrame, period: str, interval: str) -> pd.DataFrame:
+    """Slices the DataFrame to match the requested lookback period exactly."""
+    if df.empty:
+        return df
+
+    import re
+    period_lower = period.lower().strip()
+    
+    # 1. Check for standard days format (e.g. "60d", "5d", "1d")
+    match_d = re.match(r"^(\d+)d$", period_lower)
+    if match_d:
+        n_days = int(match_d.group(1))
+        if interval == "1d":
+            return df.tail(n_days)
+        else:
+            try:
+                unique_dates = pd.to_datetime(df.index).date
+                last_n_dates = sorted(list(set(unique_dates)))[-n_days:]
+                return df[pd.Series(unique_dates).isin(last_n_dates).values]
+            except Exception as e:
+                logger.warning(f"Failed to slice intraday DataFrame by {n_days} calendar days: {e}")
+                return df
+
+    # 2. Check for months format (e.g. "1mo", "3mo")
+    match_mo = re.match(r"^(\d+)mo$", period_lower)
+    if match_mo:
+        n_months = int(match_mo.group(1))
+        # 1 month is roughly 21 trading days
+        n_days = n_months * 21
+        if interval == "1d":
+            return df.tail(n_days)
+        else:
+            try:
+                unique_dates = pd.to_datetime(df.index).date
+                last_n_dates = sorted(list(set(unique_dates)))[-n_days:]
+                return df[pd.Series(unique_dates).isin(last_n_dates).values]
+            except Exception as e:
+                logger.warning(f"Failed to slice intraday DataFrame by {n_months} months: {e}")
+                return df
+
+    # 3. Check for years format (e.g. "1y", "2y")
+    match_y = re.match(r"^(\d+)y$", period_lower)
+    if match_y:
+        n_years = int(match_y.group(1))
+        # 1 year is roughly 252 trading days
+        n_days = n_years * 252
+        if interval == "1d":
+            return df.tail(n_days)
+        else:
+            try:
+                unique_dates = pd.to_datetime(df.index).date
+                last_n_dates = sorted(list(set(unique_dates)))[-n_days:]
+                return df[pd.Series(unique_dates).isin(last_n_dates).values]
+            except Exception as e:
+                logger.warning(f"Failed to slice intraday DataFrame by {n_years} years: {e}")
+                return df
+
+    return df
+
+
 def _fetch_stock_history(ticker: str, period: str = "5d", interval: str = "1d") -> pd.DataFrame:
     """
     Standard single-ticker fetcher. Automatically flattens MultiIndex for the requested ticker.
@@ -591,6 +735,9 @@ def _fetch_stock_history(ticker: str, period: str = "5d", interval: str = "1d") 
 
     data = _fetch_batch_history([ticker], period, interval)
     df = _extract_ticker_data(data, ticker)
+
+    # Slice to exact period lookback before caching and returning
+    df = _slice_df_to_period(df, period, interval)
 
     try:
         from src.utils.temporal import get_effective_now
@@ -1365,7 +1512,7 @@ async def get_macro_symbols(fast_update: bool = False) -> str:
                 except Exception as ef:
                     logger.warning(f"VLI: Fallback 1m fetch failed for {ticker}: {ef}")
 
-            sparkline_values = _bucket_sparkline_data(sparkline_df, ref_time, price, num_points=32, span_minutes=240)
+            sparkline_values = _bucket_sparkline_data(sparkline_df, ref_time, price, num_points=32, span_minutes=240, session_mode=True, step_minutes=5)
 
             # [RISK_METRICS] Institutional Sortino Ratio (1y)
             sortino = 0.0

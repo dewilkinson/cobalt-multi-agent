@@ -9,7 +9,6 @@ import { LanguageSwitcher } from "~/components/cobalt-multi-agent/language-switc
 import { NumberTicker } from "~/components/magicui/number-ticker";
 import { Button } from "~/components/ui/button";
 import { env } from "~/env";
-import { TokenTallyBadge } from "./token-tally-badge";
 
 export function SiteHeader() {
   const t = useTranslations('common');

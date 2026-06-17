@@ -49,11 +49,72 @@ async function waitForWeb() {
     return false;
 }
 
+function killProcessOnPort(port) {
+    try {
+        if (process.platform === 'win32') {
+            const output = execSync('netstat -ano').toString();
+            const lines = output.split('\n');
+            const pids = new Set();
+            for (const line of lines) {
+                if (line.includes('LISTENING')) {
+                    const parts = line.trim().split(/\s+/);
+                    if (parts.length >= 5) {
+                        const localAddress = parts[1];
+                        if (localAddress) {
+                            const colonIdx = localAddress.lastIndexOf(':');
+                            const localPort = localAddress.substring(colonIdx + 1);
+                            if (localPort === String(port)) {
+                                const pid = parts[parts.length - 1];
+                                if (pid && !isNaN(pid) && pid !== '0') {
+                                    pids.add(parseInt(pid));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            for (const pid of pids) {
+                if (pid === process.pid) continue;
+                console.log(`[VLI-Electron] Found zombie process (PID ${pid}) on port ${port}. Killing it...`);
+                try {
+                    execSync(`taskkill /pid ${pid} /T /F`);
+                    console.log(`[VLI-Electron] Successfully killed PID ${pid} on port ${port}.`);
+                } catch (e) {
+                    console.error(`[VLI-Electron] Failed to kill PID ${pid}:`, e.message);
+                }
+            }
+        } else {
+            try {
+                const pid = execSync(`lsof -t -i:${port}`).toString().trim();
+                if (pid) {
+                    const pids = pid.split('\n');
+                    for (const p of pids) {
+                        const pidNum = parseInt(p);
+                        if (pidNum && pidNum !== process.pid) {
+                            console.log(`[VLI-Electron] Found zombie process (PID ${pidNum}) on port ${port}. Killing it...`);
+                            execSync(`kill -9 ${pidNum}`);
+                        }
+                    }
+                }
+            } catch (e) {
+                // lsof returns exit code 1 if no process found
+            }
+        }
+    } catch (err) {
+        console.error(`[VLI-Electron] Error checking/killing process on port ${port}:`, err.message);
+    }
+}
+
 function startBackend() {
     const backendPath = path.join(__dirname, '..', 'backend');
     console.log('[VLI-Electron] Starting backend from:', backendPath);
     
-    // Removed automatic version bumping on every launch
+    try {
+        // Run bump_version.py synchronously
+        execSync('uv run python bump_version.py', { cwd: backendPath, stdio: 'ignore' });
+    } catch (e) {
+        console.error('[VLI-Electron] Failed to bump version:', e.message);
+    }
 
     const serverArgs = ['run', 'server.py'];
     if (isDev) {
@@ -110,6 +171,11 @@ function createWindow() {
 
 app.whenReady().then(async () => {
     createWindow();
+    
+    // Ensure no zombie processes are listening on our ports before launch
+    const webPort = isDev ? 3000 : 8080;
+    killProcessOnPort(8000);
+    killProcessOnPort(webPort);
     
     startBackend();
     startWeb();

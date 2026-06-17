@@ -31,8 +31,8 @@ from src.config.agents import LLMType
 from src.llms.providers.dashscope import ChatDashscope
 from src.llms.llm_shield import QuotaProtectedLLM
 
-# Cache for LLM instances
-_llm_cache: dict[LLMType, BaseChatModel] = {}
+# Cache for LLM instances (keyed by LLMType and the event loop it belongs to)
+_llm_cache: dict[tuple[LLMType, Any], BaseChatModel] = {}
 
 import logging
 
@@ -231,8 +231,22 @@ def get_llm_by_type(llm_type: LLMType) -> BaseChatModel:
     Get LLM instance by type.
     """
     global _llm_cache
-    if llm_type in _llm_cache:
-        return _llm_cache[llm_type]
+    import asyncio
+    
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+        
+    # Evict closed loops to prevent memory leaks
+    for key in list(_llm_cache.keys()):
+        _, k_loop = key
+        if k_loop is not None and k_loop.is_closed():
+            _llm_cache.pop(key, None)
+            
+    cache_key = (llm_type, loop)
+    if cache_key in _llm_cache:
+        return _llm_cache[cache_key]
 
     conf = load_yaml_config(_get_config_file_path())
     llm = _create_llm_use_conf(llm_type, conf)
@@ -246,7 +260,7 @@ def get_llm_by_type(llm_type: LLMType) -> BaseChatModel:
     # [SAFETY] Wrap the LLM in the Quota Shield
     protected_llm = QuotaProtectedLLM(llm, llm_type)
     
-    _llm_cache[llm_type] = protected_llm
+    _llm_cache[cache_key] = protected_llm
     return protected_llm
 
 

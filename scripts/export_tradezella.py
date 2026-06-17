@@ -201,10 +201,22 @@ def run_fifo_matching(cache, start_date, end_date):
     # Sort chronologically ascending
     chronological_acts = sorted(activities, key=parse_time)
     
+    from zoneinfo import ZoneInfo
+    eastern_tz = ZoneInfo("America/New_York")
+    now = datetime.now(eastern_tz)
+    cutoff_date = datetime(now.year, now.month, 1, tzinfo=eastern_tz)
+    cleared_orphans = False
+    
     tax_lots = {}  # symbol -> list of {"qty": float, "price": float, "time": datetime}
     closed_trades = []
     
     for act in chronological_acts:
+        # Check if we should clear orphaned trades from before this month
+        trade_time = parse_time(act)
+        if not cleared_orphans and trade_time >= cutoff_date:
+            tax_lots.clear()
+            cleared_orphans = True
+            
         action = act.get('type', '').upper()
         status = act.get('status', '').upper()
         if status not in ['EXECUTED', 'FILLED']:
@@ -217,7 +229,6 @@ def run_fifo_matching(cache, start_date, end_date):
         
         qty = float(act.get('units', 0))
         price = float(act.get('price', 0))
-        trade_time = parse_time(act)
         
         if action in ["BUY", "BOUGHT", "BTO", "BTC"]:
             if sym not in tax_lots:

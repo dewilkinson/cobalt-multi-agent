@@ -294,6 +294,7 @@ async def scanner_stream():
                         try:
                             ticker_spark_df = _extract_ticker_data(sparkline_data, norm_s)
                             if not ticker_spark_df.empty:
+                                ticker_spark_df = ticker_spark_df.sort_index()
                                 last_10 = ticker_spark_df.tail(10)
                                 for _, row in last_10.iterrows():
                                     ts = row.name

@@ -14,25 +14,74 @@ interface DynamicTableProps {
 }
 
 export const DynamicTable: React.FC<DynamicTableProps> = ({ headers, rows, id }) => {
-  const renderSparkline = (values: number[]) => {
+  const renderSparkline = (values: any[]) => {
     if (!values || values.length < 2) return null;
     
-    const min = Math.min(...values);
-    const max = Math.max(...values);
+    // Parse values supporting both plain numbers and { v, is_prev } objects, dropping nulls
+    const parsedValues = values
+      .map((item, idx) => {
+        if (item === null || item === undefined) return null;
+        if (typeof item === 'number') {
+          return { v: item, isPrev: false, originalIndex: idx };
+        }
+        if (typeof item === 'object' && 'v' in item) {
+          return { v: Number(item.v), isPrev: !!item.is_prev, originalIndex: idx };
+        }
+        return null;
+      })
+      .filter((item): item is { v: number; isPrev: boolean; originalIndex: number } => item !== null);
+
+    if (parsedValues.length === 0) return null;
+
+    const validFloatValues = parsedValues.map(item => item.v);
+    const min = Math.min(...validFloatValues);
+    const max = Math.max(...validFloatValues);
     const range = max - min || 1;
     const width = 64;
     const height = 16;
     
-    const points = values.map((v, i) => {
-      const x = (i / (values.length - 1)) * width;
-      const y = height - ((v - min) / range) * height;
-      return `${x},${y}`;
-    }).join(' ');
+    // Map parsed values to coordinates based on their original index positions
+    const pointsArray = parsedValues.map(item => {
+      const x = (item.originalIndex / (values.length - 1)) * width;
+      const y = height - ((item.v - min) / range) * height;
+      return { x, y, str: `${x},${y}`, isPrev: item.isPrev };
+    });
 
-    const isUp = values[values.length - 1]! >= values[0]!;
+    if (pointsArray.length === 0) return null;
+
+    // Split points into previous session and current session arrays
+    const prevPoints: typeof pointsArray = [];
+    const currPoints: typeof pointsArray = [];
+    
+    pointsArray.forEach((p) => {
+      if (p.isPrev) {
+        prevPoints.push(p);
+      } else {
+        // Connect the current segment seamlessly to the end of the previous segment
+        if (currPoints.length === 0 && prevPoints.length > 0) {
+          currPoints.push(prevPoints[prevPoints.length - 1]!);
+        }
+        currPoints.push(p);
+      }
+    });
+
+    // Determine direction from latest valid value to first valid value
+    const latestVal = parsedValues[parsedValues.length - 1]?.v;
+    const firstVal = parsedValues[0]?.v;
+    const isUp = latestVal !== undefined && firstVal !== undefined ? latestVal >= firstVal : true;
+    
     const colorClass = isUp ? 'stroke-emerald-400' : 'stroke-rose-400';
+    const prevColorClass = isUp ? 'stroke-emerald-600' : 'stroke-rose-600';
+    
     const fillClass = isUp ? 'fill-emerald-400/10' : 'fill-rose-400/10';
     const gradientId = `gradient-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Build fill path starting at floor of first point, tracing line, dropping to floor of last point, and closing
+    const firstPoint = pointsArray[0]!;
+    const lastPoint = pointsArray[pointsArray.length - 1]!;
+    const fillPathD = `M ${firstPoint.x} ${height} ` + 
+                      pointsArray.map(p => `L ${p.str}`).join(' ') + 
+                      ` L ${lastPoint.x} ${height} Z`;
 
     return (
       <div className="w-16 h-4">
@@ -44,21 +93,36 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({ headers, rows, id })
             </linearGradient>
           </defs>
           <path
-            d={`M 0 ${height} ${points.split(' ').map((p, i) => (i === 0 ? `M ${p}` : `L ${p}`)).join(' ')} L ${width} ${height} Z`}
+            d={fillPathD}
             fill={`url(#${gradientId})`}
           />
-          <motion.polyline
-            fill="none"
-            className={`${colorClass}`}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            points={points}
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ duration: 1.5, ease: "easeInOut" }}
-            style={{ filter: `drop-shadow(0 0 4px ${isUp ? 'rgba(52, 211, 153, 0.4)' : 'rgba(251, 113, 133, 0.4)'})` }}
-          />
+          {prevPoints.length >= 2 && (
+            <motion.polyline
+              fill="none"
+              className={`${prevColorClass}`}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              points={prevPoints.map(p => p.str).join(' ')}
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.6 }}
+              transition={{ duration: 1.5, ease: "easeInOut" }}
+            />
+          )}
+          {currPoints.length >= 2 && (
+            <motion.polyline
+              fill="none"
+              className={`${colorClass}`}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              points={currPoints.map(p => p.str).join(' ')}
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 1.5, ease: "easeInOut" }}
+              style={{ filter: `drop-shadow(0 0 4px ${isUp ? 'rgba(52, 211, 153, 0.4)' : 'rgba(251, 113, 133, 0.4)'})` }}
+            />
+          )}
         </svg>
       </div>
     );

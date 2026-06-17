@@ -130,7 +130,7 @@ def write_obsidian_daily_report(content: str):
         if not vault_path:
             logger.error("Obsidian vault path not configured for Daily Trading Report")
             return
-            
+        full_journal_dir = os.path.join(vault_path, journal_dir)
         reports_dir = os.path.join(full_journal_dir, "Daily Reports")
         os.makedirs(reports_dir, exist_ok=True)
         

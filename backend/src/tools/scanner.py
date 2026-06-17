@@ -780,3 +780,89 @@ async def trigger_morning_scan() -> str:
         
     threading.Thread(target=bg_task, daemon=True).start()
     return "SUCCESS: The morning scan has been successfully dispatched to the background orchestration thread. You do not need to wait for results. Please inform the user: 'Morning scan sequence successfully engaged. Background orchestration is running.'"
+
+
+def update_scanner_archive(candidates: list[dict]):
+    """
+    Archives each day's scan lists and tracks symbol additions and removals.
+    Saves to data/scanner_archive.json and data/archive/scan_list_YYYY-MM-DD.json.
+    """
+    import os
+    import json
+    from datetime import datetime
+    
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    
+    current_time = datetime.now()
+    current_scan_time = current_time.isoformat()
+    date_str = current_time.strftime("%Y-%m-%d")
+    
+    # 1. Update rolling scanner_archive.json
+    archive_path = os.path.join(base_dir, "data", "scanner_archive.json")
+    
+    archive_data = {"history": []}
+    if os.path.exists(archive_path):
+        try:
+            with open(archive_path, "r", encoding="utf-8") as f:
+                archive_data = json.load(f)
+        except Exception:
+            pass
+            
+    if not isinstance(archive_data, dict) or "history" not in archive_data:
+        archive_data = {"history": []}
+        
+    history = archive_data["history"]
+    
+    current_map = {}
+    for c in candidates:
+        if not isinstance(c, dict):
+            continue
+        sym = c.get("symbol")
+        if sym:
+            current_map[sym.upper().strip()] = c
+            
+    active_symbols_in_history = set()
+    for entry in history:
+        if not isinstance(entry, dict):
+            continue
+        sym = entry.get("symbol", "").upper().strip()
+        if not sym:
+            continue
+            
+        if entry.get("removed_at") is None:
+            if sym in current_map:
+                c = current_map[sym]
+                entry["last_seen"] = current_scan_time
+                entry["grade"] = c.get("grade", entry.get("grade", ""))
+                entry["tier"] = c.get("tier", entry.get("tier", ""))
+                active_symbols_in_history.add(sym)
+            else:
+                entry["removed_at"] = current_scan_time
+                
+    for sym, c in current_map.items():
+        if sym not in active_symbols_in_history:
+            new_entry = {
+                "symbol": sym,
+                "tier": c.get("tier", ""),
+                "grade": c.get("grade", ""),
+                "first_added": current_scan_time,
+                "last_seen": current_scan_time,
+                "removed_at": None
+            }
+            history.append(new_entry)
+            
+    try:
+        os.makedirs(os.path.dirname(archive_path), exist_ok=True)
+        with open(archive_path, "w", encoding="utf-8") as f:
+            json.dump(archive_data, f, indent=4)
+    except Exception as e:
+        logger.error(f"Failed to write to scanner archive: {e}")
+
+    # 2. Archive to a daily file for that day
+    daily_archive_path = os.path.join(base_dir, "data", "archive", f"scan_list_{date_str}.json")
+    try:
+        os.makedirs(os.path.dirname(daily_archive_path), exist_ok=True)
+        with open(daily_archive_path, "w", encoding="utf-8") as f:
+            json.dump(archive_data, f, indent=4)
+    except Exception as e:
+        logger.error(f"Failed to write daily scanner archive: {e}")

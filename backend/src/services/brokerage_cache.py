@@ -2,6 +2,7 @@ import os
 import json
 import logging
 from typing import List, Dict, Any, Optional
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +13,62 @@ class BrokerageCache:
     Manages a local disk cache for SnapTrade brokerage activities to prevent
     rate limits and reduce latency on long historical fetches.
     """
+    @classmethod
+    def _parse_time(cls, act: Dict[str, Any]) -> datetime:
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        eastern_tz = ZoneInfo("America/New_York")
+        t_str = act.get('trade_date', '') or act.get('time_placed', '')
+        if not t_str:
+            return datetime.min.replace(tzinfo=eastern_tz)
+        
+        # Strip Z or timezone offset if present, to treat the hours as Eastern Time
+        t_str_clean = str(t_str)
+        if t_str_clean.endswith('Z'):
+            t_str_clean = t_str_clean[:-1]
+        if '+' in t_str_clean:
+            t_str_clean = t_str_clean.split('+')[0]
+            
+        # Try parsing Month-Day-Year (e.g. Oct-7-2025 or May-20-2026)
+        if '-' in t_str_clean and not t_str_clean.startswith('20'):
+            try:
+                dt = datetime.strptime(t_str_clean, "%b-%d-%Y")
+                return dt.replace(tzinfo=eastern_tz)
+            except Exception:
+                pass
+                
+        # Try parsing Month/Day/Year (e.g. 10/7/2025)
+        if '/' in t_str_clean:
+            try:
+                dt = datetime.strptime(t_str_clean, "%m/%d/%Y")
+                return dt.replace(tzinfo=eastern_tz)
+            except Exception:
+                try:
+                    dt = datetime.strptime(t_str_clean, "%m/%d/%y")
+                    return dt.replace(tzinfo=eastern_tz)
+                except Exception:
+                    pass
+                    
+        try:
+            if 'T' in t_str_clean:
+                if '.' in t_str_clean:
+                    parts = t_str_clean.split('.')
+                    frac = parts[1][:3]
+                    t_str_clean = parts[0] + '.' + frac
+                    dt = datetime.strptime(t_str_clean, "%Y-%m-%dT%H:%M:%S.%f")
+                else:
+                    dt = datetime.strptime(t_str_clean, "%Y-%m-%dT%H:%M:%S")
+            else:
+                dt = datetime.fromisoformat(t_str_clean)
+                
+            return dt.replace(tzinfo=eastern_tz)
+        except Exception:
+            try:
+                dt = datetime.fromisoformat(t_str.replace('Z', '+00:00'))
+                return dt.astimezone(eastern_tz)
+            except Exception:
+                return datetime.min.replace(tzinfo=eastern_tz)
+
     @classmethod
     def ingest_fidelity_payload(cls, payload: Dict[str, Any]) -> int:
         """
@@ -374,10 +431,7 @@ class BrokerageCache:
                 
         if added > 0:
             # Sort by trade_date or time_placed descending (newest first)
-            def get_sort_key(act):
-                return act.get('trade_date', act.get('time_placed', ''))
-                
-            existing_activities.sort(key=get_sort_key, reverse=True)
+            existing_activities.sort(key=cls._parse_time, reverse=True)
             acct_data["activities"] = existing_activities
             cache[account_id] = acct_data
             cls._save_cache(cache)
@@ -417,17 +471,27 @@ class BrokerageCache:
         if not activities:
             return {"total_pnl": 0.0, "closed_trades": []}
             
-        # Sort chronologically (oldest first)
-        def get_sort_key(act):
-            return act.get('trade_date', act.get('time_placed', ''))
+        # Sort chronologically (oldest first) using parse_time
+        chronological_acts = sorted(activities, key=cls._parse_time)
         
-        chronological_acts = sorted(activities, key=get_sort_key)
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        eastern_tz = ZoneInfo("America/New_York")
+        now = datetime.now(eastern_tz)
+        cutoff_date = datetime(now.year, now.month, 1, tzinfo=eastern_tz)
+        cleared_orphans = False
         
         tax_lots = {} # dict of symbol -> list of {"qty": float, "price": float}
         realized_pnl = 0.0
         closed_trades = []
         
         for act in chronological_acts:
+            # Check if we should clear orphaned trades from before this month
+            trade_time = cls._parse_time(act)
+            if not cleared_orphans and trade_time >= cutoff_date:
+                tax_lots.clear()
+                cleared_orphans = True
+                
             action = act.get('type', act.get('action', 'N/A')).upper()
             if action not in ["BUY", "SELL", "BOUGHT", "SOLD", "BTO", "STC", "BTC", "STO", "REINVEST", "DIVIDEND"]:
                 continue
@@ -446,7 +510,7 @@ class BrokerageCache:
             qty = float(act.get('units', 0))
             price = float(act.get('price', 0))
             
-            trade_date_str = get_sort_key(act)
+            trade_date_str = str(act.get('trade_date', act.get('time_placed', '')) or '')
             date_only = trade_date_str[:10] if trade_date_str else "Unknown"
             
             in_range = False

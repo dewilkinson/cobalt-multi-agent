@@ -223,3 +223,31 @@ def update_portfolio_ledger(position_data: str, config: RunnableConfig = None):
         return f"Portfolio ledger successfully updated at {ledger_path}"
     except Exception as e:
         return f"[ERROR]: Failed to update ledger: {e}"
+
+
+@tool
+def export_scanner_watchlists(config: RunnableConfig = None) -> str:
+    """
+    Exports the scanner results (STRIKE_LIST.json) categorized by tier to TradingView watchlist files.
+    Watchlist files are stored in backend/data/exports/ as watchlist_*.txt.
+    """
+    try:
+        import sys
+        proj_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+        if proj_root not in sys.path:
+            sys.path.append(proj_root)
+            
+        from scripts.utils.export_tradingview_watchlists import main as run_export
+        
+        import io
+        from contextlib import redirect_stdout
+        
+        f = io.StringIO()
+        with redirect_stdout(f):
+            run_export()
+        output = f.getvalue()
+        
+        return f"[SUCCESS]: Watchlists exported successfully.\n{output}"
+    except Exception as e:
+        logger.error(f"Failed to export scanner watchlists: {e}")
+        return f"[ERROR]: Failed to export scanner watchlists: {e}"

@@ -84,11 +84,23 @@ def main():
     activities = data.get("Rollover IRA *5513", {}).get("activities", [])
     chronological_acts = sorted(activities, key=parse_time)
     
+    # Cutoff date (1st day of the current month)
+    eastern_tz = ZoneInfo("America/New_York")
+    now = datetime.now(eastern_tz)
+    cutoff_date = datetime(now.year, now.month, 1, tzinfo=eastern_tz)
+    cleared_orphans = False
+    
     executions_by_symbol = {}
     tax_lots = {}  # symbol -> list of {"qty": float, "price": float, "time_ms": int}
     closed_trades = []
     
     for act in chronological_acts:
+        trade_time = parse_time(act)
+        # Check if we should clear orphaned trades from before this month
+        if not cleared_orphans and trade_time >= cutoff_date:
+            tax_lots.clear()
+            cleared_orphans = True
+            
         action = act.get('type', '').upper()
         status = act.get('status', '').upper()
         if status not in ['EXECUTED', 'FILLED']:
@@ -101,7 +113,6 @@ def main():
         
         qty = float(act.get('units', 0))
         price = float(act.get('price', 0))
-        trade_time = parse_time(act)
         
         time_str_tooltip = trade_time.strftime("%Y-%m-%d %H:%M:%S") + " ET"
         
@@ -204,9 +215,10 @@ def main():
     pine_script.append('// Helper to draw execution labels')
     pine_script.append('draw_execution(time_ms, price, is_buy, tooltip_val, only_today_flag, today_start_ms) =>')
     pine_script.append('    if show_labels and (not only_today_flag or time_ms >= today_start_ms)')
-    pine_script.append('        color_val = is_buy ? color.rgb(0, 230, 118) : color.rgb(255, 23, 68)')
-    pine_script.append('        text_val  = is_buy ? "▶  " : "  ◀"')
-    pine_script.append('        label.new(x=time_ms, y=price, text=text_val, xloc=xloc.bar_time, textcolor=color_val, style=label.style_none, size=size.large, tooltip=tooltip_val)')
+    pine_script.append('        color_val = is_buy ? color.rgb(0, 200, 83) : color.rgb(139, 0, 0)')
+    pine_script.append('        style_val = is_buy ? label.style_label_right : label.style_label_left')
+    pine_script.append('        text_val  = is_buy ? "▶" : "◀"')
+    pine_script.append('        label.new(x=time_ms, y=price, text=text_val, xloc=xloc.bar_time, color=color_val, textcolor=color.white, style=style_val, size=size.small, tooltip=tooltip_val)')
     pine_script.append('')
     pine_script.append('// Helper to draw trade path lines')
     pine_script.append('draw_trade_line(t1, p1, t2, p2, pnl, only_today_flag, today_start_ms) =>')

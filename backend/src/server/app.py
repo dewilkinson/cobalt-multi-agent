@@ -97,6 +97,8 @@ _vli_rules_active_since = datetime.now()
 _vli_last_thread_id = None
 _vli_dynamic_panels = []
 _is_morning_scan_running = False
+_is_idle_analysis_running = False
+
 
 # --- VLI CONSTANTS & ALIASES ---
 # DW ToDo: Gemini has created a mess here - need to rework the command parsing mechanism
@@ -449,17 +451,82 @@ def extract_vli_logic(text: str) -> list[dict[str, str]]:
 
 INTERNAL_SERVER_ERROR_DETAIL = "Internal Server Error"
 
+def clear_stale_scanner_files(force: bool = False):
+    """
+    Clears scanner strike lists and transit states if they are from a previous day.
+    If force=True, clears them unconditionally.
+    """
+    import os
+    import json
+    from datetime import datetime
+    from src.config.vli import get_vli_path
+    
+    current_day = datetime.now().date()
+    
+    # 1. Define files and their reset structures
+    base_data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+    root_data_dir = os.path.abspath(os.path.join(os.getcwd(), "data"))
+    
+    files = [
+        # (path, default_content_if_dict_or_list)
+        (os.path.join(base_data_dir, "STRIKE_LIST.json"), {"strike_list": []}),
+        (os.path.join(base_data_dir, "SCANNER_STRIKE_LIST.json"), {"strike_list": []}),
+        (os.path.join(base_data_dir, "SCANNER_COMBAT_LIST.json"), {"strike_list": []}),
+        (os.path.join(base_data_dir, "SHIELD_COMBAT_LIST.json"), []),
+        (os.path.join(root_data_dir, "STRIKE_LIST.json"), {"strike_list": []}),
+        (os.path.join(root_data_dir, "SCANNER_STRIKE_LIST.json"), {"strike_list": []}),
+        (get_vli_path(os.path.join("01_Transit", "Buckets", "STRIKE_RES_state.json")), {"pulse_mode": "CLEARED", "total_pulsed": 0, "candidates_passed": 0, "candidates": []}),
+        (get_vli_path(os.path.join("01_Transit", "Buckets", "SCANNER_RES_state.json")), {"pulse_mode": "CLEARED", "total_pulsed": 0, "candidates_passed": 0, "candidates": []}),
+        (get_vli_path(os.path.join("01_Transit", "Buckets", "SHIELD_RES_state.json")), {"pulse_mode": "CLEARED", "total_pulsed": 0, "candidates_passed": 0, "candidates": []}),
+    ]
+    
+    purged = []
+    for filepath, default_content in files:
+        if not os.path.exists(filepath):
+            continue
+            
+        should_clear = force
+        if not should_clear:
+            try:
+                # Check modification time
+                mtime = os.path.getmtime(filepath)
+                mtime_date = datetime.fromtimestamp(mtime).date()
+                if mtime_date < current_day:
+                    should_clear = True
+            except Exception as e:
+                logger.error(f"Failed to check mtime for {filepath}: {e}")
+                
+        if should_clear:
+            try:
+                os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                with open(filepath, "w", encoding="utf-8") as f:
+                    json.dump(default_content, f, indent=4)
+                purged.append(os.path.basename(filepath))
+            except Exception as e:
+                logger.error(f"Failed to clear stale scanner file {filepath}: {e}")
+                
+    if purged:
+        logger.info(f"VLI_SYSTEM: Cleared stale scanner lists/states from previous days: {purged}")
+
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
+    # Startup - Clear stale scanner lists from previous days
+    try:
+        clear_stale_scanner_files()
+    except Exception as e:
+        logger.error(f"VLI_SYSTEM: Failed to run clear_stale_scanner_files at startup: {e}")
+
     from datetime import datetime
     now = datetime.now()
     if now.hour >= 6:
         if not os.path.exists(get_daily_briefing_path()):
-            logger.info("VLI_SYSTEM: Missed Morning Scan detected. Triggering catch-up sequence...")
-            asyncio.create_task(run_daily_morning_analysis())
+            logger.info("VLI_SYSTEM: Missed Morning Scan detected. Scheduling catch-up sequence in 5 seconds...")
+            async def catchup_with_delay():
+                await asyncio.sleep(5)
+                await run_daily_morning_analysis()
+            asyncio.create_task(catchup_with_delay())
             
     # [NEW] Dashboard Integrity Guard
     b_dir = os.path.dirname(os.path.abspath(__file__))  # src/server
@@ -533,15 +600,6 @@ async def lifespan(app: FastAPI):
     else:
         # Register Internal Cobalt Scanner Logic
         from src.tools.sortino_sniper_trawl import run_background_trawl, run_intraday_trawl
-        
-        cobalt_scheduler.add_timer(
-            task_id="EXECUTIVE_BRIEFING",
-            name="Daily Executive Briefing",
-            type="CALENDAR",
-            schedule="15 7 * * *",
-            priority="HIGH",
-            callback=run_meta_analysis
-        )
         
         cobalt_scheduler.add_timer(
             task_id="INTRADAY_COMBAT_TRAWL",
@@ -638,6 +696,16 @@ async def lifespan(app: FastAPI):
         schedule="0 7 * * *",
         priority="HIGH",
         callback=run_daily_morning_analysis
+    )
+
+    # Register 7:15 AM Executive Morning Briefing
+    cobalt_scheduler.add_timer(
+        task_id="EXECUTIVE_BRIEFING",
+        name="Daily Executive Briefing",
+        type="CALENDAR",
+        schedule="15 7 * * *",
+        priority="HIGH",
+        callback=run_meta_analysis
     )
 
     cobalt_scheduler.add_timer(
@@ -1186,6 +1254,7 @@ async def run_tv_sync():
     Relying on the external TV engine for high-fidelity candidates.
     """
     import asyncio
+    import subprocess
     import sys
     try:
         script_path = os.path.join(os.getcwd(), "scripts", "vli", "tv_scanner_sync.py")
@@ -1193,14 +1262,19 @@ async def run_tv_sync():
             script_path = os.path.join(os.getcwd(), "..", "scripts", "vli", "tv_scanner_sync.py")
             
         logger.info(f"[TV SYNC] Launching TradingView extractor: {script_path}")
-        process = await asyncio.create_subprocess_exec(
-            sys.executable, script_path,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await process.communicate()
-        if process.returncode != 0:
-            logger.error(f"[TV SYNC] Sync returned non-zero code. Error output: {stderr.decode('utf-8', errors='ignore')}")
+        
+        def _run_subprocess():
+            return subprocess.run(
+                [sys.executable, script_path],
+                capture_output=True,
+                text=True
+            )
+            
+        result = await asyncio.to_thread(_run_subprocess)
+        if result.returncode != 0:
+            logger.error(f"[TV SYNC] Sync returned non-zero code. Error output: {result.stderr}")
+        else:
+            asyncio.create_task(run_idle_analysis(manual_trigger=False))
 
     except Exception as e:
         logger.error(f"[TV SYNC] Synchronization failed: {e}")
@@ -1232,6 +1306,17 @@ async def run_idle_analysis(manual_trigger: bool = False):
     Background orchestrator that diffs the scanner state against generated reports
     and spawns analysis agents for any missing symbols with stagger logic.
     """
+    global _is_idle_analysis_running
+    if _is_idle_analysis_running:
+        logger.warning("[BG_ANALYST] Background analysis is already running. Ignoring duplicate trigger.")
+        return
+    _is_idle_analysis_running = True
+    try:
+        await _run_idle_analysis_impl(manual_trigger)
+    finally:
+        _is_idle_analysis_running = False
+
+async def _run_idle_analysis_impl(manual_trigger: bool = False):
     import asyncio
     from datetime import datetime
     
@@ -1261,7 +1346,7 @@ async def run_idle_analysis(manual_trigger: bool = False):
                 macro_state = json.load(f)
             for row in macro_state.get("rows", []):
                 if len(row) > 1:
-                    candidates.append({"symbol": row[1]})
+                    candidates.append({"symbol": row[1], "is_macro": True, "grade": "S"})
     except Exception as e:
         logger.error(f"[BG_ANALYST] Failed to read macro watchlist: {e}")
 
@@ -1338,7 +1423,8 @@ async def run_idle_analysis(manual_trigger: bool = False):
         batch_analysis_queue = []
         for c in candidates_to_process:
             grade = c.get("grade", "A") if isinstance(c, dict) else "A"
-            if grade in ["S", "A+", "A", "A-"]:
+            is_macro = isinstance(c, dict) and c.get("is_macro", False)
+            if is_macro or grade in ["S", "A+", "A", "A-"]:
                 full_analysis_queue.append(c)
             else:
                 batch_analysis_queue.append(c)
@@ -2043,14 +2129,17 @@ class VLIActionPlanRequest(BaseModel):
 @app.get("/api/vli/scanner-settings")
 def get_scanner_settings():
     import json, os
-    settings_path = os.path.join(os.getcwd(), "backend", "data", "scanner_settings.json")
+    settings_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "scanner_settings.json"))
+    engine = os.environ.get("VLI_SCANNER_ENGINE", "tradingview").lower()
+    existing = {"track_spy": False, "engine": engine}
     if os.path.exists(settings_path):
         try:
             with open(settings_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                existing.update(json.load(f))
         except Exception:
             pass
-    return {"track_spy": False}
+    existing["engine"] = engine
+    return existing
 
 class ScannerSettingsRequest(BaseModel):
     track_spy: bool | None = None
@@ -2059,7 +2148,7 @@ class ScannerSettingsRequest(BaseModel):
 @app.post("/api/vli/scanner-settings")
 def update_scanner_settings(req: ScannerSettingsRequest):
     import json, os
-    settings_path = os.path.join(os.getcwd(), "backend", "data", "scanner_settings.json")
+    settings_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "scanner_settings.json"))
     
     existing = {"track_spy": False}
     if os.path.exists(settings_path):
@@ -2167,7 +2256,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                 logger.error(f"Failed to read MACRO_WATCHLIST_state.json: {e}")
                 
         # 6. Read SCANNER_RES state
-        scanner_res_content = {"candidates": [], "pulse_mode": "Automated Pulse"}
+        scanner_res_content = {"candidates": [], "pulse_mode": "Automated Pulse", "last_sync": None}
         sword_path = os.path.join(os.getcwd(), "backend", "data", "STRIKE_LIST.json")
         if not os.path.exists(sword_path):
             sword_path = os.path.join(os.getcwd(), "data", "STRIKE_LIST.json")
@@ -2187,6 +2276,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                     scanner_res_content["candidates"].extend(cands)
                     if isinstance(data, dict):
                         scanner_res_content["pulse_mode"] = "TradingView"
+                        scanner_res_content["last_sync"] = data.get("metadata", {}).get("last_sync", data.get("updated_at", None))
                 loaded_data = True
                 
             if os.path.exists(sword_path):
@@ -2200,6 +2290,8 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                         active_sf = _get_vli_session_config().get("active_strategy", "")
                         active_sn = active_sf.replace(".md", "").replace("cma_strategy_", "").replace("_", " ").title() if active_sf else "Active Strategy"
                         scanner_res_content["pulse_mode"] = data.get("pulse_mode", f"{active_sn} Scanner")
+                        if not scanner_res_content.get("last_sync"):
+                            scanner_res_content["last_sync"] = data.get("metadata", {}).get("last_sync", data.get("updated_at", None))
                 loaded_data = True
                 
             if not loaded_data and engine != "tradingview" and os.path.exists(scanner_bucket_path):
@@ -2211,6 +2303,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                     scanner_res_content["candidates"].extend(cands)
                     if isinstance(data, dict):
                         scanner_res_content["pulse_mode"] = data.get("pulse_mode", "TradingView")
+                        scanner_res_content["last_sync"] = data.get("metadata", {}).get("last_sync", data.get("updated_at", None))
         except Exception as e:
             logger.error(f"Failed to load Sword data: {e}")
             
@@ -2697,7 +2790,12 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
         activities_chronological = list(reversed(activities))
         
         import datetime
-        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        today_dt = datetime.datetime.now()
+        if today_dt.weekday() == 5: # Saturday -> Go back to Friday
+            today_dt = today_dt - datetime.timedelta(days=1)
+        elif today_dt.weekday() == 6: # Sunday -> Go back to Friday
+            today_dt = today_dt - datetime.timedelta(days=2)
+        today_str = today_dt.strftime("%Y-%m-%d")
         
         daily_counters = {}
         results = []
@@ -2953,8 +3051,6 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
         realized_pnl = realized_pnl_data["total_pnl"]
         closed_positions = realized_pnl_data["closed_trades"]
             
-        import datetime
-        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
         today_realized_pnl_data = BrokerageCache.calculate_realized_pnl(account_id, today_str, today_str)
         today_realized_pnl = today_realized_pnl_data["total_pnl"]
         
@@ -4181,6 +4277,12 @@ async def vli_inbox_tick():
         global _vli_last_async_report
         if "Executive Morning Briefing" in _vli_last_async_report:
             _vli_last_async_report = ""
+
+        # [NEW] Clear scanner lists/states on day rollover
+        try:
+            clear_stale_scanner_files(force=True)
+        except Exception as e:
+            logger.error(f"VLI_SYSTEM: Failed to clear scanner lists on day transition: {e}")
 
         _vli_last_run_day = current_day
 

@@ -119,9 +119,7 @@ async def fetch_market_macros(structural: bool = True) -> str:
 
 
 _LOOKBACK = 10
-_INTERVAL = "1h"
-_LOOKBACK = 10
-_INTERVAL = "1h"
+_INTERVAL = "15m"
 
 
 async def get_macro_data() -> list[dict[str, Any]]:
@@ -163,22 +161,60 @@ async def get_macro_data() -> list[dict[str, Any]]:
             sparkline = []
             change_pct = 0.0
             try:
+                import pandas as pd
+                import numpy as np
+                
                 ticker_spark_df = _extract_ticker_data(sparkline_data, yahoo_ticker)
                 if not ticker_spark_df.empty:
-                    # Calculate % change from start of period
-                    start_price = float(ticker_spark_df.iloc[0]["Close"])
-                    current_price = float(ticker_spark_df.iloc[-1]["Close"])
-                    if start_price > 0:
-                        change_pct = ((current_price - start_price) / start_price) * 100
+                    # Sort chronologically to prevent order anomalies
+                    ticker_spark_df = ticker_spark_df.sort_index()
+                    
+                    # Convert index to NY time
+                    try:
+                        ticker_spark_df.index = pd.to_datetime(ticker_spark_df.index, utc=True).tz_convert(NY_TZ).tz_localize(None)
+                    except Exception:
+                        ticker_spark_df.index = pd.to_datetime(ticker_spark_df.index).tz_localize(None)
+                        
+                    latest_date = ticker_spark_df.index[-1].date()
+                    day_df = ticker_spark_df[ticker_spark_df.index.date == latest_date]
+                    
+                    # Extract Close prices
+                    col = "Close" if "Close" in day_df.columns else "close"
+                    target_data = day_df[col].dropna()
+                    if isinstance(target_data, pd.DataFrame):
+                        target_data = target_data.iloc[:, 0]
+                        
+                    current_price = prices.get(yahoo_ticker, 0.0) or prices.get(yahoo_ticker.upper(), 0.0)
+                    if current_price == 0.0 and not target_data.empty:
+                        current_price = float(target_data.iloc[-1])
+                        
+                    # Calculate standard daily % change (current vs yesterday's close)
+                    unique_dates = sorted(list(set(ticker_spark_df.index.date)))
+                    if len(unique_dates) > 1:
+                        prev_date = unique_dates[-2]
+                        prev_day_df = ticker_spark_df[ticker_spark_df.index.date == prev_date]
+                        prev_day_close = prev_day_df[col].dropna()
+                        if not prev_day_close.empty:
+                            yesterday_close = float(prev_day_close.iloc[-1])
+                            if yesterday_close > 0:
+                                change_pct = ((current_price - yesterday_close) / yesterday_close) * 100
+                    else:
+                        first_close = float(target_data.iloc[0]) if not target_data.empty else current_price
+                        if first_close > 0:
+                            change_pct = ((current_price - first_close) / first_close) * 100
 
-                    # Take last _LOOKBACK non-null values for the UI charts
-                    last_n = ticker_spark_df.tail(_LOOKBACK)
-                    for _, row in last_n.iterrows():
-                        ts = row.name
-                        if ts.tzinfo is None:
-                            ts = ts.replace(tzinfo=ZoneInfo("UTC"))
-
-                        sparkline.append({"v": float(row["Close"]), "t": ts.astimezone(NY_TZ).strftime(" %m/%d  %I:%M %p").lower()})
+                    # Resample target_data to exactly _LOOKBACK points
+                    if not target_data.empty:
+                        indices = np.linspace(0, len(target_data) - 1, _LOOKBACK, dtype=int)
+                        for idx in indices:
+                            row_time = target_data.index[idx]
+                            val = float(target_data.iloc[idx])
+                            t_str = row_time.strftime(" %I:%M %p").lower()
+                            sparkline.append({"v": val, "t": t_str})
+                        sparkline[-1]["v"] = current_price
+                    else:
+                        for _ in range(_LOOKBACK):
+                            sparkline.append({"v": float(current_price), "t": " --:-- "})
             except Exception as e:
                 logger.error(f"Sparkline error for {yahoo_ticker}: {e}")
 

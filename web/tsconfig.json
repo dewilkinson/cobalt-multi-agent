@@ -39,5 +39,20 @@
     "**/*.js",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "frontend", "skills", "scripts"]
+  "exclude": [
+    "node_modules",
+    "frontend",
+    "skills",
+    "scripts",
+    "**/*_0.ts",
+    "**/*_0.tsx",
+    "**/*_0.cjs",
+    "**/*_0.js",
+    "**/*_0.jsx",
+    "**/*_0.css",
+    "src/app/test-chat/**/*",
+    "src/app/test-chat/page.tsx",
+    "**/test-chat/**/*",
+    "test_velocity.js"
+  ]
 }

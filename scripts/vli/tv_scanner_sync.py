@@ -405,6 +405,13 @@ def sync_vli_scanners():
         with open(target_path, 'w') as f:
             json.dump(dashboard_state, f, indent=4)
 
+        # Archive scan list daily details
+        try:
+            from src.tools.scanner import update_scanner_archive
+            update_scanner_archive(dashboard_state.get("candidates", []))
+        except Exception as e:
+            print(f"Failed to archive scan lists: {e}")
+
         # Persist to Obsidian Vault for real-time UI rendering
         try:
             from src.config.vli import get_vli_path
@@ -441,6 +448,18 @@ def sync_vli_scanners():
             print("Macro Watchlist Sync Successful")
         except Exception as e:
             print(f"Macro Watchlist Sync Failed: {e}")
+
+        # [WATCHLIST EXPORT]
+        try:
+            print("Exporting TradingView Watchlists...")
+            proj_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+            if proj_root not in sys.path:
+                sys.path.append(proj_root)
+            from scripts.utils.export_tradingview_watchlists import main as run_export
+            run_export()
+            print("TradingView Watchlists Export Successful")
+        except Exception as e:
+            print(f"TradingView Watchlists Export Failed: {e}")
 
         print(f"Sync Successful: {summary}")
 

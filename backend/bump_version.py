@@ -1,11 +1,14 @@
 import os
 import re
 import hashlib
+import json
 
 BASE_DIR = os.path.dirname(__file__)
 VERSION_FILE = os.path.join(BASE_DIR, 'src', 'version.py')
 HTML_FILE = os.path.join(BASE_DIR, 'public', 'vli_dashboard.html')
 REACT_VERSION_FILE = os.path.join(BASE_DIR, '..', 'web', 'src', 'core', 'config', 'version.ts')
+VERSION_JSON = os.path.join(BASE_DIR, '..', 'version.json')
+PACKAGE_JSON_FILE = os.path.join(BASE_DIR, '..', 'web', 'package.json')
 HASH_FILE = os.path.join(BASE_DIR, '.version_hash')
 
 def get_dir_hash():
@@ -83,6 +86,23 @@ if os.path.exists(REACT_VERSION_FILE):
     )
     with open(REACT_VERSION_FILE, 'w', encoding='utf-8') as f:
         f.write(react_content)
+
+if os.path.exists(VERSION_JSON):
+    try:
+        with open(VERSION_JSON, 'w') as f:
+            json.dump({'version': new_version}, f, indent=2)
+    except Exception as e:
+        print(f"Warning: Failed to update version.json: {e}")
+
+if os.path.exists(PACKAGE_JSON_FILE):
+    try:
+        with open(PACKAGE_JSON_FILE, 'r') as f:
+            package_content = f.read()
+        package_content = re.sub(r'"version":\s*"[^"]*"', f'"version": "{new_version}"', package_content)
+        with open(PACKAGE_JSON_FILE, 'w') as f:
+            f.write(package_content)
+    except Exception as e:
+        print(f"Warning: Failed to update package.json: {e}")
 
 with open(HASH_FILE, 'w') as f:
     f.write(current_hash)

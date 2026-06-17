@@ -20,9 +20,13 @@ The **Sortino Sniper** is a hyper-focused strategy that specifically targets hig
   - *Explanation*: The asset's rating against the S&P 500 must hold solidly at $RS > 90$ throughout a full financial quarter.
 
 - **Trailing Momentum Exit (EMA)**: 
-  - *Lookback*: **9-Period روی 5-Minute Chart**.
+  - *Lookback*: **9-Period on the 5-Minute Chart**.
   - *Formula*: $EMA_{t} = V_t \times \frac{2}{N+1} + EMA_{t-1} \times (1 - \frac{2}{N+1})$
   - *Explanation*: When you take initial profits, the remaining shares dynamically ride the 9 EMA until the 5-minute candle officially breaks and closes below the curve.
+
+- **Chaikin Money Flow (CMF)**:
+  - *Lookback*: **20-Period on the 5-Minute Chart**.
+  - *Rule*: CMF must be $> 0$ (ideally $> 0.05$ and rising) at the time of entry to confirm active institutional accumulation.
 
 ## Pillar 2 & 3: Finding the Entry
 We execute everything on the **5-minute chart**, which filters out chaotic 1-minute tracking noise while still catching massive orders in real-time. We wait for very specific "footprints" left behind by hedge funds:
@@ -31,6 +35,7 @@ We execute everything on the **5-minute chart**, which filters out chaotic 1-min
 - **Fair Value Gap (FVG)**: When institutions buy massive amounts of stock at once, the price rockets upward so fast it leaves an "empty gap." We wait patiently for the price to fall back and touch that gap before we buy.
 - **Order Block (OB)**: The exact price floor where the massive institutional order was physically placed.
 - **The Execution Sequence**: Sweep -> CHoCH (Trigger) -> Return to FVG (Entry) -> BoS (Confirmation).
+- **TV Alert Entry Trigger**: Set a TradingView alert on the 5m timeframe for a BoS or CHoCH on daily candidates. Using these structural events as alert triggers ensures you can execute entries at a better price.
 
 ## Pillar 6: Swords and Shields
 Instead of guessing our risk, we mathematically match our portfolio to the market weather:
