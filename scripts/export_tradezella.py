@@ -328,6 +328,30 @@ def run_fifo_matching(cache, start_date, end_date):
             '_action_order': 1
         })
         
+    # Aggregate duplicate execution rows to prevent TradeZella deduplication
+    aggregated_trades = {}
+    for r in trades_to_export:
+        key = (
+            r['Account Name'],
+            r['Date'],
+            r['Time'],
+            r['Symbol'],
+            r['Buy/Sell'],
+            r['Price'],
+            r['Spread'],
+            r['Expiration'],
+            r['Strike'],
+            r['Call/Put'],
+            r['_action_order']
+        )
+        if key not in aggregated_trades:
+            aggregated_trades[key] = dict(r)
+        else:
+            aggregated_trades[key]['Quantity'] += r['Quantity']
+            aggregated_trades[key]['Commission'] += r['Commission']
+            aggregated_trades[key]['Fees'] += r['Fees']
+            
+    trades_to_export = list(aggregated_trades.values())
     trades_to_export.sort(key=lambda x: (x["_dt"], x["Symbol"], x["_action_order"]))
     return trades_to_export
 

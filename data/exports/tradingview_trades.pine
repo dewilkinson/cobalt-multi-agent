@@ -20,19 +20,13 @@ draw_trade_line(t1, p1, t2, p2, pnl, only_today_flag, today_start_ms) =>
         line_color = pnl >= 0 ? color.rgb(38, 166, 154, 50) : color.rgb(229, 115, 115, 50)
         line.new(x1=t1, y1=p1, x2=t2, y2=p2, xloc=xloc.bar_time, color=line_color, style=line.style_dashed, width=2)
 
-today_start = 1781668800000 // 2026-06-17 00:00:00 UTC
+today_start = 1781755200000 // 2026-06-18 00:00:00 UTC
 current_sym = syminfo.ticker
 
 var has_plotted = false
 if not has_plotted
     has_plotted := true
-    if current_sym == "AADX"
-        draw_trade_line(1781188320000, 21.3299, 1781190120000, 21.02, -30.989999999999895, only_today, today_start)
-        draw_trade_line(1781188560000, 21.435, 1781190120000, 21.02, -41.499999999999915, only_today, today_start)
-        draw_execution(1781188320000, 21.3299, true, "Buy Entry\nTime: 2026-06-11 10:33:58 ET\nQty: 100.0\nPrice: $21.3299", only_today, today_start)
-        draw_execution(1781188560000, 21.435, true, "Buy Entry\nTime: 2026-06-11 10:37:02 ET\nQty: 100.0\nPrice: $21.435", only_today, today_start)
-        draw_execution(1781190120000, 21.02, false, "Sell Exit\nTime: 2026-06-11 11:03:14 ET\nQty: 200.0\nPrice: $21.02", only_today, today_start)
-    else if current_sym == "AMAT"
+    if current_sym == "AMAT"
         draw_trade_line(1781276220000, 558.935, 1781278620000, 563.3744, 44.394000000000915, only_today, today_start)
         draw_trade_line(1781277420000, 561.3899, 1781278620000, 563.3744, 29.767500000000382, only_today, today_start)
         draw_trade_line(1781278500000, 564.96, 1781278740000, 562.95, -20.09999999999991, only_today, today_start)
@@ -56,20 +50,20 @@ if not has_plotted
         draw_execution(1781712060000, 1930.084, true, "Buy Entry\nTime: 2026-06-17 12:02:09 ET\nQty: 10.0\nPrice: $1930.084", only_today, today_start)
         draw_execution(1781712120000, 1931.648, true, "Buy Entry\nTime: 2026-06-17 12:03:15 ET\nQty: 10.0\nPrice: $1931.648", only_today, today_start)
         draw_execution(1781713320000, 1927.02, false, "Sell Exit\nTime: 2026-06-17 12:23:07 ET\nQty: 20.0\nPrice: $1927.02", only_today, today_start)
-    else if current_sym == "ATEX"
-        draw_trade_line(1781189040000, 73.615, 1781190960000, 77.62, 120.15000000000029, only_today, today_start)
-        draw_trade_line(1781189040000, 73.615, 1781191680000, 77.06, 68.90000000000015, only_today, today_start)
-        draw_execution(1781189040000, 73.615, true, "Buy Entry\nTime: 2026-06-11 10:45:31 ET\nQty: 50.0\nPrice: $73.615", only_today, today_start)
-        draw_execution(1781190960000, 77.62, false, "Sell Exit\nTime: 2026-06-11 11:17:05 ET\nQty: 30.0\nPrice: $77.62", only_today, today_start)
-        draw_execution(1781191680000, 77.06, false, "Sell Exit\nTime: 2026-06-11 11:29:37 ET\nQty: 20.0\nPrice: $77.06", only_today, today_start)
     else if current_sym == "BRAI"
         draw_trade_line(1781707560000, 11.04, 1781707740000, 10.5, -53.999999999999915, only_today, today_start)
         draw_execution(1781707560000, 11.04, true, "Buy Entry\nTime: 2026-06-17 10:47:50 ET\nQty: 100.0\nPrice: $11.04", only_today, today_start)
         draw_execution(1781707740000, 10.5, false, "Sell Exit\nTime: 2026-06-17 10:50:38 ET\nQty: 100.0\nPrice: $10.50", only_today, today_start)
     else if current_sym == "BROS"
         draw_trade_line(1781276340000, 66.56, 1781276340000, 66.0196, -54.04000000000053, only_today, today_start)
+        draw_trade_line(1781792760000, 70.385, 1781796840000, 70.99, 60.49999999999898, only_today, today_start)
+        draw_trade_line(1781793480000, 70.83, 1781800440000, 71.12, 14.500000000000313, only_today, today_start)
         draw_execution(1781276340000, 66.56, true, "Buy Entry\nTime: 2026-06-12 11:00:17 ET\nQty: 100.0\nPrice: $66.56", only_today, today_start)
         draw_execution(1781276340000, 66.0196, false, "Sell Exit\nTime: 2026-06-12 11:00:51 ET\nQty: 100.0\nPrice: $66.0196", only_today, today_start)
+        draw_execution(1781792760000, 70.385, true, "Buy Entry\nTime: 2026-06-18 10:27:23 ET\nQty: 100.0\nPrice: $70.385", only_today, today_start)
+        draw_execution(1781793480000, 70.83, true, "Buy Entry\nTime: 2026-06-18 10:39:56 ET\nQty: 50.0\nPrice: $70.83", only_today, today_start)
+        draw_execution(1781796840000, 70.99, false, "Sell Exit\nTime: 2026-06-18 11:35:41 ET\nQty: 100.0\nPrice: $70.99", only_today, today_start)
+        draw_execution(1781800440000, 71.12, false, "Sell Exit\nTime: 2026-06-18 12:35:59 ET\nQty: 50.0\nPrice: $71.12", only_today, today_start)
     else if current_sym == "CIFR"
         draw_trade_line(1781720100000, 27.72, 1781720160000, 27.39, -32.99999999999983, only_today, today_start)
         draw_execution(1781720100000, 27.72, true, "Buy Entry\nTime: 2026-06-17 14:16:12 ET\nQty: 100.0\nPrice: $27.72", only_today, today_start)
@@ -93,14 +87,6 @@ if not has_plotted
         draw_execution(1781715780000, 3.91, true, "Buy Entry\nTime: 2026-06-17 13:04:17 ET\nQty: 100.0\nPrice: $3.91", only_today, today_start)
         draw_execution(1781719620000, 4.28, false, "Sell Exit\nTime: 2026-06-17 14:08:25 ET\nQty: 200.0\nPrice: $4.28", only_today, today_start)
         draw_execution(1781719680000, 4.285, false, "Sell Exit\nTime: 2026-06-17 14:09:43 ET\nQty: 300.0\nPrice: $4.285", only_today, today_start)
-    else if current_sym == "ENTG"
-        draw_trade_line(1781195760000, 139.0, 1781196120000, 138.04, -24.0000000000002, only_today, today_start)
-        draw_execution(1781195760000, 139.0, true, "Buy Entry\nTime: 2026-06-11 12:37:16 ET\nQty: 25.0\nPrice: $139.00", only_today, today_start)
-        draw_execution(1781196120000, 138.04, false, "Sell Exit\nTime: 2026-06-11 12:43:25 ET\nQty: 25.0\nPrice: $138.04", only_today, today_start)
-    else if current_sym == "FLY"
-        draw_trade_line(1781193600000, 38.035, 1781193960000, 37.84, -9.749999999999659, only_today, today_start)
-        draw_execution(1781193600000, 38.035, true, "Buy Entry\nTime: 2026-06-11 12:01:59 ET\nQty: 50.0\nPrice: $38.035", only_today, today_start)
-        draw_execution(1781193960000, 37.84, false, "Sell Exit\nTime: 2026-06-11 12:07:27 ET\nQty: 50.0\nPrice: $37.84", only_today, today_start)
     else if current_sym == "ICCM"
         draw_trade_line(1781705700000, 7.94, 1781706060000, 7.9775, 1.8749999999999822, only_today, today_start)
         draw_trade_line(1781706000000, 9.37, 1781706060000, 7.9775, -69.62499999999996, only_today, today_start)
@@ -136,29 +122,20 @@ if not has_plotted
         draw_execution(1781536860000, 129.13, true, "Buy Entry\nTime: 2026-06-15 11:22:06 ET\nQty: 50.0\nPrice: $129.13", only_today, today_start)
         draw_execution(1781537460000, 128.76, false, "Sell Exit\nTime: 2026-06-15 11:32:54 ET\nQty: 50.0\nPrice: $128.76", only_today, today_start)
         draw_execution(1781537700000, 128.61, false, "Sell Exit\nTime: 2026-06-15 11:36:50 ET\nQty: 150.0\nPrice: $128.61", only_today, today_start)
+    else if current_sym == "KLAC"
+        draw_trade_line(1781791620000, 258.24, 1781791620000, 255.65, -51.80000000000007, only_today, today_start)
+        draw_execution(1781791620000, 258.24, true, "Buy Entry\nTime: 2026-06-18 10:08:01 ET\nQty: 20.0\nPrice: $258.24", only_today, today_start)
+        draw_execution(1781791620000, 255.65, false, "Sell Exit\nTime: 2026-06-18 10:08:42 ET\nQty: 20.0\nPrice: $255.65", only_today, today_start)
     else if current_sym == "LITE"
         draw_trade_line(1781276820000, 930.0, 1781276880000, 921.836, -81.63999999999987, only_today, today_start)
         draw_execution(1781276820000, 930.0, true, "Buy Entry\nTime: 2026-06-12 11:08:37 ET\nQty: 10.0\nPrice: $930.00", only_today, today_start)
         draw_execution(1781276880000, 921.836, false, "Sell Exit\nTime: 2026-06-12 11:09:37 ET\nQty: 10.0\nPrice: $921.836", only_today, today_start)
-    else if current_sym == "MNTS"
-        draw_trade_line(1781190180000, 13.76, 1781191740000, 15.1, 67.0, only_today, today_start)
-        draw_trade_line(1781190360000, 14.1999, 1781191740000, 15.1, 90.01000000000002, only_today, today_start)
-        draw_trade_line(1781191140000, 14.9499, 1781191740000, 15.1, 15.010000000000012, only_today, today_start)
-        draw_trade_line(1781197740000, 15.8999, 1781197860000, 15.45, -44.99000000000013, only_today, today_start)
-        draw_execution(1781190180000, 13.76, true, "Buy Entry\nTime: 2026-06-11 11:04:54 ET\nQty: 50.0\nPrice: $13.76", only_today, today_start)
-        draw_execution(1781190360000, 14.1999, true, "Buy Entry\nTime: 2026-06-11 11:07:50 ET\nQty: 100.0\nPrice: $14.1999", only_today, today_start)
-        draw_execution(1781191140000, 14.9499, true, "Buy Entry\nTime: 2026-06-11 11:20:38 ET\nQty: 100.0\nPrice: $14.9499", only_today, today_start)
-        draw_execution(1781191740000, 15.1, false, "Sell Exit\nTime: 2026-06-11 11:30:00 ET\nQty: 250.0\nPrice: $15.10", only_today, today_start)
-        draw_execution(1781197740000, 15.8999, true, "Buy Entry\nTime: 2026-06-11 13:10:23 ET\nQty: 100.0\nPrice: $15.8999", only_today, today_start)
-        draw_execution(1781197860000, 15.45, false, "Sell Exit\nTime: 2026-06-11 13:12:12 ET\nQty: 100.0\nPrice: $15.45", only_today, today_start)
-    else if current_sym == "NOC"
-        draw_trade_line(1781197920000, 556.42, 1781198880000, 557.49, 42.800000000002, only_today, today_start)
-        draw_trade_line(1781197920000, 556.42, 1781199000000, 555.86, -5.599999999999454, only_today, today_start)
-        draw_trade_line(1781198940000, 557.8999, 1781199000000, 555.86, -50.99749999999972, only_today, today_start)
-        draw_execution(1781197920000, 556.42, true, "Buy Entry\nTime: 2026-06-11 13:13:33 ET\nQty: 50.0\nPrice: $556.42", only_today, today_start)
-        draw_execution(1781198880000, 557.49, false, "Sell Exit\nTime: 2026-06-11 13:29:37 ET\nQty: 40.0\nPrice: $557.49", only_today, today_start)
-        draw_execution(1781198940000, 557.8999, true, "Buy Entry\nTime: 2026-06-11 13:30:34 ET\nQty: 25.0\nPrice: $557.8999", only_today, today_start)
-        draw_execution(1781199000000, 555.86, false, "Sell Exit\nTime: 2026-06-11 13:31:17 ET\nQty: 35.0\nPrice: $555.86", only_today, today_start)
+    else if current_sym == "MU"
+        draw_trade_line(1781792160000, 1118.0, 1781792280000, 1115.42, -25.799999999999272, only_today, today_start)
+        draw_trade_line(1781792220000, 1119.86, 1781792280000, 1115.42, -44.39999999999827, only_today, today_start)
+        draw_execution(1781792160000, 1118.0, true, "Buy Entry\nTime: 2026-06-18 10:17:57 ET\nQty: 10.0\nPrice: $1118.00", only_today, today_start)
+        draw_execution(1781792220000, 1119.86, true, "Buy Entry\nTime: 2026-06-18 10:18:46 ET\nQty: 10.0\nPrice: $1119.86", only_today, today_start)
+        draw_execution(1781792280000, 1115.42, false, "Sell Exit\nTime: 2026-06-18 10:19:12 ET\nQty: 20.0\nPrice: $1115.42", only_today, today_start)
     else if current_sym == "NVDA"
         draw_trade_line(1781535900000, 211.185, 1781541840000, 212.13, 23.62499999999983, only_today, today_start)
         draw_trade_line(1781535900000, 211.2199, 1781541840000, 212.13, 22.752499999999998, only_today, today_start)
@@ -209,18 +186,14 @@ if not has_plotted
         draw_execution(1781717700000, 8.105, false, "Sell Exit\nTime: 2026-06-17 13:36:32 ET\nQty: 350.0\nPrice: $8.105", only_today, today_start)
         draw_execution(1781718660000, 8.345, true, "Buy Entry\nTime: 2026-06-17 13:52:21 ET\nQty: 100.0\nPrice: $8.345", only_today, today_start)
         draw_execution(1781719200000, 8.2724, false, "Sell Exit\nTime: 2026-06-17 14:01:31 ET\nQty: 100.0\nPrice: $8.2724", only_today, today_start)
-    else if current_sym == "SATS"
-        draw_trade_line(1781194080000, 125.15, 1781195040000, 125.8472, 13.943999999999903, only_today, today_start)
-        draw_trade_line(1781194140000, 125.16, 1781195040000, 125.8472, 3.4360000000000213, only_today, today_start)
-        draw_trade_line(1781194140000, 125.16, 1781195160000, 126.105, 23.625000000000185, only_today, today_start)
-        draw_trade_line(1781194800000, 126.2289, 1781195160000, 126.105, -3.0974999999997976, only_today, today_start)
-        draw_trade_line(1781194860000, 126.37, 1781195160000, 126.105, -6.625000000000014, only_today, today_start)
-        draw_execution(1781194080000, 125.15, true, "Buy Entry\nTime: 2026-06-11 12:09:12 ET\nQty: 20.0\nPrice: $125.15", only_today, today_start)
-        draw_execution(1781194140000, 125.16, true, "Buy Entry\nTime: 2026-06-11 12:10:01 ET\nQty: 30.0\nPrice: $125.16", only_today, today_start)
-        draw_execution(1781194800000, 126.2289, true, "Buy Entry\nTime: 2026-06-11 12:21:12 ET\nQty: 25.0\nPrice: $126.2289", only_today, today_start)
-        draw_execution(1781194860000, 126.37, true, "Buy Entry\nTime: 2026-06-11 12:22:15 ET\nQty: 25.0\nPrice: $126.37", only_today, today_start)
-        draw_execution(1781195040000, 125.8472, false, "Sell Exit\nTime: 2026-06-11 12:25:39 ET\nQty: 25.0\nPrice: $125.8472", only_today, today_start)
-        draw_execution(1781195160000, 126.105, false, "Sell Exit\nTime: 2026-06-11 12:27:24 ET\nQty: 75.0\nPrice: $126.105", only_today, today_start)
+    else if current_sym == "SNDK"
+        draw_trade_line(1781791860000, 2156.32, 1781792460000, 2175.0, 93.39999999999918, only_today, today_start)
+        draw_trade_line(1781791860000, 2156.32, 1781792580000, 2178.39, 110.34999999999854, only_today, today_start)
+        draw_trade_line(1781792340000, 2175.005, 1781792580000, 2178.39, 33.849999999997635, only_today, today_start)
+        draw_execution(1781791860000, 2156.32, true, "Buy Entry\nTime: 2026-06-18 10:12:37 ET\nQty: 10.0\nPrice: $2156.32", only_today, today_start)
+        draw_execution(1781792340000, 2175.005, true, "Buy Entry\nTime: 2026-06-18 10:20:22 ET\nQty: 10.0\nPrice: $2175.005", only_today, today_start)
+        draw_execution(1781792460000, 2175.0, false, "Sell Exit\nTime: 2026-06-18 10:22:51 ET\nQty: 5.0\nPrice: $2175.00", only_today, today_start)
+        draw_execution(1781792580000, 2178.39, false, "Sell Exit\nTime: 2026-06-18 10:24:26 ET\nQty: 15.0\nPrice: $2178.39", only_today, today_start)
     else if current_sym == "SPCX"
         draw_trade_line(1781283720000, 174.432, 1781284080000, 175.26, 4.140000000000015, only_today, today_start)
         draw_trade_line(1781283720000, 174.432, 1781284200000, 174.39, -0.21000000000000796, only_today, today_start)
@@ -247,10 +220,12 @@ if not has_plotted
         draw_execution(1781535000000, 23.225, true, "Buy Entry\nTime: 2026-06-15 10:51:41 ET\nQty: 100.0\nPrice: $23.225", only_today, today_start)
         draw_execution(1781535060000, 23.245, true, "Buy Entry\nTime: 2026-06-15 10:52:28 ET\nQty: 200.0\nPrice: $23.245", only_today, today_start)
         draw_execution(1781535060000, 23.12, false, "Sell Exit\nTime: 2026-06-15 10:52:51 ET\nQty: 500.0\nPrice: $23.12", only_today, today_start)
-    else if current_sym == "VOYG"
-        draw_trade_line(1781190720000, 46.755, 1781192220000, 47.08, 32.499999999999574, only_today, today_start)
-        draw_execution(1781190720000, 46.755, true, "Buy Entry\nTime: 2026-06-11 11:13:28 ET\nQty: 100.0\nPrice: $46.755", only_today, today_start)
-        draw_execution(1781192220000, 47.08, false, "Sell Exit\nTime: 2026-06-11 11:38:26 ET\nQty: 100.0\nPrice: $47.08", only_today, today_start)
+    else if current_sym == "VSH"
+        draw_trade_line(1781792580000, 68.66, 1781792940000, 67.68, -48.99999999999949, only_today, today_start)
+        draw_trade_line(1781792640000, 68.765, 1781792940000, 67.68, -54.24999999999969, only_today, today_start)
+        draw_execution(1781792580000, 68.66, true, "Buy Entry\nTime: 2026-06-18 10:24:20 ET\nQty: 50.0\nPrice: $68.66", only_today, today_start)
+        draw_execution(1781792640000, 68.765, true, "Buy Entry\nTime: 2026-06-18 10:25:42 ET\nQty: 50.0\nPrice: $68.765", only_today, today_start)
+        draw_execution(1781792940000, 67.68, false, "Sell Exit\nTime: 2026-06-18 10:30:32 ET\nQty: 100.0\nPrice: $67.68", only_today, today_start)
     else if current_sym == "WBI"
         draw_trade_line(1781275800000, 35.965, 1781275800000, 35.7, -26.500000000000057, only_today, today_start)
         draw_execution(1781275800000, 35.965, true, "Buy Entry\nTime: 2026-06-12 10:51:17 ET\nQty: 100.0\nPrice: $35.965", only_today, today_start)
