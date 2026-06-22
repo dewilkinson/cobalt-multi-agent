@@ -12,9 +12,9 @@
         [
             "S&P 500 Trust ETF",
             "SPY",
-            "$750.25",
+            "$745.47",
             {
-                "value": -0.01,
+                "value": 0.61,
                 "type": "text"
             },
             0.29,
@@ -22,131 +22,131 @@
                 "type": "sparkline",
                 "value": [
                     {
-                        "v": 750.97,
+                        "v": 744.11,
                         "is_prev": false
                     },
                     {
-                        "v": 751.0628,
+                        "v": 743.86,
                         "is_prev": false
                     },
                     {
-                        "v": 751.1,
+                        "v": 744.27,
                         "is_prev": false
                     },
                     {
-                        "v": 750.8009,
+                        "v": 744.36,
                         "is_prev": false
                     },
                     {
-                        "v": 750.505,
+                        "v": 743.91,
                         "is_prev": false
                     },
                     {
-                        "v": 750.3192,
+                        "v": 743.79,
                         "is_prev": false
                     },
                     {
-                        "v": 750.48,
+                        "v": 744.0,
                         "is_prev": false
                     },
                     {
-                        "v": 750.65,
+                        "v": 744.42,
                         "is_prev": false
                     },
                     {
-                        "v": 751.11,
+                        "v": 744.335,
                         "is_prev": false
                     },
                     {
-                        "v": 751.025,
+                        "v": 744.6,
                         "is_prev": false
                     },
                     {
-                        "v": 750.77,
+                        "v": 744.33,
                         "is_prev": false
                     },
                     {
-                        "v": 750.93,
+                        "v": 744.87,
                         "is_prev": false
                     },
                     {
-                        "v": 751.18,
+                        "v": 744.8,
                         "is_prev": false
                     },
                     {
-                        "v": 751.05,
+                        "v": 745.1992,
                         "is_prev": false
                     },
                     {
-                        "v": 750.8099,
+                        "v": 745.5,
                         "is_prev": false
                     },
                     {
-                        "v": 751.1596,
+                        "v": 745.635,
                         "is_prev": false
                     },
                     {
-                        "v": 751.2987,
+                        "v": 745.71,
                         "is_prev": false
                     },
                     {
-                        "v": 751.22,
+                        "v": 745.75,
                         "is_prev": false
                     },
                     {
-                        "v": 751.18,
+                        "v": 746.0,
                         "is_prev": false
                     },
                     {
-                        "v": 751.08,
+                        "v": 746.05,
                         "is_prev": false
                     },
                     {
-                        "v": 750.985,
+                        "v": 746.35,
                         "is_prev": false
                     },
                     {
-                        "v": 751.15,
+                        "v": 745.36,
                         "is_prev": false
                     },
                     {
-                        "v": 751.15,
+                        "v": 745.69,
                         "is_prev": false
                     },
                     {
-                        "v": 751.15,
+                        "v": 746.21,
                         "is_prev": false
                     },
                     {
-                        "v": 750.93,
+                        "v": 746.24,
                         "is_prev": false
                     },
                     {
-                        "v": 750.89,
+                        "v": 746.24,
                         "is_prev": false
                     },
                     {
-                        "v": 750.65,
+                        "v": 746.24,
                         "is_prev": false
                     },
                     {
-                        "v": 751.48,
+                        "v": 746.66,
                         "is_prev": false
                     },
                     {
-                        "v": 751.055,
+                        "v": 744.52,
                         "is_prev": false
                     },
                     {
-                        "v": 751.14,
+                        "v": 744.18,
                         "is_prev": false
                     },
                     {
-                        "v": 750.23,
+                        "v": 744.24,
                         "is_prev": false
                     },
                     {
-                        "v": 750.25,
+                        "v": 745.4712,
                         "is_prev": false
                     }
                 ]
@@ -155,9 +155,9 @@
         [
             "Nasdaq 100 ETF",
             "QQQ",
-            "$731.46",
+            "$735.48",
             {
-                "value": 0.22,
+                "value": 1.8,
                 "type": "text"
             },
             0.31,
@@ -165,95 +165,75 @@
                 "type": "sparkline",
                 "value": [
                     {
-                        "v": 733.7085,
+                        "v": 732.56,
                         "is_prev": false
                     },
                     {
-                        "v": 733.7487,
+                        "v": 731.9319,
                         "is_prev": false
                     },
                     {
-                        "v": 733.82,
+                        "v": 732.77,
                         "is_prev": false
                     },
                     {
-                        "v": 733.195,
+                        "v": 732.8626,
                         "is_prev": false
                     },
                     {
-                        "v": 732.895,
+                        "v": 732.46,
                         "is_prev": false
                     },
                     {
-                        "v": 732.4,
+                        "v": 731.82,
                         "is_prev": false
                     },
                     {
-                        "v": 732.7549,
+                        "v": 732.43,
                         "is_prev": false
                     },
                     {
-                        "v": 732.97,
+                        "v": 732.96,
                         "is_prev": false
                     },
                     {
-                        "v": 733.8,
+                        "v": 733.025,
                         "is_prev": false
                     },
                     {
-                        "v": 733.625,
+                        "v": 733.0,
                         "is_prev": false
                     },
                     {
-                        "v": 733.425,
+                        "v": 732.6512,
                         "is_prev": false
                     },
                     {
-                        "v": 733.985,
+                        "v": 733.1,
                         "is_prev": false
                     },
                     {
-                        "v": 734.445,
+                        "v": 733.2,
                         "is_prev": false
                     },
                     {
-                        "v": 734.31,
+                        "v": 733.7385,
                         "is_prev": false
                     },
                     {
-                        "v": 734.04,
+                        "v": 734.17,
                         "is_prev": false
                     },
                     {
-                        "v": 734.65,
+                        "v": 734.201,
                         "is_prev": false
                     },
                     {
-                        "v": 734.73,
+                        "v": 734.6,
                         "is_prev": false
                     },
                     {
-                        "v": 734.54,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 734.12,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 734.11,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 734.06,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 734.44,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 734.48,
+                        "v": 734.6,
                         "is_prev": false
                     },
                     {
@@ -261,35 +241,55 @@
                         "is_prev": false
                     },
                     {
-                        "v": 734.1,
+                        "v": 734.79,
                         "is_prev": false
                     },
                     {
-                        "v": 733.5338,
+                        "v": 735.64,
                         "is_prev": false
                     },
                     {
-                        "v": 733.115,
+                        "v": 734.72,
                         "is_prev": false
                     },
                     {
-                        "v": 734.735,
+                        "v": 734.64,
                         "is_prev": false
                     },
                     {
-                        "v": 733.255,
+                        "v": 735.3302,
                         "is_prev": false
                     },
                     {
-                        "v": 733.31,
+                        "v": 735.79,
                         "is_prev": false
                     },
                     {
-                        "v": 731.79,
+                        "v": 735.91,
                         "is_prev": false
                     },
                     {
-                        "v": 731.455,
+                        "v": 737.3805,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 736.695,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 733.6625,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 734.285,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 733.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 735.48,
                         "is_prev": false
                     }
                 ]
@@ -298,9 +298,9 @@
         [
             "Russell 2000 ETF",
             "IWM",
-            "$293.79",
+            "$293.64",
             {
-                "value": 0.59,
+                "value": 1.3,
                 "type": "text"
             },
             0.19,
@@ -308,35 +308,7 @@
                 "type": "sparkline",
                 "value": [
                     {
-                        "v": 292.3,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 292.35,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 292.46,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 292.31,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 292.08,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 292.0035,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 292.15,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 292.29,
+                        "v": 292.73,
                         "is_prev": false
                     },
                     {
@@ -344,39 +316,35 @@
                         "is_prev": false
                     },
                     {
-                        "v": 292.4,
+                        "v": 292.58,
                         "is_prev": false
                     },
                     {
-                        "v": 292.27,
+                        "v": 292.7322,
                         "is_prev": false
                     },
                     {
-                        "v": 292.32,
+                        "v": 292.5164,
                         "is_prev": false
                     },
                     {
-                        "v": 292.5,
+                        "v": 292.19,
                         "is_prev": false
                     },
                     {
-                        "v": 292.25,
+                        "v": 292.435,
                         "is_prev": false
                     },
                     {
-                        "v": 292.29,
+                        "v": 292.65,
                         "is_prev": false
                     },
                     {
-                        "v": 292.45,
+                        "v": 292.67,
                         "is_prev": false
                     },
                     {
-                        "v": 292.42,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 292.41,
+                        "v": 292.7,
                         "is_prev": false
                     },
                     {
@@ -384,27 +352,27 @@
                         "is_prev": false
                     },
                     {
-                        "v": 292.33,
+                        "v": 292.6,
                         "is_prev": false
                     },
                     {
-                        "v": 292.2,
+                        "v": 292.78,
                         "is_prev": false
                     },
                     {
-                        "v": 292.26,
+                        "v": 293.03,
                         "is_prev": false
                     },
                     {
-                        "v": 292.26,
+                        "v": 293.48,
                         "is_prev": false
                     },
                     {
-                        "v": 292.26,
+                        "v": 293.56,
                         "is_prev": false
                     },
                     {
-                        "v": 292.94,
+                        "v": 293.5,
                         "is_prev": false
                     },
                     {
@@ -412,27 +380,59 @@
                         "is_prev": false
                     },
                     {
-                        "v": 294.27,
+                        "v": 293.63,
                         "is_prev": false
                     },
                     {
-                        "v": 294.94,
+                        "v": 293.78,
                         "is_prev": false
                     },
                     {
-                        "v": 294.52,
+                        "v": 294.0,
                         "is_prev": false
                     },
                     {
-                        "v": 294.06,
+                        "v": 293.68,
                         "is_prev": false
                     },
                     {
-                        "v": 293.97,
+                        "v": 293.7452,
                         "is_prev": false
                     },
                     {
-                        "v": 293.79,
+                        "v": 293.85,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 293.83,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 293.83,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 293.83,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 294.54,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 293.68,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 293.455,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 292.97,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 293.64,
                         "is_prev": false
                     }
                 ]
@@ -441,141 +441,141 @@
         [
             "US Dollar Index",
             "DX-Y.NYB",
-            "$99.63",
+            "$100.61",
             {
-                "value": 0.09,
+                "value": 0.52,
                 "type": "text"
             },
-            -0.77,
+            -0.56,
             {
                 "type": "sparkline",
                 "value": [
                     {
-                        "v": 99.658,
+                        "v": 100.717,
                         "is_prev": false
                     },
                     {
-                        "v": 99.667,
+                        "v": 100.767,
                         "is_prev": false
                     },
                     {
-                        "v": 99.682,
+                        "v": 100.787,
                         "is_prev": false
                     },
                     {
-                        "v": 99.689,
+                        "v": 100.772,
                         "is_prev": false
                     },
                     {
-                        "v": 99.691,
+                        "v": 100.751,
                         "is_prev": false
                     },
                     {
-                        "v": 99.691,
+                        "v": 100.729,
                         "is_prev": false
                     },
                     {
-                        "v": 99.694,
+                        "v": 100.729,
                         "is_prev": false
                     },
                     {
-                        "v": 99.68,
+                        "v": 100.77,
                         "is_prev": false
                     },
                     {
-                        "v": 99.666,
+                        "v": 100.766,
                         "is_prev": false
                     },
                     {
-                        "v": 99.662,
+                        "v": 100.788,
                         "is_prev": false
                     },
                     {
-                        "v": 99.665,
+                        "v": 100.788,
                         "is_prev": false
                     },
                     {
-                        "v": 99.664,
+                        "v": 100.783,
                         "is_prev": false
                     },
                     {
-                        "v": 99.64,
+                        "v": 100.751,
                         "is_prev": false
                     },
                     {
-                        "v": 99.628,
+                        "v": 100.705,
                         "is_prev": false
                     },
                     {
-                        "v": 99.646,
+                        "v": 100.696,
                         "is_prev": false
                     },
                     {
-                        "v": 99.637,
+                        "v": 100.64,
                         "is_prev": false
                     },
                     {
-                        "v": 99.626,
+                        "v": 100.651,
                         "is_prev": false
                     },
                     {
-                        "v": 99.625,
+                        "v": 100.66,
                         "is_prev": false
                     },
                     {
-                        "v": 99.607,
+                        "v": 100.685,
                         "is_prev": false
                     },
                     {
-                        "v": 99.593,
+                        "v": 100.683,
                         "is_prev": false
                     },
                     {
-                        "v": 99.6,
+                        "v": 100.69,
                         "is_prev": false
                     },
                     {
-                        "v": 99.613,
+                        "v": 100.674,
                         "is_prev": false
                     },
                     {
-                        "v": 99.603,
+                        "v": 100.669,
                         "is_prev": false
                     },
                     {
-                        "v": 99.607,
+                        "v": 100.693,
                         "is_prev": false
                     },
                     {
-                        "v": 99.6,
+                        "v": 100.718,
                         "is_prev": false
                     },
                     {
-                        "v": 99.601,
+                        "v": 100.685,
                         "is_prev": false
                     },
                     {
-                        "v": 99.622,
+                        "v": 100.692,
                         "is_prev": false
                     },
                     {
-                        "v": 99.627,
+                        "v": 100.715,
                         "is_prev": false
                     },
                     {
-                        "v": 99.627,
+                        "v": 100.669,
                         "is_prev": false
                     },
                     {
-                        "v": 99.633,
+                        "v": 100.625,
                         "is_prev": false
                     },
                     {
-                        "v": 99.596,
+                        "v": 100.596,
                         "is_prev": false
                     },
                     {
-                        "v": 99.631,
+                        "v": 100.606,
                         "is_prev": false
                     }
                 ]
@@ -584,141 +584,141 @@
         [
             "CBOE Volatility Index",
             "^VIX",
-            "$16.36",
+            "$17.32",
             {
-                "value": -0.3,
+                "value": -6.07,
                 "type": "text"
             },
-            0.53,
+            0.7,
             {
                 "type": "sparkline",
                 "value": [
                     {
-                        "v": 16.35,
+                        "v": 17.15,
                         "is_prev": false
                     },
                     {
-                        "v": 16.33,
+                        "v": 17.26,
                         "is_prev": false
                     },
                     {
-                        "v": 16.35,
+                        "v": 17.39,
                         "is_prev": false
                     },
                     {
-                        "v": 16.39,
+                        "v": 17.46,
                         "is_prev": false
                     },
                     {
-                        "v": 16.39,
+                        "v": 17.51,
                         "is_prev": false
                     },
                     {
-                        "v": 16.38,
+                        "v": 17.4,
                         "is_prev": false
                     },
                     {
-                        "v": 16.41,
+                        "v": 17.38,
                         "is_prev": false
                     },
                     {
-                        "v": 16.46,
+                        "v": 17.47,
                         "is_prev": false
                     },
                     {
-                        "v": 16.47,
+                        "v": 17.55,
                         "is_prev": false
                     },
                     {
-                        "v": 16.44,
+                        "v": 17.51,
                         "is_prev": false
                     },
                     {
-                        "v": 16.38,
+                        "v": 17.44,
                         "is_prev": false
                     },
                     {
-                        "v": 16.34,
+                        "v": 17.44,
                         "is_prev": false
                     },
                     {
-                        "v": 16.34,
+                        "v": 17.38,
                         "is_prev": false
                     },
                     {
-                        "v": 16.37,
+                        "v": 17.43,
                         "is_prev": false
                     },
                     {
-                        "v": 16.35,
+                        "v": 17.35,
                         "is_prev": false
                     },
                     {
-                        "v": 16.32,
+                        "v": 17.34,
                         "is_prev": false
                     },
                     {
-                        "v": 16.29,
+                        "v": 17.25,
                         "is_prev": false
                     },
                     {
-                        "v": 16.35,
+                        "v": 17.18,
                         "is_prev": false
                     },
                     {
-                        "v": 16.05,
+                        "v": 17.16,
                         "is_prev": false
                     },
                     {
-                        "v": 16.05,
+                        "v": 17.15,
                         "is_prev": false
                     },
                     {
-                        "v": 16.04,
+                        "v": 17.12,
                         "is_prev": false
                     },
                     {
-                        "v": 16.06,
+                        "v": 17.09,
                         "is_prev": false
                     },
                     {
-                        "v": 16.05,
+                        "v": 17.07,
                         "is_prev": false
                     },
                     {
-                        "v": 16.08,
+                        "v": 16.98,
                         "is_prev": false
                     },
                     {
-                        "v": 16.07,
+                        "v": 17.15,
                         "is_prev": false
                     },
                     {
-                        "v": 16.06,
+                        "v": 17.12,
                         "is_prev": false
                     },
                     {
-                        "v": 16.06,
+                        "v": 17.01,
                         "is_prev": false
                     },
                     {
-                        "v": 16.06,
+                        "v": 16.96,
                         "is_prev": false
                     },
                     {
-                        "v": 16.35,
+                        "v": 16.96,
                         "is_prev": false
                     },
                     {
-                        "v": 16.42,
+                        "v": 16.98,
                         "is_prev": false
                     },
                     {
-                        "v": 16.27,
+                        "v": 16.8,
                         "is_prev": false
                     },
                     {
-                        "v": 16.36,
+                        "v": 17.32,
                         "is_prev": false
                     }
                 ]
@@ -729,67 +729,99 @@
             "^TNX",
             "4.43%",
             {
-                "value": -1.18,
+                "value": -1.23,
                 "type": "text"
             },
-            -0.2,
+            -0.21,
             {
                 "type": "sparkline",
                 "value": [
                     {
-                        "v": 4.428,
+                        "v": 4.463,
                         "is_prev": false
                     },
                     {
-                        "v": 4.428,
+                        "v": 4.463,
                         "is_prev": false
                     },
                     {
-                        "v": 4.428,
+                        "v": 4.463,
                         "is_prev": false
                     },
                     {
-                        "v": 4.428,
+                        "v": 4.463,
                         "is_prev": false
                     },
                     {
-                        "v": 4.428,
+                        "v": 4.463,
                         "is_prev": false
                     },
                     {
-                        "v": 4.428,
+                        "v": 4.463,
                         "is_prev": false
                     },
                     {
-                        "v": 4.428,
+                        "v": 4.463,
                         "is_prev": false
                     },
                     {
-                        "v": 4.428,
+                        "v": 4.463,
                         "is_prev": false
                     },
                     {
-                        "v": 4.428,
+                        "v": 4.463,
                         "is_prev": false
                     },
                     {
-                        "v": 4.428,
+                        "v": 4.463,
                         "is_prev": false
                     },
                     {
-                        "v": 4.428,
+                        "v": 4.463,
                         "is_prev": false
                     },
                     {
-                        "v": 4.428,
+                        "v": 4.463,
                         "is_prev": false
                     },
                     {
-                        "v": 4.428,
+                        "v": 4.463,
                         "is_prev": false
                     },
                     {
-                        "v": 4.443,
+                        "v": 4.463,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4.463,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4.463,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4.447,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4.447,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4.441,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4.441,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4.439,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4.439,
                         "is_prev": false
                     },
                     {
@@ -801,67 +833,35 @@
                         "is_prev": false
                     },
                     {
+                        "v": 4.447,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4.445,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4.445,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4.443,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4.445,
+                        "is_prev": false
+                    },
+                    {
                         "v": 4.439,
                         "is_prev": false
                     },
                     {
-                        "v": 4.438,
-                        "is_prev": false
-                    },
-                    {
                         "v": 4.436,
                         "is_prev": false
                     },
                     {
-                        "v": 4.434,
-                        "is_prev": false
-                    },
-                    {
                         "v": 4.432,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.434,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.434,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.434,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.432,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.432,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.434,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.434,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.436,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.438,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.438,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.434,
                         "is_prev": false
                     }
                 ]
@@ -870,141 +870,141 @@
         [
             "WTI Crude Oil",
             "CL=F",
-            "$76.40",
+            "$73.39",
             {
-                "value": 0.46,
+                "value": -4.43,
                 "type": "text"
             },
-            0.29,
+            0.18,
             {
                 "type": "sparkline",
                 "value": [
                     {
-                        "v": 75.87,
+                        "v": 74.55,
                         "is_prev": false
                     },
                     {
-                        "v": 75.7,
+                        "v": 74.65,
                         "is_prev": false
                     },
                     {
-                        "v": 75.79,
+                        "v": 74.57,
                         "is_prev": false
                     },
                     {
-                        "v": 75.88,
+                        "v": 74.73,
                         "is_prev": false
                     },
                     {
-                        "v": 75.9,
+                        "v": 74.77,
                         "is_prev": false
                     },
                     {
-                        "v": 75.82,
+                        "v": 74.87,
                         "is_prev": false
                     },
                     {
-                        "v": 75.92,
+                        "v": 74.79,
                         "is_prev": false
                     },
                     {
-                        "v": 76.2,
+                        "v": 74.66,
                         "is_prev": false
                     },
                     {
-                        "v": 75.92,
+                        "v": 74.68,
                         "is_prev": false
                     },
                     {
-                        "v": 75.81,
+                        "v": 74.63,
                         "is_prev": false
                     },
                     {
-                        "v": 75.79,
+                        "v": 74.7,
                         "is_prev": false
                     },
                     {
-                        "v": 75.85,
+                        "v": 74.58,
                         "is_prev": false
                     },
                     {
-                        "v": 75.95,
+                        "v": 74.5,
                         "is_prev": false
                     },
                     {
-                        "v": 75.89,
+                        "v": 74.29,
                         "is_prev": false
                     },
                     {
-                        "v": 75.89,
+                        "v": 74.45,
                         "is_prev": false
                     },
                     {
-                        "v": 76.0,
+                        "v": 74.44,
                         "is_prev": false
                     },
                     {
-                        "v": 75.96,
+                        "v": 74.44,
                         "is_prev": false
                     },
                     {
-                        "v": 75.86,
+                        "v": 74.41,
                         "is_prev": false
                     },
                     {
-                        "v": 75.81,
+                        "v": 74.54,
                         "is_prev": false
                     },
                     {
-                        "v": 75.88,
+                        "v": 74.6,
                         "is_prev": false
                     },
                     {
-                        "v": 75.85,
+                        "v": 74.51,
                         "is_prev": false
                     },
                     {
-                        "v": 75.97,
+                        "v": 74.4,
                         "is_prev": false
                     },
                     {
-                        "v": 76.06,
+                        "v": 74.38,
                         "is_prev": false
                     },
                     {
-                        "v": 75.94,
+                        "v": 74.51,
                         "is_prev": false
                     },
                     {
-                        "v": 75.83,
+                        "v": 74.07,
                         "is_prev": false
                     },
                     {
-                        "v": 76.03,
+                        "v": 73.99,
                         "is_prev": false
                     },
                     {
-                        "v": 76.14,
+                        "v": 74.03,
                         "is_prev": false
                     },
                     {
-                        "v": 76.25,
+                        "v": 74.08,
                         "is_prev": false
                     },
                     {
-                        "v": 76.38,
+                        "v": 74.05,
                         "is_prev": false
                     },
                     {
-                        "v": 76.37,
+                        "v": 74.05,
                         "is_prev": false
                     },
                     {
-                        "v": 76.3,
+                        "v": 73.48,
                         "is_prev": false
                     },
                     {
-                        "v": 76.4,
+                        "v": 73.39,
                         "is_prev": false
                     }
                 ]
@@ -1013,141 +1013,141 @@
         [
             "Bitcoin (USD)",
             "BTC-USD",
-            "$65,101.47",
+            "$64,035.12",
             {
-                "value": -0.76,
+                "value": -2.39,
                 "type": "text"
             },
-            -1.15,
+            -1.2,
             {
                 "type": "sparkline",
                 "value": [
                     {
-                        "v": 64606.8281,
+                        "v": 63939.0195,
                         "is_prev": false
                     },
                     {
-                        "v": 64646.5586,
+                        "v": 63862.7812,
                         "is_prev": false
                     },
                     {
-                        "v": 64728.0781,
+                        "v": 63983.0898,
                         "is_prev": false
                     },
                     {
-                        "v": 64759.6016,
+                        "v": 63985.9219,
                         "is_prev": false
                     },
                     {
-                        "v": 64796.6797,
+                        "v": 63894.8398,
                         "is_prev": false
                     },
                     {
-                        "v": 64817.25,
+                        "v": 63867.7695,
                         "is_prev": false
                     },
                     {
-                        "v": 64734.4609,
+                        "v": 63853.9883,
                         "is_prev": false
                     },
                     {
-                        "v": 64785.2305,
+                        "v": 63874.4102,
                         "is_prev": false
                     },
                     {
-                        "v": 64815.7188,
+                        "v": 63901.9492,
                         "is_prev": false
                     },
                     {
-                        "v": 64788.2305,
+                        "v": 63954.1797,
                         "is_prev": false
                     },
                     {
-                        "v": 64695.9883,
+                        "v": 63905.9102,
                         "is_prev": false
                     },
                     {
-                        "v": 64596.0,
+                        "v": 63926.0391,
                         "is_prev": false
                     },
                     {
-                        "v": 64614.6914,
+                        "v": 63978.3086,
                         "is_prev": false
                     },
                     {
-                        "v": 64758.1211,
+                        "v": 64060.9102,
                         "is_prev": false
                     },
                     {
-                        "v": 64750.9414,
+                        "v": 64080.0,
                         "is_prev": false
                     },
                     {
-                        "v": 64900.3516,
+                        "v": 64126.2617,
                         "is_prev": false
                     },
                     {
-                        "v": 64926.9805,
+                        "v": 64128.1211,
                         "is_prev": false
                     },
                     {
-                        "v": 64956.6914,
+                        "v": 64155.1797,
                         "is_prev": false
                     },
                     {
-                        "v": 64984.8789,
+                        "v": 64257.0117,
                         "is_prev": false
                     },
                     {
-                        "v": 64970.8203,
+                        "v": 64250.8594,
                         "is_prev": false
                     },
                     {
-                        "v": 64918.6016,
+                        "v": 64300.0117,
                         "is_prev": false
                     },
                     {
-                        "v": 64964.3203,
+                        "v": 64262.0312,
                         "is_prev": false
                     },
                     {
-                        "v": 64982.3984,
+                        "v": 64345.8906,
                         "is_prev": false
                     },
                     {
-                        "v": 64842.0117,
+                        "v": 64335.3984,
                         "is_prev": false
                     },
                     {
-                        "v": 64851.0,
+                        "v": 64319.6289,
                         "is_prev": false
                     },
                     {
-                        "v": 65026.8906,
+                        "v": 64282.7617,
                         "is_prev": false
                     },
                     {
-                        "v": 65196.6992,
+                        "v": 64276.5117,
                         "is_prev": false
                     },
                     {
-                        "v": 65223.9883,
+                        "v": 64099.9883,
                         "is_prev": false
                     },
                     {
-                        "v": 65189.0898,
+                        "v": 63975.4414,
                         "is_prev": false
                     },
                     {
-                        "v": 65276.7188,
+                        "v": 63821.6016,
                         "is_prev": false
                     },
                     {
-                        "v": 65154.8086,
+                        "v": 63852.7812,
                         "is_prev": false
                     },
                     {
-                        "v": 65101.4688,
+                        "v": 64035.1211,
                         "is_prev": false
                     }
                 ]
@@ -1155,7 +1155,7 @@
         ]
     ],
     "metadata": {
-        "origin": "2026-06-17 10:05:11.838316",
+        "origin": "2026-06-18 09:53:12.568051",
         "is_replay": false,
         "is_fast_pulsar": false,
         "source": "VLI_DATA_ENGINE_V2"

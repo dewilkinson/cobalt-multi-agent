@@ -1,0 +1,48 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 06/08/2026 at 12:58:55 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+OSCR,Sell,200,Stop loss at $26.93,Filled at $26.91,200 / 200,26.90,2.39,9.75,26.89,--,26.91,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",12:50:50 PM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J19FS4,687793109,OSCAR HEALTH INC CL A,--
+OSCR,Buy,100,Limit at $27.25,Filled at $27.16,100 / 100,26.90,2.39,9.75,26.89,--,26.91,Day,None,FDLM,12:45:28 PM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J1DRLZ,687793109,OSCAR HEALTH INC CL A,--
+UNH,Sell,30,Trailing Stop Loss at $1.25 Based on Last,Filled at $404.11,30 / 30,403.92,4.45,1.11,403.85,--,403.99,Day,None,FDLM,12:25:14 PM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,$1.25,F08GGHDK,91324P102,UNITEDHEALTH GROUP INC,--
+UNH,Buy,10,Limit at $406.00,Filled at $405.63,10 / 10,403.92,4.45,1.11,403.85,--,403.99,Day,None,FDLM,12:13:30 PM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J13VFM,91324P102,UNITEDHEALTH GROUP INC,--
+UNH,Buy,10,Limit at $406.00,Filled at $405.3299,10 / 10,403.92,4.45,1.11,403.85,--,403.99,Day,None,FDLM,12:10:25 PM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J16HT7,91324P102,UNITEDHEALTH GROUP INC,--
+UNH,Buy,10,Limit at $406.00,Filled at $405.185,10 / 10,403.92,4.45,1.11,403.85,--,403.99,Day,None,FDLM,12:09:33 PM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J15TT8,91324P102,UNITEDHEALTH GROUP INC,--
+OSCR,Buy,100,Limit at $27.25,Filled at $27.02,100 / 100,26.90,2.39,9.75,26.89,--,26.91,Day,None,FDLM,11:36:53 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J18Y4R,687793109,OSCAR HEALTH INC CL A,--
+STM,Sell,100,Market,Filled at $76.475,100 / 100,75.59,4.87,6.89,75.58,--,75.59,Day,None,FDLM,11:11:43 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0ZZHB,861012102,STMICROELECTRONICS SPON ADR EACH REP 1 ORD SHS,--
+GLXY,Sell,70,Market,Filled at $30.47,70 / 70,30.86,5.72,22.75,30.85,--,30.87,Day,None,FDLM,11:11:29 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0X9L1,36317J209,GALAXY DIGITAL INC. CL A,--
+MRVL,Sell,15,Stop loss at $298.00,Filled at $298.00,15 / 15,298.565,35.095,13.32,298.51,--,298.67,Day,None,"G1 EXECUTION SERVICES, LLC",11:08:49 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0WLJF,573874104,MARVELL TECHNOLOGY INC COM,--
+GLXY,Sell,130,Trailing Stop Loss at $0.40 Based on Last,Filled at $30.025,130 / 130,30.86,5.72,22.75,30.85,--,30.87,Day,None,FDLM,11:04:07 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.40,F08DZNML,36317J209,GALAXY DIGITAL INC. CL A,--
+MRVL,Sell,30,Market,Filled at $297.85,30 / 30,298.565,35.095,13.32,298.51,--,298.67,Day,None,FDLM,11:03:42 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J117CF,573874104,MARVELL TECHNOLOGY INC COM,--
+STM,Buy,50,Limit at $76.50,Filled at $76.20,50 / 50,75.59,4.87,6.89,75.58,--,75.59,Day,None,FDLM,10:59:35 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0YJ91,861012102,STMICROELECTRONICS SPON ADR EACH REP 1 ORD SHS,--
+STM,Buy,50,Limit at $77.00,Filled at $76.2299,50 / 50,75.59,4.87,6.89,75.58,--,75.59,Day,None,FDLM,10:58:53 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0THDH,861012102,STMICROELECTRONICS SPON ADR EACH REP 1 ORD SHS,--
+MRVL,Buy,25,Limit at $303.00,Filled at $301.875,25 / 25,298.565,35.095,13.32,298.51,--,298.67,Day,None,FDLM,10:52:29 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0YFWZ,573874104,MARVELL TECHNOLOGY INC COM,--
+GLXY,Buy,100,Limit at $29.75,Filled at $29.54,100 / 100,30.86,5.72,22.75,30.85,--,30.87,Day,None,FDLM,10:47:13 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0QPGQ,36317J209,GALAXY DIGITAL INC. CL A,--
+DXCM,Sell,200,Market,Filled at $77.6353,200 / 200,76.87,4.01,5.50,76.83,--,76.87,Day,None,FDLM,10:44:17 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0VNWS,252131107,DEXCOM INC,--
+MRVL,Sell,40,Market,Filled at $297.65,40 / 40,298.565,35.095,13.32,298.51,--,298.67,Day,None,FDLM,10:42:36 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0ZP4V,573874104,MARVELL TECHNOLOGY INC COM,--
+FWRD,Sell,200,Stop loss at $10.90,Filled at $10.86,200 / 200,11.29,0.93,8.98,11.29,--,11.3,Day,None,"G1 EXECUTION SERVICES, LLC",10:38:37 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0ZMPK,34986A104,FORWARD AIR CORP COM,--
+OSCR,Sell,100,Market,Filled at $26.15,100 / 100,26.90,2.39,9.75,26.89,--,26.91,Day,None,FDLM,10:34:12 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0ZL2P,687793109,OSCAR HEALTH INC CL A,--
+MRVL,Buy,20,Limit at $295.00,Filled at $294.615,20 / 20,298.565,35.095,13.32,298.51,--,298.67,Day,None,FDLM,10:27:58 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0SGH3,573874104,MARVELL TECHNOLOGY INC COM,--
+MRVL,Buy,20,Limit at $292.00,Filled at $292.00,20 / 20,298.565,35.095,13.32,298.51,--,298.67,Day,None,FDLM,10:26:01 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0SFQP,573874104,MARVELL TECHNOLOGY INC COM,--
+MRVL,Buy,20,Limit at $292.00,Filled at $291.37,20 / 20,298.565,35.095,13.32,298.51,--,298.67,Day,None,FDLM,10:25:23 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0R2ZQ,573874104,MARVELL TECHNOLOGY INC COM,--
+FWRD,Buy,100,Limit at $11.15,Filled at $11.065,100 / 100,11.29,0.93,8.98,11.29,--,11.3,Day,None,FDLM,10:22:46 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0T2GS,34986A104,FORWARD AIR CORP COM,--
+FWRD,Buy,100,Limit at $11.15,Filled at $11.065,100 / 100,11.29,0.93,8.98,11.29,--,11.3,Day,None,FDLM,10:22:01 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0Y2XJ,34986A104,FORWARD AIR CORP COM,--
+GLXY,Buy,100,Limit at $28.75,Filled at $28.455,100 / 100,30.86,5.72,22.75,30.85,--,30.87,Day,None,FDLM,10:18:31 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0RP4Y,36317J209,GALAXY DIGITAL INC. CL A,--
+DXCM,Buy,100,Limit at $78.50,Filled at $78.2499,100 / 100,76.87,4.01,5.50,76.83,--,76.87,Day,None,FDLM,10:17:05 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0QBCW,252131107,DEXCOM INC,--
+DXCM,Buy,100,Limit at $77.50,Filled at $77.2699,100 / 100,76.87,4.01,5.50,76.83,--,76.87,Day,None,FDLM,10:08:54 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0FH35,252131107,DEXCOM INC,--
+OSCR,Sell,400,Trailing Stop Loss at $0.40 Based on Last,Filled at $26.31,400 / 400,26.90,2.39,9.75,26.89,--,26.91,Day,None,FDLM,10:07:07 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.40,F08CKXVT,687793109,OSCAR HEALTH INC CL A,--
+OSCR,Buy,100,Limit at $27.00,Filled at $26.62,100 / 100,26.90,2.39,9.75,26.89,--,26.91,Day,None,FDLM,10:03:45 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0D22Y,687793109,OSCAR HEALTH INC CL A,--
+OSCR,Buy,200,Limit at $27.00,Filled at $26.575,200 / 200,26.90,2.39,9.75,26.89,--,26.91,Day,None,FDLM,10:02:12 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0LRCB,687793109,OSCAR HEALTH INC CL A,--
+OSCR,Buy,100,Limit at $26.30,Filled at $26.12,100 / 100,26.90,2.39,9.75,26.89,--,26.91,Day,None,FDLM,9:56:05 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0KZJ9,687793109,OSCAR HEALTH INC CL A,--
+OSCR,Buy,100,Limit at $26.25,Filled at $26.095,100 / 100,26.90,2.39,9.75,26.89,--,26.91,Day,None,FDLM,9:54:36 AM ET Jun-08-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17J0K8RB,687793109,OSCAR HEALTH INC CL A,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

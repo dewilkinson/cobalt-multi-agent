@@ -1,0 +1,250 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © TFlab
+
+//@version=5
+indicator("Cumulative Volume Delta Divergence [TradingFinder] Periodic EMA", shorttitle="CVD Divergence Oscillator", overlay=false ,max_bars_back = 5000 , max_labels_count = 500, max_lines_count = 500)
+ATR = ta.atr(55)
+
+
+n = input.int(2, title  ="Divergence Fractal Periods", minval=1 , group = 'Logic Setting')
+Period = input.int(21 , 'CVD Period', group = 'Logic Setting')
+CumMode = input.string('Periodic','Cumulative Mode', [ 'Periodic' , 'EMA'], group = 'Logic Setting')
+UltraData = input.bool( false , '' , inline = 'Data', group = 'Logic Setting')
+Market = input.string('Forex', 'Market Ultra Data', options = ['Forex', 'Crypto', 'Stock'], inline = 'Data', group = 'Logic Setting')
+Show_Label = input.string('Yes' , 'Show Label' , options = ['Yes' , 'No'], group = 'display Setting')
+
+var string aa = '' , var string b = '' , var string c = '' , var string d = '' , var string e = '' , var string f = '' , var string g = '' , var string h = ''
+var string i = '' , var string j = '' , var string k = '' , var string l = '' , var string m = '' , var string nn = '' , var string o = '' , var string p = ''
+var string q = '' , var string r = '' , var string s = '' , var string t = '' , var string u = '' , var string v = '' , var string w = '' , var string x = ''
+var string y = '' , var string z = '' 
+
+
+switch Market 
+    'Forex' =>  aa := 'FX', b := 'OANDA' , c := 'FOREXCOM' , d := 'FX_IDC' , e := 'PEPPERSTONE' , f := 'CAPITALCOM' , g := 'ICMARKETS' , h := 'EIGHTCAP' , i := 'SAXO' , j := 'BLACKBULL' , k := 'VANTAGE' , l := 'FUSIONMARKETS' 
+     , m := 'FPMARKETS' , nn := 'GBEBROKERS' , o := 'IBKR' , p := 'ACTIVTRADES' , q := 'EASYMARKETS' , r := 'FXOPEN' , s := 'CITYINDEX' , t := 'AFTERPRIME' , u := 'SKILLING' , v := 'WHSELFINVEST' , w := 'TRADENATION'
+     , x := 'THINKMARKETS' , y := 'CFI' , z := 'PHILLIPNOVA'
+
+    'Crypto' =>  aa := 'BITSTAMP', b := 'COINBASE' , c := 'INDEX' , d := 'CRYPTO' , e := 'BINANCE' , f := 'BITFINEX' , g := 'KRAKEN' , h := 'OANDA' , i := 'PEPPERSTONE' , j := 'GEMINI' , k := 'EIGHTCAP' , l := 'ICMARKETS' 
+     , m := 'VANTAGE' , nn := 'CAPITALCOM' , o := 'FOREXCOM' , p := 'FX' , q := 'BLACKBULL' , r := 'SAXO' , s := 'FUSIONMARKETS' , t := 'CRYPTOCOM' , u := 'EASYMARKETS' , v := 'OKCOIN' , w := 'FPMARKETS'
+     , x := 'AFTERPRIME' , y := 'ACTIVTRADES' , z := 'BTSE'
+
+    'Stock' =>  aa := '-', b := '-' , c := '-' , d := '-' , e := '-' , f := '-' , g := '-' , h := '-' , i := '-' , j := '-' , k := '-' , l := '-' 
+     , m := '-' , nn := '-' , o := '-' , p := '-' , q := '-' , r := '-' , s := '-' , t := '-' , u := '-' , v := '-' , w := '-'
+     , x := '-' , y := '-' , z := '-'
+
+V = nz(request.security(syminfo.tickerid, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Va = nz(request.security(aa + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vb = nz(request.security(b + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vc = nz(request.security(c + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vd = nz(request.security(d + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Ve = nz(request.security(e + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vf = nz(request.security(f + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vg = nz(request.security(g + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vh = nz(request.security(h + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vi = nz(request.security(i + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vj = nz(request.security(j + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vk = nz(request.security(k + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vl = nz(request.security(l + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vm = nz(request.security(m + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vn = nz(request.security(nn + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vo = nz(request.security(o + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vp = nz(request.security(p + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vq = nz(request.security(q + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vr = nz(request.security(r + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vs = nz(request.security(s + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vt = nz(request.security(t + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vu = nz(request.security(u + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vv = nz(request.security(v + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vw = nz(request.security(w + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vx = nz(request.security(x + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vy = nz(request.security(y + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+Vz = nz(request.security(z + ":" + syminfo.ticker, timeframe.period , volume, ignore_invalid_symbol = true)) 
+
+Vsum = V + Va + Vb + Vc + Vd + Ve + Vf + Vg + Vh + Vi + Vj + Vk + Vl + Vm + Vn + Vo + Vp + Vq + Vr + Vs + Vt + Vu + Vv + Vw + Vx + Vy + Vz
+
+Volume = if UltraData 
+    Vsum
+else
+    volume
+
+Buying  = Volume * ((close - low) / (high - low))
+Selling = Volume * ((high - close) / (high - low))
+
+delta = Buying - Selling
+
+Hist = if CumMode == "Periodic"
+    math.sum(delta , Period)
+else if CumMode == "EMA"
+    ta.ema(delta , Period) 
+
+//Trend/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+EMA = ta.ema(close, 50)
+up_trend =close[n] > EMA
+down_trend = close[n] < EMA
+
+//Fractal////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// UpFractal
+UpPivot = ta.pivothigh(n,n)
+
+// downFractal
+downPivot = ta.pivotlow(n,n)
+upFractal = UpPivot and up_trend 
+downFractal = downPivot and down_trend 
+
+// plotshape(downFractal and Show_Fractal =='Yes', style=shape.triangleup, location=location.belowbar, offset=-n, color= color.rgb(57, 160, 60), size = size.tiny)
+// plotshape(upFractal and Show_Fractal =='Yes', style=shape.triangledown,   location=location.abovebar, offset=-n, color= color.rgb(236, 69, 69), size = size.tiny)
+
+//Data//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Bearish Divergennce Data
+
+//price Data
+High_Last_Price = ta.valuewhen(upFractal,high[n],0)
+High_Per_Price = ta.valuewhen(upFractal,high[n],1)
+
+//MACD hist Data
+High_Last_Hist = ta.valuewhen(upFractal, Hist[n],0)
+High_Per_Hist = ta.valuewhen(upFractal, Hist[n],1)
+
+//Bar index Data
+High_Last_Bar = ta.valuewhen(upFractal, bar_index[n],0)
+High_Per_Bar = ta.valuewhen(upFractal, bar_index[n],1)
+
+// Time Condition Bullish
+Time_Condition_Bear = (High_Last_Bar + 30) > bar_index
+
+
+//Bearish Divergenc Detector////////////////////////
+Last_Bearish_Divergece = if High_Last_Hist > 0 and High_Per_Hist > 0 and Time_Condition_Bear and (High_Last_Bar - High_Per_Bar) < 30
+    (High_Last_Price > High_Per_Price) and (High_Last_Hist < High_Per_Hist) 
+else 
+    false
+//count_Bear_Divergence
+var int CBearDive = 0 
+
+if ta.change(High_Last_Price) and Last_Bearish_Divergece == true
+    CBearDive := CBearDive + 1
+else if Last_Bearish_Divergece == false
+    CBearDive := 0
+
+//Detecte change phase in Bearish Divergence
+
+var bool Bear_Phase = na 
+
+len_back_for_Bear_Phase_check = if not na(High_Last_Bar - High_Per_Bar)
+    High_Last_Bar - High_Per_Bar
+else 
+    1
+
+if ta.change(High_Last_Price) and Last_Bearish_Divergece == true
+    for i = (n+1) to (n+1) + len_back_for_Bear_Phase_check
+        if Hist[i] < 0 
+            Bear_Phase := true
+else if Last_Bearish_Divergece == false
+    Bear_Phase := false
+
+// Bullish Divergennce Data
+
+//price Data
+Low_Last_Price = ta.valuewhen(downFractal,low[n],0)
+Low_Per_Price = ta.valuewhen(downFractal,low[n],1)
+
+//MACD hist Data
+Low_Last_Hist = ta.valuewhen(downFractal, Hist[n],0)
+Low_Per_Hist = ta.valuewhen(downFractal, Hist[n],1)
+
+//Bar index Data
+Low_Last_Bar = ta.valuewhen(downFractal, bar_index[n],0)
+Low_Per_Bar = ta.valuewhen(downFractal, bar_index[n],1)
+
+
+
+// Time Condition Bullish
+Time_Condition_Bull = (Low_Last_Bar + 30) > bar_index 
+
+//Bullish Divergenc Detector////////////////////////
+Last_Bullish_Divergece = if Low_Last_Hist < 0 and Low_Per_Hist < 0 and Time_Condition_Bull and (Low_Last_Bar - Low_Per_Bar) < 30
+    (Low_Last_Price < Low_Per_Price) and (Low_Last_Hist > Low_Per_Hist)
+else 
+    false
+//count_Bear_Divergence
+var int CBullDive = 0 
+  
+if ta.change(Low_Last_Price) and Last_Bullish_Divergece == true
+    CBullDive := CBullDive + 1
+else if Last_Bullish_Divergece == false
+    CBullDive := 0
+
+
+//Detecte and count change phase in Bullish Divergence
+//var int CBullPhase = 0
+var bool Bull_Phase = na 
+len_back_for_Bull_Phase_check = if not na(Low_Last_Bar - Low_Per_Bar)
+    Low_Last_Bar - Low_Per_Bar
+else 
+    1
+
+if ta.change(Low_Last_Price) and Last_Bullish_Divergece == true
+    for i = (n+1) to (n+1) + len_back_for_Bull_Phase_check
+        if Hist[i] > 0 
+            //CBullPhase := CBullPhase + 1
+            Bull_Phase := true
+else if Last_Bullish_Divergece == false
+    Bull_Phase := false
+
+//Score Divergence
+text_power_bull = if CBullDive == 1
+    "Normal Bull Dive"
+else if CBullDive == 2
+    "Good Bull Dive"
+else if CBullDive >= 3
+    "Strong Bull Dive"
+else 
+    "-"
+
+text_power_bear = if CBearDive == 1
+    "Normal Bear Dive"
+else if CBearDive == 2
+    "Good Bear Dive"
+else if CBearDive >= 3
+    "Strong Bear Dive"
+else 
+    "-"
+// plot
+//Divergence Line & Label
+Drawing()=>
+    var line BeLine = na
+    var line BuLine = na 
+    var label BeLabel = na
+    var label BuLabel = na
+    var line BeLine_OnChart = na
+    var line BuLine_OnChart = na 
+    var label BeLabel_OnChart = na
+    var label BuLabel_OnChart = na
+// 
+    if Last_Bullish_Divergece
+
+        BuLine := line.new(Low_Per_Bar, Low_Per_Hist, Low_Last_Bar,Low_Last_Hist , color = color.rgb(21, 151, 25) , width = 2)
+        if Show_Label == 'Yes'
+            BuLabel := label.new(Low_Last_Bar,Low_Last_Hist , '+RD', color = color.green, textcolor = color.white, size = size.tiny , style = label.style_label_up)
+        BuLine_OnChart := line.new(Low_Per_Bar, low[bar_index - Low_Per_Bar], Low_Last_Bar,low[bar_index - Low_Last_Bar] , color = color.rgb(21, 151, 25) , width = 2 , force_overlay = true)
+        if Show_Label == 'Yes'
+            BuLabel_OnChart := label.new(Low_Last_Bar,low[bar_index - Low_Last_Bar] , '+RD', color = color.green, textcolor = color.white, size = size.tiny , style = label.style_label_up, force_overlay = true)
+    if Last_Bearish_Divergece
+        
+        BeLine := line.new(High_Per_Bar,High_Per_Hist, High_Last_Bar,High_Last_Hist , color = color.rgb(212, 44, 44), width = 2)
+        if Show_Label == 'Yes'
+            BeLabel := label.new(High_Last_Bar,High_Last_Hist ,'-RD', color = color.red, textcolor = color.white, size = size.tiny, style = label.style_label_down)
+        BeLine_OnChart := line.new(High_Per_Bar,high[bar_index - High_Per_Bar], High_Last_Bar,high[bar_index - High_Last_Bar] , color = color.rgb(212, 44, 44), width = 2, force_overlay = true)
+        if Show_Label == 'Yes'
+            BeLabel_OnChart := label.new(High_Last_Bar,high[bar_index - High_Last_Bar] ,'-RD', color = color.red, textcolor = color.white, size = size.tiny, style = label.style_label_down, force_overlay = true)
+
+Hist_Color = if Hist > 0 
+    color.rgb(76, 175, 79, 50)
+else if Hist < 0
+    color.rgb(255, 82, 82, 50)
+
+plot( Hist , 'Show Cumulative Vol Delta' ,color = Hist_Color , style = plot.style_columns)
+Drawing()

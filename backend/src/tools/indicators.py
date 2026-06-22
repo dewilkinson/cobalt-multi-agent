@@ -71,12 +71,200 @@ def calculate_macd(df: pd.DataFrame, fast: int = 12, slow: int = 26, signal: int
     return df
 
 
-def calculate_atr(df: pd.DataFrame, period: int = 14):
-    """Calculates Average True Range (ATR)."""
-    df.ta.atr(length=period, append=True)
-    atr_col = [col for col in df.columns if col.startswith("ATRr_")][0]
-    df["atr"] = df[atr_col]
+def calculate_atr(df: pd.DataFrame, length: int = 14, smoothing: str = "RMA"):
+    """Calculates Average True Range (ATR) with customizable smoothing."""
+    # ta.atr defaults to RMA
+    if smoothing == "RMA":
+        df.ta.atr(length=length, append=True)
+        atr_col = [col for col in df.columns if col.startswith(f"ATRr_{length}")][0]
+        df["atr"] = df[atr_col]
+    else:
+        tr = df.ta.true_range()
+        if smoothing == "SMA":
+            df["atr"] = ta.sma(tr, length=length)
+        elif smoothing == "EMA":
+            df["atr"] = ta.ema(tr, length=length)
+        elif smoothing == "WMA":
+            df["atr"] = ta.wma(tr, length=length)
     return df
+
+
+def calculate_va_bands(df: pd.DataFrame, tick_size: float = 0.10, va_percent: float = 70.0):
+    """
+    Calculates cumulative Value Area Bands (POC/VAH/VAL) iteratively per bar.
+    This simulates the PineScript session-based Volume Profile.
+    """
+    poc = np.full(len(df), np.nan)
+    vah = np.full(len(df), np.nan)
+    val = np.full(len(df), np.nan)
+    
+    # We group by session (day). If index is datetime, we can extract the date.
+    if pd.api.types.is_datetime64_any_dtype(df.index):
+        session_ids = df.index.date
+    else:
+        # Fallback if no datetime index
+        session_ids = np.zeros(len(df))
+
+    # To optimize, we won't do the full Python loop per tick per bar, which is extremely slow.
+    # We'll approximate the Va Bands by building a price-volume histogram for the current session.
+    for session in np.unique(session_ids):
+        mask = session_ids == session
+        session_df = df[mask]
+        
+        # Determine the price bins for the entire session
+        min_price = session_df['low'].min()
+        max_price = session_df['high'].max()
+        if pd.isna(min_price) or pd.isna(max_price) or min_price == max_price:
+            continue
+            
+        bins = np.arange(min_price, max_price + tick_size, tick_size)
+        if len(bins) < 2:
+            continue
+            
+        hist = np.zeros(len(bins) - 1)
+        
+        # Iterate through the session's bars to build the profile cumulatively
+        for i, (idx, row) in enumerate(session_df.iterrows()):
+            high, low, vol = row['high'], row['low'], row['volume']
+            if high > low and vol > 0:
+                # Distribute volume across bins
+                overlap_high = np.minimum(high, bins[1:])
+                overlap_low = np.maximum(low, bins[:-1])
+                overlap = np.maximum(0, overlap_high - overlap_low)
+                fraction = overlap / (high - low)
+                hist += vol * fraction
+            
+            # Calculate VA metrics at this bar
+            total_vol = hist.sum()
+            if total_vol == 0:
+                continue
+                
+            target_vol = total_vol * (va_percent / 100.0)
+            poc_idx = np.argmax(hist)
+            current_vol = hist[poc_idx]
+            
+            left_idx = poc_idx - 1
+            right_idx = poc_idx + 1
+            
+            while current_vol < target_vol and (left_idx >= 0 or right_idx < len(hist)):
+                left_vol = hist[left_idx] if left_idx >= 0 else 0
+                right_vol = hist[right_idx] if right_idx < len(hist) else 0
+                
+                if left_vol == 0 and right_vol == 0:
+                    break
+                    
+                if left_vol >= right_vol:
+                    current_vol += left_vol
+                    left_idx -= 1
+                else:
+                    current_vol += right_vol
+                    right_idx += 1
+            
+            # Record the metrics (mapping indices back to price)
+            global_idx = np.where(mask)[0][i]
+            poc[global_idx] = bins[poc_idx]
+            val[global_idx] = bins[left_idx + 1] if left_idx + 1 < len(bins) else bins[0]
+            vah[global_idx] = bins[right_idx - 1] if right_idx - 1 < len(bins) else bins[-1]
+            
+    df['poc'] = poc
+    df['vah'] = vah
+    df['val'] = val
+    return df
+
+
+def calculate_dmi(df: pd.DataFrame, length: int = 14, lensig: int = 14):
+    """Calculates Directional Movement Index (DMI/ADX)."""
+    df.ta.adx(length=length, lensig=lensig, append=True)
+    try:
+        adx_col = [col for col in df.columns if col.startswith(f"ADX_{lensig}")][0]
+        plus_di = [col for col in df.columns if col.startswith(f"DMP_{length}")][0]
+        minus_di = [col for col in df.columns if col.startswith(f"DMN_{length}")][0]
+        df["adx"] = df[adx_col]
+        df["+di"] = df[plus_di]
+        df["-di"] = df[minus_di]
+    except IndexError:
+        pass
+    return df
+
+
+def calculate_cmf(df: pd.DataFrame, length: int = 20):
+    """Calculates Chaikin Money Flow (CMF)."""
+    df.ta.cmf(length=length, append=True)
+    try:
+        cmf_col = [col for col in df.columns if col.startswith(f"CMF_{length}")][0]
+        df["cmf"] = df[cmf_col]
+    except IndexError:
+        pass
+    return df
+
+
+def calculate_apex_sortino(df: pd.DataFrame, t_len: int = 20, o_len: int = 60, mar: float = 0.0):
+    """Calculates Apex Sortino Engine (Operational and Tactical)."""
+    def f_sortino_engine(src, length, m, annual_factor):
+        log_ret = np.log(src / src.shift(1))
+        avg_ret = log_ret.rolling(length).mean()
+        downside_diff = np.minimum(log_ret - m, 0)
+        downside_var = (downside_diff ** 2).rolling(length).mean()
+        downside_dev = np.sqrt(downside_var)
+        raw_s = np.where(downside_dev == 0, 0, (avg_ret - m) / downside_dev)
+        return raw_s * annual_factor
+
+    df["operational_sortino"] = f_sortino_engine(df["close"], o_len, mar, np.sqrt(252))
+    df["tactical_sortino"] = f_sortino_engine(df["close"], t_len, mar, np.sqrt(252 * 78))
+    return df
+
+
+def calculate_intraday_rvol(df: pd.DataFrame, period: int = 5, ema_len: int = 20):
+    """Calculates RVOL Relative Volume (Intraday)."""
+    if not pd.api.types.is_datetime64_any_dtype(df.index):
+        # Fallback if index isn't datetime
+        df["rvol"] = 1.0
+        df["rvol_ema"] = 1.0
+        return df
+
+    # Group by time of day (Hour:Minute)
+    df["time_str"] = df.index.strftime('%H:%M')
+    
+    # Calculate 5-day rolling average volume for each specific time bin
+    # Pivot to make times columns and dates rows, take rolling mean, then unpivot
+    pivot = df.pivot_table(index=df.index.date, columns='time_str', values='volume', aggfunc='sum')
+    rolling_hvol = pivot.rolling(window=period, min_periods=1).mean().shift(1) # shift(1) to only use *past* N days
+    
+    # Map the historical average back to the dataframe
+    df['hvol'] = df.apply(lambda row: rolling_hvol.loc[row.name.date(), row['time_str']] if row.name.date() in rolling_hvol.index and row['time_str'] in rolling_hvol.columns else np.nan, axis=1)
+    
+    # RVOL is current volume / historical volume
+    df["rvol"] = np.where((df["hvol"] == 0) | (df["hvol"].isna()), 0, df["volume"] / df["hvol"])
+    df["rvol_ema"] = ta.ema(df["rvol"], length=ema_len)
+    
+    df.drop(columns=["time_str", "hvol"], inplace=True)
+    return df
+
+
+def calculate_cvd_divergence(df: pd.DataFrame, n: int = 2, period: int = 21, cum_mode: str = 'Periodic'):
+    """Calculates Cumulative Volume Delta Divergence Oscillator."""
+    range_val = df['high'] - df['low']
+    # Avoid division by zero
+    range_safe = np.where(range_val == 0, 1, range_val)
+    
+    buying = df['volume'] * ((df['close'] - df['low']) / range_safe)
+    selling = df['volume'] * ((df['high'] - df['close']) / range_safe)
+    delta = pd.Series(buying - selling, index=df.index)
+    
+    if cum_mode == 'Periodic':
+        df['cvd_hist'] = delta.rolling(period).sum()
+    else:
+        df['cvd_hist'] = ta.ema(delta, length=period)
+        
+    # Basic Fractal Divergence logic
+    # Up Fractal (Pivot High)
+    df['pivot_high'] = (df['high'] == df['high'].rolling(2*n + 1, center=True).max())
+    # Down Fractal (Pivot Low)
+    df['pivot_low'] = (df['low'] == df['low'].rolling(2*n + 1, center=True).min())
+    
+    return df
+
+
 
 
 @tool

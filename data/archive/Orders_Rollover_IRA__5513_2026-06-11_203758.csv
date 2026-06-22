@@ -1,0 +1,43 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 06/11/2026 at 08:37:48 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+NOC,Sell,35,Stop loss at $556.00,Filled at $555.86,35 / 35,552.52,10.38,1.91,551.5,--,556,Day,None,"G1 EXECUTION SERVICES, LLC",1:31:17 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1821DTN0,666807102,NORTHROP GRUMMAN CORP COM USD1,--
+NOC,Buy,25,Limit at $558.00,Filled at $557.8999,25 / 25,552.52,10.38,1.91,551.5,--,556,Day,None,FDLM,1:30:34 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1821B3K3,666807102,NORTHROP GRUMMAN CORP COM USD1,--
+NOC,Sell,40,Trailing Stop Limit at $0.75 Based on Last,Filled at $557.49,40 / 40,552.52,10.38,1.91,551.5,--,556,Day,None,FDLM,1:29:37 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.75,F11GSCWD,666807102,NORTHROP GRUMMAN CORP COM USD1,--
+NOC,Buy,50,Limit at $558.00,Filled at $556.42,50 / 50,552.52,10.38,1.91,551.5,--,556,Day,None,FDLM,1:13:33 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1821D0TP,666807102,NORTHROP GRUMMAN CORP COM USD1,--
+MNTS,Sell,100,Stop loss at $15.45,Filled at $15.45,100 / 100,16.30,4.96,43.74,17.25,--,17.3,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",1:12:12 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18218NRS,60879E408,MOMENTUS INC COM CL A,--
+MNTS,Buy,100,Limit at $15.90,Filled at $15.8999,100 / 100,16.30,4.96,43.74,17.25,--,17.3,Day,None,FDLM,1:10:23 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18219ZWD,60879E408,MOMENTUS INC COM CL A,--
+ENTG,Sell,25,Stop loss at $138.20,Filled at $138.04,25 / 25,144.92,16.04,12.45,134,--,148.98,Day,None,"G1 EXECUTION SERVICES, LLC",12:43:25 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18217V1S,29362U104,ENTEGRIS INC,--
+ENTG,Buy,25,Limit at $139.00,Filled at $139.00,25 / 25,144.92,16.04,12.45,134,--,148.98,Day,None,FDLM,12:37:16 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18212G0J,29362U104,ENTEGRIS INC,--
+SATS,Sell,75,Trailing Stop Loss at $0.50 Based on Last,Filled at $126.105,75 / 75,128.13,12.89,11.19,134.5,--,135,Day,None,FDLM,12:27:24 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.50,F11FXFVP,278768106,ECHOSTAR CORPORATION COM USD0.001 CLASS A,--
+SATS,Sell,25,Stop loss at $125.80,Filled at $125.8472,25 / 25,128.13,12.89,11.19,134.5,--,135,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",12:25:39 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1821CRJH,278768106,ECHOSTAR CORPORATION COM USD0.001 CLASS A,--
+SATS,Buy,25,Limit at $126.50,Filled at $126.37,25 / 25,128.13,12.89,11.19,134.5,--,135,Day,None,FDLM,12:22:15 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18212C5Z,278768106,ECHOSTAR CORPORATION COM USD0.001 CLASS A,--
+SATS,Buy,25,Limit at $126.50,Filled at $126.2289,25 / 25,128.13,12.89,11.19,134.5,--,135,Day,None,FDLM,12:21:12 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18217PY7,278768106,ECHOSTAR CORPORATION COM USD0.001 CLASS A,--
+SATS,Buy,30,Limit at $126.00,Filled at $125.16,30 / 30,128.13,12.89,11.19,134.5,--,135,Day,None,FDLM,12:10:01 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18213LSD,278768106,ECHOSTAR CORPORATION COM USD0.001 CLASS A,--
+SATS,Buy,20,Limit at $126.00,Filled at $125.15,20 / 20,128.13,12.89,11.19,134.5,--,135,Day,None,FDLM,12:09:12 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,182148RS,278768106,ECHOSTAR CORPORATION COM USD0.001 CLASS A,--
+FLY,Sell,50,Stop loss at $37.85,Filled at $37.84,50 / 50,39.37,5.95,17.80,41.65,--,41.84,Day,None,VIRTU AMERICAS LLC,12:07:27 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18217M4X,31816X106,FIREFLY AEROSPACE INC COM,--
+FLY,Buy,50,Limit at $38.15,Filled at $38.035,50 / 50,39.37,5.95,17.80,41.65,--,41.84,Day,None,FDLM,12:01:59 PM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,182187TW,31816X106,FIREFLY AEROSPACE INC COM,--
+VOYG,Sell,100,Trailing Stop Limit at $0.25 Based on Last,Filled at $47.08,100 / 100,47.87,6.59,15.96,49,--,49.4,Day,None,FDLM,11:38:26 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.25,F11FCZRW,92892B103,VOYAGER TECHNOLOGIES INC COM CL A,--
+MNTS,Sell,250,Trailing Stop Limit at $0.25 Based on Last,Filled at $15.10,250 / 250,16.30,4.96,43.74,17.25,--,17.3,Day,None,FDLM,11:30:00 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.25,F11DZVQD,60879E408,MOMENTUS INC COM CL A,--
+ATEX,Sell,20,Stop loss at $77.75,Filled at $77.06,20 / 20,81.44,16.66,25.72,79.5,--,83.75,Day,None,VIRTU AMERICAS LLC,11:29:37 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820Z9LJ,03676C100,ANTERIX INC COM,--
+MNTS,Buy,100,Limit at $15.50,Filled at $14.9499,100 / 100,16.30,4.96,43.74,17.25,--,17.3,Day,None,FDLM,11:20:38 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820XWVS,60879E408,MOMENTUS INC COM CL A,--
+ATEX,Sell,30,Trailing Stop Limit at $1.00 Based on Last,Filled at $77.62,30 / 30,81.44,16.66,25.72,79.5,--,83.75,Day,None,FDLM,11:17:05 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,$1.00,F11DVCTD,03676C100,ANTERIX INC COM,--
+VOYG,Buy,100,Limit at $47.00,Filled at $46.755,100 / 100,47.87,6.59,15.96,49,--,49.4,Day,None,FDLM,11:13:28 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820TGXK,92892B103,VOYAGER TECHNOLOGIES INC COM CL A,--
+MNTS,Buy,100,Limit at $14.25,Filled at $14.1999,100 / 100,16.30,4.96,43.74,17.25,--,17.3,Day,None,FDLM,11:07:50 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820VSF4,60879E408,MOMENTUS INC COM CL A,--
+MNTS,Buy,50,Limit at $13.90,Filled at $13.76,50 / 50,16.30,4.96,43.74,17.25,--,17.3,Day,None,FDLM,11:04:54 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820VRLR,60879E408,MOMENTUS INC COM CL A,--
+AADX,Sell,200,Stop loss at $21.10,Filled at $21.02,200 / 200,22.09,3.68,19.99,22.41,--,22.93,Day,None,"G1 EXECUTION SERVICES, LLC",11:03:14 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820V2C6,03815J107,APPLIED AEROSPACE &DEFENSE COMMON STOCK,--
+ATEX,Buy,50,Limit at $74.00,Filled at $73.615,50 / 50,81.44,16.66,25.72,79.5,--,83.75,Day,None,FDLM,10:45:31 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820ZLLB,03676C100,ANTERIX INC COM,--
+AADX,Buy,100,Limit at $21.70,Filled at $21.435,100 / 100,22.09,3.68,19.99,22.41,--,22.93,Day,None,FDLM,10:37:02 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820YTT0,03815J107,APPLIED AEROSPACE &DEFENSE COMMON STOCK,--
+AADX,Buy,100,Limit at $21.50,Filled at $21.3299,100 / 100,22.09,3.68,19.99,22.41,--,22.93,Day,None,FDLM,10:33:58 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820ZG0Q,03815J107,APPLIED AEROSPACE &DEFENSE COMMON STOCK,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

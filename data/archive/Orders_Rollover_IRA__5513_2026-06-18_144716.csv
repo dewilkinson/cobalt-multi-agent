@@ -1,0 +1,31 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 06/18/2026 at 02:46:22 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+BROS,Sell,50,Trailing Stop Limit at $0.60 Based on Last,Filled at $71.12,50 / 50,70.9683,5.2483,7.99,70.95,--,70.99,Day,None,FDLM,12:35:59 PM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.60,F18GGJFP,26701L100,DUTCH BROS INC CL A,--
+BROS,Sell,100,Market,Filled at $70.99,100 / 100,70.9683,5.2483,7.99,70.95,--,70.99,Day,None,FDLM,11:35:41 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1891D8Y9,26701L100,DUTCH BROS INC CL A,--
+BROS,Buy,50,Limit at $71.00,Filled at $70.83,50 / 50,70.9683,5.2483,7.99,70.95,--,70.99,Day,None,FDLM,10:39:56 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,--,189108M5,26701L100,DUTCH BROS INC CL A,--
+VSH,Sell,100,Trailing Stop Loss at $1.50 Based on Last,Filled at $67.68,100 / 100,63.735,3.505,5.82,63.7,--,63.77,Day,None,FDLM,10:30:32 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,$1.50,F18DDQDZ,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+BROS,Buy,100,Limit at $71.00,Filled at $70.385,100 / 100,70.9683,5.2483,7.99,70.95,--,70.99,Day,None,FDLM,10:27:23 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18911FWT,26701L100,DUTCH BROS INC CL A,--
+VSH,Buy,50,Limit at $69.00,Filled at $68.765,50 / 50,63.735,3.505,5.82,63.7,--,63.77,Day,None,FDLM,10:25:42 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1890QCNH,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+SNDK,Sell,15,Trailing Stop Loss at $10.00 Based on Last,Filled at $2178.39,15 / 15,"2,168.13",209.33,10.69,2167.26,--,2169,Day,None,FDLM,10:24:26 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,$10.00,F18CXMHZ,80004C200,SANDISK CORP COM,--
+VSH,Buy,50,Limit at $69.00,Filled at $68.66,50 / 50,63.735,3.505,5.82,63.7,--,63.77,Day,None,FDLM,10:24:20 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1890R0JK,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+SNDK,Sell,5,Stop loss at $2175.00,Filled at $2175.00,5 / 5,"2,168.13",209.33,10.69,2167.26,--,2169,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",10:22:51 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1890QB9P,80004C200,SANDISK CORP COM,--
+SNDK,Buy,10,Limit at $2178.00,Filled at $2175.005,10 / 10,"2,168.13",209.33,10.69,2167.26,--,2169,Day,None,FDLM,10:20:22 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1890Q8TD,80004C200,SANDISK CORP COM,--
+MU,Sell,20,Stop loss at $1115.00,Filled at $1115.42,20 / 20,"1,141.71",98.52,9.44,1141.5,--,1141.92,Day,None,"G1 EXECUTION SERVICES, LLC",10:19:12 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1890PLH0,595112103,MICRON TECHNOLOGY INC,--
+MU,Buy,10,Limit at $1121.00,Filled at $1119.86,10 / 10,"1,141.71",98.52,9.44,1141.5,--,1141.92,Day,None,FDLM,10:18:46 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1890G6B2,595112103,MICRON TECHNOLOGY INC,--
+MU,Buy,10,Limit at $1120.00,Filled at $1118.00,10 / 10,"1,141.71",98.52,9.44,1141.5,--,1141.92,Day,None,FDLM,10:17:57 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1890J6KT,595112103,MICRON TECHNOLOGY INC,--
+SNDK,Buy,10,Limit at $2160.00,Filled at $2156.32,10 / 10,"2,168.13",209.33,10.69,2167.26,--,2169,Day,None,FDLM,10:12:37 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1890D3C6,80004C200,SANDISK CORP COM,--
+KLAC,Sell,20,Stop loss at $255.75,Filled at $255.65,20 / 20,259.45,20.72,8.68,259.4,--,259.5,Day,None,"G1 EXECUTION SERVICES, LLC",10:08:42 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1890MF0Y,482480100,KLA CORP COM NEW,--
+KLAC,Buy,20,Limit at $259.00,Filled at $258.24,20 / 20,259.45,20.72,8.68,259.4,--,259.5,Day,None,FDLM,10:08:01 AM ET Jun-18-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1890GQ2Y,482480100,KLA CORP COM NEW,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

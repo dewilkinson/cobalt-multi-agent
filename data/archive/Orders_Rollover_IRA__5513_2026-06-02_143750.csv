@@ -1,0 +1,47 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 06/02/2026 at 02:37:42 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+VSH,Sell,25,Stop loss at $63.00,Filled at $63.01,25 / 25,63.47,7.48,13.36,63.45,--,63.48,Day,None,TWO SIGMA,2:13:44 PM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1S5HZ,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+APTV,Sell,150,Market,Filled at $72.9401,150 / 150,73.31,4.71,6.87,73.28,--,73.33,Day,None,FDLM,2:12:40 PM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1VVMN,G3265R107,APTIV PLC ORD USD0.01,--
+VSH,Sell,175,Stop loss at $63.00,Filled at $63.00,175 / 175,63.47,7.48,13.36,63.45,--,63.48,Day,None,VIRTU AMERICAS LLC,2:10:30 PM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1Z5QL,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+VSH,Buy,50,Limit at $65.00,Filled at $64.205,50 / 50,63.47,7.48,13.36,63.45,--,63.48,Day,None,FDLM,12:55:02 PM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1PH9G,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+GLW,Sell,10,Market,Filled at $199.075,10 / 10,199.45,22.75,12.87,199.4,--,199.56,Day,None,FDLM,12:37:28 PM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1QPYL,219350105,CORNING INC,--
+VSH,Sell,100,Stop loss at $63.50,Filled at $63.4975,100 / 100,63.47,7.48,13.36,63.45,--,63.48,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",12:09:06 PM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1K34G,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+VSH,Buy,100,Limit at $64.00,Filled at $63.72,100 / 100,63.47,7.48,13.36,63.45,--,63.48,Day,None,FDLM,11:59:20 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1KNY0,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+VSH,Buy,50,Limit at $64.00,Filled at $63.705,50 / 50,63.47,7.48,13.36,63.45,--,63.48,Day,None,FDLM,11:58:34 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1P0GP,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+VSH,Sell,150,Market,Filled at $63.4359,150 / 150,63.47,7.48,13.36,63.45,--,63.48,Day,None,FDLM,11:56:50 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1JZJX,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+VSH,Buy,100,Limit at $64.00,Filled at $63.61,100 / 100,63.47,7.48,13.36,63.45,--,63.48,Day,None,FDLM,11:48:09 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1PL26,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+CEVA,Sell,100,Stop loss at $48.15,Filled at $48.1995,100 / 100,48.605,3.895,8.71,48.5,--,48.64,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:45:18 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1KJV1,157210105,CEVA INC,--
+VSH,Buy,50,Limit at $63.00,Filled at $62.88,50 / 50,63.47,7.48,13.36,63.45,--,63.48,Day,None,FDLM,11:39:49 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1D378,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+AMPX,Sell,100,Stop loss at $23.85,Filled at $23.84,100 / 100,23.245,1.495,6.87,23.23,--,23.25,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:26:10 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D13XPL,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+AMPX,Buy,100,Limit at $24.25,Filled at $24.16,100 / 100,23.245,1.495,6.87,23.23,--,23.25,Day,None,FDLM,11:25:36 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1C8Z9,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+FLNC,Sell,100,Market,Filled at $28.85,100 / 100,28.09,0.94,3.46,28.08,--,28.1,Day,None,FDLM,11:19:34 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D14J2N,34379V103,FLUENCE ENERGY INC COM CL A,--
+CEVA,Buy,100,Limit at $49.00,Filled at $48.27,100 / 100,48.605,3.895,8.71,48.5,--,48.64,Day,None,FDLM,11:10:31 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D132GW,157210105,CEVA INC,--
+GLW,Buy,25,Limit at $202.00,Filled at $200.905,25 / 25,199.45,22.75,12.87,199.4,--,199.56,Day,None,FDLM,11:08:44 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D192LM,219350105,CORNING INC,--
+VSH,Buy,100,Limit at $62.50,Filled at $61.86,100 / 100,63.47,7.48,13.36,63.45,--,63.48,Day,None,FDLM,11:05:18 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D18CKL,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+COHR,Sell,20,Stop loss at $423.45,Filled at $423.2475,20 / 20,423.49,60.59,16.70,423.24,--,423.62,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:00:18 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D17N9H,19247G107,COHERENT CORP COM,--
+ST,Buy,100,Limit at $53.25,Filled at $53.035,100 / 100,53.22,3.93,7.97,53.2,--,53.23,Day,None,FDLM,10:56:20 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D188CY,G8060N102,SENSATA TECHNOLOGIES HOLDING PLC COM EUR0.01,--
+APTV,Buy,50,Limit at $74.00,Filled at $73.365,50 / 50,73.31,4.71,6.87,73.28,--,73.33,Day,None,FDLM,10:53:34 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1D7TP,G3265R107,APTIV PLC ORD USD0.01,--
+FLNC,Buy,100,Limit at $29.85,Filled at $29.71,100 / 100,28.09,0.94,3.46,28.08,--,28.1,Day,None,FDLM,10:49:05 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D1BVS0,34379V103,FLUENCE ENERGY INC COM CL A,--
+APTV,Buy,100,Limit at $72.50,Filled at $72.405,100 / 100,73.31,4.71,6.87,73.28,--,73.33,Day,None,FDLM,10:44:44 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D17G46,G3265R107,APTIV PLC ORD USD0.01,--
+AMPX,Sell,200,Stop loss at $23.80,Filled at $23.79,200 / 200,23.245,1.495,6.87,23.23,--,23.25,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",10:40:13 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D0WN1T,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+COHR,Buy,20,Limit at $431.00,Filled at $431.00,20 / 20,423.49,60.59,16.70,423.24,--,423.62,Day,None,FDLM,10:37:00 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D0V89X,19247G107,COHERENT CORP COM,--
+VSH,Sell,225,Stop loss at $60.50,Filled at $60.4778,225 / 225,63.47,7.48,13.36,63.45,--,63.48,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",10:36:11 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D0QX4M,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+AMPX,Buy,200,Limit at $24.10,Filled at $24.06,200 / 200,23.245,1.495,6.87,23.23,--,23.25,Day,None,FDLM,10:34:32 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D10LK4,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+VSH,Buy,75,Limit at $61.50,Filled at $61.30,75 / 75,63.47,7.48,13.36,63.45,--,63.48,Day,None,FDLM,10:31:54 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D10K7X,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+VSH,Buy,75,Limit at $61.50,Filled at $61.16,75 / 75,63.47,7.48,13.36,63.45,--,63.48,Day,None,FDLM,10:31:30 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D0THTL,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+VSH,Sell,25,Trailing Stop Limit at $0.50 Based on Last,Filled at $60.25,25 / 25,63.47,7.48,13.36,63.45,--,63.48,Day,None,FDLM,10:24:57 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.50,F02CTRQD,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+VSH,Buy,50,Limit at $61.00,Filled at $60.4816,50 / 50,63.47,7.48,13.36,63.45,--,63.48,Day,None,FDLM,10:11:03 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D0TTQT,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+VSH,Buy,50,Limit at $61.00,Filled at $60.35,50 / 50,63.47,7.48,13.36,63.45,--,63.48,Day,None,FDLM,10:09:41 AM ET Jun-02-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17D0Y4YQ,928298108,VISHAY INTERTECHNOLOGY INC COM USD0.10,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

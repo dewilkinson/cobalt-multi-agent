@@ -1,0 +1,76 @@
+//@version=6
+indicator("Apex Sortino - v8.8", overlay=false, precision=2)
+
+// --- 1. CORE INPUTS ---
+t_len = input.int(20, "Tactical (Sword) Samples", minval=2)
+o_len = input.int(60, "Operational (Shield) Samples", minval=5)
+mar   = input.float(0.0, "MAR", step=0.1)
+show_tactical = input.bool(true, "Show Tactical Sword Line")
+float risk_extreme = input.float(3.0, "Gradient Sensitivity (0-3)", step=0.1)
+
+// --- 2. THE ENGINE ----
+f_sortino_engine(_src, _len, _mar, _annual_factor) =>
+    log_ret = math.log(_src / _src[1])
+    avg_ret = ta.sma(log_ret, _len)
+    downside_diff = math.min(log_ret - _mar, 0)
+    downside_var  = ta.sma(math.pow(downside_diff, 2), _len)
+    downside_dev  = math.sqrt(downside_var)
+    raw_s = downside_dev == 0 ? 0 : (avg_ret - _mar) / downside_dev
+    raw_s * _annual_factor
+
+// --- 3. THE "STRICT SYNC" SAMPLING ---
+operational = request.security(syminfo.tickerid, "D", f_sortino_engine(close, o_len, mar, math.sqrt(252)), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_on)
+tactical_5m_ann = math.sqrt(252 * 78) 
+tactical_raw = request.security(syminfo.tickerid, "5", f_sortino_engine(close, t_len, mar, tactical_5m_ann), gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_on)
+
+// --- 4. TACTICAL LINE COLORS (Classic Apex) ---
+line_color = tactical_raw > 4.0 ? #00E676 : 
+             tactical_raw > 2.5 ? #00c853 : 
+             tactical_raw > 1.0 ? #ffeb3b : 
+             tactical_raw > 0.0 ? #ff9800 : 
+             #f44336
+
+// --- 5. NUCLEAR GRADIENT (THE HEATMAP) ---
+color c_burgundy    = #4D0000 // Deep Dark Burgundy
+color c_rose_pink   = #FF1493 // Deep Rose Warning
+color c_neutral     = #1A1C22 // Even Darker Neutral Axis
+color c_vibrant_lgr = #00FF7F // Spring Green (Vibrant Transition)
+color c_toxic_neon  = #39FF14 // Toxic Neon Green
+
+// Advanced Gradient Mapping
+color heatmap_color = c_neutral
+if operational < 0
+    // Rapid shift from Neutral -> Pink -> Burgundy
+    heatmap_color := color.from_gradient(operational, -risk_extreme, 0, c_burgundy, c_rose_pink)
+    heatmap_color := color.from_gradient(operational, -risk_extreme * 0.4, 0, heatmap_color, c_neutral)
+else
+    // Rapid shift from Neutral -> Vibrant Green -> Toxic Neon
+    heatmap_color := color.from_gradient(operational, 0, risk_extreme, c_neutral, c_vibrant_lgr)
+    heatmap_color := color.from_gradient(operational, risk_extreme * 0.6, risk_extreme, heatmap_color, c_toxic_neon)
+
+// --- 6. VISUAL RENDERING ---
+// Plotting the Area with high-vibrancy heatmap
+plot(operational, "Operational Shield Area", color=color.new(heatmap_color, 30), style=plot.style_area, linewidth=1)
+
+// Plotting the Tactical Line 
+plot(tactical_raw, "Tactical Sword (Direct)", color=line_color, linewidth=2, display=show_tactical ? display.all : display.none)
+
+// Institutional Hurdles
+hline(2.5, "Lockdown Hurdle", color=color.new(color.white, 60), linestyle=hline.style_dotted)
+hline(2.0, "Standard Hurdle", color=color.new(color.white, 80), linestyle=hline.style_dotted)
+hline(0.0, "Zero Core", color=color.new(color.gray, 90))
+
+// --- 7. MACRO REGIME & DECISION ---
+tnx = request.security("US10Y", "D", close)
+is_lockdown = tnx > 4.30 
+float active_hurdle = is_lockdown ? 2.5 : 2.0
+bgcolor(is_lockdown ? color.new(color.red, 95) : na)
+
+string instruction = (operational >= active_hurdle and tactical_raw > operational) ? "STRIKE" :
+                     (tactical_raw > operational and operational < active_hurdle) ? "SCOUT" :
+                     (operational >= active_hurdle and tactical_raw <= operational) ? "HOLD" : "WAIT"
+
+// --- 8. CLEAN DECISION BADGE ---
+var table status_tab = table.new(position.top_right, 1, 1, frame_width=1, frame_color=color.new(color.gray, 50))
+if barstate.islast
+    table.cell(status_tab, 0, 0, "DECISION: " + instruction, bgcolor=color.new(heatmap_color, 10), text_color=color.white, text_size=size.normal)

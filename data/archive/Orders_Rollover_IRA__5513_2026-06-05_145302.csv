@@ -1,0 +1,25 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 06/05/2026 at 02:51:57 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+TOI,Sell,400,Trailing Stop Loss at $0.10 Based on Last,Filled at $5.04,400 / 400,5.065,0.325,6.86,5.06,--,5.07,Day,None,FDLM,12:44:09 PM ET Jun-05-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.10,F05GFCHS,68236X100,THE ONCOLOGY INSTITUTE INC COM,--
+TOI,Sell,250,Stop loss at $4.98,Filled at $4.97,250 / 250,5.065,0.325,6.86,5.06,--,5.07,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:46:57 AM ET Jun-05-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17G142CD,68236X100,THE ONCOLOGY INSTITUTE INC COM,--
+TOI,Buy,250,Limit at $5.10,Filled at $5.06,250 / 250,5.065,0.325,6.86,5.06,--,5.07,Day,None,FDLM,11:45:06 AM ET Jun-05-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17G1620S,68236X100,THE ONCOLOGY INSTITUTE INC COM,--
+BBCP,Sell,250,Stop loss at $11.00,Filled at $11.008,250 / 250,10.38,2.40,30.08,10.37,--,10.4,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:40:04 AM ET Jun-05-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17G18P46,206704108,CONCRETE PUMPING HLDGS INC COM,--
+BBCP,Buy,250,Limit at $11.60,Filled at $11.54,250 / 250,10.38,2.40,30.08,10.37,--,10.4,Day,None,FDLM,11:28:08 AM ET Jun-05-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17G196HV,206704108,CONCRETE PUMPING HLDGS INC COM,--
+TOI,Buy,200,Limit at $5.20,Filled at $5.059,200 / 200,5.065,0.325,6.86,5.06,--,5.07,Day,None,FDLM,11:20:37 AM ET Jun-05-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17G15RM3,68236X100,THE ONCOLOGY INSTITUTE INC COM,--
+TOI,Buy,100,Limit at $5.20,Filled at $5.07,100 / 100,5.065,0.325,6.86,5.06,--,5.07,Day,None,FDLM,11:19:36 AM ET Jun-05-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17G1937P,68236X100,THE ONCOLOGY INSTITUTE INC COM,--
+TOI,Buy,100,Limit at $5.10,Filled at $5.0458,100 / 100,5.065,0.325,6.86,5.06,--,5.07,Day,None,FDLM,11:17:51 AM ET Jun-05-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17G16DTQ,68236X100,THE ONCOLOGY INSTITUTE INC COM,--
+BNAI,Sell,100,Trailing Stop Loss at $1.00 Based on Last,Filled at $29.6401,100 / 100,23.5898,7.2498,44.37,23.51,--,23.82,Day,None,FDLM,11:08:55 AM ET Jun-05-2026,Rollover IRA *5513,Cash,Shares,Standard,$1.00,F05FDJKG,104932207,BRAND ENGAGEMENT NETWORK INC COM,--
+BNAI,Buy,100,Limit at $30.00,Filled at $29.40,100 / 100,23.5898,7.2498,44.37,23.51,--,23.82,Day,None,FDLM,11:07:36 AM ET Jun-05-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17G12XXC,104932207,BRAND ENGAGEMENT NETWORK INC COM,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

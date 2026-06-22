@@ -1,0 +1,14 @@
+2026/04/28-22:29:14.087 a504 Reusing MANIFEST C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\data\fidelity_session\Default\IndexedDB\https_digital.fidelity.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/04/28-22:29:14.088 a504 Recovering log #18
+2026/04/28-22:29:14.088 a504 Reusing old log C:\Users\rende\.gemini\antigravity\worktrees\cobalt-multi-agent\data\fidelity_session\Default\IndexedDB\https_digital.fidelity.com_0.indexeddb.leveldb/000018.log 
+2026/04/28-22:29:14.088 a504 Delete type=2 #16
+2026/04/28-22:29:14.102 11150 Level-0 table #23: started
+2026/04/28-22:29:14.110 11150 Level-0 table #23: 1703 bytes OK
+2026/04/28-22:29:14.116 11150 Delete type=0 #18
+2026/04/28-22:29:14.117 11150 Manual compaction at level-0 from '\x00\x0a\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0b\x00\x00\x00' @ 0 : 0; will stop at '\x00\x0a\x01\x02\x01\x09\x00p\x00u\x00b\x00l\x00i\x00c\x00K\x00e\x00y' @ 787 : 1
+2026/04/28-22:29:14.117 11150 Compacting 1@0 + 1@1 files
+2026/04/28-22:29:14.122 11150 Generated table #24@0: 62 keys, 1085 bytes
+2026/04/28-22:29:14.122 11150 Compacted 1@0 + 1@1 files => 1085 bytes
+2026/04/28-22:29:14.129 11150 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/04/28-22:29:14.129 11150 Delete type=2 #23
+2026/04/28-22:29:14.129 a504 Manual compaction at level-0 from '\x00\x0a\x01\x02\x01\x09\x00p\x00u\x00b\x00l\x00i\x00c\x00K\x00e\x00y' @ 787 : 1 .. '\x00\x0b\x00\x00\x00' @ 0 : 0; will stop at (end)

@@ -1,0 +1,122 @@
+//@version=6
+indicator("Value Area Bands (POC/VAH/VAL)", shorttitle="VA Bands", overlay=false, precision=2)
+
+// --- 1. CORE CONFIGURATION ---
+tick_mult     = input.int(10, "Tick Size Multiplier", minval=1, tooltip="Multiplier for minimum tick size (e.g. 10 means bins of 10 cents for a $0.01 tick stock). Adjust higher if the script hits execution limits on high volatility.")
+va_percent    = input.int(70, "Value Area Percent", minval=1, maxval=100, tooltip="Percentage of volume to include in the Value Area (typically 70%).")
+
+// --- 2. STYLE CONFIGURATION (COLORS) ---
+poc_color     = color.maroon
+vah_color     = color.orange
+val_color     = color.orange
+shading_color = color.new(color.rgb(210, 180, 140), 80)
+bidask_tf     = input.timeframe("", "Bid/Ask Timeframe (Set to '1T' for Tick data if plan supports it)")
+sim_spread    = input.float(0.10, "Simulated Spread (When market is closed)", tooltip="Spread in price units (e.g. 0.10 for 10 cents) to display when market is closed or tick data is unavailable.")
+
+// --- 3. SESSION TRACKING & ARRAYS ---
+// Reset the profile at the start of each daily session
+bool is_new_session = ta.change(time("D")) != 0
+
+var float[] prices  = array.new_float(0)
+var float[] volumes = array.new_float(0)
+
+if is_new_session
+    array.clear(prices)
+    array.clear(volumes)
+
+// --- 4. VOLUME PROFILING ENGINE ---
+if not na(volume) and volume > 0
+    float tick_size = syminfo.mintick * tick_mult
+    float bar_low = math.round(low / tick_size) * tick_size
+    float bar_high = math.round(high / tick_size) * tick_size
+    int num_ticks = math.max(1, math.round((bar_high - bar_low) / tick_size) + 1)
+    float vol_per_tick = volume / num_ticks
+
+    for i = 0 to num_ticks - 1
+        float p = bar_low + i * tick_size
+        // Prevent floating point representation inaccuracies
+        p := math.round(p / syminfo.mintick) * syminfo.mintick
+        
+        int existing_idx = array.indexof(prices, p)
+        if existing_idx >= 0
+            array.set(volumes, existing_idx, array.get(volumes, existing_idx) + vol_per_tick)
+        else
+            // Insert in sorted order to keep prices array sorted
+            int insert_idx = -1
+            int n = array.size(prices)
+            if n > 0
+                for j = 0 to n - 1
+                    if p < array.get(prices, j)
+                        insert_idx := j
+                        break
+            
+            if insert_idx < 0
+                array.push(prices, p)
+                array.push(volumes, vol_per_tick)
+            else
+                array.insert(prices, insert_idx, p)
+                array.insert(volumes, insert_idx, vol_per_tick)
+
+// --- 5. POC & VALUE AREA CALCULATIONS ---
+float pocPrice = na
+float valPrice = na
+float vahPrice = na
+
+int n = array.size(prices)
+if n > 0
+    float total_vol = array.sum(volumes)
+    float target_vol = total_vol * (va_percent / 100.0)
+    
+    float max_vol = array.max(volumes)
+    int poc_idx = array.indexof(volumes, max_vol)
+    pocPrice := array.get(prices, poc_idx)
+    
+    float current_vol = max_vol
+    int left_idx = poc_idx - 1
+    int right_idx = poc_idx + 1
+    
+    while current_vol < target_vol
+        float left_vol = left_idx >= 0 ? array.get(volumes, left_idx) : 0.0
+        float right_vol = right_idx < n ? array.get(volumes, right_idx) : 0.0
+        
+        if left_vol == 0.0 and right_vol == 0.0
+            break
+            
+        if left_vol >= right_vol
+            current_vol := current_vol + left_vol
+            left_idx := left_idx - 1
+        else
+            current_vol := current_vol + right_vol
+            right_idx := right_idx + 1
+            
+    valPrice := array.get(prices, left_idx + 1)
+    vahPrice := array.get(prices, right_idx - 1)
+
+// --- 6. REAL-TIME BID/ASK DATA ---
+// To avoid RE10065 runtime errors on non-Premium accounts, we default to the current chart timeframe.
+// Set the input to '1T' to pull tick-level Bid/Ask data.
+tf_to_use = bidask_tf == "" ? timeframe.period : bidask_tf
+float askPrice = request.security(syminfo.tickerid, tf_to_use, ask)
+float bidPrice = request.security(syminfo.tickerid, tf_to_use, bid)
+
+// --- 7. PLOT RENDERING ---
+// VAH & VAL boundaries (Orange, Solid by default)
+plot_vah = plot(vahPrice, "VAH", color=vah_color, linewidth=2)
+plot_val = plot(valPrice, "VAL", color=val_color, linewidth=2)
+
+// POC Center Line (Thick Yellow, Solid by default)
+plot(pocPrice, "POC (Center)", color=poc_color, linewidth=4)
+
+// Shaded region between the boundaries
+fill(plot_vah, plot_val, color=shading_color, title="Value Area Shading")
+
+// Ask, Bid & Close Lines (Red, Blue & Black tracking the price historically)
+final_ask = not na(askPrice) ? askPrice : close + (sim_spread / 2.0)
+final_bid = not na(bidPrice) ? bidPrice : close - (sim_spread / 2.0)
+
+plot(final_ask, "Ask Price", color=color.red, linewidth=1)
+plot(final_bid, "Bid Price", color=color.blue, linewidth=1)
+
+// Current Price Line (Color-coded to match candle color: green for up, red for down)
+price_line_color = close >= open ? color.green : color.red
+plot(close, "Current Price", color=price_line_color, linewidth=1)

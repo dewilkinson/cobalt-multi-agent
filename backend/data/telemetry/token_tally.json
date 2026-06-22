@@ -1,11 +1,11 @@
 {
-  "date": "2026-06-17",
+  "date": "2026-06-22",
   "flash": {
-    "input_tokens": 2245677,
-    "output_tokens": 629655
+    "input_tokens": 1203970,
+    "output_tokens": 305012
   },
   "pro": {
-    "input_tokens": 1690328,
-    "output_tokens": 138077
+    "input_tokens": 1391152,
+    "output_tokens": 118318
   }
 }

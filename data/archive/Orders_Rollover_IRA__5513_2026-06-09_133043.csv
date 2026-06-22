@@ -1,0 +1,38 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 06/09/2026 at 01:29:45 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+XLP,Buy,50,Limit at $85.00,Filled at $84.225,50 / 50,83.94,0.87,1.05,83.94,--,83.95,Day,None,FDLM,12:01:55 PM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18019SCN,81369Y308,SELECT SECTOR SPDR TRUST STATE STREET CONSUMER STAPLES SELECT SECTOR SPDR ETF,--
+XLP,Buy,100,Limit at $85.00,Filled at $84.295,100 / 100,83.94,0.87,1.05,83.94,--,83.95,Day,None,FDLM,11:59:45 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18016D8L,81369Y308,SELECT SECTOR SPDR TRUST STATE STREET CONSUMER STAPLES SELECT SECTOR SPDR ETF,--
+SJM,Sell,50,Stop loss at $114.00,Filled at $114.04,50 / 50,112.185,10.415,10.23,112.1,--,112.27,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:58:02 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18018CZW,832696405,SMUCKER J M CO COM  NEW,--
+SJM,Buy,50,Limit at $116.00,Filled at $115.07,50 / 50,112.185,10.415,10.23,112.1,--,112.27,Day,None,FDLM,11:57:22 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18017141,832696405,SMUCKER J M CO COM  NEW,--
+SJM,Sell,150,Stop loss at $114.25,Filled at $114.24,150 / 150,112.185,10.415,10.23,112.1,--,112.27,Day,None,VIRTU AMERICAS LLC,11:36:42 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18015GHF,832696405,SMUCKER J M CO COM  NEW,--
+SJM,Buy,50,Limit at $115.00,Filled at $114.9699,50 / 50,112.185,10.415,10.23,112.1,--,112.27,Day,None,FDLM,11:35:19 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1801DT44,832696405,SMUCKER J M CO COM  NEW,--
+SJM,Buy,50,Limit at $115.00,Filled at $114.88,50 / 50,112.185,10.415,10.23,112.1,--,112.27,Day,None,FDLM,11:34:41 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18014RXG,832696405,SMUCKER J M CO COM  NEW,--
+SJM,Sell,150,Trailing Stop Loss at $0.50 Based on Last,Filled at $114.845,150 / 150,112.185,10.415,10.23,112.1,--,112.27,Day,None,FDLM,11:33:51 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.50,F09FTLFW,832696405,SMUCKER J M CO COM  NEW,--
+SJM,Buy,100,Limit at $115.00,Filled at $114.615,100 / 100,112.185,10.415,10.23,112.1,--,112.27,Day,None,FDLM,11:23:06 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1800VWMB,832696405,SMUCKER J M CO COM  NEW,--
+SJM,Buy,50,Limit at $115.00,Filled at $114.39,50 / 50,112.185,10.415,10.23,112.1,--,112.27,Day,None,FDLM,11:22:35 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18012L6T,832696405,SMUCKER J M CO COM  NEW,--
+SJM,Buy,50,Limit at $114.50,Filled at $114.1999,50 / 50,112.185,10.415,10.23,112.1,--,112.27,Day,None,FDLM,11:18:26 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1800ZW6P,832696405,SMUCKER J M CO COM  NEW,--
+SJM,Sell,200,Trailing Stop Loss at $0.50 Based on Last,Filled at $114.12,200 / 200,112.185,10.415,10.23,112.1,--,112.27,Day,None,FDLM,11:01:25 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.50,F09DXZJS,832696405,SMUCKER J M CO COM  NEW,--
+VNO,Sell,400,Market,Filled at $38.47,400 / 400,38.305,2.105,5.81,38.29,--,38.32,Day,None,FDLM,10:57:22 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1800VN2W,929042109,VORNADO REALTY TRUST COM SHS OF BEN INT USD0.04,--
+SJM,Buy,50,Limit at $115.00,Filled at $114.095,50 / 50,112.185,10.415,10.23,112.1,--,112.27,Day,None,FDLM,10:54:34 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18011MWN,832696405,SMUCKER J M CO COM  NEW,--
+SJM,Buy,50,Limit at $115.00,Filled at $114.3999,50 / 50,112.185,10.415,10.23,112.1,--,112.27,Day,None,FDLM,10:53:32 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1800TXSV,832696405,SMUCKER J M CO COM  NEW,--
+HPP,Sell,600,Stop loss at $15.40,Filled at $15.38,600 / 600,14.955,0.355,2.43,14.95,--,14.97,Day,None,"G1 EXECUTION SERVICES, LLC",10:44:07 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1800W482,444097406,HUDSON PACIFIC PROPERTIES INC COM,--
+HPP,Buy,300,Limit at $16.00,Filled at $15.5365,300 / 300,14.955,0.355,2.43,14.95,--,14.97,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",10:43:12 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18012546,444097406,HUDSON PACIFIC PROPERTIES INC COM,--
+HPP,Buy,300,Limit at $16.00,Filled at $15.51,300 / 300,14.955,0.355,2.43,14.95,--,14.97,Day,None,FDLM,10:36:30 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1800XDM5,444097406,HUDSON PACIFIC PROPERTIES INC COM,--
+SJM,Buy,50,Limit at $114.00,Filled at $113.72,50 / 50,112.185,10.415,10.23,112.1,--,112.27,Day,None,FDLM,10:33:00 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1800J896,832696405,SMUCKER J M CO COM  NEW,--
+VNO,Buy,200,Limit at $39.00,Filled at $38.685,200 / 200,38.305,2.105,5.81,38.29,--,38.32,Day,None,FDLM,10:31:11 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1800LY90,929042109,VORNADO REALTY TRUST COM SHS OF BEN INT USD0.04,--
+VNO,Buy,100,Limit at $39.00,Filled at $38.685,100 / 100,38.305,2.105,5.81,38.29,--,38.32,Day,None,FDLM,10:30:18 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1800J76Z,929042109,VORNADO REALTY TRUST COM SHS OF BEN INT USD0.04,--
+VNO,Buy,100,Limit at $39.00,Filled at $38.69,100 / 100,38.305,2.105,5.81,38.29,--,38.32,Day,None,FDLM,10:29:30 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1800G6TK,929042109,VORNADO REALTY TRUST COM SHS OF BEN INT USD0.04,--
+SJM,Buy,50,Limit at $114.00,Filled at $113.44,50 / 50,112.185,10.415,10.23,112.1,--,112.27,Day,None,FDLM,10:18:04 AM ET Jun-09-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1800QSKV,832696405,SMUCKER J M CO COM  NEW,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

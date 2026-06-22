@@ -1,0 +1,49 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 05/26/2026 at 05:04:54 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+AMPX,Sell,150,Trailing Stop Loss at $0.50 Based on Last,Filled at $17.5301,150 / 150,17.83,1.80,11.23,17.8,--,17.84,Day,None,FDLM,2:59:00 PM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.50,E26FLWQF,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+KLAR,Sell,150,Trailing Stop Loss at $0.25 Based on Last,Filled at $17.12,150 / 150,16.98,0.41,2.47,16.96,--,17.12,Day,None,FDLM,1:38:56 PM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.25,E26FHZKH,G5279N105,KLARNA GROUP PLC ORD USD0.0001,--
+PCT,Sell,100,Stop loss at $12.15,Filled at $12.16,100 / 100,12.27,0.95,8.39,12.33,--,12.9,Day,None,VIRTU AMERICAS LLC,1:33:12 PM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1761KFQN,74623V103,PURECYCLE TECHNOLOGIES INC COM,--
+MU,Sell,10,Trailing Stop Loss at $7.00 Based on Last,Filled at $882.47,10 / 10,895.88,144.88,19.29,901.12,--,901.5,Day,None,FDLM,12:43:23 PM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,$7.00,E26GMLLV,595112103,MICRON TECHNOLOGY INC,--
+MU,Sell,20,Trailing Stop Loss at $5.00 Based on Last,Filled at $884.475,20 / 20,895.88,144.88,19.29,901.12,--,901.5,Day,None,FDLM,12:41:03 PM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,$5.00,E26GMSDZ,595112103,MICRON TECHNOLOGY INC,--
+SATL,Sell,100,Stop loss at $11.30,Filled at $11.275,100 / 100,10.74,0.13,1.23,9.85,--,9.95,Day,None,VIRTU AMERICAS LLC,12:36:29 PM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1761ND56,80401C100,SATELLOGIC INC COM CL A,--
+MU,Buy,10,Limit at $879.00,Filled at $877.50,10 / 10,895.88,144.88,19.29,901.12,--,901.5,Day,None,FDLM,12:06:37 PM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,176141Q0,595112103,MICRON TECHNOLOGY INC,--
+ASST,Sell,250,Trailing Stop Loss at $0.40 Based on Last,Filled at $19.015,250 / 250,18.10,-0.11,-0.60,18.17,--,18.2,Day,None,FDLM,11:32:21 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.40,E26FDXQF,862945300,STRIVE INC CL A COM,--
+AMPX,Buy,150,Limit at $18.00,Filled at $17.915,150 / 150,17.83,1.80,11.23,17.8,--,17.84,Day,None,FDLM,11:28:49 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17618DXX,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+KLAR,Buy,150,Limit at $17.50,Filled at $17.325,150 / 150,16.98,0.41,2.47,16.96,--,17.12,Day,None,FDLM,11:20:11 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17614Z8Y,G5279N105,KLARNA GROUP PLC ORD USD0.0001,--
+ASST,Buy,250,Limit at $19.50,Filled at $19.3663,250 / 250,18.10,-0.11,-0.60,18.17,--,18.2,Day,None,FDLM,11:08:58 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17619K2Q,862945300,STRIVE INC CL A COM,--
+TXN,Sell,10,Trailing Stop Loss at $3.00 Based on Last,Filled at $323.46,10 / 10,324.89,15.68,5.07,322,--,326.26,Day,None,FDLM,11:07:26 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,$3.00,E26DJQVD,882508104,TEXAS INSTRUMENTS INC COM USD1.00,--
+TXN,Sell,50,Trailing Stop Loss at $2.00 Based on Last,Filled at $324.64,50 / 50,324.89,15.68,5.07,322,--,326.26,Day,None,FDLM,11:02:35 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,$2.00,E26DJKGS,882508104,TEXAS INSTRUMENTS INC COM USD1.00,--
+MU,Buy,10,Limit at $879.00,Filled at $878.34,10 / 10,895.88,144.88,19.29,901.12,--,901.5,Day,None,FDLM,10:28:34 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760TXXL,595112103,MICRON TECHNOLOGY INC,--
+MU,Buy,10,Limit at $875.00,Filled at $875.00,10 / 10,895.88,144.88,19.29,901.12,--,901.5,Day,None,FDLM,10:25:13 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760R6HJ,595112103,MICRON TECHNOLOGY INC,--
+PL,Sell,50,Trailing Stop Loss at $1.00 Based on Last,Filled at $50.0501,50 / 50,48.32,3.97,8.95,49.69,--,50.24,Day,None,FDLM,10:21:27 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,$1.00,E26CKVNX,72703X106,PLANET LABS PBC COM CL A,--
+TXN,Buy,10,Limit at $326.00,Filled at $324.92,10 / 10,324.89,15.68,5.07,322,--,326.26,Day,None,FDLM,10:16:36 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760W2WC,882508104,TEXAS INSTRUMENTS INC COM USD1.00,--
+FSLR,Sell,50,Trailing Stop Loss at $2.00 Based on Last,Filled at $267.06,50 / 50,269.95,12.10,4.69,265,--,272,Day,None,FDLM,10:16:25 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,$2.00,E26CNBCB,336433107,FIRST SOLAR INC,--
+FSLR,Buy,50,Limit at $269.00,Filled at $268.245,50 / 50,269.95,12.10,4.69,265,--,272,Day,None,FDLM,10:14:40 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760RPYH,336433107,FIRST SOLAR INC,--
+PL,Buy,50,Limit at $51.00,Filled at $50.64,50 / 50,48.32,3.97,8.95,49.69,--,50.24,Day,None,FDLM,10:10:13 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760LXSG,72703X106,PLANET LABS PBC COM CL A,--
+SATL,Buy,100,Limit at $12.20,Filled at $11.93,100 / 100,10.74,0.13,1.23,9.85,--,9.95,Day,None,FDLM,10:08:30 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760L75C,80401C100,SATELLOGIC INC COM CL A,--
+SATL,Sell,100,Stop loss at $11.50,Filled at $11.51,100 / 100,10.74,0.13,1.23,9.85,--,9.95,Day,None,"G1 EXECUTION SERVICES, LLC",10:04:26 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760DSWF,80401C100,SATELLOGIC INC COM CL A,--
+SATL,Buy,100,Limit at $12.00,Filled at $11.91,100 / 100,10.74,0.13,1.23,9.85,--,9.95,Day,None,FDLM,10:04:07 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760MH9R,80401C100,SATELLOGIC INC COM CL A,--
+HIMX,Sell,100,Stop loss at $21.85,Filled at $21.84,100 / 100,21.43,0.39,1.85,21.45,--,21.7,Day,None,VIRTU AMERICAS LLC,10:00:02 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760KDLB,43289P106,HIMAX TECHNOLOGIES ADR REP 2 ORD,--
+HIMX,Buy,100,Limit at $23.00,Filled at $22.375,100 / 100,21.43,0.39,1.85,21.45,--,21.7,Day,None,FDLM,9:59:22 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760DPY8,43289P106,HIMAX TECHNOLOGIES ADR REP 2 ORD,--
+PCT,Buy,100,Limit at $12.50,Filled at $12.47,100 / 100,12.27,0.95,8.39,12.33,--,12.9,Day,None,FDLM,9:54:07 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760K90N,74623V103,PURECYCLE TECHNOLOGIES INC COM,--
+SLB,Sell,100,Stop loss at $58.00,Filled at $57.99,100 / 100,57.98,0.70,1.22,58.1,--,58.5,Day,None,VIRTU AMERICAS LLC,9:51:58 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760GKBH,806857108,SLB LIMITED TRADING,--
+SLB,Buy,100,Limit at $59.00,Filled at $58.50,100 / 100,57.98,0.70,1.22,58.1,--,58.5,Day,None,FDLM,9:51:14 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760DJNY,806857108,SLB LIMITED TRADING,--
+TXN,Buy,40,Limit at $324.00,Filled at $322.97,40 / 40,324.89,15.68,5.07,322,--,326.26,Day,None,FDLM,9:47:19 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760KT43,882508104,TEXAS INSTRUMENTS INC COM USD1.00,--
+TXN,Sell,30,Market,Filled at $322.8433,30 / 30,324.89,15.68,5.07,322,--,326.26,Day,None,FDLM,9:46:18 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760CR8R,882508104,TEXAS INSTRUMENTS INC COM USD1.00,--
+TXN,Buy,10,Limit at $324.00,Filled at $323.045,10 / 10,324.89,15.68,5.07,322,--,326.26,Day,None,FDLM,9:43:17 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760KQ6F,882508104,TEXAS INSTRUMENTS INC COM USD1.00,--
+TXN,Buy,10,Limit at $322.00,Filled at $322.00,10 / 10,324.89,15.68,5.07,322,--,326.26,Day,None,FDLM,9:40:05 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1760KMJX,882508104,TEXAS INSTRUMENTS INC COM USD1.00,--
+TXN,Buy,5,Limit at $321.00,Filled at $320.56,5 / 5,324.89,15.68,5.07,322,--,326.26,Day,None,FDLM,9:38:56 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17600N4R,882508104,TEXAS INSTRUMENTS INC COM USD1.00,--
+TXN,Buy,15,Limit at $321.00,Filled at $320.56,15 / 15,324.89,15.68,5.07,322,--,326.26,Day,None,FDLM,9:37:35 AM ET May-26-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17601YS3,882508104,TEXAS INSTRUMENTS INC COM USD1.00,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

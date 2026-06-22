@@ -1,0 +1,30 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 06/10/2026 at 03:03:24 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+DVN,Sell,100,Trailing Stop Limit at $0.25 Based on Last,Filled at $46.93,100 / 100,46.685,2.615,5.93,46.68,--,46.69,Day,None,FDLM,12:22:31 PM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.25,F10FQNGK,25179M103,DEVON ENERGY CORP NEW,--
+DVN,Buy,100,Limit at $47.50,Filled at $47.125,100 / 100,46.685,2.615,5.93,46.68,--,46.69,Day,None,FDLM,11:53:25 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1811FGG2,25179M103,DEVON ENERGY CORP NEW,--
+XLP,Sell,400,Stop loss at $85.25,Filled at $85.25,400 / 400,85.325,1.225,1.46,85.32,--,85.33,Day,None,"G1 EXECUTION SERVICES, LLC",11:46:31 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18115BZ0,81369Y308,SELECT SECTOR SPDR TRUST STATE STREET CONSUMER STAPLES SELECT SECTOR SPDR ETF,--
+DVN,Sell,200,Stop loss at $46.70,Filled at $46.695,200 / 200,46.685,2.615,5.93,46.68,--,46.69,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:41:44 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,--,181159SQ,25179M103,DEVON ENERGY CORP NEW,--
+XLP,Buy,100,Limit at $86.00,Filled at $85.54,100 / 100,85.325,1.225,1.46,85.32,--,85.33,Day,None,FDLM,11:32:53 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1810YJGT,81369Y308,SELECT SECTOR SPDR TRUST STATE STREET CONSUMER STAPLES SELECT SECTOR SPDR ETF,--
+XLP,Buy,100,Limit at $86.00,Filled at $85.54,100 / 100,85.325,1.225,1.46,85.32,--,85.33,Day,None,FDLM,11:31:57 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1810THC0,81369Y308,SELECT SECTOR SPDR TRUST STATE STREET CONSUMER STAPLES SELECT SECTOR SPDR ETF,--
+DVN,Buy,100,Limit at $47.00,Filled at $46.8199,100 / 100,46.685,2.615,5.93,46.68,--,46.69,Day,None,FDLM,11:29:17 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1810V48Z,25179M103,DEVON ENERGY CORP NEW,--
+DVN,Buy,100,Limit at $47.00,Filled at $46.82,100 / 100,46.685,2.615,5.93,46.68,--,46.69,Day,None,FDLM,11:28:14 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1810S3SY,25179M103,DEVON ENERGY CORP NEW,--
+DVN,Sell,200,Stop loss at $46.45,Filled at $46.455,200 / 200,46.685,2.615,5.93,46.68,--,46.69,Day,None,"UBS SECURITIES, L.L.C.",11:00:43 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1810RTZY,25179M103,DEVON ENERGY CORP NEW,--
+DVN,Buy,200,Limit at $46.70,Filled at $46.52,200 / 200,46.685,2.615,5.93,46.68,--,46.69,Day,None,FDLM,10:59:23 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1810TTW0,25179M103,DEVON ENERGY CORP NEW,--
+XLP,Buy,100,Limit at $86.00,Filled at $85.145,100 / 100,85.325,1.225,1.46,85.32,--,85.33,Day,None,FDLM,10:54:49 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1810SFJ1,81369Y308,SELECT SECTOR SPDR TRUST STATE STREET CONSUMER STAPLES SELECT SECTOR SPDR ETF,--
+XLP,Buy,100,Limit at $85.40,Filled at $85.16,100 / 100,85.325,1.225,1.46,85.32,--,85.33,Day,None,FDLM,10:53:42 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,--,181124L9,81369Y308,SELECT SECTOR SPDR TRUST STATE STREET CONSUMER STAPLES SELECT SECTOR SPDR ETF,--
+OCC,Sell,100,Trailing Stop Loss at $0.10 Based on Last,Filled at $27.18,100 / 100,24.70,3.69,17.56,24.6,--,24.99,Day,None,FDLM,10:43:25 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.10,F10DJWZC,683827208,OPTICAL CABLE CORP,--
+OCC,Buy,100,Limit at $27.00,Filled at $26.9694,100 / 100,24.70,3.69,17.56,24.6,--,24.99,Day,None,FDLM,10:37:23 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1810TKQN,683827208,OPTICAL CABLE CORP,--
+XLP,Sell,150,Limit at $84.70,Filled at $84.855,150 / 150,85.325,1.225,1.46,85.32,--,85.33,Day,None,FDLM,9:35:35 AM ET Jun-10-2026,Rollover IRA *5513,Cash,Shares,Standard,--,181035QL,81369Y308,SELECT SECTOR SPDR TRUST STATE STREET CONSUMER STAPLES SELECT SECTOR SPDR ETF,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

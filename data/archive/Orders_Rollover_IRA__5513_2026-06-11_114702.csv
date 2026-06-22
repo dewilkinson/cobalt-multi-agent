@@ -1,0 +1,27 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 06/11/2026 at 11:46:26 AM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+VOYG,Sell,100,Trailing Stop Limit at $0.25 Based on Last,Filled at $47.08,100 / 100,47.05,5.77,13.98,46.9,--,47.15,Day,None,FDLM,11:38:26 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.25,F11FCZRW,92892B103,VOYAGER TECHNOLOGIES INC COM CL A,--
+MNTS,Sell,250,Trailing Stop Limit at $0.25 Based on Last,Filled at $15.10,250 / 250,14.845,3.505,30.91,14.81,--,14.88,Day,None,FDLM,11:30:00 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.25,F11DZVQD,60879E408,MOMENTUS INC COM CL A,--
+ATEX,Sell,20,Stop loss at $77.75,Filled at $77.06,20 / 20,77.445,12.665,19.55,76.98,--,78.24,Day,None,VIRTU AMERICAS LLC,11:29:37 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820Z9LJ,03676C100,ANTERIX INC COM,--
+MNTS,Buy,100,Limit at $15.50,Filled at $14.9499,100 / 100,14.845,3.505,30.91,14.81,--,14.88,Day,None,FDLM,11:20:38 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820XWVS,60879E408,MOMENTUS INC COM CL A,--
+ATEX,Sell,30,Trailing Stop Limit at $1.00 Based on Last,Filled at $77.62,30 / 30,77.445,12.665,19.55,76.98,--,78.24,Day,None,FDLM,11:17:05 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,$1.00,F11DVCTD,03676C100,ANTERIX INC COM,--
+VOYG,Buy,100,Limit at $47.00,Filled at $46.755,100 / 100,47.05,5.77,13.98,46.9,--,47.15,Day,None,FDLM,11:13:28 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820TGXK,92892B103,VOYAGER TECHNOLOGIES INC COM CL A,--
+MNTS,Buy,100,Limit at $14.25,Filled at $14.1999,100 / 100,14.845,3.505,30.91,14.81,--,14.88,Day,None,FDLM,11:07:50 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820VSF4,60879E408,MOMENTUS INC COM CL A,--
+MNTS,Buy,50,Limit at $13.90,Filled at $13.76,50 / 50,14.845,3.505,30.91,14.81,--,14.88,Day,None,FDLM,11:04:54 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820VRLR,60879E408,MOMENTUS INC COM CL A,--
+AADX,Sell,200,Stop loss at $21.10,Filled at $21.02,200 / 200,21.155,2.745,14.91,21.14,--,21.18,Day,None,"G1 EXECUTION SERVICES, LLC",11:03:14 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820V2C6,03815J107,APPLIED AEROSPACE &DEFENSE COMMON STOCK,--
+ATEX,Buy,50,Limit at $74.00,Filled at $73.615,50 / 50,77.445,12.665,19.55,76.98,--,78.24,Day,None,FDLM,10:45:31 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820ZLLB,03676C100,ANTERIX INC COM,--
+AADX,Buy,100,Limit at $21.70,Filled at $21.435,100 / 100,21.155,2.745,14.91,21.14,--,21.18,Day,None,FDLM,10:37:02 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820YTT0,03815J107,APPLIED AEROSPACE &DEFENSE COMMON STOCK,--
+AADX,Buy,100,Limit at $21.50,Filled at $21.3299,100 / 100,21.155,2.745,14.91,21.14,--,21.18,Day,None,FDLM,10:33:58 AM ET Jun-11-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1820ZG0Q,03815J107,APPLIED AEROSPACE &DEFENSE COMMON STOCK,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

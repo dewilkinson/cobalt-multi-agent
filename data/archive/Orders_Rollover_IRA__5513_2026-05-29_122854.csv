@@ -1,0 +1,41 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 05/29/2026 at 12:28:27 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+OKTA,Sell,100,Trailing Stop Limit at $0.75 Based on Last,Filled at $120.39,100 / 100,120.3501,25.6301,27.06,120.35,--,120.55,Day,None,FDLM,12:23:21 PM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.75,E29JFQLB,679295105,OKTA INC CL A,--
+ILMN,Sell,100,Trailing Stop Limit at $0.75 Based on Last,Filled at $164.54,100 / 100,164.025,5.325,3.36,163.7,--,164.35,Day,None,FDLM,12:19:41 PM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.75,E29JFDXF,452327109,ILLUMINA INC COM USD0.01,--
+HUT,Sell,50,Trailing Stop Limit at $0.50 Based on Last,Filled at $124.72,50 / 50,123.99,-0.25,-0.20,123.83,--,123.99,Day,None,FDLM,12:13:17 PM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.50,E29JCMWK,44812J104,HUT 8 CORP COM,--
+ASAN,Buy,75,Limit at $7.75,Filled at $7.695,75 / 75,7.59,0.93,13.96,7.58,--,7.59,Day,None,FDLM,11:57:52 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1791NW7L,04342Y104,ASANA INC CL A,--
+ASAN,Buy,100,Limit at $7.75,Filled at $7.695,100 / 100,7.59,0.93,13.96,7.58,--,7.59,Day,None,FDLM,11:56:51 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1791LVQK,04342Y104,ASANA INC CL A,--
+OKTA,Buy,30,Limit at $120.00,Filled at $119.81,30 / 30,120.3501,25.6301,27.06,120.35,--,120.55,Day,None,FDLM,11:50:38 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17913CB8,679295105,OKTA INC CL A,--
+CRWD,Sell,10,Market,Filled at $711.71,10 / 10,720.991,49.991,7.45,720.11,--,720.81,Day,None,FDLM,11:36:17 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17918L6F,22788C105,CROWDSTRIKE HLDGS INC CL A,--
+ILMN,Buy,30,Limit at $164.50,Filled at $163.84,30 / 30,164.025,5.325,3.36,163.7,--,164.35,Day,None,FDLM,11:32:07 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17913V6M,452327109,ILLUMINA INC COM USD0.01,--
+ILMN,Buy,30,Limit at $164.00,Filled at $163.04,30 / 30,164.025,5.325,3.36,163.7,--,164.35,Day,None,FDLM,11:26:31 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,179194TG,452327109,ILLUMINA INC COM USD0.01,--
+OKTA,Buy,20,Limit at $120.00,Filled at $119.56,20 / 20,120.3501,25.6301,27.06,120.35,--,120.55,Day,None,FDLM,11:24:27 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17913RL4,679295105,OKTA INC CL A,--
+ILMN,Buy,20,Limit at $164.00,Filled at $162.97,20 / 20,164.025,5.325,3.36,163.7,--,164.35,Day,None,FDLM,11:20:11 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17915Q99,452327109,ILLUMINA INC COM USD0.01,--
+CRWD,Buy,25,Limit at $719.00,Filled at $718.1499,25 / 25,720.991,49.991,7.45,720.11,--,720.81,Day,None,FDLM,11:16:38 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17914BJV,22788C105,CROWDSTRIKE HLDGS INC CL A,--
+OKTA,Buy,50,Limit at $119.50,Filled at $118.72,50 / 50,120.3501,25.6301,27.06,120.35,--,120.55,Day,None,FDLM,11:14:04 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1791BBFD,679295105,OKTA INC CL A,--
+HUT,Buy,50,Limit at $127.00,Filled at $126.44,50 / 50,123.99,-0.25,-0.20,123.83,--,123.99,Day,None,FDLM,11:08:54 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1791D83Z,44812J104,HUT 8 CORP COM,--
+ILMN,Buy,20,Limit at $162.50,Filled at $161.76,20 / 20,164.025,5.325,3.36,163.7,--,164.35,Day,None,FDLM,10:42:06 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1790TGF2,452327109,ILLUMINA INC COM USD0.01,--
+P,Sell,100,Stop loss at $78.50,Filled at $78.40,100 / 100,78.405,5.365,7.35,78.34,--,78.47,Day,None,"G1 EXECUTION SERVICES, LLC",10:38:41 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1790XS37,74624M102,EVERPURE INC  CLASS A  COMMON STOCK,--
+P,Buy,100,Limit at $80.00,Filled at $79.51,100 / 100,78.405,5.365,7.35,78.34,--,78.47,Day,None,FDLM,10:38:09 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17911S0X,74624M102,EVERPURE INC  CLASS A  COMMON STOCK,--
+DDOG,Sell,30,Stop loss at $238.00,Filled at $238.02,30 / 30,239.36,14.12,6.27,239.2,--,239.36,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",10:37:09 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1791134T,23804L103,DATADOG INC CL A COM,--
+DDOG,Buy,30,Limit at $241.00,Filled at $240.12,30 / 30,239.36,14.12,6.27,239.2,--,239.36,Day,None,FDLM,10:36:06 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17910DSV,23804L103,DATADOG INC CL A COM,--
+DDOG,Sell,25,Limit at $237.00,Filled at $240.385,25 / 25,239.36,14.12,6.27,239.2,--,239.36,Day,None,FDLM,10:35:46 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17910DMT,23804L103,DATADOG INC CL A COM,--
+DDOG,Buy,25,Limit at $241.00,Filled at $240.22,25 / 25,239.36,14.12,6.27,239.2,--,239.36,Day,None,FDLM,10:35:02 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1790S0HM,23804L103,DATADOG INC CL A COM,--
+APH,Sell,50,Stop loss at $150.00,Filled at $150.05,50 / 50,146.93,-0.75,-0.51,146.89,--,146.97,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",10:04:01 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1790NRVN,032095101,AMPHENOL CORP CLASS A COM USD0.001,--
+APH,Buy,50,Limit at $152.00,Filled at $151.40,50 / 50,146.93,-0.75,-0.51,146.89,--,146.97,Day,None,FDLM,10:03:31 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1790LQX1,032095101,AMPHENOL CORP CLASS A COM USD0.001,--
+NXT,Sell,50,Stop loss at $157.00,Filled at $156.75,50 / 50,152.375,15.205,11.08,152.28,--,152.7,Day,None,VIRTU AMERICAS LLC,10:01:47 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1790PDHR,65290E101,NEXTPOWER INC. CLASS A COMMON STOCK,--
+NXT,Buy,25,Limit at $161.00,Filled at $159.75,25 / 25,152.375,15.205,11.08,152.28,--,152.7,Day,None,FDLM,10:01:02 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1790GP0F,65290E101,NEXTPOWER INC. CLASS A COMMON STOCK,--
+NXT,Buy,25,Limit at $161.00,Filled at $159.16,25 / 25,152.375,15.205,11.08,152.28,--,152.7,Day,None,FDLM,10:00:05 AM ET May-29-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1790CZ8V,65290E101,NEXTPOWER INC. CLASS A COMMON STOCK,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

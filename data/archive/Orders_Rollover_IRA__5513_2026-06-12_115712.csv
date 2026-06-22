@@ -1,0 +1,36 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 06/12/2026 at 11:56:16 AM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+AMAT,Sell,10,Stop loss at $563.00,Filled at $562.95,10 / 10,560.155,7.515,1.36,560.03,--,560.27,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:40:13 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831SZ95,038222105,APPLIED MATERIALS INC COM USD0.01,--
+AMAT,Sell,25,Trailing Stop Loss at $3.00 Based on Last,Filled at $563.3744,25 / 25,560.155,7.515,1.36,560.03,--,560.27,Day,None,FDLM,11:38:33 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,$3.00,F12FLCDZ,038222105,APPLIED MATERIALS INC COM USD0.01,--
+AMAT,Buy,10,Limit at $565.00,Filled at $564.96,10 / 10,560.155,7.515,1.36,560.03,--,560.27,Day,None,FDLM,11:36:26 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831VY6X,038222105,APPLIED MATERIALS INC COM USD0.01,--
+CRWV,Sell,100,Stop loss at $104.50,Filled at $104.476,100 / 100,102.16,6.42,6.71,102.11,--,102.2,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:29:00 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831G30N,21873S108,COREWEAVE INC COM CL A,--
+CRWV,Buy,50,Limit at $106.00,Filled at $105.33,50 / 50,102.16,6.42,6.71,102.11,--,102.2,Day,None,FDLM,11:28:27 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831GRG6,21873S108,COREWEAVE INC COM CL A,--
+CRWV,Buy,50,Limit at $106.00,Filled at $105.35,50 / 50,102.16,6.42,6.71,102.11,--,102.2,Day,None,FDLM,11:27:39 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831RGBZ,21873S108,COREWEAVE INC COM CL A,--
+INTC,Sell,50,Stop loss at $122.45,Filled at $122.45,50 / 50,122.115,5.155,4.41,122.09,--,122.14,Day,None,VIRTU AMERICAS LLC,11:25:58 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831KDH7,458140100,INTEL CORP COM USD0.001,--
+ARM,Sell,30,Stop loss at $378.00,Filled at $378.13,30 / 30,375.305,33.075,9.66,375,--,375.35,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:25:05 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831HD15,042068205,ARM HOLDINGS PLC SPON ADS EACH REP 1 ORD SHS,--
+ARM,Buy,15,Limit at $381.00,Filled at $380.77,15 / 15,375.305,33.075,9.66,375,--,375.35,Day,None,FDLM,11:19:52 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831Q113,042068205,ARM HOLDINGS PLC SPON ADS EACH REP 1 ORD SHS,--
+AMAT,Buy,15,Limit at $562.00,Filled at $561.3899,15 / 15,560.155,7.515,1.36,560.03,--,560.27,Day,None,FDLM,11:18:44 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831NNWN,038222105,APPLIED MATERIALS INC COM USD0.01,--
+ARM,Buy,15,Limit at $379.00,Filled at $378.06,15 / 15,375.305,33.075,9.66,375,--,375.35,Day,None,FDLM,11:10:23 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831KW3R,042068205,ARM HOLDINGS PLC SPON ADS EACH REP 1 ORD SHS,--
+LITE,Sell,10,Stop loss at $921.95,Filled at $921.836,10 / 10,914.375,24.785,2.79,913,--,915.75,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:09:37 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831KVTD,55024U109,LUMENTUM HLDGS INC  COM,--
+LITE,Buy,10,Limit at $930.00,Filled at $930.00,10 / 10,914.375,24.785,2.79,913,--,915.75,Day,None,FDLM,11:08:37 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831GHMF,55024U109,LUMENTUM HLDGS INC  COM,--
+UEC,Buy,200,Limit at $11.40,Filled at $11.32,200 / 200,11.135,0.505,4.75,11.13,--,11.14,Day,None,FDLM,11:06:13 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831KTF4,916896103,URANIUM ENERGY CORP  COM,--
+UEC,Sell,200,Stop loss at $11.25,Filled at $11.25,200 / 200,11.135,0.505,4.75,11.13,--,11.14,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:06:39 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831KTLS,916896103,URANIUM ENERGY CORP  COM,--
+INTC,Buy,50,Limit at $123.00,Filled at $122.83,50 / 50,122.115,5.155,4.41,122.09,--,122.14,Day,None,FDLM,11:02:04 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831NG1B,458140100,INTEL CORP COM USD0.001,--
+BROS,Buy,100,Limit at $67.00,Filled at $66.56,100 / 100,65.71,0.68,1.05,65.7,--,65.83,Day,None,FDLM,11:00:17 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831H1WW,26701L100,DUTCH BROS INC CL A,--
+BROS,Sell,100,Stop loss at $66.00,Filled at $66.0196,100 / 100,65.71,0.68,1.05,65.7,--,65.83,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:00:51 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831HR3Q,26701L100,DUTCH BROS INC CL A,--
+AMAT,Buy,10,Limit at $560.00,Filled at $558.935,10 / 10,560.155,7.515,1.36,560.03,--,560.27,Day,None,FDLM,10:58:12 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831JCDQ,038222105,APPLIED MATERIALS INC COM USD0.01,--
+WBI,Sell,100,Stop loss at $35.75,Filled at $35.70,100 / 100,34.875,4.375,14.34,34.84,--,34.91,Day,None,VIRTU AMERICAS LLC,10:51:47 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831L7N3,940923105,WATERBRIDGE INFRASTRUCTURE LLC CL A SHS REPSTG,--
+WBI,Buy,100,Limit at $36.25,Filled at $35.965,100 / 100,34.875,4.375,14.34,34.84,--,34.91,Day,None,FDLM,10:51:17 AM ET Jun-12-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1831NXKM,940923105,WATERBRIDGE INFRASTRUCTURE LLC CL A SHS REPSTG,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

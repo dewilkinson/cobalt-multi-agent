@@ -1,0 +1,91 @@
+import json
+import os
+import sys
+
+def main():
+    # Paths to directories
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    
+    # Try backend/data first, then fallback to root data/
+    strike_list_path = os.path.join(base_dir, "backend", "data", "STRIKE_LIST.json")
+    if not os.path.exists(strike_list_path):
+        strike_list_path = os.path.join(base_dir, "data", "STRIKE_LIST.json")
+        
+    # Always output to root data/exports/ folder
+    exports_dir = os.path.join(base_dir, "data", "exports")
+    os.makedirs(exports_dir, exist_ok=True)
+    
+    if not os.path.exists(strike_list_path):
+        print(f"Error: STRIKE_LIST.json not found.")
+        sys.exit(1)
+        
+    try:
+        with open(strike_list_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"Error reading STRIKE_LIST.json: {e}")
+        sys.exit(1)
+        
+    candidates = data.get("candidates", [])
+    if not candidates:
+        # Check for 'strike_list' fallback key
+        candidates = data.get("strike_list", [])
+        
+    if not candidates:
+        print("Warning: No candidates found in STRIKE_LIST.json.")
+        
+    # Categorize by tier
+    watchlists = {
+        "ALL": [],
+        "SHIELD": [],
+        "SNIPER": [],
+        "SWORD": []
+    }
+    
+    for c in candidates:
+        sym = c.get("symbol")
+        if not sym:
+            continue
+            
+        # Export only S, A, and B grades (e.g. S, A+, A, B+, B)
+        grade = c.get("grade", "").upper().strip()
+        if not (grade.startswith("S") or grade.startswith("A") or grade.startswith("B")):
+            continue
+            
+        tier = c.get("tier", "").upper().strip()
+        sym = sym.upper().strip()
+        
+        watchlists["ALL"].append(sym)
+        if tier in watchlists:
+            watchlists[tier].append(sym)
+        else:
+            print(f"Warning: Unknown tier '{tier}' for symbol '{sym}'")
+            
+    # Sort all list contents
+    for k in watchlists:
+        watchlists[k] = sorted(list(set(watchlists[k])))
+        
+    # Write watchlists to files
+    files_written = {}
+    for tier, symbols in watchlists.items():
+        filename = f"watchlist_{tier.lower()}.txt"
+        file_path = os.path.join(exports_dir, filename)
+        
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                for sym in symbols:
+                    f.write(f"{sym}\n")
+            files_written[tier] = (file_path, len(symbols))
+        except Exception as e:
+            print(f"Error writing to {file_path}: {e}")
+            
+    # Print summary
+    print("\nWatchlist Export Summary:")
+    print("=" * 60)
+    for tier, (path, count) in files_written.items():
+        print(f"Watchlist: {tier:<10} | Symbols: {count:<4} | Path: {path}")
+    print("=" * 60)
+    print("Export completed successfully. These files are ready to be imported into TradingView.")
+
+if __name__ == "__main__":
+    main()

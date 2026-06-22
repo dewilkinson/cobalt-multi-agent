@@ -1,0 +1,40 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 06/15/2026 at 11:26:05 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+NVDA,Sell,60,Trailing Stop Limit at $0.75 Based on Last,Filled at $211.9001,60 / 60,212.45,7.26,3.54,211.9,--,211.95,Day,None,FDLM,1:57:35 PM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.75,F15HQJBL,67066G104,NVIDIA CORPORATION COM,--
+NVDA,Buy,15,Limit at $213.00,Filled at $212.41,15 / 15,212.45,7.26,3.54,211.9,--,211.95,Day,None,FDLM,1:17:19 PM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1861WLSQ,67066G104,NVIDIA CORPORATION COM,--
+NVDA,Sell,80,Trailing Stop Limit at $0.27 Based on Last,Filled at $212.13,80 / 80,212.45,7.26,3.54,211.9,--,211.95,Day,None,FDLM,12:45:24 PM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.27,F15GTHZB,67066G104,NVIDIA CORPORATION COM,--
+NVDA,Buy,25,Limit at $212.00,Filled at $211.95,25 / 25,212.45,7.26,3.54,211.9,--,211.95,Day,None,FDLM,11:45:26 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18614PFT,67066G104,NVIDIA CORPORATION COM,--
+NVDA,Buy,25,Limit at $212.00,Filled at $211.71,25 / 25,212.45,7.26,3.54,211.9,--,211.95,Day,None,FDLM,11:44:24 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18614P52,67066G104,NVIDIA CORPORATION COM,--
+NVDA,Buy,25,Limit at $212.00,Filled at $211.565,25 / 25,212.45,7.26,3.54,211.9,--,211.95,Day,None,FDLM,11:43:45 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18616PKL,67066G104,NVIDIA CORPORATION COM,--
+INTC,Sell,150,Trailing Stop Limit at $0.50 Based on Last,Filled at $128.61,150 / 150,127.86,3.29,2.64,125.95,--,125.98,Day,None,FDLM,11:36:50 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.50,F15FPZTD,458140100,INTEL CORP COM USD0.001,--
+INTC,Sell,50,Stop loss at $128.75,Filled at $128.76,50 / 50,127.86,3.29,2.64,125.95,--,125.98,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",11:32:54 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18612KQL,458140100,INTEL CORP COM USD0.001,--
+INTC,Buy,50,Limit at $130.00,Filled at $129.13,50 / 50,127.86,3.29,2.64,125.95,--,125.98,Day,None,FDLM,11:22:06 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18613SYZ,458140100,INTEL CORP COM USD0.001,--
+INTC,Buy,50,Limit at $130.00,Filled at $129.495,50 / 50,127.86,3.29,2.64,125.95,--,125.98,Day,None,FDLM,11:21:02 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1861C50X,458140100,INTEL CORP COM USD0.001,--
+INTC,Buy,25,Limit at $129.00,Filled at $128.13,25 / 25,127.86,3.29,2.64,125.95,--,125.98,Day,None,FDLM,11:12:12 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,186131CQ,458140100,INTEL CORP COM USD0.001,--
+INTC,Buy,25,Limit at $129.00,Filled at $128.23,25 / 25,127.86,3.29,2.64,125.95,--,125.98,Day,None,FDLM,11:08:11 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18618C70,458140100,INTEL CORP COM USD0.001,--
+NVDA,Buy,25,Limit at $212.00,Filled at $211.2199,25 / 25,212.45,7.26,3.54,211.9,--,211.95,Day,None,FDLM,11:06:49 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18616BLM,67066G104,NVIDIA CORPORATION COM,--
+NVDA,Buy,25,Limit at $212.00,Filled at $211.185,25 / 25,212.45,7.26,3.54,211.9,--,211.95,Day,None,FDLM,11:06:04 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18615NB2,67066G104,NVIDIA CORPORATION COM,--
+INTC,Buy,50,Limit at $129.00,Filled at $128.48,50 / 50,127.86,3.29,2.64,125.95,--,125.98,Day,None,FDLM,11:02:05 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18612866,458140100,INTEL CORP COM USD0.001,--
+UMC,Sell,500,Stop loss at $23.13,Filled at $23.12,500 / 500,23.08,1.45,6.70,23,--,23.28,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",10:52:51 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18618VTS,910873405,UNITED MICR ELCTRNS ADR REP 5 ORD,--
+UMC,Buy,200,Limit at $23.30,Filled at $23.245,200 / 200,23.08,1.45,6.70,23,--,23.28,Day,None,FDLM,10:52:28 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1861D6PD,910873405,UNITED MICR ELCTRNS ADR REP 5 ORD,--
+UMC,Buy,100,Limit at $23.25,Filled at $23.225,100 / 100,23.08,1.45,6.70,23,--,23.28,Day,None,FDLM,10:51:41 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1861D6DV,910873405,UNITED MICR ELCTRNS ADR REP 5 ORD,--
+INTC,Sell,100,Stop loss at $129.45,Filled at $129.4252,100 / 100,127.86,3.29,2.64,125.95,--,125.98,Day,None,VIRTU AMERICAS LLC,10:10:37 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1860Y6MN,458140100,INTEL CORP COM USD0.001,--
+INTC,Buy,50,Limit at $131.00,Filled at $130.8099,50 / 50,127.86,3.29,2.64,125.95,--,125.98,Day,None,FDLM,10:07:31 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1860QGBN,458140100,INTEL CORP COM USD0.001,--
+INTC,Buy,50,Limit at $131.00,Filled at $130.58,50 / 50,127.86,3.29,2.64,125.95,--,125.98,Day,None,FDLM,10:06:45 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1860YTKK,458140100,INTEL CORP COM USD0.001,--
+UMC,Buy,100,Limit at $23.50,Filled at $23.3156,100 / 100,23.08,1.45,6.70,23,--,23.28,Day,None,FDLM,10:05:08 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1860ZGFD,910873405,UNITED MICR ELCTRNS ADR REP 5 ORD,--
+UMC,Buy,100,Limit at $23.50,Filled at $23.31,100 / 100,23.08,1.45,6.70,23,--,23.28,Day,None,FDLM,10:04:05 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1860R279,910873405,UNITED MICR ELCTRNS ADR REP 5 ORD,--
+INTC,Sell,50,Stop loss at $131.30,Filled at $131.30,50 / 50,127.86,3.29,2.64,125.95,--,125.98,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",9:52:05 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1860Q4P0,458140100,INTEL CORP COM USD0.001,--
+INTC,Buy,50,Limit at $133.00,Filled at $132.50,50 / 50,127.86,3.29,2.64,125.95,--,125.98,Day,None,FDLM,9:51:33 AM ET Jun-15-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1860J2TM,458140100,INTEL CORP COM USD0.001,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

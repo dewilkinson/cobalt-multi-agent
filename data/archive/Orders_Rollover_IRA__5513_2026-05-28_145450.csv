@@ -1,0 +1,39 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 05/28/2026 at 02:54:34 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+IONQ,Sell,100,Trailing Stop Limit at $0.50 Based on Last,Filled at $70.67,100 / 100,69.54,4.14,6.33,69.54,--,69.57,Day,None,FDLM,12:08:19 PM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.50,E28GHSHK,46222L108,IONQ INC COM,--
+IONQ,Buy,50,Limit at $72.00,Filled at $71.45,50 / 50,69.54,4.14,6.33,69.54,--,69.57,Day,None,FDLM,12:01:45 PM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17818JKR,46222L108,IONQ INC COM,--
+IONQ,Buy,50,Limit at $71.25,Filled at $71.18,50 / 50,69.54,4.14,6.33,69.54,--,69.57,Day,None,FDLM,12:00:54 PM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1781BJVD,46222L108,IONQ INC COM,--
+GO,Sell,100,Market,Filled at $8.6017,100 / 100,8.605,0.395,4.81,8.6,--,8.61,Day,None,FDLM,11:59:15 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17818HZ7,39874R101,GROCERY OUTLET HLDG CORP COM,--
+GH,Sell,150,Market,Filled at $129.35,150 / 150,131.91,4.40,3.45,131.86,--,132,Day,None,FDLM,11:48:51 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17815266,40131M109,GUARDANT HEALTH INC COM,--
+ARM,Sell,25,Trailing Stop Limit at $2.75 Based on Last,Filled at $342.65,25 / 25,342.83,40.12,13.25,342.61,--,343.02,Day,None,FDLM,11:39:30 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,$2.75,E28FPGJC,042068205,ARM HOLDINGS PLC SPON ADS EACH REP 1 ORD SHS,--
+EFOR,Sell,250,Market,Filled at $20.57,250 / 250,20.445,0.395,1.97,20.43,--,20.46,Day,None,FDLM,11:31:44 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,178187W0,00191U102,"EVERFORTH, INC COMMON STOCK",--
+IONQ,Sell,100,Market,Filled at $70.31,100 / 100,69.54,4.14,6.33,69.54,--,69.57,Day,None,FDLM,11:30:09 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,178166ZP,46222L108,IONQ INC COM,--
+ARM,Sell,50,Trailing Stop Limit at $2.00 Based on Last,Filled at $341.17,50 / 50,342.83,40.12,13.25,342.61,--,343.02,Day,None,FDLM,11:17:32 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,$2.00,E28FDNQG,042068205,ARM HOLDINGS PLC SPON ADS EACH REP 1 ORD SHS,--
+AMPX,Sell,200,Trailing Stop Limit at $0.40 Based on Last,Filled at $20.875,200 / 200,21.815,4.655,27.13,21.81,--,21.82,Day,None,FDLM,11:11:09 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.40,E28DTFMB,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+IONQ,Buy,50,Limit at $70.00,Filled at $69.455,50 / 50,69.54,4.14,6.33,69.54,--,69.57,Day,None,FDLM,11:08:24 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1780V7SH,46222L108,IONQ INC COM,--
+NMAX,Sell,100,Trailing Stop Loss at $0.15 Based on Last,Filled at $8.31,100 / 100,8.41,0.62,7.96,8.39,--,8.41,Day,None,FDLM,11:05:31 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.15,E28DKKFD,65250K105,NEWSMAX INC COM SHS CLASS B,--
+IONQ,Buy,50,Limit at $69.00,Filled at $68.59,50 / 50,69.54,4.14,6.33,69.54,--,69.57,Day,None,FDLM,10:57:10 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1780Z4TY,46222L108,IONQ INC COM,--
+AMPX,Buy,100,Limit at $20.50,Filled at $20.32,100 / 100,21.815,4.655,27.13,21.81,--,21.82,Day,None,FDLM,10:55:09 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1781146M,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+ARM,Buy,25,Limit at $338.00,Filled at $337.5999,25 / 25,342.83,40.12,13.25,342.61,--,343.02,Day,None,FDLM,10:53:48 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1780QQX4,042068205,ARM HOLDINGS PLC SPON ADS EACH REP 1 ORD SHS,--
+AMPX,Buy,100,Limit at $20.50,Filled at $20.245,100 / 100,21.815,4.655,27.13,21.81,--,21.82,Day,None,FDLM,10:52:14 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1780S1QK,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+EFOR,Buy,250,Limit at $21.00,Filled at $20.6899,250 / 250,20.445,0.395,1.97,20.43,--,20.46,Day,None,FDLM,10:48:41 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1780X16M,00191U102,"EVERFORTH, INC COMMON STOCK",--
+GH,Buy,50,Limit at $131.00,Filled at $130.115,50 / 50,131.91,4.40,3.45,131.86,--,132,Day,None,FDLM,10:44:23 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1780WZPG,40131M109,GUARDANT HEALTH INC COM,--
+GH,Buy,25,Limit at $131.00,Filled at $130.16,25 / 25,131.91,4.40,3.45,131.86,--,132,Day,None,FDLM,10:42:24 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1780ZNBQ,40131M109,GUARDANT HEALTH INC COM,--
+ARM,Buy,50,Limit at $334.00,Filled at $333.50,50 / 50,342.83,40.12,13.25,342.61,--,343.02,Day,None,FDLM,10:40:05 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1780ZMHM,042068205,ARM HOLDINGS PLC SPON ADS EACH REP 1 ORD SHS,--
+NMAX,Buy,100,Limit at $8.50,Filled at $8.37,100 / 100,8.41,0.62,7.96,8.39,--,8.41,Day,None,FDLM,10:31:51 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1780YVD8,65250K105,NEWSMAX INC COM SHS CLASS B,--
+GO,Buy,100,Limit at $8.60,Filled at $8.51,100 / 100,8.605,0.395,4.81,8.6,--,8.61,Day,None,FDLM,10:30:20 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1781057G,39874R101,GROCERY OUTLET HLDG CORP COM,--
+GH,Buy,25,Limit at $130.00,Filled at $129.435,25 / 25,131.91,4.40,3.45,131.86,--,132,Day,None,FDLM,10:28:13 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17810T42,40131M109,GUARDANT HEALTH INC COM,--
+GH,Buy,50,Limit at $130.00,Filled at $129.435,50 / 50,131.91,4.40,3.45,131.86,--,132,Day,None,FDLM,10:27:26 AM ET May-28-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1780XFYH,40131M109,GUARDANT HEALTH INC COM,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

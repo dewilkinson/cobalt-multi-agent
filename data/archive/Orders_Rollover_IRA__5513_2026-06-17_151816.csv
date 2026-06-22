@@ -1,0 +1,52 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 06/17/2026 at 03:17:16 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+PRCH,Sell,500,Stop loss at $12.45,Filled at $12.45,500 / 500,12.46,1.06,9.30,12.45,--,12.47,Day,None,VIRTU AMERICAS LLC,3:08:05 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,188224DH,733245104,PORCH GROUP INC COM,--
+PRCH,Sell,200,Stop loss at $12.35,Filled at $12.35,200 / 200,12.46,1.06,9.30,12.45,--,12.47,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",2:52:44 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18821BJV,733245104,PORCH GROUP INC COM,--
+PRCH,Buy,200,Limit at $12.39,Filled at $12.3813,200 / 200,12.46,1.06,9.30,12.45,--,12.47,Day,None,FDLM,2:38:41 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881PGLJ,733245104,PORCH GROUP INC COM,--
+PRCH,Buy,100,Limit at $12.50,Filled at $12.315,100 / 100,12.46,1.06,9.30,12.45,--,12.47,Day,None,FDLM,2:36:43 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881PG3H,733245104,PORCH GROUP INC COM,--
+PRCH,Buy,200,Limit at $12.50,Filled at $12.3242,200 / 200,12.46,1.06,9.30,12.45,--,12.47,Day,None,FDLM,2:35:42 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881FDY1,733245104,PORCH GROUP INC COM,--
+PZZA,Sell,100,Market,Filled at $35.70,100 / 100,35.61,2.92,8.93,35.55,--,35.7,Day,None,FDLM,2:26:09 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881L0WP,698813102,PAPA JOHN S INTERNATIONAL INC,--
+PZZA,Buy,100,Limit at $36.00,Filled at $35.8799,100 / 100,35.61,2.92,8.93,35.55,--,35.7,Day,None,FDLM,2:20:07 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881N01S,698813102,PAPA JOHN S INTERNATIONAL INC,--
+PRCH,Buy,100,Limit at $12.25,Filled at $12.1999,100 / 100,12.46,1.06,9.30,12.45,--,12.47,Day,None,FDLM,2:19:04 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881PB6P,733245104,PORCH GROUP INC COM,--
+PRCH,Buy,100,Limit at $12.50,Filled at $12.225,100 / 100,12.46,1.06,9.30,12.45,--,12.47,Day,None,FDLM,2:18:12 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881MB22,733245104,PORCH GROUP INC COM,--
+CIFR,Buy,100,Limit at $28.00,Filled at $27.72,100 / 100,27.18,0.97,3.70,27.15,--,27.18,Day,None,FDLM,2:16:12 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881F8B4,17253J106,CIPHER DIGITAL INC. COMMON STOCK,--
+CIFR,Sell,100,Stop loss at $27.40,Filled at $27.39,100 / 100,27.18,0.97,3.70,27.15,--,27.18,Day,None,TWO SIGMA,2:17:03 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881NMYM,17253J106,CIPHER DIGITAL INC. COMMON STOCK,--
+ELTX,Sell,300,Market,Filled at $4.285,300 / 300,4.918,2.158,78.19,4.91,--,4.94,Day,None,FDLM,2:09:43 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881P7Q8,28657F103,ELICIO THERAPEUTICS INC COM,--
+ELTX,Sell,200,Stop loss at $4.30,Filled at $4.28,200 / 200,4.918,2.158,78.19,4.91,--,4.94,Day,None,TWO SIGMA,2:08:25 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881R7N0,28657F103,ELICIO THERAPEUTICS INC COM,--
+RXT,Sell,100,Stop loss at $8.25,Filled at $8.2724,100 / 100,8.2101,2.0001,32.21,8.2,--,8.21,Day,None,"UBS SECURITIES, L.L.C.",2:01:31 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881H3XD,750102105,RACKSPACE TECHNOLOGY INC COM,--
+RXT,Buy,100,Limit at $8.53,Filled at $8.345,100 / 100,8.2101,2.0001,32.21,8.2,--,8.21,Day,None,FDLM,1:52:21 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881LBXD,750102105,RACKSPACE TECHNOLOGY INC COM,--
+RXT,Sell,350,Trailing Stop Loss at $0.25 Based on Last,Filled at $8.105,350 / 350,8.2101,2.0001,32.21,8.2,--,8.21,Day,None,FDLM,1:36:32 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.25,F17HSRPZ,750102105,RACKSPACE TECHNOLOGY INC COM,--
+RXT,Sell,200,Stop loss at $7.95,Filled at $7.93,200 / 200,8.2101,2.0001,32.21,8.2,--,8.21,Day,None,"UBS SECURITIES, L.L.C.",1:33:01 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881DV3P,750102105,RACKSPACE TECHNOLOGY INC COM,--
+RXT,Buy,150,Limit at $8.05,Filled at $7.995,150 / 150,8.2101,2.0001,32.21,8.2,--,8.21,Day,None,FDLM,1:19:20 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881BQGR,750102105,RACKSPACE TECHNOLOGY INC COM,--
+RXT,Buy,100,Limit at $7.95,Filled at $7.95,100 / 100,8.2101,2.0001,32.21,8.2,--,8.21,Day,None,FDLM,1:18:13 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,188160Z1,750102105,RACKSPACE TECHNOLOGY INC COM,--
+RXT,Buy,50,Limit at $7.89,Filled at $7.855,50 / 50,8.2101,2.0001,32.21,8.2,--,8.21,Day,None,FDLM,1:15:55 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881CCJM,750102105,RACKSPACE TECHNOLOGY INC COM,--
+RXT,Buy,100,Limit at $7.95,Filled at $7.885,100 / 100,8.2101,2.0001,32.21,8.2,--,8.21,Day,None,FDLM,1:14:24 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881CC69,750102105,RACKSPACE TECHNOLOGY INC COM,--
+RXT,Buy,150,Limit at $7.90,Filled at $7.835,150 / 150,8.2101,2.0001,32.21,8.2,--,8.21,Day,None,FDLM,1:13:26 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18819BP9,750102105,RACKSPACE TECHNOLOGY INC COM,--
+ELTX,Buy,100,Limit at $3.95,Filled at $3.91,100 / 100,4.918,2.158,78.19,4.91,--,4.94,Day,None,FDLM,1:04:17 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881CZ0P,28657F103,ELICIO THERAPEUTICS INC COM,--
+ELTX,Buy,100,Limit at $3.90,Filled at $3.865,100 / 100,4.918,2.158,78.19,4.91,--,4.94,Day,None,FDLM,1:03:08 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,188137ZT,28657F103,ELICIO THERAPEUTICS INC COM,--
+ELTX,Buy,100,Limit at $3.85,Filled at $3.81,100 / 100,4.918,2.158,78.19,4.91,--,4.94,Day,None,FDLM,1:01:13 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881BM5R,28657F103,ELICIO THERAPEUTICS INC COM,--
+ELTX,Buy,100,Limit at $3.95,Filled at $3.8201,100 / 100,4.918,2.158,78.19,4.91,--,4.94,Day,None,FDLM,12:56:10 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18816KW6,28657F103,ELICIO THERAPEUTICS INC COM,--
+ELTX,Buy,100,Limit at $3.95,Filled at $3.815,100 / 100,4.918,2.158,78.19,4.91,--,4.94,Day,None,FDLM,12:55:21 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881BL39,28657F103,ELICIO THERAPEUTICS INC COM,--
+ASML,Sell,20,Stop loss at $1927.50,Filled at $1927.02,20 / 20,"1,907.35",103.46,5.74,1904.78,--,1909.78,Day,None,"UBS SECURITIES, L.L.C.",12:23:07 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881BC4Y,N07059210,ASML HOLDING NV EUR0.09 NY REGISTRY SHS 2012,--
+ASML,Buy,10,Limit at $1935.00,Filled at $1931.648,10 / 10,"1,907.35",103.46,5.74,1904.78,--,1909.78,Day,None,FDLM,12:03:15 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,18816VX2,N07059210,ASML HOLDING NV EUR0.09 NY REGISTRY SHS 2012,--
+ASML,Buy,10,Limit at $1931.00,Filled at $1930.084,10 / 10,"1,907.35",103.46,5.74,1904.78,--,1909.78,Day,None,FDLM,12:02:09 PM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1881D6MJ,N07059210,ASML HOLDING NV EUR0.09 NY REGISTRY SHS 2012,--
+BRAI,Sell,100,Stop loss at $10.55,Filled at $10.50,100 / 100,9.1287,1.6387,21.88,9.1,--,9.35,Day,None,VIRTU AMERICAS LLC,10:50:38 AM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1880Y5ZL,Q17375108,BRAIIN LTD COM AUD0.0001,--
+BRAI,Buy,100,Limit at $11.75,Filled at $11.04,100 / 100,9.1287,1.6387,21.88,9.1,--,9.35,Day,None,FDLM,10:47:50 AM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1880Y51F,Q17375108,BRAIIN LTD COM AUD0.0001,--
+AMAT,Sell,25,Stop loss at $619.25,Filled at $619.05,25 / 25,607.405,39.175,6.89,607.11,--,607.7,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",10:27:03 AM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1880GV45,038222105,APPLIED MATERIALS INC COM USD0.01,--
+AMAT,Buy,25,Limit at $625.00,Filled at $622.40,25 / 25,607.405,39.175,6.89,607.11,--,607.7,Day,None,FDLM,10:24:44 AM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1880LV0X,038222105,APPLIED MATERIALS INC COM USD0.01,--
+ICCM,Sell,100,Stop loss at $7.95,Filled at $7.9775,100 / 100,6.50,4.37,205.16,6.5,--,6.58,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",10:22:45 AM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1880JSS6,M53071201,ICECURE MEDICAL LTD ORD NPV(R/S),--
+ICCM,Buy,50,Limit at $9.50,Filled at $9.37,50 / 50,6.50,4.37,205.16,6.5,--,6.58,Day,None,FDLM,10:21:20 AM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1880FF13,M53071201,ICECURE MEDICAL LTD ORD NPV(R/S),--
+ICCM,Buy,50,Limit at $8.00,Filled at $7.94,50 / 50,6.50,4.37,205.16,6.5,--,6.58,Day,None,FDLM,10:16:22 AM ET Jun-17-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1880HCP3,M53071201,ICECURE MEDICAL LTD ORD NPV(R/S),--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."

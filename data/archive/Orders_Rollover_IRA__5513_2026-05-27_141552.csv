@@ -1,0 +1,55 @@
+﻿"Orders 
+Rollover IRA *5513 
+as of 05/27/2026 at 02:13:44 PM"
+
+Symbol,Action,Amount,Order Type,Status,Filled,Last,$ Chg,% Chg,Bid,Mid,Ask,TIF,Conditions,Destination,Order Time,Account,Account Type,Quantity Type,Market Session,Trail Amount,Order Number,CUSIP,Security Description,Basket
+ADTN,Sell,100,Stop loss at $19.60,Filled at $19.55,100 / 100,19.41,2.92,17.71,19.37,--,19.45,Day,None,VIRTU AMERICAS LLC,1:51:23 PM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1771Y05R,00486H105,ADTRAN HOLDINGS INC COM,--
+STLD,Sell,50,Market,Filled at $256.10,50 / 50,257.345,6.855,2.74,257.21,--,257.48,Day,None,FDLM,1:47:38 PM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1771GSXL,858119100,STEEL DYNAMICS INC,--
+FNKO,Sell,1000,Stop loss at $5.53,Filled at $5.5171,"1,000 / 1,000",5.535,0.265,5.03,5.53,--,5.54,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",1:27:47 PM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1771JNR5,361008105,FUNKO INC COM CL A,--
+BLFS,Sell,300,Market,Filled at $24.335,300 / 300,24.14,0.11,0.46,24.13,--,24.19,Day,None,FDLM,1:01:21 PM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1771PVQK,09062W204,BIOLIFE SOLUTIONS INC,--
+ADTN,Buy,100,Limit at $19.50,Filled at $19.33,100 / 100,19.41,2.92,17.71,19.37,--,19.45,Day,None,FDLM,12:51:09 PM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1771NGDS,00486H105,ADTRAN HOLDINGS INC COM,--
+ADTN,Sell,300,Trailing Stop Loss at $0.50 Based on Last,Filled at $17.79,300 / 300,19.41,2.92,17.71,19.37,--,19.45,Day,None,FDLM,11:45:10 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.50,E27FNDWB,00486H105,ADTRAN HOLDINGS INC COM,--
+ADTN,Buy,100,Limit at $17.90,Filled at $17.82,100 / 100,19.41,2.92,17.71,19.37,--,19.45,Day,None,FDLM,11:27:17 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1771F27F,00486H105,ADTRAN HOLDINGS INC COM,--
+ADTN,Buy,100,Limit at $17.90,Filled at $17.77,100 / 100,19.41,2.92,17.71,19.37,--,19.45,Day,None,FDLM,11:27:02 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1771BDC4,00486H105,ADTRAN HOLDINGS INC COM,--
+BLFS,Sell,100,Market,Filled at $24.43,100 / 100,24.14,0.11,0.46,24.13,--,24.19,Day,None,FDLM,11:23:47 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1771BCG2,09062W204,BIOLIFE SOLUTIONS INC,--
+STLD,Buy,30,Limit at $252.50,Filled at $252.50,30 / 30,257.345,6.855,2.74,257.21,--,257.48,Day,None,FDLM,11:17:33 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1771BZFC,858119100,STEEL DYNAMICS INC,--
+STLD,Buy,20,Limit at $253.00,Filled at $252.39,20 / 20,257.345,6.855,2.74,257.21,--,257.48,Day,None,FDLM,11:16:40 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1771DZ6J,858119100,STEEL DYNAMICS INC,--
+PCT,Sell,100,Stop loss at $12.60,Filled at $12.58,100 / 100,12.68,0.41,3.34,12.68,--,12.7,Day,None,"G1 EXECUTION SERVICES, LLC",11:15:43 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17715LLB,74623V103,PURECYCLE TECHNOLOGIES INC COM,--
+PCT,Buy,100,Limit at $13.00,Filled at $12.79,100 / 100,12.68,0.41,3.34,12.68,--,12.7,Day,None,FDLM,11:15:08 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17718YDN,74623V103,PURECYCLE TECHNOLOGIES INC COM,--
+LLY,Sell,20,Market,Filled at $1087.06,20 / 20,"1,083.065",18.325,1.72,1082.5,--,1083.63,Day,None,FDLM,11:06:46 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17715HXY,532457108,ELI LILLY &CO COM,--
+WEAV,Sell,250,Trailing Stop Loss at $0.10 Based on Last,Filled at $5.745,250 / 250,5.555,-0.075,-1.33,5.55,--,5.56,Day,None,FDLM,11:06:35 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,$0.10,E27CZXNP,94724R108,WEAVE COMMUNICATIONS INC COM,--
+BLFS,Buy,100,Limit at $24.60,Filled at $24.48,100 / 100,24.14,0.11,0.46,24.13,--,24.19,Day,None,FDLM,11:01:02 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17716SR1,09062W204,BIOLIFE SOLUTIONS INC,--
+BLFS,Buy,100,Limit at $24.60,Filled at $24.53,100 / 100,24.14,0.11,0.46,24.13,--,24.19,Day,None,FDLM,11:00:28 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17717GDG,09062W204,BIOLIFE SOLUTIONS INC,--
+BLFS,Buy,100,Limit at $24.60,Filled at $24.54,100 / 100,24.14,0.11,0.46,24.13,--,24.19,Day,None,FDLM,10:57:46 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1771B3V6,09062W204,BIOLIFE SOLUTIONS INC,--
+BLFS,Buy,100,Limit at $24.60,Filled at $24.48,100 / 100,24.14,0.11,0.46,24.13,--,24.19,Day,None,FDLM,10:56:24 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1771213M,09062W204,BIOLIFE SOLUTIONS INC,--
+LLY,Sell,10,Market,Filled at $1086.45,10 / 10,"1,083.065",18.325,1.72,1082.5,--,1083.63,Day,None,FDLM,10:52:51 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770WN7B,532457108,ELI LILLY &CO COM,--
+EW,Sell,50,Market,Filled at $87.63,50 / 50,85.995,-1.545,-1.76,85.98,--,86.01,Day,None,FDLM,10:47:25 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770XXVM,28176E108,EDWARDS LIFESCIENCES CORP,--
+EW,Sell,50,Stop loss at $87.35,Filled at $87.30,50 / 50,85.995,-1.545,-1.76,85.98,--,86.01,Day,None,VIRTU AMERICAS LLC,10:47:08 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17711Y0S,28176E108,EDWARDS LIFESCIENCES CORP,--
+FNKO,Buy,500,Limit at $5.70,Filled at $5.5699,500 / 500,5.535,0.265,5.03,5.53,--,5.54,Day,None,FDLM,10:34:59 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17711SCX,361008105,FUNKO INC COM CL A,--
+ADTN,Buy,100,Limit at $17.50,Filled at $17.365,100 / 100,19.41,2.92,17.71,19.37,--,19.45,Day,None,FDLM,10:32:57 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17710F81,00486H105,ADTRAN HOLDINGS INC COM,--
+ADNT,Sell,200,Stop loss at $24.20,Filled at $24.19,200 / 200,23.87,1.10,4.83,23.86,--,23.9,Day,None,"G1 EXECUTION SERVICES, LLC",10:32:29 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770RCB7,G0084W101,ADIENT PLC COM USD0.001,--
+WEAV,Buy,250,Limit at $5.90,Filled at $5.80,250 / 250,5.555,-0.075,-1.33,5.55,--,5.56,Day,None,FDLM,10:28:32 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770WZYC,94724R108,WEAVE COMMUNICATIONS INC COM,--
+PRSU,Sell,100,Stop loss at $45.25,Filled at $45.0017,100 / 100,44.93,0.55,1.24,44.87,--,45.07,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",10:27:49 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770TZ5H,92552R406,"PURSUIT ATTRACTIONS AND HOSPITALITY, INC. COM",--
+FNKO,Buy,250,Limit at $5.50,Filled at $5.4879,250 / 250,5.535,0.265,5.03,5.53,--,5.54,Day,None,FDLM,10:25:24 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17711MF1,361008105,FUNKO INC COM CL A,--
+FNKO,Buy,250,Limit at $5.55,Filled at $5.4955,250 / 250,5.535,0.265,5.03,5.53,--,5.54,Day,None,FDLM,10:24:26 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770R71R,361008105,FUNKO INC COM CL A,--
+LLY,Buy,15,Limit at $1092.00,Filled at $1091.625,15 / 15,"1,083.065",18.325,1.72,1082.5,--,1083.63,Day,None,FDLM,10:20:58 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770XJXX,532457108,ELI LILLY &CO COM,--
+EW,Buy,50,Limit at $88.25,Filled at $88.085,50 / 50,85.995,-1.545,-1.76,85.98,--,86.01,Day,None,FDLM,10:19:58 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770YW1G,28176E108,EDWARDS LIFESCIENCES CORP,--
+EW,Buy,50,Limit at $89.00,Filled at $88.07,50 / 50,85.995,-1.545,-1.76,85.98,--,86.01,Day,None,FDLM,10:19:09 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770Y5V2,28176E108,EDWARDS LIFESCIENCES CORP,--
+ADNT,Buy,100,Limit at $24.75,Filled at $24.695,100 / 100,23.87,1.10,4.83,23.86,--,23.9,Day,None,FDLM,10:15:53 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770SG0D,G0084W101,ADIENT PLC COM USD0.001,--
+LLY,Buy,15,Limit at $1095.00,Filled at $1089.99,15 / 15,"1,083.065",18.325,1.72,1082.5,--,1083.63,Day,None,FDLM,10:14:20 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,17711GF6,532457108,ELI LILLY &CO COM,--
+PRSU,Buy,100,Limit at $45.70,Filled at $45.6489,100 / 100,44.93,0.55,1.24,44.87,--,45.07,Day,None,FDLM,10:10:44 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770YQR1,92552R406,"PURSUIT ATTRACTIONS AND HOSPITALITY, INC. COM",--
+IMRX,Sell,250,Stop loss at $5.73,Filled at $5.71,250 / 250,5.46,0.19,3.61,5.45,--,5.47,Day,None,"CITADEL DERIVATIVES GROUP, L.L.C.",10:08:57 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770N9HW,45254E107,IMMUNEERING CORP CLASS A COM,--
+IMRX,Buy,250,Limit at $6.00,Filled at $5.845,250 / 250,5.46,0.19,3.61,5.45,--,5.47,Day,None,FDLM,10:07:57 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770J884,45254E107,IMMUNEERING CORP CLASS A COM,--
+ADNT,Buy,100,Limit at $24.45,Filled at $24.45,100 / 100,23.87,1.10,4.83,23.86,--,23.9,Day,None,FDLM,10:02:56 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770HHRF,G0084W101,ADIENT PLC COM USD0.001,--
+AMPX,Sell,100,Market,Filled at $17.17,100 / 100,17.37,-0.46,-2.58,17.36,--,17.38,Day,None,FDLM,10:01:00 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770KHDR,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+AMPX,Buy,100,Limit at $17.50,Filled at $17.26,100 / 100,17.37,-0.46,-2.58,17.36,--,17.38,Day,None,FDLM,10:00:30 AM ET May-27-2026,Rollover IRA *5513,Cash,Shares,Standard,--,1770QV4S,03214Q108,AMPRIUS TECHNOLOGIES INC COMMON STOCK,--
+
+Disclosure
+"The data and information in this spreadsheet is provided to you solely for your use and is not for distribution. 
+The spreadsheet is provided for informational purposes only, and is not intended to provide advice, nor should it be construed as an offer to sell, a solicitation of an offer to buy or a recommendation for any security 
+or digital asset by Fidelity or any third party. Data and information shown is based on information known to Fidelity as of the date it was exported and is subject to change. 
+It should not be used in place of your account statements or trade confirmations and is not intended for tax reporting purposes. 
+For more information on the data included in this spreadsheet, including any limitations thereof, go to Fidelity.com.
+ 
+Brokerage services are provided by Fidelity Brokerage Services LLC (FBS), 900 Salem Street, Smithfield, RI 02917. Custody and other services provided by National Financial Services LLC (NFS). 
+Both are Fidelity Investment companies and members SIPC, NYSE. Neither FBS nor NFS offer crypto as a direct investment nor provide trading or custody services for such assets."
