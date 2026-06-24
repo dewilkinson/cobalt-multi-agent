@@ -3729,15 +3729,19 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     if re.match(r"^(open|show)\s+(journal|journalling|journaling|diary)$", command_text):
         _append_to_vli_history("ai", "Opening the Journalling Module...", thread_id=transaction_id)
         host = "localhost"
+        port = "8080"  # default standard Next.js port
         if http_req:
             host = http_req.url.hostname or "localhost"
+            host_header = http_req.headers.get("host", "")
+            if ":2026" in host_header:
+                port = "2026"  # Nginx unified proxy port
         return {
             "response": "Opening the Journalling Module...",
             "status": "OK",
             "error_details": None,
             "metadata": {
                 "action": "NAVIGATE",
-                "url": f"http://{host}:3000/workspace/journal"
+                "url": f"http://{host}:{port}/workspace/journal"
             }
         }
 

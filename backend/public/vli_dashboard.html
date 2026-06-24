@@ -5800,7 +5800,11 @@
     <div id="sidebar-tabs-left" class="sidebar-tabs-container" style="left: 0; right: auto;">
         <div id="tab-btn-artifacts" class="folder-tab" style="border-radius: 0 4px 4px 0;" onclick="switchSidebarTab('artifacts')">REPORTS</div>
         <div id="tab-btn-strategy" class="folder-tab" style="border-radius: 0 4px 4px 0; margin-top: 5px;" onclick="switchSidebarTab('strategy')">STRATEGY</div>
-        <div id="tab-btn-journal" class="folder-tab" style="border-radius: 0 4px 4px 0; margin-top: 5px; color: var(--emerald-green); border-color: rgba(16, 185, 129, 0.4);" onclick="window.open(window.location.protocol + '//' + window.location.hostname + ':3000/workspace/journal', '_blank')">JOURNAL ↗</div>
+        <div id="tab-btn-journal" class="folder-tab" style="border-radius: 0 4px 4px 0; margin-top: 5px; color: var(--emerald-green); border-color: rgba(16, 185, 129, 0.4);" onclick="(() => {
+            const port = window.location.port;
+            const targetPort = (port === '2026') ? '2026' : '8080';
+            window.open(window.location.protocol + '//' + window.location.hostname + ':' + targetPort + '/workspace/journal', '_blank');
+        })()">JOURNAL ↗</div>
     </div>
 
     <div id="sidebar-tabs-right" class="sidebar-tabs-container" style="right: 0; left: auto;">
