@@ -3669,7 +3669,7 @@ def post_daily_journal(date_str: str, request: VLIJournalRequest):
 
 
 @app.post("/api/vli/action-plan")
-async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: BackgroundTasks, client_id: str = Header("default", alias="X-VLI-Client-ID")):
+async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: BackgroundTasks, http_req: Request = None, client_id: str = Header("default", alias="X-VLI-Client-ID")):
     """Handle chat or action-plan updates from the VLI Sidebar."""
     try:
         from src.config.vli_context import vli_client_id
@@ -3724,6 +3724,22 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
 
     import re
     command_text = request.text.strip().lower()
+
+    # UX Command: Open Journal
+    if re.match(r"^(open|show)\s+(journal|journalling|journaling|diary)$", command_text):
+        _append_to_vli_history("ai", "Opening the Journalling Module...", thread_id=transaction_id)
+        host = "localhost"
+        if http_req:
+            host = http_req.url.hostname or "localhost"
+        return {
+            "response": "Opening the Journalling Module...",
+            "status": "OK",
+            "error_details": None,
+            "metadata": {
+                "action": "NAVIGATE",
+                "url": f"http://{host}:3000/workspace/journal"
+            }
+        }
 
     # UX Command: Open Scanner
     if re.match(r"^(open|create|add|spawn)\s+(?:new\s+)?(scanner|scan|market\s+scan)(\s+window|\s+card|\s+panel)?$", command_text):

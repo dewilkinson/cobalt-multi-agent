@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0110";
+        const VLI_CLIENT_VERSION = "00.000.0112";
     </script>
     
     <link
@@ -4584,6 +4584,15 @@
                                 msgBox.appendChild(aiMsg);
                                 vliChatSyncPointer++;
                                 msgBox.scrollTop = msgBox.scrollHeight;
+                            } else if (data.metadata && data.metadata.action === "NAVIGATE") {
+                                window.open(data.metadata.url, '_blank');
+                                const aiMsg = document.createElement('div');
+                                aiMsg.className = 'msg msg-ai';
+                                aiMsg.style.borderColor = 'var(--emerald-green)';
+                                aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Opening page at **${data.metadata.url}**.`);
+                                msgBox.appendChild(aiMsg);
+                                vliChatSyncPointer++;
+                                msgBox.scrollTop = msgBox.scrollHeight;
                             } else if (data.metadata && data.metadata.action === "OPEN_CARD") {
                                 UXManager.createCard(data.metadata.card_type);
                                 const aiMsg = document.createElement('div');
@@ -4679,6 +4688,14 @@
                                       aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Opening ${data.metadata.artifact_type} UX Panel for **${data.metadata.symbol}**.`);
                                       msgBox.appendChild(aiMsg);
                                       vliChatSyncPointer++;
+                                  } else if (data.metadata && data.metadata.action === "NAVIGATE") {
+                                       window.open(data.metadata.url, '_blank');
+                                       const aiMsg = document.createElement('div');
+                                       aiMsg.className = 'msg msg-ai';
+                                       aiMsg.style.borderColor = 'var(--emerald-green)';
+                                       aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Opening page at **${data.metadata.url}**.`);
+                                       msgBox.appendChild(aiMsg);
+                                       vliChatSyncPointer++;
                                   } else if (data.metadata && data.metadata.action === "OPEN_CARD") {
                                       UXManager.createCard(data.metadata.card_type);
                                       const aiMsg = document.createElement('div');
@@ -5783,6 +5800,7 @@
     <div id="sidebar-tabs-left" class="sidebar-tabs-container" style="left: 0; right: auto;">
         <div id="tab-btn-artifacts" class="folder-tab" style="border-radius: 0 4px 4px 0;" onclick="switchSidebarTab('artifacts')">REPORTS</div>
         <div id="tab-btn-strategy" class="folder-tab" style="border-radius: 0 4px 4px 0; margin-top: 5px;" onclick="switchSidebarTab('strategy')">STRATEGY</div>
+        <div id="tab-btn-journal" class="folder-tab" style="border-radius: 0 4px 4px 0; margin-top: 5px; color: var(--emerald-green); border-color: rgba(16, 185, 129, 0.4);" onclick="window.open(window.location.protocol + '//' + window.location.hostname + ':3000/workspace/journal', '_blank')">JOURNAL ↗</div>
     </div>
 
     <div id="sidebar-tabs-right" class="sidebar-tabs-container" style="right: 0; left: auto;">
