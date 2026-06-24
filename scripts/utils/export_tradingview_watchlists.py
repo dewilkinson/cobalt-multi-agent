@@ -65,19 +65,29 @@ def main():
     for k in watchlists:
         watchlists[k] = sorted(list(set(watchlists[k])))
         
+    from datetime import datetime
+    now = datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    time_str_file = now.strftime("%H:%M:%S")
+    time_str_name = now.strftime("%H-%M-%S")
+    
     # Write watchlists to files
     files_written = {}
     for tier, symbols in watchlists.items():
-        filename = f"watchlist_{tier.lower()}.txt"
-        file_path = os.path.join(exports_dir, filename)
+        filename_dated = f"watchlist_{tier.lower()}_{date_str}_{time_str_name}.txt"
+        filename_static = f"watchlist_{tier.lower()}.txt"
+        file_path_dated = os.path.join(exports_dir, filename_dated)
+        file_path_static = os.path.join(exports_dir, filename_static)
         
         try:
-            with open(file_path, "w", encoding="utf-8") as f:
-                for sym in symbols:
-                    f.write(f"{sym}\n")
-            files_written[tier] = (file_path, len(symbols))
+            for file_path in [file_path_dated, file_path_static]:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(f"# Timestamp: {time_str_file}\n")
+                    for sym in symbols:
+                        f.write(f"{sym}\n")
+            files_written[tier] = (file_path_dated, len(symbols))
         except Exception as e:
-            print(f"Error writing to {file_path}: {e}")
+            print(f"Error writing watchlists for {tier}: {e}")
             
     # Print summary
     print("\nWatchlist Export Summary:")

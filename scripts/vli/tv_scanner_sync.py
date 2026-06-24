@@ -7,7 +7,7 @@ import yfinance as yf
 from tradingview_screener import Query, col
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'backend')))
-from src.tools.scanner import batch_fetch_sortino
+from src.tools.scanner import batch_fetch_sortino, load_strategy_constraints
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -30,6 +30,14 @@ async def batch_fetch_news_sentiment(tickers: list) -> dict:
                     raise RuntimeError("Alpha Vantage Rate Limit")
                 data = resp.json()
                 for item in data.get("feed", []):
+                    time_published = item.get("time_published", "")
+                    if time_published:
+                        try:
+                            item_dt = datetime.strptime(time_published, "%Y%m%dT%H%M%S")
+                            if (datetime.now() - item_dt).days > 30:
+                                continue
+                        except Exception:
+                            pass
                     for ts in item.get("ticker_sentiment", []):
                         tk = ts.get("ticker")
                         if tk in chunk:
@@ -74,14 +82,37 @@ def sync_vli_scanners():
             'float_shares_outstanding', 'average_volume_30d_calc', 'Recommend.All', 'change_from_open', 'RSI',
             'relative_volume_intraday|5'
         ]
-        # Set dynamic volume threshold based on time of day
+        # Load strategy constraints dynamically
+        try:
+            shield_config = load_strategy_constraints("shield")
+        except Exception as e:
+            print(f"Error loading shield config, falling back to defaults: {e}")
+            shield_config = {}
+            
+        try:
+            sword_config = load_strategy_constraints("sword")
+        except Exception as e:
+            print(f"Error loading sword config, falling back to defaults: {e}")
+            sword_config = {}
+            
+        try:
+            sniper_config = load_strategy_constraints("sniper")
+        except Exception as e:
+            print(f"Error loading sniper config, falling back to defaults: {e}")
+            sniper_config = {}
+
+        # Set dynamic volume threshold based on time of day and strategy configurations
         now = datetime.now()
-        if now.hour < 10 or (now.hour == 10 and now.minute < 30):
-            vol_shield_sniper = 100_000
-            vol_sword = 50_000
-        else:
-            vol_shield_sniper = 1_000_000
-            vol_sword = 500_000
+        is_market_open = now.hour > 9 or (now.hour == 9 and now.minute >= 30)
+        
+        shield_vol_base = shield_config.get("volume_hurdle", 1_000_000)
+        vol_shield_sniper = shield_vol_base if is_market_open else (shield_vol_base // 10)
+        
+        sword_vol_base = sword_config.get("volume_hurdle", 500_000)
+        vol_sword = sword_vol_base if is_market_open else (sword_vol_base // 10)
+        
+        sniper_vol_base = sniper_config.get("volume_hurdle", 1_000_000)
+        vol_sniper = sniper_vol_base if is_market_open else (sniper_vol_base // 10)
 
         # --- 1. APEX SHIELD SCAN (Core / Institutional Leaders) ---
         shield_query = (Query()
@@ -89,11 +120,11 @@ def sync_vli_scanners():
             .select(*fields)
             .where(
                 col('exchange').isin(['NASDAQ', 'NYSE', 'AMEX']),
-                col('close') > 15,
+                col('close').between(shield_config.get("price_min", 15.0), shield_config.get("price_max", 999999.0)),
                 col('change') >= 3,
-                col('market_cap_basic') > 300_000_000,
+                col('market_cap_basic').between(shield_config.get("market_cap_min", 300_000_000), shield_config.get("market_cap_max", 999999999999.0)),
                 col('volume') > vol_shield_sniper,
-                col('float_shares_outstanding') > 100_000_000,
+                col('float_shares_outstanding').between(shield_config.get("float_min", 100_000_000), shield_config.get("float_max", 999999999999.0)),
                 col('ATR') > 1,
                 col('close') > col('SMA200'),
                 col('Volatility.M') > 2
@@ -107,10 +138,10 @@ def sync_vli_scanners():
             .where(
                 col('exchange').isin(['NASDAQ', 'NYSE', 'AMEX']),
                 col('type').isin(['stock', 'fund']),
-                col('close').between(1, 20),
-                col('market_cap_basic').between(100_000_000, 2_000_000_000),
+                col('close').between(sword_config.get("price_min", 1.0), sword_config.get("price_max", 20.0)),
+                col('market_cap_basic').between(sword_config.get("market_cap_min", 100_000_000), sword_config.get("market_cap_max", 2_000_000_000)),
                 col('volume') > vol_sword,
-                col('float_shares_outstanding') < 100_000_000,
+                col('float_shares_outstanding').between(sword_config.get("float_min", 0), sword_config.get("float_max", 100_000_000)),
                 col('ATR') > 0.75,
                 col('close') > col('SMA50'),
                 col('Volatility.M') > 5,
@@ -127,11 +158,11 @@ def sync_vli_scanners():
             .where(
                 col('exchange').isin(['NASDAQ', 'NYSE', 'AMEX']),
                 col('type').isin(['stock', 'fund']),
-                col('close') >= 5,
+                col('close').between(sniper_config.get("price_min", 5.0), sniper_config.get("price_max", 100.0)),
                 col('change') >= 3,
-                col('volume') > vol_shield_sniper,
-                col('market_cap_basic').between(300_000_000, 2_000_000_000),
-                col('float_shares_outstanding').between(20_000_000, 100_000_000),
+                col('volume') > vol_sniper,
+                col('market_cap_basic').between(sniper_config.get("market_cap_min", 300_000_000), sniper_config.get("market_cap_max", 2_000_000_000)),
+                col('float_shares_outstanding').between(sniper_config.get("float_min", 20_000_000), sniper_config.get("float_max", 300_000_000)),
                 col('relative_volume_intraday|5') >= 1.2
             )
             .order_by('relative_volume_intraday|5', ascending=False))

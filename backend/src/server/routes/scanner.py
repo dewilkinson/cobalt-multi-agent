@@ -174,32 +174,40 @@ async def get_shield_bunker_list():
 
 
 async def fetch_av_gainers() -> List[Dict[str, Any]]:
-    api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "premium")
-    url = f"https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey={api_key}&entitlement=realtime"
+    # Note: Function name kept as `fetch_av_gainers` to preserve downstream contracts, but now uses FMP
+    import os
+    import aiohttp
     
+    api_key = os.getenv("FMP_API_KEY", "")
+    endpoints = [
+        f"https://financialmodelingprep.com/stable/biggest-gainers?apikey={api_key}",
+        f"https://financialmodelingprep.com/stable/biggest-losers?apikey={api_key}",
+        f"https://financialmodelingprep.com/stable/most-actives?apikey={api_key}"
+    ]
+    
+    universe = []
     try:
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15)) as session:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    # Combine gainers, losers, and most active to form phase 0 universe
-                    universe = []
-                    for key in ["top_gainers", "top_losers", "most_actively_traded"]:
-                        items = data.get(key, [])
-                        for item in items:
-                            price = float(item.get("price", 0.0))
-                            if price < 1.0:
-                                continue
-                                
-                            universe.append({
-                                "symbol": item.get("ticker", ""),
-                                "price": price,
-                                "change": item.get("change_percentage", "0%"),
-                                "volume": item.get("volume", 0)
-                            })
-                    return universe
+            for url in endpoints:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if isinstance(data, list):
+                            for item in data:
+                                price = float(item.get("price", 0.0))
+                                if price < 10.0:
+                                    continue
+                                    
+                                universe.append({
+                                    "symbol": item.get("symbol", ""),
+                                    "price": price,
+                                    "change": f"{item.get('changesPercentage', 0.0)}%",
+                                    "volume": item.get("volume", 0)
+                                })
+        return universe
     except Exception as e:
-        logger.error(f"Failed to fetch AV gainers: {e}")
+        logger.error(f"Failed to fetch FMP market movers: {e}")
+        
     return []
 
 @router.get("/state")

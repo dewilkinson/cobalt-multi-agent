@@ -180,8 +180,9 @@ class BrokerageCache:
     def get_backup_dir(cls) -> str:
         """
         Resolves the backup directory from configuration (conf.yaml -> BACKUP_POLICY.archive_dir).
-        Defaults to 'G:\\Cobalt\\archive'.
-        Falls back to local project 'data/archive' if the configured directory is not writable/accessible.
+        Defaults to 'G:\\My Drive\\Backups\\cobalt'.
+        Falls back to 'C:\\Backup' if the configured directory is not writable/accessible.
+        Generates highly visible warnings if the configured location is offline/inaccessible.
         """
         from src.config.loader import get_config
         
@@ -192,7 +193,7 @@ class BrokerageCache:
             config = {}
             
         backup_policy = config.get("BACKUP_POLICY", {})
-        archive_dir = backup_policy.get("archive_dir", "G:\\Cobalt\\archive")
+        archive_dir = backup_policy.get("archive_dir", "G:\\My Drive\\Backups\\cobalt")
         
         # Verify if archive_dir is accessible/writable
         try:
@@ -200,13 +201,149 @@ class BrokerageCache:
             if os.path.exists(archive_dir):
                 return archive_dir
         except Exception as e:
-            logger.warning(f"Configured backup directory '{archive_dir}' is not accessible: {e}. Falling back to local data/archive.")
+            msg = (
+                "\n"
+                "========================================================================\n"
+                "!!! CRITICAL WARNING: CONFIGURED BACKUP LOCATION IS NOT ACCESSIBLE !!!\n"
+                f"Configured Path: {archive_dir}\n"
+                f"Error: {e}\n"
+                "FALLING BACK TO SYSTEM BACKUP DIRECTORY: C:\\Backup\n"
+                "========================================================================"
+            )
+            logger.error(msg)
+            print(msg)
             
-        # Fallback path (project root data/archive)
+        # Fallback path (C:\\Backup)
+        fallback_dir = "C:\\Backup"
+        try:
+            os.makedirs(fallback_dir, exist_ok=True)
+            return fallback_dir
+        except Exception as e2:
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+            ultimate_fallback = os.path.join(project_root, "data", "archive")
+            msg2 = (
+                "\n"
+                "========================================================================\n"
+                "!!! ULTIMATE CRITICAL WARNING: C:\\Backup IS NOT ACCESSIBLE !!!\n"
+                f"Error: {e2}\n"
+                f"FALLING BACK TO LOCAL PROJECT ARCHIVE: {ultimate_fallback}\n"
+                "========================================================================"
+            )
+            logger.error(msg2)
+            print(msg2)
+            os.makedirs(ultimate_fallback, exist_ok=True)
+            return ultimate_fallback
+    @classmethod
+    def _backup_project_data_and_uncommitted(cls, archive_dir: str, date_str: str, is_weekly: bool) -> None:
+        """
+        Compresses and archives:
+        1. Local data/ directory (excluding data/archive/)
+        2. Local backend/data/ directory
+        3. All other uncommitted, untracked, or ignored files (excluding build/dependency/cache dirs)
+        Saves the compressed ZIP file to the active backup directory.
+        """
+        import zipfile
+        import subprocess
+        
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-        fallback_dir = os.path.join(project_root, "data", "archive")
-        os.makedirs(fallback_dir, exist_ok=True)
-        return fallback_dir
+        
+        # 1. Identify all target files to back up
+        files_to_backup = {} # maps abs_path -> relative_path_in_zip
+        
+        # Add a directory helper
+        def add_dir_files(dir_path: str, exclude_dirs: list[str] = None):
+            if not os.path.exists(dir_path):
+                return
+            for root, dirs, files in os.walk(dir_path):
+                if exclude_dirs:
+                    for d in list(dirs):
+                        if d in exclude_dirs:
+                            dirs.remove(d)
+                for file in files:
+                    abs_p = os.path.join(root, file)
+                    rel_p = os.path.relpath(abs_p, project_root)
+                    files_to_backup[abs_p] = rel_p
+
+        # A. Add .\data (excluding 'archive')
+        add_dir_files(os.path.join(project_root, "data"), exclude_dirs=["archive"])
+        
+        # B. Add .\backend\data
+        add_dir_files(os.path.join(project_root, "backend", "data"))
+        
+        # C. Retrieve and add other uncommitted/untracked/ignored files from Git
+        ignored_patterns = [
+            "node_modules",
+            "__pycache__",
+            ".venv",
+            ".next",
+            ".pytest_cache",
+            ".git",
+            "tsconfig.tsbuildinfo"
+        ]
+        
+        try:
+            res = subprocess.run(
+                ["git", "status", "--porcelain", "--ignored"],
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            git_lines = res.stdout.splitlines()
+        except Exception as e:
+            logger.error(f"Failed to query git status for backup: {e}")
+            git_lines = []
+            
+        for line in git_lines:
+            if len(line) < 4:
+                continue
+            status = line[:2]
+            path_part = line[3:].strip().strip('"')
+            
+            if status in ("??", "!!") or "M" in status or "A" in status:
+                abs_p = os.path.abspath(os.path.join(project_root, path_part))
+                
+                # Check exclusion patterns
+                skip = False
+                for pat in ignored_patterns:
+                    if pat in path_part or pat in abs_p:
+                        skip = True
+                        break
+                        
+                # Exclude local archive folder and backup folder itself
+                if "data/archive" in path_part or "data\\archive" in path_part:
+                    skip = True
+                if "C:\\Backup" in abs_p or "C:/Backup" in abs_p:
+                    skip = True
+                    
+                if not skip and os.path.exists(abs_p):
+                    if os.path.isfile(abs_p):
+                        rel_p = os.path.relpath(abs_p, project_root)
+                        files_to_backup[abs_p] = rel_p
+                    elif os.path.isdir(abs_p):
+                        add_dir_files(abs_p, exclude_dirs=ignored_patterns + ["archive"])
+                        
+        if not files_to_backup:
+            logger.warning("No files identified for project backup.")
+            return
+            
+        # Determine output filename
+        if is_weekly:
+            zip_name = f"DataBackup_{date_str}.zip"
+        else:
+            zip_name = f"DataDailyBackup_{date_str}.zip"
+            
+        zip_path = os.path.join(archive_dir, zip_name)
+        logger.info(f"Compressing {len(files_to_backup)} files to {zip_path}...")
+        
+        try:
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for abs_p, rel_p in files_to_backup.items():
+                    if os.path.exists(abs_p):
+                        zipf.write(abs_p, rel_p)
+            logger.info(f"Successfully created backup at {zip_path} ({len(files_to_backup)} files).")
+        except Exception as e:
+            logger.error(f"Failed to create project ZIP backup: {e}")
 
     @classmethod
     def backup_cache(cls, is_weekly: bool = False) -> None:
@@ -224,9 +361,9 @@ class BrokerageCache:
         name, ext = os.path.splitext(filename)
         
         archive_dir = cls.get_backup_dir()
+        date_str = datetime.now().strftime("%Y-%m-%d")
         
         if is_weekly:
-            date_str = datetime.now().strftime("%Y-%m-%d")
             backup_path = os.path.join(archive_dir, f"BrokerageCacheBackup_{date_str}{ext}")
             shutil.copy2(CACHE_FILE, backup_path)
             
@@ -251,17 +388,21 @@ class BrokerageCache:
             except Exception as e:
                 logger.error(f"Failed to backup extra directories during weekly cron: {e}")
             
+            # Compress and sync weekly project files
+            cls._backup_project_data_and_uncommitted(archive_dir, date_str, is_weekly=True)
             logger.info(f"Created weekly BrokerageCache backup: {backup_path}")
         else:
             # Daily backups rolling 7-day rotation
-            date_str = datetime.now().strftime("%Y-%m-%d")
             new_backup_filename = f"BrokerageCacheDailyBackup_{date_str}{ext}"
             new_backup_path = os.path.join(archive_dir, new_backup_filename)
             
             shutil.copy2(CACHE_FILE, new_backup_path)
             logger.info(f"Created daily BrokerageCache backup: {new_backup_path}")
             
-            # Scan for existing daily backups to rotate
+            # Compress and sync daily project files
+            cls._backup_project_data_and_uncommitted(archive_dir, date_str, is_weekly=False)
+            
+            # Rotate daily cache backups
             pattern = os.path.join(archive_dir, "BrokerageCacheDailyBackup_*json")
             existing_backups = glob.glob(pattern)
             existing_backups.sort()
@@ -274,6 +415,20 @@ class BrokerageCache:
                         logger.info(f"Deleted old daily backup: {file_path}")
                     except Exception as e:
                         logger.error(f"Failed to delete old backup {file_path}: {e}")
+
+            # Rotate daily project backups
+            daily_zip_pattern = os.path.join(archive_dir, "DataDailyBackup_*zip")
+            existing_zips = glob.glob(daily_zip_pattern)
+            existing_zips.sort()
+            
+            if len(existing_zips) > 7:
+                zips_to_delete = existing_zips[:-7]
+                for zip_file in zips_to_delete:
+                    try:
+                        os.remove(zip_file)
+                        logger.info(f"Deleted old daily zip backup: {zip_file}")
+                    except Exception as e:
+                        logger.error(f"Failed to delete old daily zip backup {zip_file}: {e}")
 
     @classmethod
     def backup_cache_daily(cls) -> None:

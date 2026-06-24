@@ -651,7 +651,9 @@ async def lifespan(app: FastAPI):
                 text="Analyze today's executed trades and generate a detailed Daily Trading Report post-mortem.",
                 image=None,
                 thread_id=f"POSTMORTEM_{date_str}",
-                direct_mode=False
+                direct_mode=False,
+                reporter_llm_type="reasoning",
+                vli_llm_type="core"
             ))
         except Exception as e:
             logger.error(f"Failed to trigger daily post-mortem: {e}")
@@ -2125,6 +2127,11 @@ class VLIActionPlanRequest(BaseModel):
     background_synthesis: bool = False
 
 
+class VLIJournalRequest(BaseModel):
+    grades: dict
+    markdown: str
+
+
 # --- VLI SCANNER SETTINGS ---
 @app.get("/api/vli/scanner-settings")
 def get_scanner_settings():
@@ -3541,24 +3548,124 @@ async def _background_synthesis_task(text: str, image: str | None, direct_mode: 
         # [PERSISTENCE FIX] Persist asynchronously generated markdown to disk
         if response_text and len(response_text) > 50 and "[ERROR]" not in response_text:
             if thread_id and thread_id.startswith("POSTMORTEM_"):
-                # 1. Save to Obsidian
-                from src.services.historical_reports import write_obsidian_daily_report, PERFORMANCE_DIR, update_performance_rolling_summary
-                write_obsidian_daily_report(response_text)
-                
-                # 2. Save raw to Cobalt cache (Human readable)
+                # 1. Combine with Daily Market Report if it exists
+                from src.services.historical_reports import (
+                    update_performance_rolling_summary,
+                    combine_reports,
+                    sync_combined_report_files
+                )
                 import os
                 date_str = thread_id.replace("POSTMORTEM_", "")
-                perf_path = os.path.join(PERFORMANCE_DIR, f"Daily_PostMortem_{date_str}.md")
-                with open(perf_path, "w", encoding="utf-8") as f:
-                    f.write(response_text)
-                    
-                # 3. Condense into rolling performance summary
+                
+                market_report_content = ""
+                base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+                market_report_path = os.path.join(base_dir, "data", "archive", "daily_market_reports", f"report_{date_str}.md")
+                if os.path.exists(market_report_path):
+                    try:
+                        with open(market_report_path, "r", encoding="utf-8") as f:
+                            market_report_content = f.read()
+                        logger.info(f"Loaded existing market report for {date_str} to combine.")
+                    except Exception as e:
+                        logger.error(f"Failed to read market report: {e}")
+                
+                combined_content = combine_reports(response_text, market_report_content, date_str=date_str)
+                
+                # Write/sync combined content across all storage layers
+                sync_combined_report_files(date_str, combined_content, has_market_report=bool(market_report_content))
+                
+                # 3. Condense into rolling performance summary (use only the post-mortem text, not the combined text)
                 update_performance_rolling_summary(response_text)
             else:
                 _persist_vli_report(text, response_text)
 
     except Exception as e:
         logger.error(f"[ASYNC_SYNTHESIS] Background report failed: {e}")
+
+
+@app.get("/api/vli/journal/{date_str}")
+def get_daily_journal(date_str: str):
+    """
+    Exposes a GET endpoint to fetch today's daily journal notes and self-assessment grades.
+    """
+    try:
+        from src.services.historical_reports import parse_daily_journal_file
+        data = parse_daily_journal_file(date_str)
+        return data
+    except Exception as e:
+        logger.error(f"[JOURNAL_API] Error fetching journal for {date_str}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/vli/journal/{date_str}/preview")
+def get_daily_journal_preview(date_str: str):
+    """
+    Exposes a GET endpoint to fetch today's daily journal synthesized notes and self-assessment preview.
+    """
+    try:
+        from src.services.historical_reports import PERFORMANCE_DIR
+        post_mortem_path = os.path.join(PERFORMANCE_DIR, f"Daily_PostMortem_{date_str}.md")
+        
+        result = {
+            "trader_notes": "",
+            "self_assessment": ""
+        }
+        
+        if os.path.exists(post_mortem_path):
+            with open(post_mortem_path, "r", encoding="utf-8") as f:
+                content = f.read()
+                
+            import re
+            notes_match = re.search(r'## Trader Notes\n\n(.*?)(?=\n\n## |\n\n---|\Z)', content, re.DOTALL)
+            if notes_match:
+                result["trader_notes"] = notes_match.group(1).strip()
+                
+            assess_match = re.search(r'## Self Assessment\n\n(.*?)(?=\n\n## |\n\n---|\Z)', content, re.DOTALL)
+            if assess_match:
+                result["self_assessment"] = assess_match.group(1).strip()
+                
+        return result
+    except Exception as e:
+        logger.error(f"[JOURNAL_API] Error fetching preview for {date_str}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/vli/journal/{date_str}")
+def post_daily_journal(date_str: str, request: VLIJournalRequest):
+    """
+    Exposes a POST endpoint to save daily journal notes and grades,
+    and trigger post-mortem re-combination if a post-mortem already exists.
+    """
+    try:
+        from src.services.historical_reports import save_daily_journal_file, PERFORMANCE_DIR
+        
+        # Save daily journal
+        save_daily_journal_file(date_str, request.grades, request.markdown)
+        
+        # Check if post-mortem file exists in cache to trigger re-combination
+        post_mortem_path = os.path.join(PERFORMANCE_DIR, f"Daily_PostMortem_{date_str}.md")
+        if os.path.exists(post_mortem_path):
+            from src.services.historical_reports import combine_reports, sync_combined_report_files
+            
+            # Load current file content
+            with open(post_mortem_path, "r", encoding="utf-8") as f:
+                pm_content = f.read()
+                
+            import re
+            pattern_mr = r'\n+---\n+(?=# Daily Market Report|## Top 10 Market Gainers|# Daily Market Report:)'
+            parts = re.split(pattern_mr, pm_content)
+            raw_pm = parts[0].strip()
+            mr_part = parts[1].strip() if len(parts) > 1 else ""
+            
+            combined_content = combine_reports(raw_pm, mr_part, date_str=date_str)
+            
+            # Save updated reports
+            sync_combined_report_files(date_str, combined_content, has_market_report=bool(mr_part))
+            logger.info(f"Re-combined and updated post-mortem report for {date_str} successfully.")
+            
+        return {"status": "OK", "message": f"Successfully updated journal for {date_str}"}
+    except Exception as e:
+        logger.error(f"[JOURNAL_API] Error updating journal for {date_str}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/vli/action-plan")

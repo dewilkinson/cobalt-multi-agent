@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 
 from langchain_core.tools import tool
-from src.tools.scanner import _get_strategy_config, batch_fetch_sortino
+from src.tools.scanner import load_strategy_constraints, _get_strategy_config, batch_fetch_sortino
 
 logger = logging.getLogger(__name__)
 
@@ -43,35 +43,26 @@ FINVIZ_FILTERS = "f=cap_smallover,ta_sma200_pa,sh_price_o15,sh_vol_o1000,sh_floa
 
 def _get_shield_config(strategy_config: str) -> Dict[str, Any]:
     """Provides configuration for the APEX SHIELD SCAN."""
-    default_config = {
-        "price_min": 15.0,
-        "price_max": 999999.0,
-        "market_cap_min": 300_000_000,
-        "market_cap_max": 999999999999.0, # No real max limit
-        "float_min": 100_000_000,
-        "float_max": 999999999999.0, # No real max limit
-        "volume_hurdle": 1_000_000,
-        "gap_min": -20.0,
-        "gap_max": 500.0,
-        "rvol_scout_min": 1.0,
-        "rvol_strike_min": 2.0,
-        "rvol_veto_max": 100.0,
-        "sortino_hurdle": 2.0,
-        "rs_hurdle": 90,
-        "binary_veto_hours": 24
-    }
-    if not strategy_config:
-        return default_config
-    try:
-        if isinstance(strategy_config, str):
-            custom = json.loads(strategy_config)
-            default_config.update(custom)
-        elif isinstance(strategy_config, dict):
-            default_config.update(strategy_config)
-    except Exception as e:
-        logger.error(f"Failed to parse scanner strategy config: {e}. Using defaults.")
+    strategy_name = "shield"
+    custom_overrides = {}
+    
+    if strategy_config:
+        try:
+            if isinstance(strategy_config, str):
+                custom_overrides = json.loads(strategy_config)
+            elif isinstance(strategy_config, dict):
+                custom_overrides = strategy_config
+            
+            if isinstance(custom_overrides, dict):
+                strategy_name = custom_overrides.get("strategy_name", "shield")
+        except Exception as e:
+            logger.error(f"Failed to parse scanner strategy config: {e}. Using defaults.")
+            
+    config = load_strategy_constraints(strategy_name)
+    if isinstance(custom_overrides, dict):
+        config.update(custom_overrides)
         
-    return default_config
+    return config
 
 @tool
 async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
@@ -81,6 +72,40 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     """
     config = _get_shield_config(strategy_config)
     os.makedirs(os.path.dirname(STRIKE_LIST_PATH), exist_ok=True)
+
+    # Dynamically build Finviz filters matching Shield strategy constraints
+    price_min = config.get("price_min", 15.0)
+    float_min = config.get("float_min", 100_000_000)
+    volume_hurdle = config.get("volume_hurdle", 1_000_000)
+    
+    price_filter = ""
+    if price_min >= 15.0:
+        price_filter = "sh_price_o15"
+    elif price_min >= 10.0:
+        price_filter = "sh_price_o10"
+        
+    float_filter = ""
+    if float_min >= 100_000_000:
+        float_filter = "sh_float_o100"
+    elif float_min >= 50_000_000:
+        float_filter = "sh_float_o50"
+        
+    vol_filter = ""
+    if volume_hurdle >= 1_000_000:
+        vol_filter = "sh_vol_o1000"
+    elif volume_hurdle >= 500_000:
+        vol_filter = "sh_vol_o500"
+        
+    filter_parts = ["cap_smallover", "ta_sma200_pa"]
+    if price_filter:
+        filter_parts.append(price_filter)
+    if float_filter:
+        filter_parts.append(float_filter)
+    if vol_filter:
+        filter_parts.append(vol_filter)
+        
+    finviz_filters = "f=" + ",".join(filter_parts) + "&o=-change"
+    logger.info(f"Dynamic Shield Finviz Filters generated: {finviz_filters}")
 
     candidates = []
     total_count = 0
@@ -134,7 +159,7 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
 
             try:
                 # Use elite subdomain for subscribers to ensure export button is visible
-                url_base = f"https://elite.finviz.com/screener.ashx?v=111&{FINVIZ_FILTERS}"
+                url_base = f"https://elite.finviz.com/screener.ashx?v=111&{finviz_filters}"
                 logger.info(f"Initiating SHIELD Elite Trawl: {url_base}")
                 
                 # Navigate with a generous timeout for the heavy Elite site

@@ -13,7 +13,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 
-from src.tools.scanner import batch_fetch_sortino, _get_strategy_config
+from src.tools.scanner import batch_fetch_sortino, load_strategy_constraints
 from src.tools.finance import _normalize_ticker
 
 logger = logging.getLogger(__name__)
@@ -34,17 +34,71 @@ def sanitize_data(data):
         return data.item()
     return data
 
+def _get_sniper_config(strategy_config: str) -> Dict[str, Any]:
+    """Provides configuration for the APEX SNIPER SCAN."""
+    strategy_name = "sniper"
+    custom_overrides = {}
+    
+    if strategy_config:
+        try:
+            if isinstance(strategy_config, str):
+                custom_overrides = json.loads(strategy_config)
+            elif isinstance(strategy_config, dict):
+                custom_overrides = strategy_config
+            
+            if isinstance(custom_overrides, dict):
+                strategy_name = custom_overrides.get("strategy_name", "sniper")
+        except Exception as e:
+            logger.error(f"Failed to parse scanner strategy config: {e}. Using defaults.")
+            
+    config = load_strategy_constraints(strategy_name)
+    if isinstance(custom_overrides, dict):
+        config.update(custom_overrides)
+        
+    return config
+
 # Constants
 STRIKE_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "STRIKE_LIST.json"
-FINVIZ_FILTERS = "f=cap_smallover,sh_float_u100,sh_price_5to50,ta_perf_13w20o"
 
 async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     """
     LAYER A: THE BACKGROUND TRAWL
     Filters the market for mid-cap "Swords" with elite risk-adjusted profiles.
     """
-    config = _get_strategy_config(strategy_config)
+    config = _get_sniper_config(strategy_config)
     os.makedirs(os.path.dirname(STRIKE_LIST_PATH), exist_ok=True)
+
+    # Dynamically build Finviz filters matching price and float boundaries
+    price_min = config.get("price_min", 5.0)
+    price_max = config.get("price_max", 50.0)
+    float_max = config.get("float_max", 100_000_000)
+
+    price_filter = ""
+    if price_min >= 10.0 and price_max <= 100.0:
+        price_filter = "sh_price_10to100"
+    elif price_min >= 5.0 and price_max <= 50.0:
+        price_filter = "sh_price_5to50"
+    else:
+        price_filter = f"sh_price_o{int(price_min)}"
+
+    float_filter = ""
+    if float_max <= 50_000_000:
+        float_filter = "sh_float_u50"
+    elif float_max <= 100_000_000:
+        float_filter = "sh_float_u100"
+    elif float_max <= 150_000_000:
+        float_filter = "sh_float_u150"
+    elif float_max <= 200_000_000:
+        float_filter = "sh_float_u200"
+
+    filter_parts = ["cap_smallover", "ta_perf_13w20o"]
+    if price_filter:
+        filter_parts.append(price_filter)
+    if float_filter:
+        filter_parts.append(float_filter)
+
+    finviz_filters = "f=" + ",".join(filter_parts)
+    logger.info(f"Dynamic Sniper Finviz Filters generated: {finviz_filters}")
 
     # 1. Determine dynamic Sortino Hurdle based on .TNX
     tnx_rate = 4.30 # Conservative default
@@ -131,7 +185,7 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
 
             try:
                 # Use elite subdomain for subscribers to ensure export button is visible
-                url_base = f"https://elite.finviz.com/screener.ashx?v=111&{FINVIZ_FILTERS}"
+                url_base = f"https://elite.finviz.com/screener.ashx?v=111&{finviz_filters}"
                 logger.info(f"Initiating Elite Trawl: {url_base}")
                 
                 # Navigate with a generous timeout for the heavy Elite site
@@ -287,18 +341,27 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
                     volume = info.get("volume") or 0
                     m_cap = info.get("marketCap") or 0
                 
-                # Discard stocks less than $1 as requested
-                if price < 1.0:
+                price_min = config.get("price_min", 5.0)
+                price_max = config.get("price_max", 50.0)
+                cap_min = config.get("market_cap_min", 300_000_000)
+                cap_max = config.get("market_cap_max", 2_000_000_000)
+                float_min = config.get("float_min", 20_000_000)
+                float_max = config.get("float_max", 100_000_000)
+
+                # Discard stocks outside price range
+                if price < price_min or price > price_max:
                     return None
                     
                 # Float still requires the full info object
                 f_shares = info.get("floatShares") or 0
                 
                 # Check Pillar 1 Constraints
-                if not (20_000_000 <= f_shares <= 100_000_000):
+                if not (float_min <= f_shares <= float_max):
                     return None
-                if not (300_000_000 <= m_cap <= 2_000_000_000):
-                    if m_cap < 200_000_000: return None
+                if not (cap_min <= m_cap <= cap_max):
+                    fallback_cap_min = int(cap_min * 2 / 3)
+                    if m_cap < fallback_cap_min:
+                        return None
                 
                 return {
                     **c,

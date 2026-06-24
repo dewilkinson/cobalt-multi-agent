@@ -1,0 +1,17 @@
+{
+    "price_min": 10.0,
+    "price_max": 100.0,
+    "market_cap_min": 300000000,
+    "market_cap_max": 2000000000,
+    "float_min": 20000000,
+    "float_max": 300000000,
+    "volume_hurdle": 50000,
+    "gap_min": -20.0,
+    "gap_max": 500.0,
+    "rvol_scout_min": 1.0,
+    "rvol_strike_min": 2.0,
+    "rvol_veto_max": 100.0,
+    "sortino_hurdle": 2.0,
+    "rs_hurdle": 90,
+    "binary_veto_hours": 24
+}

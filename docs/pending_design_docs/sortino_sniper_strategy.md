@@ -15,7 +15,7 @@ To accommodate slower reflex profiles, the system prohibits market chasing. All 
 - **TV Alert Entry Trigger:** Set TradingView alerts on the 5m timeframe for BoS or CHoCH on daily candidates to catch entry triggers, securing a better price execution rather than chasing market momentum.
 
 ## 3. Selection Criteria (Scout Agent)
-The Scout Agent filters the $20–$50 asset universe based on institutional participation:
+The Scout Agent filters the $10–$100 asset universe based on institutional participation:
 - **RVOL Acceleration:** Must show increasing volume over three consecutive 5m candles.
 - **RVOL Threshold:** Absolute RVOL must be **> 2.0**.
 - **Liquidity Sweep:** Mandatory sweep of Previous Session High (PSH) or Previous Session Low (PSL).

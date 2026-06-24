@@ -185,37 +185,62 @@ async def batch_fetch_sortino(tickers: List[str], period: str = "60d") -> Dict[s
 FDA_KEYWORDS = ["FDA", "clinical", "trial", "phase", "approval", "PDUFA", "clearance"]
 
 
+def load_strategy_constraints(strategy_name: str = "default") -> Dict[str, Any]:
+    """Loads constraints for a given strategy from its corresponding JSON file in backend/src/strategies/."""
+    import os
+    import json
+    
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    strat_path = os.path.join(base_dir, "strategies", f"{strategy_name.lower()}.json")
+    
+    # Try loading the requested strategy file first
+    if os.path.exists(strat_path):
+        try:
+            with open(strat_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading requested strategy constraints from {strat_path}: {e}")
+
+    # If loading failed or file doesn't exist, load from fallback.json
+    fallback_path = os.path.join(base_dir, "strategies", "fallback.json")
+    msg = f"WARNING: Could not load strategy constraints for '{strategy_name}'. Falling back to Apex 500 constraints from fallback.json"
+    logger.warning(msg)
+    print(msg)  # Ensure user sees it if running script directly
+    
+    if os.path.exists(fallback_path):
+        try:
+            with open(fallback_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.critical(f"Critical error: Failed to load fallback constraints from {fallback_path}: {e}")
+            raise RuntimeError(f"Failed to load fallback strategy constraints from {fallback_path}: {e}")
+    else:
+        logger.critical(f"Critical error: Fallback strategy file not found at {fallback_path}")
+        raise FileNotFoundError(f"Fallback strategy file not found at {fallback_path}")
+
+
 def _get_strategy_config(strategy_config: str) -> Dict[str, Any]:
-    """Parses strategy JSON string into a dict, with fallback defaults."""
-    default_config = {
-        "price_min": 5.0,
-        "price_max": 50.0,
-        "market_cap_min": 300_000_000,
-        "market_cap_max": 2_000_000_000,
-        "float_min": 20_000_000,
-        "float_max": 100_000_000,
-        "volume_hurdle": 50000,
-        "gap_min": -20.0,
-        "gap_max": 500.0,
-        "rvol_scout_min": 1.0,
-        "rvol_strike_min": 2.0,
-        "rvol_veto_max": 100.0,
-        "sortino_hurdle": 2.0,
-        "rs_hurdle": 90,
-        "binary_veto_hours": 24
-    }
-    if not strategy_config:
-        return default_config
-    try:
-        if isinstance(strategy_config, str):
-            custom = json.loads(strategy_config)
-            default_config.update(custom)
-        elif isinstance(strategy_config, dict):
-            default_config.update(strategy_config)
-    except Exception as e:
-        logger.error(f"Failed to parse scanner strategy config: {e}. Using defaults.")
+    """Parses strategy JSON string/dict and merges with loaded strategy constraints."""
+    strategy_name = "default"
+    custom_overrides = {}
+    
+    if strategy_config:
+        try:
+            if isinstance(strategy_config, str):
+                custom_overrides = json.loads(strategy_config)
+            elif isinstance(strategy_config, dict):
+                custom_overrides = strategy_config
+            
+            if isinstance(custom_overrides, dict):
+                strategy_name = custom_overrides.get("strategy_name", "default")
+        except Exception as e:
+            logger.error(f"Failed to parse custom strategy overrides: {e}")
+            
+    config = load_strategy_constraints(strategy_name)
+    if isinstance(custom_overrides, dict):
+        config.update(custom_overrides)
         
-    return default_config
+    return config
 
 
 def calculate_static_grade(price: float, cap: int, float_shares: int, config: Dict[str, Any], q_type: str = "EQUITY") -> str:
@@ -228,6 +253,9 @@ def calculate_static_grade(price: float, cap: int, float_shares: int, config: Di
     - Cap: $500M - $1.2B
     - Float: < 40M
     """
+    if price < config["price_min"]:
+        return "F"
+        
     p_min, p_max = config["price_min"], config["price_max"]
     c_min, c_max = config["market_cap_min"], config["market_cap_max"]
     f_min, f_max = config["float_min"], config["float_max"]
@@ -258,21 +286,21 @@ def calculate_static_grade(price: float, cap: int, float_shares: int, config: Di
     fail_count = passes.count(False)
     exc_count = excs.count(True)
 
+    grade = "F"
     # All pass
     if fail_count == 0:
-        return "A" if exc_count >= 1 else "B"
-    
+        grade = "A" if exc_count >= 1 else "B"
     # Soft Veto: Allow ONE fail if there is at least ONE Excellence
     # BUT: If the fail is Market Cap or Float being ZERO, we downgrade to C
-    if fail_count == 1 and exc_count >= 1:
+    elif fail_count == 1 and exc_count >= 1:
         if cap == 0 or float_shares == 0:
-            return "C" # Missing data is a marginal fail
-        return "B" # Soft Veto Pass
-    
-    if fail_count == 1:
-        return "C" # Marginal Fail
-        
-    return "F" # Hard Reject
+            grade = "C" # Missing data is a marginal fail
+        else:
+            grade = "B" # Soft Veto Pass
+    elif fail_count == 1:
+        grade = "C" # Marginal Fail
+
+    return grade
 
 
 async def _build_session_watchlist_impl(strategy_config: str = "{}", universe_csv: str = "") -> str:
@@ -521,7 +549,7 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
                 effective_vol_hurdle = config["volume_hurdle"]
                 effective_rvol_scout = config["rvol_scout_min"]
                 effective_rvol_strike = config["rvol_strike_min"]
-                effective_sortino_hurdle = config.get("sortino_hurdle", 2.0)
+                effective_sortino_hurdle = config["sortino_hurdle"]
 
             if curr_vol < effective_vol_hurdle:
                 is_miss = True
@@ -565,7 +593,8 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
                         rets = df_sortino["close"].pct_change().dropna()
                         sortino = float(calculate_sortino_ratio(rets, annual_rf=dynamic_rf, interval=interval))
 
-                if sortino < effective_sortino_hurdle:
+                enable_sortino = os.environ.get("SCANNER_ENABLE_SORTINO", "false").lower() == "true"
+                if enable_sortino and sortino < effective_sortino_hurdle:
                     is_miss = True
                     tier = "MISS"
 
@@ -835,6 +864,8 @@ def update_scanner_archive(candidates: list[dict]):
                 entry["last_seen"] = current_scan_time
                 entry["grade"] = c.get("grade", entry.get("grade", ""))
                 entry["tier"] = c.get("tier", entry.get("tier", ""))
+                if "sortino" in c:
+                    entry["sortino"] = c["sortino"]
                 active_symbols_in_history.add(sym)
             else:
                 entry["removed_at"] = current_scan_time
@@ -845,6 +876,7 @@ def update_scanner_archive(candidates: list[dict]):
                 "symbol": sym,
                 "tier": c.get("tier", ""),
                 "grade": c.get("grade", ""),
+                "sortino": c.get("sortino"),
                 "first_added": current_scan_time,
                 "last_seen": current_scan_time,
                 "removed_at": None
@@ -858,11 +890,19 @@ def update_scanner_archive(candidates: list[dict]):
     except Exception as e:
         logger.error(f"Failed to write to scanner archive: {e}")
 
-    # 2. Archive to a daily file for that day
+    # 2. Archive to a daily file for that day (Only include symbols active/seen on today's date_str)
     daily_archive_path = os.path.join(base_dir, "data", "archive", f"scan_list_{date_str}.json")
     try:
         os.makedirs(os.path.dirname(daily_archive_path), exist_ok=True)
+        daily_history = [
+            entry for entry in history
+            if entry.get("last_seen", "").startswith(date_str) or entry.get("first_added", "").startswith(date_str)
+        ]
+        daily_data = {
+            "updated_at": current_scan_time,
+            "history": daily_history
+        }
         with open(daily_archive_path, "w", encoding="utf-8") as f:
-            json.dump(archive_data, f, indent=4)
+            json.dump(daily_data, f, indent=4)
     except Exception as e:
         logger.error(f"Failed to write daily scanner archive: {e}")

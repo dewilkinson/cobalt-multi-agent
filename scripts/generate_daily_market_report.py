@@ -1,5 +1,18 @@
 import os
+from dotenv import load_dotenv
+# Load default root .env first
+load_dotenv()
+# Load backend/.env to resolve vault path and other configurations
+backend_env = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend", ".env"))
+if os.path.exists(backend_env):
+    load_dotenv(backend_env, override=True)
 import sys
+# Add backend to sys.path to allow importing backend tools
+backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+from src.tools.scanner import load_strategy_constraints
+
 import json
 import requests
 import yfinance as yf
@@ -9,39 +22,122 @@ import pandas as pd
 import numpy as np
 
 def fetch_av_data():
-    api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "premium")
-    url = f"https://www.alphavantage.co/query?function=TOP_GAINERS_LOSERS&apikey={api_key}&entitlement=realtime"
+    api_key = os.getenv("FMP_API_KEY", "")
+    base_url = "https://financialmodelingprep.com/stable"
     
-    try:
-        resp = requests.get(url, timeout=15)
-        resp.raise_for_status()
-        return resp.json()
-    except Exception as e:
-        print(f"Error fetching AlphaVantage data: {e}")
-        return {}
+    strat_config = load_strategy_constraints("default")
+    price_min = strat_config["price_min"]
+    
+    data_dict = {
+        "top_gainers": [],
+        "top_losers": [],
+        "most_actively_traded": []
+    }
+    
+    endpoints = {
+        "top_gainers": f"{base_url}/biggest-gainers?apikey={api_key}",
+        "top_losers": f"{base_url}/biggest-losers?apikey={api_key}",
+        "most_actively_traded": f"{base_url}/most-actives?apikey={api_key}"
+    }
+    
+    for key, url in endpoints.items():
+        try:
+            resp = requests.get(url, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+            if isinstance(data, list):
+                # Remap FMP keys to what the AV script expects
+                remapped = []
+                for item in data:
+                    price = float(item.get("price", 0.0))
+                    if price < price_min:
+                        continue
+                        
+                    remapped.append({
+                        "ticker": item.get("symbol", ""),
+                        "price": str(price),
+                        "change_percentage": f"{item.get('changesPercentage', 0)}%",
+                        "volume": str(item.get("volume", "0"))
+                    })
+                data_dict[key] = remapped
+        except Exception as e:
+            print(f"Error fetching {key} from FMP: {e}")
+            
+    return data_dict
 
 def load_scanner_list(date_str, base_dir):
-    scanner_path = os.path.join(base_dir, "data", "archive", f"scan_list_{date_str}.json")
-    if not os.path.exists(scanner_path):
-        return {}
+    scanner_map = {}
     
-    try:
-        with open(scanner_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            history = data.get("history", [])
-            
-            scanner_map = {}
-            for item in history:
-                sym = item.get("symbol", "").upper()
-                if sym:
-                    scanner_map[sym] = {
-                        "grade": item.get("grade", "N/A"),
-                        "tier": item.get("tier", "N/A")
-                    }
-            return scanner_map
-    except Exception as e:
-        print(f"Error loading scanner list: {e}")
-        return {}
+    # 1. Load from scan_list_{date_str}.json
+    scanner_path = os.path.join(base_dir, "data", "archive", f"scan_list_{date_str}.json")
+    if os.path.exists(scanner_path):
+        try:
+            with open(scanner_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                history = data.get("history", [])
+                for item in history:
+                    # Filter: Only include symbols active on the given date_str (today)
+                    last_seen = item.get("last_seen", "")
+                    first_added = item.get("first_added", "")
+                    if last_seen.startswith(date_str) or first_added.startswith(date_str):
+                        sym = item.get("symbol", "").upper().strip()
+                        if sym:
+                            scanner_map[sym] = {
+                                "grade": item.get("grade", "N/A"),
+                                "tier": item.get("tier", "N/A"),
+                                "sortino": item.get("sortino")
+                            }
+        except Exception as e:
+            print(f"Error loading daily scanner archive: {e}")
+
+    # 2. Load from STRIKE_LIST.json and SCANNER_STRIKE_LIST.json in both root data and backend data
+    strike_list_paths = [
+        os.path.join(base_dir, "data", "STRIKE_LIST.json"),
+        os.path.join(base_dir, "backend", "data", "STRIKE_LIST.json"),
+        os.path.join(base_dir, "data", "SCANNER_STRIKE_LIST.json"),
+        os.path.join(base_dir, "backend", "data", "SCANNER_STRIKE_LIST.json")
+    ]
+    
+    for path in strike_list_paths:
+        if os.path.exists(path):
+            try:
+                # Check file timestamp to ensure it was modified/updated today
+                updated_today = False
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                
+                if isinstance(data, dict):
+                    updated_at = data.get("updated_at", "")
+                    if updated_at.startswith(date_str):
+                        updated_today = True
+                
+                # Fallback to file system mtime if no updated_at key is found
+                if not updated_today:
+                    mtime = datetime.fromtimestamp(os.path.getmtime(path)).strftime("%Y-%m-%d")
+                    if mtime == date_str:
+                        updated_today = True
+                        
+                if updated_today:
+                    candidates = []
+                    if isinstance(data, list):
+                        candidates = data
+                    elif isinstance(data, dict):
+                        candidates = data.get("candidates", []) or data.get("strike_list", [])
+                    
+                    for item in candidates:
+                        if not isinstance(item, dict):
+                            continue
+                        sym = item.get("symbol", "").upper().strip()
+                        if sym:
+                            scanner_map[sym] = {
+                                "grade": item.get("grade") or scanner_map.get(sym, {}).get("grade", "N/A"),
+                                "tier": item.get("tier") or scanner_map.get(sym, {}).get("tier", "N/A"),
+                                "sortino": item.get("sortino") or scanner_map.get(sym, {}).get("sortino")
+                            }
+            except Exception as e:
+                print(f"Error loading strike list from {path}: {e}")
+                
+    return scanner_map
 
 def calculate_gappers(tickers):
     if not tickers: return []
@@ -77,26 +173,42 @@ def calculate_sortino(prices_series, target_return=0.0):
     downside_deviation = np.sqrt((downside_returns**2).mean()) * np.sqrt(252)
     return float(mean_return / downside_deviation) if downside_deviation > 0 else 99.0
 
-def analyze_missed_gainers(missed_tickers):
+def analyze_missed_gainers(missed_tickers, scanner_map=None):
     if not missed_tickers: return []
-    
+    if scanner_map is None:
+        scanner_map = {}
+        
     analysis_results = []
     
-    # Scanner Constraints
-    PRICE_MIN, PRICE_MAX = 5.0, 50.0
-    CAP_MIN, CAP_MAX = 300_000_000, 2_000_000_000
-    FLOAT_MIN, FLOAT_MAX = 20_000_000, 100_000_000
-    SORTINO_MIN = 2.0
-    VOLUME_MIN = 50000
+    # Dynamically load constraints for the default strategy
+    strat_config = load_strategy_constraints("default")
+        
+    PRICE_MIN = strat_config["price_min"]
+    PRICE_MAX = strat_config["price_max"]
+    CAP_MIN = strat_config["market_cap_min"]
+    CAP_MAX = strat_config["market_cap_max"]
+    FLOAT_MIN = strat_config["float_min"]
+    FLOAT_MAX = strat_config["float_max"]
+    SORTINO_MIN = strat_config["sortino_hurdle"]
+    VOLUME_MIN = strat_config["volume_hurdle"]
 
     print(f"Analyzing {len(missed_tickers)} missed gainers...")
     
-    try:
-        # Fetch historical data for Sortino
-        hist_data = yf.download(missed_tickers, period="1y", interval="1d", group_by='ticker', progress=False)
-    except Exception as e:
-        print(f"Failed to fetch history for missed gainers: {e}")
-        hist_data = None
+    # Filter out tickers that have cached Sortino values to avoid redundant downloads
+    tickers_to_download = []
+    for sym in missed_tickers:
+        if sym in scanner_map and scanner_map[sym].get("sortino") is not None:
+            continue
+        tickers_to_download.append(sym)
+
+    hist_data = None
+    if tickers_to_download:
+        try:
+            # Fetch historical data for Sortino calculation
+            hist_data = yf.download(tickers_to_download, period="1y", interval="1d", group_by='ticker', progress=False)
+        except Exception as e:
+            print(f"Failed to fetch history for missed gainers: {e}")
+            hist_data = None
 
     for sym in missed_tickers:
         reasons = []
@@ -104,39 +216,48 @@ def analyze_missed_gainers(missed_tickers):
             ticker_obj = yf.Ticker(sym)
             info = ticker_obj.info
             
+            q_type = info.get('quoteType', 'EQUITY')
+            
             # 1. Price Check
             price = info.get('regularMarketPrice') or info.get('currentPrice') or info.get('previousClose', 0)
             if price < PRICE_MIN or price > PRICE_MAX:
                 reasons.append(f"**Price (${price})** out of bounds (${PRICE_MIN}-${PRICE_MAX})")
                 
             # 2. Market Cap Check
-            cap = info.get('marketCap', 0)
-            if cap < CAP_MIN or cap > CAP_MAX:
-                reasons.append(f"**Market Cap (${cap/1e6:.1f}M)** out of bounds (${CAP_MIN/1e6:.0f}M-${CAP_MAX/1e6:.0f}M)")
+            if q_type != "ETF":
+                cap = info.get('marketCap', 0)
+                if cap < CAP_MIN or cap > CAP_MAX:
+                    reasons.append(f"**Market Cap (${cap/1e6:.1f}M)** out of bounds (${CAP_MIN/1e6:.0f}M-${CAP_MAX/1e6:.0f}M)")
                 
             # 3. Float Check
-            float_shares = info.get('floatShares', 0)
-            if float_shares < FLOAT_MIN or float_shares > FLOAT_MAX:
-                reasons.append(f"**Float ({float_shares/1e6:.1f}M)** out of bounds ({FLOAT_MIN/1e6:.0f}M-{FLOAT_MAX/1e6:.0f}M)")
+            if q_type != "ETF":
+                float_shares = info.get('floatShares', 0)
+                if float_shares < FLOAT_MIN or float_shares > FLOAT_MAX:
+                    reasons.append(f"**Float ({float_shares/1e6:.1f}M)** out of bounds ({FLOAT_MIN/1e6:.0f}M-{FLOAT_MAX/1e6:.0f}M)")
                 
             # 4. Volume Check
             vol = info.get('regularMarketVolume') or info.get('volume', 0)
             if vol < VOLUME_MIN:
                 reasons.append(f"**Volume ({vol})** below minimum ({VOLUME_MIN})")
                 
-            # 5. Sortino Check
+            # 5. Sortino Calculation
             sortino = 0.0
-            if hist_data is not None:
+            if sym in scanner_map and scanner_map[sym].get("sortino") is not None:
+                sortino = scanner_map[sym]["sortino"]
+                print(f"Using cached Sortino for {sym}: {sortino}")
+            elif hist_data is not None:
                 try:
-                    t_df = hist_data if len(missed_tickers) == 1 else hist_data.get(sym)
+                    t_df = hist_data if len(tickers_to_download) == 1 else hist_data.get(sym)
                     if t_df is not None and not t_df.empty:
                         prices = t_df['Close'].dropna()
                         sortino = calculate_sortino(prices)
                 except Exception:
                     pass
-            
-            if sortino < SORTINO_MIN:
-                reasons.append(f"**Sortino Ratio ({sortino:.2f})** below minimum ({SORTINO_MIN})")
+                
+            enable_sortino = os.environ.get("SCANNER_ENABLE_SORTINO", "false").lower() == "true"
+            if enable_sortino:
+                if sortino < SORTINO_MIN:
+                    reasons.append(f"**Sortino Ratio ({sortino:.2f})** below minimum ({SORTINO_MIN})")
                 
             if not reasons:
                 reasons.append("Met all constraints (Might have failed LLM Phase 2 or Sentiment Filter).")
@@ -154,7 +275,23 @@ def format_scanner_cell(sym, scanner_map):
         return f"✅ Yes ({info['tier']} - {info['grade']})"
     return "❌ No"
 
-def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis):
+def render_miss_reasons_table(tickers, scanner_map, missed_analysis_map):
+    missed_tickers = [t for t in tickers if t and t not in scanner_map]
+    if not missed_tickers:
+        return []
+    
+    table_lines = [
+        "| Symbol | Reasons for Rejection / Miss |",
+        "| :--- | :--- |"
+    ]
+    for sym in missed_tickers:
+        reasons = missed_analysis_map.get(sym, ["Pending analysis..."])
+        reasons_clean = "<br>".join([r.strip() for r in reasons])
+        table_lines.append(f"| {sym} | {reasons_clean} |")
+    
+    return ["", "### Scan Miss Reasons", ""] + table_lines + [""]
+
+def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map):
     lines = [
         f"# Daily Market Report: {date_str}",
         "",
@@ -174,6 +311,9 @@ def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis):
         lines.append(f"| {sym} | ${price} | {change} | {vol} | {on_scan} |")
     lines.append("")
     
+    gainer_tickers = [item.get("ticker", "") for item in av_data.get("top_gainers", [])[:10]]
+    lines.extend(render_miss_reasons_table(gainer_tickers, scanner_map, missed_analysis_map))
+    
     # 2. Top Losers
     lines.extend(["## Top 10 Market Losers", ""])
     lines.extend(["| Symbol | Price | Change % | Volume | On Scanner? |", "| :--- | :--- | :--- | :--- | :--- |"])
@@ -185,6 +325,9 @@ def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis):
         on_scan = format_scanner_cell(sym, scanner_map)
         lines.append(f"| {sym} | ${price} | {change} | {vol} | {on_scan} |")
     lines.append("")
+    
+    loser_tickers = [item.get("ticker", "") for item in av_data.get("top_losers", [])[:10]]
+    lines.extend(render_miss_reasons_table(loser_tickers, scanner_map, missed_analysis_map))
     
     # 3. Most Actively Traded
     lines.extend(["## Top 10 Most Actively Traded (Volume)", ""])
@@ -198,6 +341,9 @@ def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis):
         lines.append(f"| {sym} | ${price} | {change} | {vol} | {on_scan} |")
     lines.append("")
     
+    active_tickers = [item.get("ticker", "") for item in av_data.get("most_actively_traded", [])[:10]]
+    lines.extend(render_miss_reasons_table(active_tickers, scanner_map, missed_analysis_map))
+    
     # 4. Top Gappers
     lines.extend(["## Top 10 Gappers", "*(Calculated from the open vs previous close of the top gainers/actives)*", ""])
     lines.extend(["| Symbol | Pre-Market Gap % | On Scanner? |", "| :--- | :--- | :--- |"])
@@ -207,20 +353,6 @@ def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis):
         on_scan = format_scanner_cell(sym, scanner_map)
         lines.append(f"| {sym} | {gap:.2f}% | {on_scan} |")
     lines.append("")
-    
-    # 5. Missed Gainers Analysis
-    if missed_analysis:
-        lines.extend([
-            "## Scanner Miss Analysis", 
-            "*(Why did the scanner reject these top gainers?)*",
-            ""
-        ])
-        for miss in missed_analysis:
-            sym = miss["symbol"]
-            lines.append(f"### {sym}")
-            for r in miss["reasons"]:
-                lines.append(f"- {r}")
-            lines.append("")
             
     return "\n".join(lines)
 
@@ -239,14 +371,17 @@ def main():
         
     scanner_map = load_scanner_list(date_str, base_dir)
     
-    # Identify Missed Gainers
+    # Identify missed tickers across all three top 10 lists
     top_gainers = av_data.get("top_gainers", [])[:10]
-    missed_gainers = []
-    for g in top_gainers:
-        sym = g.get("ticker", "")
-        if sym and sym not in scanner_map:
-            missed_gainers.append(sym)
-            
+    top_losers = av_data.get("top_losers", [])[:10]
+    most_active = av_data.get("most_actively_traded", [])[:10]
+    
+    missed_gainers = [g.get("ticker", "") for g in top_gainers if g.get("ticker") and g.get("ticker") not in scanner_map]
+    missed_losers = [l.get("ticker", "") for l in top_losers if l.get("ticker") and l.get("ticker") not in scanner_map]
+    missed_actives = [a.get("ticker", "") for a in most_active if a.get("ticker") and a.get("ticker") not in scanner_map]
+    
+    all_missed = list(set(missed_gainers + missed_losers + missed_actives))
+    
     # Pool tickers to calculate gaps
     gapper_pool = set()
     for item in av_data.get("top_gainers", [])[:20]: gapper_pool.add(item.get("ticker"))
@@ -256,19 +391,41 @@ def main():
     print(f"Calculating gaps for {len(gapper_pool)} tickers...")
     gappers = calculate_gappers(gapper_pool)
     
-    # Run analysis on missed gainers
-    missed_analysis = analyze_missed_gainers(missed_gainers)
+    # Run analysis on all unique missed tickers
+    print(f"Running miss analysis on {len(all_missed)} total unique missed symbols...")
+    missed_results = analyze_missed_gainers(all_missed, scanner_map)
+    missed_analysis_map = {item["symbol"]: item["reasons"] for item in missed_results}
     
-    md_content = build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis)
+    md_content = build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map)
     
-    out_dir = os.path.join(base_dir, "data", "archive", "daily_market_reports")
-    os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, f"report_{date_str}.md")
-    
-    with open(out_path, "w", encoding="utf-8") as f:
-        f.write(md_content)
-        
-    print(f"Report successfully saved to {out_path}")
+    # Check if today's post-mortem report exists to combine it
+    post_mortem_content = ""
+    post_mortem_path = os.path.join(base_dir, "data", "reports", "performance", f"Daily_PostMortem_{date_str}.md")
+    if os.path.exists(post_mortem_path):
+        try:
+            with open(post_mortem_path, "r", encoding="utf-8") as f:
+                post_mortem_content = f.read()
+            print(f"Loaded existing post-mortem report for {date_str} to combine.")
+        except Exception as e:
+            print(f"Failed to read post-mortem report: {e}")
+            
+    if post_mortem_content:
+        try:
+            from src.services.historical_reports import combine_reports, sync_combined_report_files
+            combined_content = combine_reports(post_mortem_content, md_content, date_str=date_str)
+            # Sync reports across cache and vault files
+            sync_combined_report_files(date_str, combined_content, has_market_report=True)
+            print("Successfully compiled and synchronized combined reports.")
+        except Exception as e:
+            print(f"Failed to combine/sync reports: {e}")
+    else:
+        # Save just the market report
+        out_dir = os.path.join(base_dir, "data", "archive", "daily_market_reports")
+        os.makedirs(out_dir, exist_ok=True)
+        out_path = os.path.join(out_dir, f"report_{date_str}.md")
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(md_content)
+        print(f"Saved market report without post-mortem to {out_path}")
 
 if __name__ == "__main__":
     main()

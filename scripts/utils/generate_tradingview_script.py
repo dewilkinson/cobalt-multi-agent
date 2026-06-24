@@ -197,15 +197,36 @@ def main():
                 recent_closed_by_symbol[sym] = []
             recent_closed_by_symbol[sym].append(t)
         
-    # Get today's start timestamp in Eastern Time, then get its UTC timestamp
+    # Find the date range of executions actually plotted
+    all_timestamps = []
+    for sym, execs in recent_executions_by_symbol.items():
+        for ex in execs:
+            all_timestamps.append(ex["time_ms"])
+            
+    for sym, trades in recent_closed_by_symbol.items():
+        for t in trades:
+            all_timestamps.append(t["open_time_ms"])
+            all_timestamps.append(t["close_time_ms"])
+            
     eastern_tz = ZoneInfo("America/New_York")
+    if all_timestamps:
+        min_time = datetime.fromtimestamp(min(all_timestamps) / 1000, tz=eastern_tz)
+        max_time = datetime.fromtimestamp(max(all_timestamps) / 1000, tz=eastern_tz)
+        date_range_str = f" ({min_time.strftime('%Y-%m-%d')} to {max_time.strftime('%Y-%m-%d')})"
+    else:
+        # Default fallback to last 7 days
+        start_date = (datetime.now(eastern_tz) - timedelta(days=7)).strftime('%Y-%m-%d')
+        end_date = datetime.now(eastern_tz).strftime('%Y-%m-%d')
+        date_range_str = f" ({start_date} to {end_date})"
+        
+    # Get today's start timestamp in Eastern Time, then get its UTC timestamp
     today_start = datetime.now(eastern_tz).replace(hour=0, minute=0, second=0, microsecond=0)
     today_start_ms = int(today_start.timestamp() * 1000)
     
     # Generate Pine Script
     pine_script = []
     pine_script.append('//@version=6')
-    pine_script.append('indicator("Fidelity Trades Plotter", overlay=true, max_labels_count=500, max_lines_count=500)')
+    pine_script.append(f'indicator("Fidelity Trades Plotter{date_range_str}", overlay=true, max_labels_count=500, max_lines_count=500)')
     pine_script.append('')
     pine_script.append('// Inputs')
     pine_script.append('show_labels = input.bool(true, "Show Execution Labels")')
