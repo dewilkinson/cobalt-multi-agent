@@ -7,7 +7,21 @@ sys.path.append(os.getcwd())
 from src.server.app import _background_synthesis_task
 
 async def main():
-    date_str = datetime.now().strftime('%Y-%m-%d')
+    date_str = None
+    for arg in sys.argv:
+        if arg.startswith("--date="):
+            date_str = arg.split("=")[1]
+        elif arg == "--date" and len(sys.argv) > sys.argv.index(arg) + 1:
+            date_str = sys.argv[sys.argv.index(arg) + 1]
+            
+    if not date_str:
+        date_str = os.environ.get("VLI_REPORT_DATE")
+        
+    if not date_str:
+        date_str = datetime.now().strftime('%Y-%m-%d')
+        
+    # Also set VLI_REPORT_DATE in environment so tools downstream can read it
+    os.environ["VLI_REPORT_DATE"] = date_str
     print('Running direct synthesis...')
     try:
         await _background_synthesis_task(

@@ -11,7 +11,45 @@ from src.utils.quota_shield import quota_shield, VLIQuotaExhaustedError
 
 logger = logging.getLogger(__name__)
 
-class QuotaProtectedLLM:
+def _check_synthesis_ban():
+    import time
+    import json
+    import os
+    
+    ban_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "synthesis_ban.json"))
+    if os.path.exists(ban_file):
+        try:
+            with open(ban_file, "r") as f:
+                ban_data = json.load(f)
+            blocked_until = ban_data.get("blocked_until", 0)
+            if time.time() < blocked_until:
+                hours_left = (blocked_until - time.time()) / 3600
+                fail_msg = f"[QUOTA_SHIELD] Report LLM synthesis is banned for the next {hours_left:.2f} hours (user-enforced)."
+                logger.error(fail_msg)
+                raise VLIQuotaExhaustedError(fail_msg)
+        except VLIQuotaExhaustedError:
+            raise
+        except Exception as e:
+            logger.warning(f"Error checking synthesis ban file: {e}")
+
+def _swap_llm(runnable: Any, raw_llm: Any, wrapper: Any) -> Any:
+    if runnable is raw_llm:
+        return wrapper
+    if hasattr(runnable, "bound") and runnable.bound is raw_llm:
+        runnable.bound = wrapper
+    elif hasattr(runnable, "steps"):
+        for i, step in enumerate(runnable.steps):
+            if step is raw_llm:
+                runnable.steps[i] = wrapper
+            else:
+                _swap_llm(step, raw_llm, wrapper)
+    if hasattr(runnable, "bound") and runnable.bound is not raw_llm:
+        _swap_llm(runnable.bound, raw_llm, wrapper)
+    return runnable
+
+from langchain_core.runnables import Runnable
+
+class QuotaProtectedLLM(Runnable):
     """
     A wrapper for LangChain ChatModels that intercepts calls to enforce 
     TPM/RPM quotas via QuotaShield.
@@ -24,12 +62,42 @@ class QuotaProtectedLLM:
         """Delegate everything else to the internal LLM."""
         return getattr(self.llm, name)
 
+    def bind_tools(self, tools: Any, **kwargs: Any) -> Any:
+        bound = self.llm.bind_tools(tools, **kwargs)
+        from langchain_core.runnables import RunnableBinding
+        if isinstance(bound, RunnableBinding):
+            return RunnableBinding(bound=self, kwargs=bound.kwargs, config=bound.config)
+        return _swap_llm(bound, self.llm, self)
+
+    def with_structured_output(self, schema: Any, **kwargs: Any) -> Any:
+        runnable = self.llm.with_structured_output(schema, **kwargs)
+        return _swap_llm(runnable, self.llm, self)
+
+    def __or__(self, other: Any) -> Any:
+        runnable = self.llm.__or__(other)
+        return _swap_llm(runnable, self.llm, self)
+
+    def __ror__(self, other: Any) -> Any:
+        runnable = self.llm.__ror__(other)
+        return _swap_llm(runnable, self.llm, self)
+
     async def ainvoke(
         self,
         input: Union[str, List[BaseMessage]],
         config: Optional[Any] = None,
         **kwargs: Any,
     ) -> Any:
+        # Check user-enforced synthesis ban
+        _check_synthesis_ban()
+
+        # Check daily quota of 10M tokens
+        from src.utils.token_tracker import token_tracker
+        total_used = token_tracker.get_total_daily_tokens()
+        if total_used > 10000000:
+            fail_msg = f"[QUOTA_SHIELD] Daily token quota limit of 10,000,000 exceeded. Used today: {total_used}."
+            logger.error(fail_msg)
+            raise VLIQuotaExhaustedError(fail_msg)
+
         cache_name = None
         cleaned_input = input
         
@@ -107,6 +175,17 @@ class QuotaProtectedLLM:
         config: Optional[Any] = None,
         **kwargs: Any,
     ) -> Any:
+        # Check user-enforced synthesis ban
+        _check_synthesis_ban()
+
+        # Check daily quota of 10M tokens
+        from src.utils.token_tracker import token_tracker
+        total_used = token_tracker.get_total_daily_tokens()
+        if total_used > 10000000:
+            fail_msg = f"[QUOTA_SHIELD] Daily token quota limit of 10,000,000 exceeded. Used today: {total_used}."
+            logger.error(fail_msg)
+            raise VLIQuotaExhaustedError(fail_msg)
+
         cache_name = None
         cleaned_input = input
         

@@ -66,7 +66,10 @@ def format_price(val):
     return str_val.rstrip('0').rstrip('.') if '.' in str_val else str_val
 
 def main():
+    import sys
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    sys.path.append(os.path.abspath(os.path.join(project_root, "backend")))
+    
     cache_file = os.path.join(project_root, "backend", "data", "brokerage_cache.json")
     backup_file = os.path.join(project_root, "backend", "data", "archive", "BrokerageCacheDailyBackup.json")
     
@@ -81,101 +84,144 @@ def main():
         print("Error: No brokerage cache found.")
         return
         
-    activities = data.get("Rollover IRA *5513", {}).get("activities", [])
-    chronological_acts = sorted(activities, key=parse_time)
-    
-    # Cutoff date (1st day of the current month)
-    eastern_tz = ZoneInfo("America/New_York")
-    now = datetime.now(eastern_tz)
-    cutoff_date = datetime(now.year, now.month, 1, tzinfo=eastern_tz)
-    cleared_orphans = False
-    
+    active_accounts = ["Rollover IRA *5513"]
+    try:
+        from src.config.loader import get_config
+        config = get_config()
+        if "DROPZONE_ACCOUNTS" in config:
+            active_accounts = list(config["DROPZONE_ACCOUNTS"].keys())
+    except Exception as e:
+        print(f"Warning: Could not load configuration for active accounts: {e}")
+        active_accounts = list(data.keys())
+
     executions_by_symbol = {}
-    tax_lots = {}  # symbol -> list of {"qty": float, "price": float, "time_ms": int}
     closed_trades = []
     
-    for act in chronological_acts:
-        trade_time = parse_time(act)
-        # Check if we should clear orphaned trades from before this month
-        if not cleared_orphans and trade_time >= cutoff_date:
-            tax_lots.clear()
-            cleared_orphans = True
-            
-        action = act.get('type', '').upper()
-        status = act.get('status', '').upper()
-        if status not in ['EXECUTED', 'FILLED']:
+    for account in active_accounts:
+        if account not in data:
             continue
             
-        sym = act.get('symbol', {}).get('symbol') if isinstance(act.get('symbol'), dict) else act.get('symbol')
-        if not sym:
+        activities = data.get(account, {}).get("activities", [])
+        if not activities:
             continue
-        sym = sym.upper()
-        
-        qty = float(act.get('units', 0))
-        price = float(act.get('price', 0))
-        
-        time_str_tooltip = trade_time.strftime("%Y-%m-%d %H:%M:%S") + " ET"
-        
-        # Shift back by 1 minute to account for broker reporting delay and align with the correct candle
-        # Prevent subtraction from datetime.min which causes an overflow error
-        if trade_time.year > 1:
-            trade_time_adjusted = trade_time - timedelta(minutes=1)
-        else:
-            trade_time_adjusted = trade_time
-        trade_time_truncated = trade_time_adjusted.replace(second=0, microsecond=0)
-        time_ms = int(trade_time_truncated.timestamp() * 1000)
-        
-        if sym not in executions_by_symbol:
-            executions_by_symbol[sym] = []
-        
-        is_buy = action in ["BUY", "BOUGHT", "BTO", "BTC"]
-        executions_by_symbol[sym].append({
-            "time_ms": time_ms,
-            "price": price,
-            "qty": qty,
-            "is_buy": is_buy,
-            "time_str": time_str_tooltip
-        })
-        
-        if is_buy:
-            if sym not in tax_lots:
-                tax_lots[sym] = []
-            tax_lots[sym].append({"qty": qty, "price": price, "time_ms": time_ms})
-        else:
-            if sym not in tax_lots:
-                tax_lots[sym] = []
             
-            sell_qty_remaining = qty
-            while sell_qty_remaining > 0.0001 and len(tax_lots[sym]) > 0:
-                lot = tax_lots[sym][0]
-                if lot["qty"] <= sell_qty_remaining:
-                    qty_matched = lot["qty"]
-                    pnl = (price - lot["price"]) * qty_matched
-                    closed_trades.append({
-                        "symbol": sym,
-                        "open_time_ms": lot["time_ms"],
-                        "close_time_ms": time_ms,
-                        "open_price": lot["price"],
-                        "close_price": price,
-                        "qty": qty_matched,
-                        "pnl": pnl
-                    })
-                    sell_qty_remaining -= qty_matched
-                    tax_lots[sym].pop(0)
-                else:
-                    qty_matched = sell_qty_remaining
-                    pnl = (price - lot["price"]) * qty_matched
-                    closed_trades.append({
-                        "symbol": sym,
-                        "open_time_ms": lot["time_ms"],
-                        "close_time_ms": time_ms,
-                        "open_price": lot["price"],
-                        "close_price": price,
-                        "qty": qty_matched,
-                        "pnl": pnl
-                    })
-                    lot["qty"] -= qty_matched
-                    sell_qty_remaining = 0.0
+        print(f"Generating TradingView Plotter data for account: {account} ({len(activities)} activities)...")
+        chronological_acts = sorted(activities, key=parse_time)
+        
+        # Cutoff date (1st day of the current month)
+        eastern_tz = ZoneInfo("America/New_York")
+        now = datetime.now(eastern_tz)
+        cutoff_date = datetime(now.year, now.month, 1, tzinfo=eastern_tz)
+        cleared_orphans = False
+        
+        tax_lots = {}  # symbol -> {"type": "flat"|"long"|"short", "lots": list}
+        
+        for act in chronological_acts:
+            trade_time = parse_time(act)
+            if not cleared_orphans and trade_time >= cutoff_date:
+                tax_lots.clear()
+                cleared_orphans = True
+                
+            action = act.get('type', act.get('action', '')).upper()
+            status = act.get('status', '').upper()
+            if status not in ['EXECUTED', 'FILLED']:
+                continue
+                
+            sym = act.get('symbol', {}).get('symbol') if isinstance(act.get('symbol'), dict) else act.get('symbol')
+            if not sym:
+                continue
+            sym = sym.upper()
+            
+            qty = float(act.get('units', 0))
+            price = float(act.get('price', 0))
+            
+            time_str_tooltip = trade_time.strftime("%Y-%m-%d %H:%M:%S") + " ET"
+            
+            if trade_time.year > 1:
+                trade_time_adjusted = trade_time - timedelta(minutes=1)
+            else:
+                trade_time_adjusted = trade_time
+            trade_time_truncated = trade_time_adjusted.replace(second=0, microsecond=0)
+            time_ms = int(trade_time_truncated.timestamp() * 1000)
+            
+            if sym not in executions_by_symbol:
+                executions_by_symbol[sym] = []
+            
+            is_buy = action in ["BUY", "BOUGHT", "BTO", "BTC"]
+            executions_by_symbol[sym].append({
+                "time_ms": time_ms,
+                "price": price,
+                "qty": qty,
+                "is_buy": is_buy,
+                "time_str": time_str_tooltip,
+                "account": account
+            })
+            
+            if sym not in tax_lots:
+                tax_lots[sym] = {"type": "flat", "lots": []}
+                
+            lot_info = tax_lots[sym]
+            
+            if is_buy:
+                if lot_info["type"] in ["flat", "long"]:
+                    lot_info["lots"].append({"qty": qty, "price": price, "time_ms": time_ms})
+                    lot_info["type"] = "long"
+                else: # cover short
+                    buy_qty_remaining = qty
+                    while buy_qty_remaining > 0.0001 and len(lot_info["lots"]) > 0:
+                        lot = lot_info["lots"][0]
+                        match_qty = min(lot["qty"], buy_qty_remaining)
+                        # Short PnL = (entry_price - cover_price) * qty
+                        pnl = (lot["price"] - price) * match_qty
+                        closed_trades.append({
+                            "symbol": sym,
+                            "open_time_ms": lot["time_ms"],
+                            "close_time_ms": time_ms,
+                            "open_price": lot["price"],
+                            "close_price": price,
+                            "qty": match_qty,
+                            "pnl": pnl,
+                            "account": account
+                        })
+                        buy_qty_remaining -= match_qty
+                        lot["qty"] -= match_qty
+                        if lot["qty"] <= 0.0001:
+                            lot_info["lots"].pop(0)
+                    if buy_qty_remaining > 0.0001:
+                        lot_info["lots"].append({"qty": buy_qty_remaining, "price": price, "time_ms": time_ms})
+                        lot_info["type"] = "long"
+                    elif len(lot_info["lots"]) == 0:
+                        lot_info["type"] = "flat"
+            else:
+                if lot_info["type"] in ["flat", "short"]:
+                    lot_info["lots"].append({"qty": qty, "price": price, "time_ms": time_ms})
+                    lot_info["type"] = "short"
+                else: # close long
+                    sell_qty_remaining = qty
+                    while sell_qty_remaining > 0.0001 and len(lot_info["lots"]) > 0:
+                        lot = lot_info["lots"][0]
+                        match_qty = min(lot["qty"], sell_qty_remaining)
+                        # Long PnL = (sell_price - buy_price) * qty
+                        pnl = (price - lot["price"]) * match_qty
+                        closed_trades.append({
+                            "symbol": sym,
+                            "open_time_ms": lot["time_ms"],
+                            "close_time_ms": time_ms,
+                            "open_price": lot["price"],
+                            "close_price": price,
+                            "qty": match_qty,
+                            "pnl": pnl,
+                            "account": account
+                        })
+                        sell_qty_remaining -= match_qty
+                        lot["qty"] -= match_qty
+                        if lot["qty"] <= 0.0001:
+                            lot_info["lots"].pop(0)
+                    if sell_qty_remaining > 0.0001:
+                        lot_info["lots"].append({"qty": sell_qty_remaining, "price": price, "time_ms": time_ms})
+                        lot_info["type"] = "short"
+                    elif len(lot_info["lots"]) == 0:
+                        lot_info["type"] = "flat"
 
     # Get 7-day cutoff in UTC
     cutoff_time = datetime.now(timezone.utc) - timedelta(days=7)
@@ -226,7 +272,7 @@ def main():
     # Generate Pine Script
     pine_script = []
     pine_script.append('//@version=6')
-    pine_script.append(f'indicator("Fidelity Trades Plotter{date_range_str}", overlay=true, max_labels_count=500, max_lines_count=500)')
+    pine_script.append(f'indicator("Daily Trade Plotter{date_range_str}", overlay=true, max_labels_count=500, max_lines_count=500)')
     pine_script.append('')
     pine_script.append('// Inputs')
     pine_script.append('show_labels = input.bool(true, "Show Execution Labels")')
@@ -271,7 +317,7 @@ def main():
         execs = recent_executions_by_symbol.get(sym, [])
         for ex in execs:
             is_buy_str = "true" if ex["is_buy"] else "false"
-            tooltip_val = f'{"Buy Entry" if ex["is_buy"] else "Sell Exit"}\\nTime: {ex["time_str"]}\\nQty: {ex["qty"]}\\nPrice: ${format_price(ex["price"])}'
+            tooltip_val = f'{"Buy Entry" if ex["is_buy"] else "Sell Exit"}\\nAccount: {ex.get("account", "Unknown")}\\nTime: {ex["time_str"]}\\nQty: {ex["qty"]}\\nPrice: ${format_price(ex["price"])}'
             pine_script.append(f'        draw_execution({ex["time_ms"]}, {ex["price"]}, {is_buy_str}, "{tooltip_val}", only_today, today_start)')
             
     # Output file

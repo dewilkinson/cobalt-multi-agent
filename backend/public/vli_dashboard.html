@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0112";
+        const VLI_CLIENT_VERSION = "00.000.0119";
     </script>
     
     <link
@@ -1881,6 +1881,10 @@
                                     <select id="order-hist-account-${instanceGuid}" class="vli-input" style="flex:1;" onchange="fetchOrderHistory('${instanceGuid}')">
                                         <option value="">Loading Accounts...</option>
                                     </select>
+                                    <label id="order-hist-combine-tv-label-${instanceGuid}" style="display:none; align-items:center; gap:5px; font-size:11px; white-space:nowrap; cursor:pointer; color:var(--text-muted);">
+                                        <input type="checkbox" id="order-hist-combine-tv-${instanceGuid}" onchange="fetchOrderHistory('${instanceGuid}')" style="accent-color: var(--cobalt-blue); cursor:pointer;">
+                                        Combine TV
+                                    </label>
                                 </div>
                                 <div style="display:flex; gap: 5px; align-items:center;">
                                     <select id="order-hist-range-${instanceGuid}" class="vli-input" style="flex:1;" onchange="setOrderHistoryRange(this.value, '${instanceGuid}')">
@@ -4585,11 +4589,15 @@
                                 vliChatSyncPointer++;
                                 msgBox.scrollTop = msgBox.scrollHeight;
                             } else if (data.metadata && data.metadata.action === "NAVIGATE") {
-                                window.open(data.metadata.url, '_blank');
+                                const newWin = window.open(data.metadata.url, '_blank');
                                 const aiMsg = document.createElement('div');
                                 aiMsg.className = 'msg msg-ai';
                                 aiMsg.style.borderColor = 'var(--emerald-green)';
-                                aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Opening page at **${data.metadata.url}**.`);
+                                if (!newWin) {
+                                    aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Popup blocked. [Click here to open the Journal](${data.metadata.url})`);
+                                } else {
+                                    aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Opening page at **${data.metadata.url}**.`);
+                                }
                                 msgBox.appendChild(aiMsg);
                                 vliChatSyncPointer++;
                                 msgBox.scrollTop = msgBox.scrollHeight;
@@ -4689,11 +4697,15 @@
                                       msgBox.appendChild(aiMsg);
                                       vliChatSyncPointer++;
                                   } else if (data.metadata && data.metadata.action === "NAVIGATE") {
-                                       window.open(data.metadata.url, '_blank');
+                                       const newWin = window.open(data.metadata.url, '_blank');
                                        const aiMsg = document.createElement('div');
                                        aiMsg.className = 'msg msg-ai';
                                        aiMsg.style.borderColor = 'var(--emerald-green)';
-                                       aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Opening page at **${data.metadata.url}**.`);
+                                       if (!newWin) {
+                                            aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Popup blocked. [Click here to open the Journal](${data.metadata.url})`);
+                                       } else {
+                                            aiMsg.innerHTML = applyStatusFormatting(`**SYSTEM**: Opening page at **${data.metadata.url}**.`);
+                                       }
                                        msgBox.appendChild(aiMsg);
                                        vliChatSyncPointer++;
                                   } else if (data.metadata && data.metadata.action === "OPEN_CARD") {
@@ -5288,7 +5300,28 @@
                 window.setOrderHistoryRange(rangeSelect.value, instanceGuid, true);
             }
             
-            const accountId = document.getElementById(`order-hist-account-${instanceGuid}`).value;
+            const rawAccountId = document.getElementById(`order-hist-account-${instanceGuid}`).value;
+            
+            // Dynamic UI adjustment for Combine TV checkbox
+            const combineTvLabel = document.getElementById(`order-hist-combine-tv-label-${instanceGuid}`);
+            if (combineTvLabel) {
+                if (rawAccountId.startsWith('TradingView Paper')) {
+                    combineTvLabel.style.display = 'flex';
+                } else {
+                    combineTvLabel.style.display = 'none';
+                }
+            }
+            
+            let accountId = rawAccountId;
+            const combineTvCb = document.getElementById(`order-hist-combine-tv-${instanceGuid}`);
+            if (combineTvCb && combineTvCb.checked) {
+                if (accountId === 'TradingView Paper Stocks') {
+                    accountId = 'TradingView Paper Stocks,TradingView Paper Futures';
+                } else if (accountId === 'TradingView Paper Futures') {
+                    accountId = 'TradingView Paper Futures,TradingView Paper Stocks';
+                }
+            }
+            
             const startVal = document.getElementById(`order-hist-start-${instanceGuid}`).value;
             const endVal = document.getElementById(`order-hist-end-${instanceGuid}`).value;
             const symbolFilter = document.getElementById(`order-hist-symbol-${instanceGuid}`).value.toUpperCase().trim();
@@ -5800,11 +5833,7 @@
     <div id="sidebar-tabs-left" class="sidebar-tabs-container" style="left: 0; right: auto;">
         <div id="tab-btn-artifacts" class="folder-tab" style="border-radius: 0 4px 4px 0;" onclick="switchSidebarTab('artifacts')">REPORTS</div>
         <div id="tab-btn-strategy" class="folder-tab" style="border-radius: 0 4px 4px 0; margin-top: 5px;" onclick="switchSidebarTab('strategy')">STRATEGY</div>
-        <div id="tab-btn-journal" class="folder-tab" style="border-radius: 0 4px 4px 0; margin-top: 5px; color: var(--emerald-green); border-color: rgba(16, 185, 129, 0.4);" onclick="(() => {
-            const port = window.location.port;
-            const targetPort = (port === '2026') ? '2026' : '8080';
-            window.open(window.location.protocol + '//' + window.location.hostname + ':' + targetPort + '/workspace/journal', '_blank');
-        })()">JOURNAL ↗</div>
+        <a id="tab-btn-journal" class="folder-tab" style="border-radius: 0 4px 4px 0; margin-top: 5px; color: var(--emerald-green); border-color: rgba(16, 185, 129, 0.4); text-decoration: none;" target="_blank">JOURNAL ↗</a>
     </div>
 
     <div id="sidebar-tabs-right" class="sidebar-tabs-container" style="right: 0; left: auto;">
@@ -6455,6 +6484,14 @@
         // Initialize on load
         window.addEventListener('DOMContentLoaded', () => {
             initScannerSettings();
+            
+            // Resolve target href dynamically for journaling tab to bypass popup blockers natively
+            const journalBtn = document.getElementById('tab-btn-journal');
+            if (journalBtn) {
+                const port = window.location.port;
+                const targetPort = (port === '2026') ? '2026' : '8080';
+                journalBtn.href = window.location.protocol + '//' + window.location.hostname + ':' + targetPort + '/workspace/journal';
+            }
             
             // Wait a brief moment to ensure UI frames are ready before fetching scanner
             setTimeout(() => {

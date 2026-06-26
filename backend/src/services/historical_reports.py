@@ -33,6 +33,26 @@ async def _condense_content(prompt_text: str) -> str:
         logger.error(f"Failed to condense content: {e}")
         return ""
 
+def clean_val(val: str) -> str:
+    if not val:
+        return ""
+    val_stripped = val.strip()
+    if val_stripped.startswith("[") and val_stripped.endswith("]"):
+        try:
+            import ast
+            parsed = ast.literal_eval(val_stripped)
+            if isinstance(parsed, list):
+                text_parts = []
+                for item in parsed:
+                    if isinstance(item, dict):
+                        text_parts.append(item.get("text", ""))
+                    else:
+                        text_parts.append(str(item))
+                return "".join(text_parts).strip()
+        except Exception:
+            pass
+    return val
+
 def update_symbol_rolling_summary(ticker: str, new_report_content: str):
     """
     Called at 5 PM. Condenses the most recent Symbol Analysis Report into the rolling summary.
@@ -121,7 +141,7 @@ def get_trader_performance_summary() -> str:
             return f.read()
     return ""
 
-def write_obsidian_daily_report(content: str):
+def write_obsidian_daily_report(content: str, date_str: str = None):
     """Writes the raw Daily Trading Report to the Obsidian Journal vault."""
     try:
         from src.tools.journal import _get_obsidian_config
@@ -134,7 +154,8 @@ def write_obsidian_daily_report(content: str):
         reports_dir = os.path.join(full_journal_dir, "Daily Reports")
         os.makedirs(reports_dir, exist_ok=True)
         
-        date_str = datetime.now().strftime("%Y-%m-%d")
+        if not date_str:
+            date_str = datetime.now().strftime("%Y-%m-%d")
         file_path = os.path.join(reports_dir, f"Daily_PostMortem_{date_str}.md")
         
         # We replace the file if it exists, since it's the 5 PM raw post mortem
@@ -212,6 +233,12 @@ def parse_daily_journal_file(date_str: str) -> dict:
     else:
         data["markdown"] = content.strip()
         
+    # Strip ## Agent Feedback section from markdown so editor doesn't show it
+    raw_md = data.get("markdown", "")
+    if "## Agent Feedback" in raw_md:
+        import re
+        data["markdown"] = re.split(r'\n+## Agent Feedback\b', raw_md)[0].strip()
+        
     return data
 
 
@@ -250,7 +277,132 @@ def save_daily_journal_file(date_str: str, grades: dict, body_markdown: str):
     
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(content)
-    logger.info(f"Saved daily journal with grades to {file_path}")
+    logger.info(f"Saved daily journal with grades to Obsidian: {file_path}")
+    
+    # Write to VLI reports folder
+    try:
+        vli_reports_root = os.environ.get("VLI_REPORTS_ROOT")
+        if not vli_reports_root:
+            default_root = os.path.join(os.getcwd(), "data", "reports")
+            if not os.path.exists(os.path.join(os.getcwd(), "data")):
+                default_root = os.path.join(os.getcwd(), "backend", "data", "reports")
+            vli_reports_root = default_root
+            
+        os.makedirs(vli_reports_root, exist_ok=True)
+        vli_file_path = os.path.join(vli_reports_root, f"Daily_Trading_Report_{date_str}.md")
+        with open(vli_file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        logger.info(f"Saved daily journal with grades to VLI reports folder: {vli_file_path}")
+        
+        # Also save to date subfolder in VLI reports root if applicable
+        vli_date_dir = os.path.join(vli_reports_root, date_str)
+        os.makedirs(vli_date_dir, exist_ok=True)
+        vli_date_file_path = os.path.join(vli_date_dir, f"Daily_Trading_Report_{date_str}.md")
+        with open(vli_date_file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        logger.info(f"Saved daily journal with grades to VLI date reports folder: {vli_date_file_path}")
+    except Exception as e:
+        logger.error(f"Failed to sync daily journal to VLI reports directory: {e}")
+
+def save_daily_journal_note(date_str: str, grades: dict, synthesized_notes: str, synthesized_assessment: str):
+    """
+    Saves the daily journal file in BOTH the Obsidian vault and the VLI reports folders.
+    """
+    try:
+        from src.tools.journal import _get_obsidian_config
+        vault_path, journal_dir = _get_obsidian_config(None)
+    except Exception:
+        vault_path, journal_dir = None, None
+        
+    if not vault_path:
+        vault_path = os.environ.get("OBSIDIAN_VAULT_PATH", r"C:\github\obsidian-vault")
+    if not journal_dir:
+        journal_dir = os.environ.get("OBSIDIAN_JOURNAL_DIR", "Journals")
+        
+    try:
+        vli_reports_root = os.environ.get("VLI_REPORTS_ROOT")
+        if not vli_reports_root:
+            default_root = os.path.join(os.getcwd(), "data", "reports")
+            if not os.path.exists(os.path.join(os.getcwd(), "data")):
+                default_root = os.path.join(os.getcwd(), "backend", "data", "reports")
+            vli_reports_root = default_root
+    except Exception:
+        vli_reports_root = r"C:\github\obsidian-vault\_cobalt\Reports"
+
+    # Format the daily journal report following a consistent structure
+    content = f"# {date_str} Daily Journal\n\n"
+    content += "### Today's Metrics\n"
+    content += f"* **Prep:** {grades.get('prep', 3)}/5\n"
+    content += f"* **Sleep:** {grades.get('sleep', 3)}/5\n"
+    content += f"* **Mood:** {grades.get('mood', 3)}/5\n"
+    content += f"* **Energy:** {grades.get('energy', 3)}/5\n"
+    content += f"* **Confidence:** {grades.get('confidence', 3)}/5\n"
+    content += f"* **Overall Execution Grade:** {grades.get('performance', 'C')}\n\n"
+    content += "---\n\n"
+    content += "## Polished Reflections\n"
+    content += f"{synthesized_notes.strip() if synthesized_notes else 'No notes synthesized yet.'}\n\n"
+    content += "## Mindset Coaching\n"
+    content += f"{synthesized_assessment.strip() if synthesized_assessment else 'No coaching synthesized yet.'}\n"
+
+    # Save to Obsidian Journals
+    try:
+        full_journal_dir = os.path.join(vault_path, journal_dir)
+        os.makedirs(full_journal_dir, exist_ok=True)
+        obsidian_file = os.path.join(full_journal_dir, f"{date_str} Daily Journal.md")
+        with open(obsidian_file, "w", encoding="utf-8") as f:
+            f.write(content)
+        logger.info(f"Saved Daily Journal to Obsidian: {obsidian_file}")
+    except Exception as e:
+        logger.error(f"Failed to write Daily Journal to Obsidian: {e}")
+
+    # Save to VLI reports folders
+    try:
+        os.makedirs(vli_reports_root, exist_ok=True)
+        vli_file = os.path.join(vli_reports_root, f"{date_str} Daily Journal.md")
+        with open(vli_file, "w", encoding="utf-8") as f:
+            f.write(content)
+            
+        vli_date_dir = os.path.join(vli_reports_root, date_str)
+        os.makedirs(vli_date_dir, exist_ok=True)
+        vli_date_file = os.path.join(vli_date_dir, f"{date_str} Daily Journal.md")
+        with open(vli_date_file, "w", encoding="utf-8") as f:
+            f.write(content)
+        logger.info(f"Saved Daily Journal to VLI: {vli_file} and {vli_date_file}")
+    except Exception as e:
+        logger.error(f"Failed to write Daily Journal to VLI: {e}")
+
+def save_synthesized_feedback_to_journal(date_str: str, synthesized_notes: str, synthesized_assessment: str):
+    """
+    Appends/updates the AI synthesized feedback in the user's Daily Journal note in Obsidian under '## Agent Feedback'.
+    """
+    try:
+        journal_data = parse_daily_journal_file(date_str)
+        grades = journal_data.get("grades", {})
+        raw_notes = journal_data.get("markdown", "").strip()
+        
+        # Strip any old Agent Feedback from raw_notes to prevent duplicates
+        import re
+        raw_notes = re.split(r'\n+## Agent Feedback\b', raw_notes)[0].strip()
+        
+        feedback_parts = []
+        if synthesized_notes:
+            feedback_parts.append(f"### Polished Reflections\n{synthesized_notes}")
+        if synthesized_assessment:
+            feedback_parts.append(f"### Mindset Coaching\n{synthesized_assessment}")
+            
+        feedback_text = ""
+        if feedback_parts:
+            feedback_content = "\n\n".join(feedback_parts)
+            feedback_text = f"\n\n## Agent Feedback\n\n{feedback_content}"
+            
+        body_content = f"{raw_notes}{feedback_text}"
+        save_daily_journal_file(date_str, grades, body_content)
+        logger.info(f"Successfully saved synthesized feedback to Daily Journal file for {date_str}")
+        
+        # Write to daily journal file as well
+        save_daily_journal_note(date_str, grades, synthesized_notes, synthesized_assessment)
+    except Exception as e:
+        logger.error(f"Failed to save synthesized report to Daily Journal: {e}")
 
 
 def get_recent_grades_trend(date_str: str, limit_days: int = 7) -> str:
@@ -386,13 +538,20 @@ Specifically, note areas of concern, identify if they are repeating any recurrin
 Keep the tone direct, supportive, and analytical.
 Output only the markdown content (do not write "## Self Assessment" heading, just write the paragraphs/bullets directly). Do not add any greeting, intro, or wrap-up conversation.
 """
-    
     try:
         res_notes = llm.invoke([SystemMessage(content="You are a data synthesis engine."), HumanMessage(content=notes_prompt)])
         res_assess = llm.invoke([SystemMessage(content="You are an expert trading coach."), HumanMessage(content=assessment_prompt)])
-        
-        notes_md = str(getattr(res_notes, "content", res_notes)).strip()
-        assess_md = str(getattr(res_assess, "content", res_assess)).strip()
+
+        def extract_content(res):
+            content = getattr(res, "content", res)
+            if isinstance(content, str):
+                return content.strip()
+            elif isinstance(content, list):
+                return " ".join([b.get("text", "") if isinstance(b, dict) else str(b) for b in content]).strip()
+            return str(content).strip()
+
+        notes_md = clean_val(extract_content(res_notes))
+        assess_md = clean_val(extract_content(res_assess))
         
         return notes_md, assess_md
     except Exception as e:
@@ -424,11 +583,11 @@ def combine_reports(post_mortem: str, market_report: str, date_str: str = None) 
     cleaned_pm = split_mr[0].strip()
     
     # Strip any old synthesized sections
-    cleaned_pm = re.split(r'\n+## (?:Trader Notes|Self Assessment|Subjective Experience|Notes)\b', cleaned_pm)[0].strip()
+    cleaned_pm = re.split(r'\n+## (?:Trader Notes|Self Assessment|Subjective Experience|Notes|Agent Feedback)\b', cleaned_pm)[0].strip()
     
     # 2. Retrieve today's Daily Journal and synthesize sections
     notes_section = ""
-    assessment_section = ""
+    feedback_section = ""
     
     journal_data = parse_daily_journal_file(date_str)
     raw_notes = journal_data.get("markdown", "").strip()
@@ -442,19 +601,57 @@ def combine_reports(post_mortem: str, market_report: str, date_str: str = None) 
     )
     
     if not is_blank and raw_notes:
-        grades = journal_data.get("grades", {})
-        synthesized_notes, synthesized_assessment = synthesize_journal_and_assessment(date_str, grades, raw_notes, cleaned_pm)
+        import json
+        preview_cache_path = os.path.join(PERFORMANCE_DIR, f"Daily_Journal_Preview_{date_str}.json")
+        synthesized_notes = ""
+        synthesized_assessment = ""
         
+        if os.path.exists(preview_cache_path):
+            try:
+                with open(preview_cache_path, "r", encoding="utf-8") as f:
+                    cached_data = json.load(f)
+                    synthesized_notes = clean_val(cached_data.get("trader_notes", ""))
+                    synthesized_assessment = clean_val(cached_data.get("self_assessment", ""))
+            except Exception as e:
+                logger.error(f"Error reading preview cache in combine_reports: {e}")
+                
+        if not synthesized_notes or not synthesized_assessment:
+            grades = journal_data.get("grades", {})
+            synthesized_notes, synthesized_assessment = synthesize_journal_and_assessment(date_str, grades, raw_notes, cleaned_pm)
+            synthesized_notes = clean_val(synthesized_notes)
+            synthesized_assessment = clean_val(synthesized_assessment)
+            
+            # Cache it
+            try:
+                os.makedirs(PERFORMANCE_DIR, exist_ok=True)
+                with open(preview_cache_path, "w", encoding="utf-8") as f:
+                    json.dump({
+                        "trader_notes": synthesized_notes or "",
+                        "self_assessment": synthesized_assessment or ""
+                    }, f, indent=2, ensure_ascii=False)
+            except Exception as e:
+                logger.error(f"Error caching in combine_reports: {e}")
+        
+        # Save the synthesized report to the Obsidian daily journal MD file
+        save_synthesized_feedback_to_journal(date_str, synthesized_notes, synthesized_assessment)
+        
+        notes_section = f"## Trader Notes\n\n{raw_notes}"
+        
+        feedback_parts = []
         if synthesized_notes:
-            notes_section = f"## Trader Notes\n\n{synthesized_notes}"
+            feedback_parts.append(f"### Polished Reflections\n{synthesized_notes}")
         if synthesized_assessment:
-            assessment_section = f"## Self Assessment\n\n{synthesized_assessment}"
+            feedback_parts.append(f"### Mindset Coaching\n{synthesized_assessment}")
+            
+        if feedback_parts:
+            feedback_content = "\n\n".join(feedback_parts)
+            feedback_section = f"## Agent Feedback\n\n{feedback_content}"
             
     final_pm = cleaned_pm
     if notes_section:
         final_pm += "\n\n" + notes_section
-    if assessment_section:
-        final_pm += "\n\n" + assessment_section
+    if feedback_section:
+        final_pm += "\n\n" + feedback_section
         
     if mr_clean:
         return final_pm + "\n\n---\n\n" + mr_clean
@@ -475,8 +672,24 @@ def sync_combined_report_files(date_str: str, combined_content: str, has_market_
     except Exception as e:
         logger.error(f"Failed to save performance cache file: {e}")
         
+    # Sync with alternative performance directory (root vs backend/data)
+    try:
+        if "backend" in PERFORMANCE_DIR:
+            alt_perf_dir = PERFORMANCE_DIR.replace("backend" + os.sep + "data", "data")
+        else:
+            alt_perf_dir = os.path.abspath(os.path.join(PERFORMANCE_DIR, "..", "..", "backend", "data", "reports", "performance"))
+            
+        if alt_perf_dir != PERFORMANCE_DIR and os.path.exists(os.path.dirname(alt_perf_dir)):
+            os.makedirs(alt_perf_dir, exist_ok=True)
+            alt_path = os.path.join(alt_perf_dir, f"Daily_PostMortem_{date_str}.md")
+            with open(alt_path, "w", encoding="utf-8") as f:
+                f.write(combined_content)
+            logger.info(f"Synced combined post-mortem to alternative path: {alt_path}")
+    except Exception as e:
+        logger.warning(f"Failed to sync alternative performance report path: {e}")
+        
     # 2. Save to Obsidian daily reports directory
-    write_obsidian_daily_report(combined_content)
+    write_obsidian_daily_report(combined_content, date_str=date_str)
     
     # 3. Save to market reports archive if there is market report content
     if has_market_report:
@@ -491,21 +704,49 @@ def sync_combined_report_files(date_str: str, combined_content: str, has_market_
         except Exception as e:
             logger.error(f"Failed to save market report archive: {e}")
             
-        # Update Obsidian market report copy
+        # Sync with alternative market report archive path (root vs backend)
         try:
-            from src.tools.journal import _get_obsidian_config
-            vault_path, _ = _get_obsidian_config(None)
-            if vault_path:
-                vault_reports_dir = os.environ.get("VLI_REPORTS_ROOT")
-                if not vault_reports_dir:
-                    vault_reports_dir = os.path.join(vault_path, "_cobalt", "Reports")
+            if "backend" in out_path:
+                alt_out_path = out_path.replace("backend" + os.sep + "data", "data")
+            else:
+                alt_out_path = os.path.abspath(os.path.join(os.path.dirname(out_path), "..", "..", "backend", "data", "archive", "daily_market_reports", f"report_{date_str}.md"))
                 
-                vault_today_dir = os.path.join(vault_reports_dir, date_str)
-                os.makedirs(vault_today_dir, exist_ok=True)
-                vault_out_path = os.path.join(vault_today_dir, f"{date_str} Daily Market Report.md")
-                with open(vault_out_path, "w", encoding="utf-8") as f:
+            if alt_out_path != out_path and os.path.exists(os.path.dirname(os.path.dirname(alt_out_path))):
+                os.makedirs(os.path.dirname(alt_out_path), exist_ok=True)
+                with open(alt_out_path, "w", encoding="utf-8") as f:
                     f.write(combined_content)
-                logger.info(f"Saved combined market report in Obsidian: {vault_out_path}")
+                logger.info(f"Synced combined market report to alternative path: {alt_out_path}")
         except Exception as e:
-            logger.error(f"Failed to update Obsidian market report: {e}")
+            logger.warning(f"Failed to sync alternative market report path: {e}")
+            
+    # Always save to VLI reports date subfolder for the current day
+    try:
+        from src.tools.journal import _get_obsidian_config
+        vault_path, _ = _get_obsidian_config(None)
+        if vault_path:
+            vault_reports_dir = os.environ.get("VLI_REPORTS_ROOT")
+            if not vault_reports_dir:
+                vault_reports_dir = os.path.join(vault_path, "_cobalt", "Reports")
+            
+            # 1. Save as {date_str} Daily Market Report.md in the date subfolder
+            vault_today_dir = os.path.join(vault_reports_dir, date_str)
+            os.makedirs(vault_today_dir, exist_ok=True)
+            vault_out_path = os.path.join(vault_today_dir, f"{date_str} Daily Market Report.md")
+            with open(vault_out_path, "w", encoding="utf-8") as f:
+                f.write(combined_content)
+            logger.info(f"Saved combined market report in VLI folder: {vault_out_path}")
+            
+            # 2. Save the post-mortem report to the VLI reports root and date subfolder
+            os.makedirs(vault_reports_dir, exist_ok=True)
+            pm_filenames = [f"Daily_PostMortem_{date_str}.md", f"{date_str} Daily Post Mortem.md"]
+            for filename in pm_filenames:
+                root_path = os.path.join(vault_reports_dir, filename)
+                date_sub_path = os.path.join(vault_today_dir, filename)
+                with open(root_path, "w", encoding="utf-8") as f:
+                    f.write(combined_content)
+                with open(date_sub_path, "w", encoding="utf-8") as f:
+                    f.write(combined_content)
+            logger.info(f"Copied post mortem report to VLI folders: {vault_reports_dir} and {vault_today_dir}")
+    except Exception as e:
+        logger.error(f"Failed to update VLI market report: {e}")
 

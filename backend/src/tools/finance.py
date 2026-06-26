@@ -365,7 +365,8 @@ def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str =
     elif provider == "alpha_vantage":
         logger.info(f"[AV PARALLEL ENGINE] Extracting {len(mapped_tickers)} tickers concurrently via Alpha Vantage")
         
-        async def fetch_av_concurrently(t):
+        async def fetch_av_concurrently(index, t):
+            await asyncio.sleep(0.25 * index)  # Stagger requests to avoid burst rate limits
             async with _get_av_semaphore():
                 try:
                     df = await asyncio.to_thread(_fetch_av_history, t, period, interval)
@@ -375,7 +376,7 @@ def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str =
                     return t, pd.DataFrame()
 
         async def run_tasks():
-            tasks = [fetch_av_concurrently(t) for t in mapped_tickers]
+            tasks = [fetch_av_concurrently(i, t) for i, t in enumerate(mapped_tickers)]
             return await asyncio.gather(*tasks)
             
         try:
@@ -386,10 +387,44 @@ def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str =
             results = asyncio.get_event_loop().run_until_complete(run_tasks())
 
         master_dict = {}
+        failed_tickers = []
         for t, df in results:
             if not df.empty:
                 for col in df.columns:
                     master_dict[(col, t)] = df[col]
+            else:
+                failed_tickers.append(t)
+
+        if failed_tickers:
+            logger.warning(f"[AV PARALLEL ENGINE] {len(failed_tickers)} tickers failed via Alpha Vantage. Falling back to YFinance for: {failed_tickers}")
+            try:
+                @retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=2, max=6))
+                def _do_yf_fallback():
+                    return yfinance.download(
+                        tickers=failed_tickers,
+                        period=period,
+                        interval=interval,
+                        group_by="ticker",
+                        session=_get_session(),
+                        progress=False,
+                        threads=False,
+                        timeout=15.0,
+                        auto_adjust=False,
+                        prepost=True,
+                    )
+                yf_data = _do_yf_fallback()
+                if yf_data is not None and not yf_data.empty:
+                    if len(failed_tickers) == 1:
+                        t = failed_tickers[0]
+                        for col in yf_data.columns:
+                            master_dict[(col, t)] = yf_data[col]
+                    else:
+                        for t in failed_tickers:
+                            if t in yf_data:
+                                for col in yf_data[t].columns:
+                                    master_dict[(col, t)] = yf_data[t][col]
+            except Exception as yfe:
+                logger.error(f"[AV FALLBACK] YFinance download failed for {failed_tickers}: {yfe}")
                     
         data = pd.DataFrame(master_dict) if master_dict else pd.DataFrame()
     else:

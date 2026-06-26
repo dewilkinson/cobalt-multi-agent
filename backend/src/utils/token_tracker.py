@@ -88,6 +88,14 @@ class TokenTracker:
             self._cache = self._load()
             return dict(self._cache)
 
+    def get_total_daily_tokens(self) -> int:
+        tally = self.get_tally()
+        total = 0
+        for key, val in tally.items():
+            if isinstance(val, dict):
+                total += val.get("input_tokens", 0) + val.get("output_tokens", 0)
+        return total
+
 token_tracker = TokenTracker()
 
 class TokenUsageCallbackHandler(BaseCallbackHandler):

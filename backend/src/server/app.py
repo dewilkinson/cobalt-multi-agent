@@ -541,15 +541,15 @@ async def lifespan(app: FastAPI):
     from src.services.scheduler import cobalt_scheduler
     
     # Register Internal System Tasks
-    from src.services.atp_importer import process_dropzone_files
+    from src.services.csv_importer import watch_dropzone_and_process
     cobalt_scheduler.add_timer(
         task_id="DROPZONE_WATCHER",
         name="VLI Dropzone CSV Processor",
         type="REPEAT",
-        schedule=1,
-        period_unit="minutes",
+        schedule=2,
+        period_unit="seconds",
         priority="NORMAL",
-        callback=process_dropzone_files
+        callback=watch_dropzone_and_process
     )
 
     cobalt_scheduler.add_timer(
@@ -1127,10 +1127,12 @@ async def open_local_artifact(request: OpenLocalRequest):
 # Add CORS middleware
 # It's recommended to load the allowed origins from an environment variable
 # for better security and flexibility across different environments.
-allowed_origins_str = get_str_env("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8089,http://127.0.0.1:8089,http://localhost:8000,http://127.0.0.1:8000,https://digital.fidelity.com")
+allowed_origins_str = get_str_env("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080,http://127.0.0.1:8080,http://localhost:8089,http://127.0.0.1:8089,http://localhost:8000,http://127.0.0.1:8000,https://digital.fidelity.com")
 allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
 if "http://127.0.0.1:3000" not in allowed_origins:
     allowed_origins.append("http://127.0.0.1:3000")
+if "http://127.0.0.1:8080" not in allowed_origins:
+    allowed_origins.append("http://127.0.0.1:8080")
 
 logger.info(f"Allowed origins: {allowed_origins}")
 
@@ -2790,8 +2792,28 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
     try:
         from src.services.brokerage_cache import BrokerageCache
         
+        # Support comma-separated accounts for aggregation
+        accounts = [a.strip() for a in account_id.split(",") if a.strip()]
+        if not accounts:
+            return JSONResponse({"error": "No accounts specified"}, status_code=400)
+        
         # 1. Fetch activities directly from the pure offline cache
-        activities = BrokerageCache.get_activities(account_id)
+        activities = []
+        for acct in accounts:
+            activities.extend(BrokerageCache.get_activities(acct))
+            
+        # Deduplicate activities if they have same id
+        seen_ids = set()
+        dedup_activities = []
+        for act in activities:
+            act_id = act.get('id')
+            if act_id:
+                if act_id not in seen_ids:
+                    seen_ids.add(act_id)
+                    dedup_activities.append(act)
+            else:
+                dedup_activities.append(act)
+        activities = dedup_activities
         
         # Reverse to oldest first for chronological timestamping and position calculation
         activities_chronological = list(reversed(activities))
@@ -2806,68 +2828,162 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
         
         daily_counters = {}
         results = []
-        open_positions = {}
         
+        # We will track open positions per-account first
+        all_accounts_open_positions = []
+        cache_raw = BrokerageCache._load_cache()
+        
+        for acct in accounts:
+            acct_open_positions = {}
+            acct_activities = list(reversed(BrokerageCache.get_activities(acct)))
+            
+            # Check if this account has explicit positions (Fidelity)
+            is_fidelity = "TradingView" not in acct
+            has_explicit = is_fidelity and acct in cache_raw and "positions" in cache_raw[acct]
+            
+            if has_explicit:
+                explicit_list = cache_raw[acct]["positions"] or []
+                for pos in explicit_list:
+                    sym_raw = pos["symbol"].upper().replace('-USD', '').replace('*', '')
+                    if "CASH" in sym_raw or "FZFXX" in sym_raw or "SPAXX" in sym_raw or "FDIC" in sym_raw:
+                        continue
+                    
+                    # Calculate qty_today from activities
+                    qty_today = 0.0
+                    for act in acct_activities:
+                        action = act.get('type', act.get('action', 'N/A')).upper()
+                        if action not in ["BUY", "SELL", "BOUGHT", "SOLD", "BTO", "STC", "BTC", "STO", "REINVEST", "DIVIDEND"]:
+                            continue
+                            
+                        act_sym = act.get('symbol') or act.get('universal_symbol') or {}
+                        if isinstance(act_sym, dict):
+                            act_sym = act_sym.get('symbol', 'N/A')
+                        act_sym_raw = str(act_sym).upper().replace('-USD', '').replace('*', '')
+                        
+                        if act_sym_raw == sym_raw:
+                            qty = float(act.get('units', 0))
+                            placed_time = act.get('trade_date') or act.get('time_placed') or ''
+                            date_only = str(placed_time)[:10] if placed_time else "Unknown"
+                            if date_only == today_str:
+                                if action in ["BUY", "BOUGHT", "BTO", "BTC", "REINVEST", "DIVIDEND"]:
+                                    qty_today += qty
+                                elif action in ["SELL", "SOLD", "STC", "STO"]:
+                                    qty_today -= qty
+                                    
+                    acct_open_positions[sym_raw] = {
+                        "quantity": pos.get("quantity", 0.0),
+                        "average_cost": pos.get("average_cost", 0.0),
+                        "total_cost": pos.get("total_cost", 0.0),
+                        "qty_today": qty_today
+                    }
+            else:
+                # Dynamic position calculation from activities
+                for act in acct_activities:
+                    action = act.get('type', act.get('action', 'N/A')).upper()
+                    if action not in ["BUY", "SELL", "BOUGHT", "SOLD", "BTO", "STC", "BTC", "STO", "REINVEST", "DIVIDEND"]:
+                        continue
+                        
+                    act_sym = act.get('symbol') or act.get('universal_symbol') or {}
+                    if isinstance(act_sym, dict):
+                        act_sym = act_sym.get('symbol', 'N/A')
+                    sym_raw = str(act_sym).upper().replace('-USD', '').replace('*', '')
+                    if sym_raw == 'N/A': continue
+                    
+                    qty = float(act.get('units', 0))
+                    price = float(act.get('price', 0))
+                    status = act.get('status', 'Executed')
+                    placed_time = act.get('trade_date') or act.get('time_placed') or ''
+                    date_only = str(placed_time)[:10] if placed_time else "Unknown"
+                    
+                    if status == "Executed":
+                        if sym_raw not in acct_open_positions:
+                            acct_open_positions[sym_raw] = {"quantity": 0.0, "total_cost": 0.0, "average_cost": 0.0, "qty_today": 0.0}
+                            
+                        old_qty = acct_open_positions[sym_raw]["quantity"]
+                        
+                        if action in ["BUY", "BOUGHT", "BTO", "BTC", "REINVEST", "DIVIDEND"]:
+                            if old_qty < -0.0001:
+                                # Covering short
+                                covered = min(qty, -old_qty)
+                                acct_open_positions[sym_raw]["quantity"] += covered
+                                current_avg = acct_open_positions[sym_raw].get("average_cost", 0.0)
+                                acct_open_positions[sym_raw]["total_cost"] -= covered * current_avg
+                                
+                                remaining = qty - covered
+                                if remaining > 0.0001:
+                                    acct_open_positions[sym_raw]["quantity"] += remaining
+                                    acct_open_positions[sym_raw]["total_cost"] += remaining * price
+                            else:
+                                acct_open_positions[sym_raw]["quantity"] += qty
+                                acct_open_positions[sym_raw]["total_cost"] += qty * price
+                                
+                            if date_only == today_str:
+                                acct_open_positions[sym_raw]["qty_today"] += qty
+                        elif action in ["SELL", "SOLD", "STC", "STO"]:
+                            if old_qty > 0.0001:
+                                # Closing long
+                                closed = min(qty, old_qty)
+                                acct_open_positions[sym_raw]["quantity"] -= closed
+                                current_avg = acct_open_positions[sym_raw].get("average_cost", 0.0)
+                                acct_open_positions[sym_raw]["total_cost"] -= closed * current_avg
+                                
+                                remaining = qty - closed
+                                if remaining > 0.0001:
+                                    acct_open_positions[sym_raw]["quantity"] -= remaining
+                                    acct_open_positions[sym_raw]["total_cost"] += remaining * price
+                            else:
+                                # Shorting
+                                acct_open_positions[sym_raw]["quantity"] -= qty
+                                acct_open_positions[sym_raw]["total_cost"] += qty * price
+                                
+                            if date_only == today_str:
+                                acct_open_positions[sym_raw]["qty_today"] -= qty
+                                
+                        abs_qty = abs(acct_open_positions[sym_raw]["quantity"])
+                        if abs_qty > 0.0001:
+                            acct_open_positions[sym_raw]["average_cost"] = acct_open_positions[sym_raw]["total_cost"] / abs_qty
+                        else:
+                            acct_open_positions[sym_raw]["quantity"] = 0.0
+                            acct_open_positions[sym_raw]["total_cost"] = 0.0
+                            acct_open_positions[sym_raw]["average_cost"] = 0.0
+                            acct_open_positions[sym_raw]["qty_today"] = 0.0
+            
+            all_accounts_open_positions.append(acct_open_positions)
+            
+        # Combine open positions across accounts
+        open_positions = {}
+        for acct_pos in all_accounts_open_positions:
+            for sym, pdata in acct_pos.items():
+                if sym not in open_positions:
+                    open_positions[sym] = {"quantity": 0.0, "total_cost": 0.0, "average_cost": 0.0, "qty_today": 0.0}
+                open_positions[sym]["quantity"] += pdata["quantity"]
+                open_positions[sym]["total_cost"] += pdata["total_cost"]
+                open_positions[sym]["qty_today"] += pdata["qty_today"]
+                
+        for sym in list(open_positions.keys()):
+            abs_qty = abs(open_positions[sym]["quantity"])
+            if abs_qty > 0.0001:
+                open_positions[sym]["average_cost"] = open_positions[sym]["total_cost"] / abs_qty
+            else:
+                del open_positions[sym]
+                
+        # Fill order history log items
         for act in activities_chronological:
             action = act.get('type', act.get('action', 'N/A')).upper()
             if action not in ["BUY", "SELL", "BOUGHT", "SOLD", "BTO", "STC", "BTC", "STO", "REINVEST", "DIVIDEND"]:
                 continue
                 
-            # robust symbol extraction
-            if isinstance(act.get('symbol'), dict):
-                sym = act['symbol'].get('symbol', 'N/A')
-            elif isinstance(act.get('universal_symbol'), dict):
-                sym = act['universal_symbol'].get('symbol', act.get('symbol', 'N/A'))
-            else:
-                sym = act.get('symbol', 'N/A')
-                
-            if isinstance(sym, dict):
-                sym = sym.get('symbol', 'N/A')
-                
-            if sym == 'N/A': continue
-            sym_raw = str(sym).upper().replace('-USD', '').replace('*', '')
+            act_sym = act.get('symbol') or act.get('universal_symbol') or {}
+            if isinstance(act_sym, dict):
+                act_sym = act_sym.get('symbol', 'N/A')
+            sym_raw = str(act_sym).upper().replace('-USD', '').replace('*', '')
+            if sym_raw == 'N/A': continue
             
             qty = float(act.get('units', 0))
             price = float(act.get('price', 0))
             status = act.get('status', 'Executed')
-            
-            placed_time = act.get('trade_date') or act.get('time_placed') or act.get('trade_time') or act.get('timestamp') or act.get('time') or act.get('date') or ''
+            placed_time = act.get('trade_date') or act.get('time_placed') or ''
             date_only = str(placed_time)[:10] if placed_time else "Unknown"
-
-            # Dynamic Position Calculation
-            if status == "Executed":
-                if sym_raw not in open_positions:
-                    open_positions[sym_raw] = {"quantity": 0.0, "total_cost": 0.0, "average_cost": 0.0, "qty_today": 0.0}
-                    
-                if action in ["BUY", "BOUGHT", "BTO", "BTC", "REINVEST", "DIVIDEND"]:
-                    open_positions[sym_raw]["quantity"] += qty
-                    open_positions[sym_raw]["total_cost"] += qty * price
-                    if date_only == today_str:
-                        open_positions[sym_raw]["qty_today"] += qty
-                elif action in ["SELL", "SOLD", "STC", "STO"]:
-                    open_positions[sym_raw]["quantity"] -= qty
-                    # Reduce total_cost based on the CURRENT average cost (approximating FIFO)
-                    current_avg = open_positions[sym_raw].get("average_cost", 0.0)
-                    open_positions[sym_raw]["total_cost"] -= qty * current_avg
-                    if date_only == today_str:
-                        open_positions[sym_raw]["qty_today"] -= qty
-                    
-                    # Prevent floating point drift
-                    if open_positions[sym_raw]["quantity"] <= 0.0001:
-                        open_positions[sym_raw]["quantity"] = 0.0
-                        open_positions[sym_raw]["total_cost"] = 0.0
-                        open_positions[sym_raw]["average_cost"] = 0.0
-                        
-                if open_positions[sym_raw]["quantity"] > 0.0001:
-                    open_positions[sym_raw]["average_cost"] = open_positions[sym_raw]["total_cost"] / open_positions[sym_raw]["quantity"]
-                else:
-                    # Flat position, zero out the cost
-                    open_positions[sym_raw]["total_cost"] = 0.0
-                    open_positions[sym_raw]["average_cost"] = 0.0
-                    open_positions[sym_raw]["qty_today"] = 0.0
-
-            # Extract real trade date for Order History log
-            # placed_time already extracted above
             
             real_time = None
             placed_time_str = str(placed_time) if placed_time else ""
@@ -2903,53 +3019,34 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                     "price": price,
                     "status": status
                 })
-        
+                
         results.reverse() # Newest first for UI log
         
-        # Override calculated open_positions with explicit positions from BrokerageCache
-        explicit_positions = BrokerageCache.get_positions(account_id)
-        if explicit_positions is not None:
-            for pos in explicit_positions:
-                sym_raw = pos["symbol"].upper().replace('-USD', '').replace('*', '')
-                if "CASH" in sym_raw or "FZFXX" in sym_raw or "SPAXX" in sym_raw or "FDIC" in sym_raw:
-                    continue
-                qty_today = open_positions.get(sym_raw, {}).get("qty_today", 0.0)
-                open_positions[sym_raw] = {
-                    "quantity": pos.get("quantity", 0.0),
-                    "average_cost": pos.get("average_cost", 0.0),
-                    "total_cost": pos.get("total_cost", 0.0),
-                    "qty_today": qty_today
-                }
-            # Explicit list is source of truth, remove calculated ones not in the explicit list
-            explicit_symbols = {pos["symbol"].upper().replace('-USD', '').replace('*', '') for pos in explicit_positions}
-            open_positions = {k: v for k, v in open_positions.items() if k in explicit_symbols}
-        
         # Filter out 0-quantity positions
-        active_open_positions = {k: v for k, v in open_positions.items() if v["quantity"] > 0.0001}
+        active_open_positions = {k: v for k, v in open_positions.items() if abs(v["quantity"]) > 0.0001}
         open_positions = active_open_positions
         positions_payload = []
         
         # Pull real trade times from PM BrokerageCache
         real_trade_times = {}
-        from src.services.brokerage_cache import BrokerageCache
-        cached_acts = BrokerageCache.get_activities(account_id)
-        
-        for act in cached_acts:
-            # We want the MOST RECENT trade's time for this position today
-            act_sym = ""
-            if "universal_symbol" in act and isinstance(act["universal_symbol"], dict):
-                act_sym = act["universal_symbol"].get("symbol", "")
-            elif "symbol" in act and isinstance(act["symbol"], dict):
-                act_sym = act["symbol"].get("symbol", "")
+        for acct in accounts:
+            cached_acts = BrokerageCache.get_activities(acct)
+            for act in cached_acts:
+                # We want the MOST RECENT trade's time for this position today
+                act_sym = ""
+                if "universal_symbol" in act and isinstance(act["universal_symbol"], dict):
+                    act_sym = act["universal_symbol"].get("symbol", "")
+                elif "symbol" in act and isinstance(act["symbol"], dict):
+                    act_sym = act["symbol"].get("symbol", "")
+                    
+                act_sym = act_sym.upper().replace('-USD', '').replace('*', '')
+                trade_date_str = act.get("trade_date", "")
                 
-            act_sym = act_sym.upper().replace('-USD', '').replace('*', '')
-            trade_date_str = act.get("trade_date", "")
-            
-            # Keep the newest time (BrokerageCache is usually newest first, so we just check if it's there)
-            if act_sym and act_sym not in real_trade_times and "T" in trade_date_str:
-                # '2026-04-29T15:54:07.000Z' -> '2026-04-29 15:54:07'
-                full_time = trade_date_str.split(".")[0].replace("T", " ")
-                real_trade_times[act_sym] = full_time
+                # Keep the newest time (BrokerageCache is usually newest first, so we just check if it's there)
+                if act_sym and act_sym not in real_trade_times and "T" in trade_date_str:
+                    # '2026-04-29T15:54:07.000Z' -> '2026-04-29 15:54:07'
+                    full_time = trade_date_str.split(".")[0].replace("T", " ")
+                    real_trade_times[act_sym] = full_time
 
         import yfinance as yf
         import math
@@ -3011,20 +3108,27 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                         if sym in real_trade_times:
                             last_time_str = real_trade_times[sym]
                         
+                        multiplier = BrokerageCache.get_futures_multiplier(sym)
                         qty = safe_float(pdata['quantity'])
                         qty_today = safe_float(pdata.get('qty_today', 0.0))
                         avg_cost = safe_float(pdata['average_cost'])
-                        total_cost = safe_float(pdata['total_cost'])
-                        current_value = qty * last_price
+                        total_cost = qty * avg_cost * multiplier
+                        current_value = qty * last_price * multiplier
                         
-                        qty_yesterday = max(0.0, qty - max(0.0, qty_today))
-                        held_today = max(0.0, qty_today)
+                        if qty < 0:
+                            qty_yesterday = min(0.0, qty - min(0.0, qty_today))
+                            held_today = min(0.0, qty_today)
+                        else:
+                            qty_yesterday = max(0.0, qty - max(0.0, qty_today))
+                            held_today = max(0.0, qty_today)
+                            
+                        todays_gl_dol = ((last_price - prev_close) * qty_yesterday + (last_price - avg_cost) * held_today) * multiplier
                         
-                        todays_gl_dol = (last_price - prev_close) * qty_yesterday + (last_price - avg_cost) * held_today
-                        todays_gl_pct = (todays_gl_dol / (prev_close * qty_yesterday + avg_cost * held_today) * 100) if (prev_close * qty_yesterday + avg_cost * held_today) > 0 else 0.0
+                        cost_basis_today = abs((prev_close * qty_yesterday + avg_cost * held_today) * multiplier)
+                        todays_gl_pct = (todays_gl_dol / cost_basis_today * 100) if cost_basis_today > 0.0 else 0.0
                         
-                        total_gl_dol = current_value - total_cost
-                        total_gl_pct = (total_gl_dol / total_cost * 100) if total_cost > 0 else 0.0
+                        total_gl_dol = (last_price - avg_cost) * qty * multiplier
+                        total_gl_pct = (total_gl_dol / abs(total_cost) * 100) if abs(total_cost) > 0.0 else 0.0
                         
                         positions_payload.append({
                             "symbol": sym,
@@ -3054,12 +3158,17 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                         "average_cost": safe_float(pdata['average_cost']), "current_value": safe_float(pdata['total_cost']), "last_time": "Unknown"
                     })
             
-        realized_pnl_data = BrokerageCache.calculate_realized_pnl(account_id, start_date, end_date)
-        realized_pnl = realized_pnl_data["total_pnl"]
-        closed_positions = realized_pnl_data["closed_trades"]
+        realized_pnl = 0.0
+        closed_positions = []
+        today_realized_pnl = 0.0
+        
+        for acct in accounts:
+            realized_pnl_data = BrokerageCache.calculate_realized_pnl(acct, start_date, end_date)
+            realized_pnl += realized_pnl_data.get("total_pnl", 0.0)
+            closed_positions.extend(realized_pnl_data.get("closed_trades", []))
             
-        today_realized_pnl_data = BrokerageCache.calculate_realized_pnl(account_id, today_str, today_str)
-        today_realized_pnl = today_realized_pnl_data["total_pnl"]
+            today_realized_pnl_data = BrokerageCache.calculate_realized_pnl(acct, today_str, today_str)
+            today_realized_pnl += today_realized_pnl_data.get("total_pnl", 0.0)
         
         return JSONResponse({
             "history": results, 
@@ -3457,8 +3566,8 @@ async def _invoke_vli_agent(
         # [DYNAMIC BUDGET] Inject absolute start time for per-node adaptive fallbacks
         workflow_config["configurable"]["execution_start_time"] = start_exec
 
-        # Run the graph and get the final state with an aggressive timeout (300s to respect AsyncRetries safely)
-        final_state = await asyncio.wait_for(graph.ainvoke(workflow_input, config=workflow_config), timeout=300.0)
+        # Run the graph and get the final state with an aggressive timeout (600s to respect AsyncRetries safely)
+        final_state = await asyncio.wait_for(graph.ainvoke(workflow_input, config=workflow_config), timeout=600.0)
 
         exec_duration = time.time() - start_exec
         logger.info(f"VLI Agent: Graph traversal completed in {exec_duration:.2f}s")
@@ -3494,8 +3603,8 @@ async def _invoke_vli_agent(
         return scrub_vli_output(final_output), final_state
 
     except asyncio.TimeoutError:
-        logger.warning("VLI Agent: Master orchestration timed out (300s).")
-        return "Agent processing timed out (300s).", {}
+        logger.warning("VLI Agent: Master orchestration timed out (600s).")
+        return "Agent processing timed out (600s).", {}
     except Exception as e:
         import traceback
         with open("C:\\Users\\rende\\.gemini\\antigravity\\worktrees\\cobalt-multi-agent\\backend\\vli_error.txt", "w") as f:
@@ -3596,6 +3705,27 @@ def get_daily_journal(date_str: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def clean_unpacked_synthesis(val: str) -> str:
+    if not val:
+        return ""
+    val_stripped = val.strip()
+    if val_stripped.startswith("[") and val_stripped.endswith("]"):
+        try:
+            import ast
+            parsed = ast.literal_eval(val_stripped)
+            if isinstance(parsed, list):
+                text_parts = []
+                for item in parsed:
+                    if isinstance(item, dict):
+                        text_parts.append(item.get("text", ""))
+                    else:
+                        text_parts.append(str(item))
+                return "".join(text_parts).strip()
+        except Exception:
+            pass
+    return val
+
+
 @app.get("/api/vli/journal/{date_str}/preview")
 def get_daily_journal_preview(date_str: str):
     """
@@ -3603,8 +3733,24 @@ def get_daily_journal_preview(date_str: str):
     """
     try:
         from src.services.historical_reports import PERFORMANCE_DIR
-        post_mortem_path = os.path.join(PERFORMANCE_DIR, f"Daily_PostMortem_{date_str}.md")
+        import json
         
+        # 1. Try to read from JSON preview cache first
+        preview_cache_path = os.path.join(PERFORMANCE_DIR, f"Daily_Journal_Preview_{date_str}.json")
+        if os.path.exists(preview_cache_path):
+            try:
+                with open(preview_cache_path, "r", encoding="utf-8") as f:
+                    cached_data = json.load(f)
+                    # Clean cached values just in case
+                    if isinstance(cached_data, dict):
+                        cached_data["trader_notes"] = clean_unpacked_synthesis(cached_data.get("trader_notes", ""))
+                        cached_data["self_assessment"] = clean_unpacked_synthesis(cached_data.get("self_assessment", ""))
+                    return cached_data
+            except Exception as e:
+                logger.error(f"Error reading preview cache: {e}")
+                
+        # 2. Fall back to parsing Daily_PostMortem_{date_str}.md
+        post_mortem_path = os.path.join(PERFORMANCE_DIR, f"Daily_PostMortem_{date_str}.md")
         result = {
             "trader_notes": "",
             "self_assessment": ""
@@ -3615,13 +3761,35 @@ def get_daily_journal_preview(date_str: str):
                 content = f.read()
                 
             import re
-            notes_match = re.search(r'## Trader Notes\n\n(.*?)(?=\n\n## |\n\n---|\Z)', content, re.DOTALL)
-            if notes_match:
-                result["trader_notes"] = notes_match.group(1).strip()
+            
+            if "## Agent Feedback" in content:
+                # New format: Feedback resides under ## Agent Feedback
+                feedback_match = re.search(r'## Agent Feedback\n\n(.*?)(?=\n\n## |\n\n---|\Z)', content, re.DOTALL)
+                if feedback_match:
+                    feedback_sec = feedback_match.group(1)
+                    polished_match = re.search(r'### Polished Reflections\n(.*?)(?=\n\n### |\n\n---|\Z)', feedback_sec, re.DOTALL)
+                    if polished_match:
+                        result["trader_notes"] = clean_unpacked_synthesis(polished_match.group(1))
+                    mindset_match = re.search(r'### Mindset Coaching\n(.*?)(?=\n\n### |\n\n---|\Z)', feedback_sec, re.DOTALL)
+                    if mindset_match:
+                        result["self_assessment"] = clean_unpacked_synthesis(mindset_match.group(1))
+            else:
+                # Old format: sections are sibling level
+                notes_match = re.search(r'## Trader Notes\n\n(.*?)(?=\n\n## |\n\n---|\Z)', content, re.DOTALL)
+                if notes_match:
+                    result["trader_notes"] = clean_unpacked_synthesis(notes_match.group(1))
+                    
+                assess_match = re.search(r'## Self Assessment\n\n(.*?)(?=\n\n## |\n\n---|\Z)', content, re.DOTALL)
+                if assess_match:
+                    result["self_assessment"] = clean_unpacked_synthesis(assess_match.group(1))
                 
-            assess_match = re.search(r'## Self Assessment\n\n(.*?)(?=\n\n## |\n\n---|\Z)', content, re.DOTALL)
-            if assess_match:
-                result["self_assessment"] = assess_match.group(1).strip()
+            # Cache the parsed result for next time
+            try:
+                os.makedirs(PERFORMANCE_DIR, exist_ok=True)
+                with open(preview_cache_path, "w", encoding="utf-8") as f:
+                    json.dump(result, f, indent=2, ensure_ascii=False)
+            except Exception as e:
+                logger.error(f"Error writing preview cache: {e}")
                 
         return result
     except Exception as e:
@@ -3637,16 +3805,20 @@ def post_daily_journal(date_str: str, request: VLIJournalRequest):
     """
     try:
         from src.services.historical_reports import save_daily_journal_file, PERFORMANCE_DIR
+        import json
         
         # Save daily journal
-        save_daily_journal_file(date_str, request.grades, request.markdown)
+        raw_markdown = request.markdown
+        if "## Agent Feedback" in raw_markdown:
+            import re
+            raw_markdown = re.split(r'\n+## Agent Feedback\b', raw_markdown)[0].strip()
+        save_daily_journal_file(date_str, request.grades, raw_markdown)
         
-        # Check if post-mortem file exists in cache to trigger re-combination
+        # Check if post-mortem file exists in cache to extract context
         post_mortem_path = os.path.join(PERFORMANCE_DIR, f"Daily_PostMortem_{date_str}.md")
+        cleaned_pm = None
+        mr_part = ""
         if os.path.exists(post_mortem_path):
-            from src.services.historical_reports import combine_reports, sync_combined_report_files
-            
-            # Load current file content
             with open(post_mortem_path, "r", encoding="utf-8") as f:
                 pm_content = f.read()
                 
@@ -3655,10 +3827,38 @@ def post_daily_journal(date_str: str, request: VLIJournalRequest):
             parts = re.split(pattern_mr, pm_content)
             raw_pm = parts[0].strip()
             mr_part = parts[1].strip() if len(parts) > 1 else ""
+            cleaned_pm = re.split(r'\n+## (?:Trader Notes|Self Assessment|Subjective Experience|Notes|Agent Feedback)\b', raw_pm)[0].strip()
             
-            combined_content = combine_reports(raw_pm, mr_part, date_str=date_str)
+        # Run synthesis even if post_mortem does not exist yet (so we can preview it!)
+        from src.services.historical_reports import synthesize_journal_and_assessment
+        trader_notes, self_assessment = synthesize_journal_and_assessment(date_str, request.grades, raw_markdown, cleaned_pm)
+        
+        trader_notes_clean = clean_unpacked_synthesis(trader_notes)
+        self_assessment_clean = clean_unpacked_synthesis(self_assessment)
+        
+        # Cache the generated preview
+        preview_cache_path = os.path.join(PERFORMANCE_DIR, f"Daily_Journal_Preview_{date_str}.json")
+        try:
+            os.makedirs(PERFORMANCE_DIR, exist_ok=True)
+            with open(preview_cache_path, "w", encoding="utf-8") as f:
+                json.dump({
+                    "trader_notes": trader_notes_clean or "",
+                    "self_assessment": self_assessment_clean or ""
+                }, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"Error caching generated preview: {e}")
             
-            # Save updated reports
+        # Write to daily journal file in Obsidian and VLI folders
+        try:
+            from src.services.historical_reports import save_daily_journal_note
+            save_daily_journal_note(date_str, request.grades, trader_notes_clean, self_assessment_clean)
+        except Exception as e:
+            logger.error(f"Error saving daily journal note: {e}")
+            
+        # If the post-mortem does exist, we combine and save
+        if os.path.exists(post_mortem_path):
+            from src.services.historical_reports import combine_reports, sync_combined_report_files
+            combined_content = combine_reports(pm_content, mr_part, date_str=date_str)
             sync_combined_report_files(date_str, combined_content, has_market_report=bool(mr_part))
             logger.info(f"Re-combined and updated post-mortem report for {date_str} successfully.")
             
@@ -3843,7 +4043,7 @@ async def post_vli_action_plan(request: VLIActionPlanRequest, background_tasks: 
     # [NEW] Dropzone Import/Export Interception
     import_match = re.match(r"^import\s+fidelity\s*(.*)$", command_text)
     if import_match:
-        from src.services.atp_importer import process_dropzone_files
+        from src.services.csv_importer import process_dropzone_files
         opt_path = import_match.group(1).strip()
         res_msg = process_dropzone_files(optional_path=opt_path if opt_path else None)
         _append_to_vli_history("ai", res_msg, thread_id=transaction_id)

@@ -359,8 +359,19 @@ def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map)
 def main():
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     
-    eastern = ZoneInfo("America/New_York")
-    date_str = datetime.now(eastern).strftime("%Y-%m-%d")
+    # Allow passing date as --date YYYY-MM-DD
+    date_str = None
+    for arg in sys.argv:
+        if arg.startswith("--date="):
+            date_str = arg.split("=")[1]
+        elif arg == "--date" and len(sys.argv) > sys.argv.index(arg) + 1:
+            date_str = sys.argv[sys.argv.index(arg) + 1]
+            
+    if not date_str:
+        eastern = ZoneInfo("America/New_York")
+        date_str = datetime.now(eastern).strftime("%Y-%m-%d")
+        
+    os.environ["VLI_REPORT_DATE"] = date_str
     
     print(f"Generating Daily Market Report for {date_str}...")
     
@@ -401,11 +412,29 @@ def main():
     # Check if today's post-mortem report exists to combine it
     post_mortem_content = ""
     post_mortem_path = os.path.join(base_dir, "data", "reports", "performance", f"Daily_PostMortem_{date_str}.md")
+    
+    if not os.path.exists(post_mortem_path):
+        print(f"Post-mortem report not found at {post_mortem_path}. Triggering real-time post-mortem synthesis...")
+        try:
+            import asyncio
+            from src.server.app import _background_synthesis_task
+            asyncio.run(_background_synthesis_task(
+                text="Analyze today's executed trades and generate a detailed Daily Trading Report post-mortem.",
+                image=None,
+                direct_mode=False,
+                reporter_llm_type="reasoning",
+                vli_llm_type="core",
+                thread_id=f"POSTMORTEM_{date_str}",
+                silent=True
+            ))
+        except Exception as e:
+            print(f"Failed to generate post-mortem report in real-time: {e}")
+
     if os.path.exists(post_mortem_path):
         try:
             with open(post_mortem_path, "r", encoding="utf-8") as f:
                 post_mortem_content = f.read()
-            print(f"Loaded existing post-mortem report for {date_str} to combine.")
+            print(f"Loaded post-mortem report for {date_str} to combine.")
         except Exception as e:
             print(f"Failed to read post-mortem report: {e}")
             

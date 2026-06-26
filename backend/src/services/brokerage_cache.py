@@ -70,6 +70,31 @@ class BrokerageCache:
                 return datetime.min.replace(tzinfo=eastern_tz)
 
     @classmethod
+    def normalize_activity_dates(cls, act: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalizes trade_date and time_placed in the activity to yyyy-mm-dd (with optional time)."""
+        from datetime import datetime
+        for field in ['trade_date', 'time_placed']:
+            val = act.get(field)
+            if val:
+                val_str = str(val).strip()
+                if val_str:
+                    if len(val_str) == 10 and val_str[4] == '-' and val_str[7] == '-':
+                        continue
+                    parsed_dt = cls._parse_time({field: val_str})
+                    if parsed_dt.year > 1900:
+                        has_time = False
+                        if 'T' in val_str:
+                            has_time = True
+                        elif ' ' in val_str and (':' in val_str or 'AM' in val_str.upper() or 'PM' in val_str.upper()):
+                            has_time = True
+                            
+                        if has_time:
+                            act[field] = parsed_dt.strftime("%Y-%m-%dT%H:%M:%S")
+                        else:
+                            act[field] = parsed_dt.strftime("%Y-%m-%d")
+        return act
+
+    @classmethod
     def ingest_fidelity_payload(cls, payload: Dict[str, Any]) -> int:
         """
         Ingests a raw payload from the Chrome Extension.
@@ -159,6 +184,16 @@ class BrokerageCache:
                     data[key] = {"activities": value, "positions": []}
                     migrated = True
                     
+                acct_data = data[key]
+                if isinstance(acct_data, dict):
+                    activities = acct_data.get("activities", [])
+                    for act in activities:
+                        orig_date = act.get("trade_date")
+                        orig_placed = act.get("time_placed")
+                        cls.normalize_activity_dates(act)
+                        if act.get("trade_date") != orig_date or act.get("time_placed") != orig_placed:
+                            migrated = True
+                            
             if migrated:
                 cls._save_cache(data)
                 
@@ -476,6 +511,9 @@ class BrokerageCache:
         Deduplicates based on the trade 'id'.
         Returns the FULL updated list of activities for the account.
         """
+        for act in new_activities:
+            cls.normalize_activity_dates(act)
+            
         cache = cls._load_cache()
         acct_data = cache.get(account_id, {"activities": [], "positions": [], "closed_positions": []})
         if isinstance(acct_data, list):
@@ -617,9 +655,44 @@ class BrokerageCache:
         logger.info(f"Replaced explicit closed positions for account {account_id} with {len(closed_positions)} items")
 
     @classmethod
+    def get_futures_multiplier(cls, symbol: str) -> float:
+        sym = symbol.upper().replace('/', '').replace('*', '')
+        while sym and sym[-1].isdigit():
+            sym = sym[:-1]
+        if sym.endswith('!'):
+            sym = sym.rstrip('!')
+            while sym and sym[-1].isdigit():
+                sym = sym[:-1]
+                
+        multipliers = {
+            "MBT": 0.1,    # Micro Bitcoin
+            "MGC": 10.0,   # Micro Gold
+            "MNK": 0.5,    # Micro Nikkei (USD)
+            "ES": 50.0,    # E-mini S&P 500
+            "NQ": 20.0,    # E-mini Nasdaq 100
+            "YM": 5.0,     # E-mini Dow Jones
+            "RTY": 50.0,   # E-mini Russell 2000
+            "MES": 5.0,    # Micro E-mini S&P 500
+            "MNQ": 2.0,    # Micro E-mini Nasdaq 100
+            "MYM": 0.5,    # Micro E-mini Dow
+            "M2K": 5.0,    # Micro E-mini Russell 2000
+            "GC": 100.0,   # Gold
+            "CL": 1000.0,  # Crude Oil
+            "MCL": 100.0,  # Micro Crude Oil
+            "SI": 5000.0,  # Silver
+            "QI": 2500.0,  # E-mini Silver
+            "MSF": 1000.0, # Micro Silver
+            "PL": 50.0,    # Platinum
+            "HG": 25000.0, # Copper
+            "QC": 12500.0, # E-mini Copper
+            "NG": 10000.0, # Natural Gas
+        }
+        return multipliers.get(sym, 1.0)
+
+    @classmethod
     def calculate_realized_pnl(cls, account_id: str, start_date: str, end_date: str) -> Dict[str, Any]:
         """
-        Calculates the Realized PnL for a given date range using a FIFO tax-lot engine.
+        Calculates the Realized PnL for a given date range using a FIFO tax-lot engine supporting short trades.
         Returns a dict with total_pnl and a list of closed_trades.
         """
         activities = cls.get_activities(account_id)
@@ -636,7 +709,8 @@ class BrokerageCache:
         cutoff_date = datetime(now.year, now.month, 1, tzinfo=eastern_tz)
         cleared_orphans = False
         
-        tax_lots = {} # dict of symbol -> list of {"qty": float, "price": float}
+        # dict of symbol -> {"type": "flat"|"long"|"short", "lots": list}
+        tax_lots = {}
         realized_pnl = 0.0
         closed_trades = []
         
@@ -654,7 +728,6 @@ class BrokerageCache:
             status = str(act.get('status', act.get('state', 'Executed'))).upper()
             if status in ["OPEN", "PENDING", "CANCELED", "CANCELLED", "EXPIRED", "REJECTED"]:
                 continue
-
                 
             sym_obj = act.get('symbol') or act.get('universal_symbol') or {}
             sym = sym_obj.get('symbol', act.get('symbol')) if isinstance(sym_obj, dict) else sym_obj
@@ -668,67 +741,132 @@ class BrokerageCache:
             trade_date_str = str(act.get('trade_date', act.get('time_placed', '')) or '')
             date_only = trade_date_str[:10] if trade_date_str else "Unknown"
             
-            in_range = False
-            if start_date <= date_only <= end_date or date_only == "Unknown":
-                in_range = True
-                
+            in_range = start_date <= date_only <= end_date or date_only == "Unknown"
+            
             if sym_raw not in tax_lots:
-                tax_lots[sym_raw] = []
+                tax_lots[sym_raw] = {"type": "flat", "lots": []}
                 
+            lot_info = tax_lots[sym_raw]
+            multiplier = cls.get_futures_multiplier(sym_raw)
+            
             if action in ["BUY", "BOUGHT", "BTO", "BTC", "REINVEST", "DIVIDEND"]:
-                tax_lots[sym_raw].append({"qty": qty, "price": price})
-            elif action in ["SELL", "SOLD", "STC", "STO"]:
-                sell_qty_remaining = qty
-                trade_pnl = 0.0
-                total_cost_basis = 0.0
-                qty_matched = 0.0
-                
-                while sell_qty_remaining > 0.0001 and len(tax_lots[sym_raw]) > 0:
-                    lot = tax_lots[sym_raw][0]
-                    if lot["qty"] <= sell_qty_remaining:
-                        # Consume entire lot
-                        trade_pnl += (price - lot["price"]) * lot["qty"]
-                        total_cost_basis += lot["price"] * lot["qty"]
-                        qty_matched += lot["qty"]
-                        sell_qty_remaining -= lot["qty"]
-                        tax_lots[sym_raw].pop(0)
-                    else:
-                        # Consume partial lot
-                        trade_pnl += (price - lot["price"]) * sell_qty_remaining
-                        total_cost_basis += lot["price"] * sell_qty_remaining
-                        qty_matched += sell_qty_remaining
-                        lot["qty"] -= sell_qty_remaining
-                        sell_qty_remaining = 0.0
-                
-                # If we still have sell_qty_remaining, we don't have cost basis data in our imported tax lots.
-                # Fall back to the average cost from the Positions CSV if available.
-                if sell_qty_remaining > 0.0001:
-                    fallback_cost = 0.0
-                    positions = cls.get_positions(account_id)
-                    for p in positions:
-                        if p.get('symbol') == sym_raw:
-                            fallback_cost = float(p.get('average_cost') or 0.0)
-                            break
+                if lot_info["type"] in ["flat", "long"]:
+                    lot_info["lots"].append({"qty": qty, "price": price, "date": trade_date_str})
+                    lot_info["type"] = "long"
+                else: # covering short
+                    buy_qty_remaining = qty
+                    trade_pnl = 0.0
+                    total_entry_value = 0.0
+                    qty_matched = 0.0
+                    
+                    while buy_qty_remaining > 0.0001 and len(lot_info["lots"]) > 0:
+                        lot = lot_info["lots"][0]
+                        match_qty = min(lot["qty"], buy_qty_remaining)
+                        
+                        # Short PnL = (entry_price - cover_price) * qty * multiplier
+                        pnl_chunk = (lot["price"] - price) * match_qty * multiplier
+                        trade_pnl += pnl_chunk
+                        total_entry_value += lot["price"] * match_qty * multiplier
+                        qty_matched += match_qty
+                        
+                        buy_qty_remaining -= match_qty
+                        lot["qty"] -= match_qty
+                        if lot["qty"] <= 0.0001:
+                            lot_info["lots"].pop(0)
                             
-                    if fallback_cost > 0.0:
-                        trade_pnl += (price - fallback_cost) * sell_qty_remaining
-                        total_cost_basis += fallback_cost * sell_qty_remaining
-                        qty_matched += sell_qty_remaining
-                        sell_qty_remaining = 0.0
+                    # Fallback to Positions average cost if no lots left but still covered
+                    if buy_qty_remaining > 0.0001:
+                        fallback_cost = 0.0
+                        positions = cls.get_positions(account_id) or []
+                        for p in positions:
+                            if p.get('symbol') == sym_raw:
+                                fallback_cost = float(p.get('average_cost') or 0.0)
+                                break
+                        if fallback_cost > 0.0:
+                            pnl_chunk = (fallback_cost - price) * buy_qty_remaining * multiplier
+                            trade_pnl += pnl_chunk
+                            total_entry_value += fallback_cost * buy_qty_remaining * multiplier
+                            qty_matched += buy_qty_remaining
+                            buy_qty_remaining = 0.0
+                            
+                    if qty_matched > 0.0001:
+                        realized_pnl += trade_pnl
+                        if in_range:
+                            closed_trades.append({
+                                "symbol": sym_raw,
+                                "close_date": trade_date_str,
+                                "qty": qty_matched,
+                                "buy_price": price,
+                                "sell_price": total_entry_value / (qty_matched * multiplier),
+                                "pnl": trade_pnl,
+                                "pnl_pct": (trade_pnl / total_entry_value * 100) if total_entry_value > 0 else 0.0
+                            })
+                            
+                    if buy_qty_remaining > 0.0001:
+                        lot_info["lots"].append({"qty": buy_qty_remaining, "price": price, "date": trade_date_str})
+                        lot_info["type"] = "long"
+                    elif len(lot_info["lots"]) == 0:
+                        lot_info["type"] = "flat"
+                        
+            elif action in ["SELL", "SOLD", "STC", "STO"]:
+                if lot_info["type"] in ["flat", "short"]:
+                    lot_info["lots"].append({"qty": qty, "price": price, "date": trade_date_str})
+                    lot_info["type"] = "short"
+                else: # closing long
+                    sell_qty_remaining = qty
+                    trade_pnl = 0.0
+                    total_cost_basis = 0.0
+                    qty_matched = 0.0
                     
-                avg_cost = (total_cost_basis / qty_matched) if qty_matched > 0 else 0.0
-                
-                if in_range and qty_matched > 0:
-                    realized_pnl += trade_pnl
-                    closed_trades.append({
-                        "symbol": sym_raw,
-                        "close_date": trade_date_str,
-                        "qty": qty_matched,
-                        "sell_price": price,
-                        "buy_price": avg_cost,
-                        "pnl": trade_pnl,
-                        "pnl_pct": (trade_pnl / total_cost_basis * 100) if total_cost_basis > 0 else 0.0
-                    })
-                    
+                    while sell_qty_remaining > 0.0001 and len(lot_info["lots"]) > 0:
+                        lot = lot_info["lots"][0]
+                        match_qty = min(lot["qty"], sell_qty_remaining)
+                        
+                        # Long PnL = (sell_price - buy_price) * qty * multiplier
+                        pnl_chunk = (price - lot["price"]) * match_qty * multiplier
+                        trade_pnl += pnl_chunk
+                        total_cost_basis += lot["price"] * match_qty * multiplier
+                        qty_matched += match_qty
+                        
+                        sell_qty_remaining -= match_qty
+                        lot["qty"] -= match_qty
+                        if lot["qty"] <= 0.0001:
+                            lot_info["lots"].pop(0)
+                            
+                    # Fallback to Positions average cost if no lots left
+                    if sell_qty_remaining > 0.0001:
+                        fallback_cost = 0.0
+                        positions = cls.get_positions(account_id) or []
+                        for p in positions:
+                            if p.get('symbol') == sym_raw:
+                                fallback_cost = float(p.get('average_cost') or 0.0)
+                                break
+                        if fallback_cost > 0.0:
+                            pnl_chunk = (price - fallback_cost) * sell_qty_remaining * multiplier
+                            trade_pnl += pnl_chunk
+                            total_cost_basis += fallback_cost * sell_qty_remaining * multiplier
+                            qty_matched += sell_qty_remaining
+                            sell_qty_remaining = 0.0
+                            
+                    if qty_matched > 0.0001:
+                        realized_pnl += trade_pnl
+                        if in_range:
+                            closed_trades.append({
+                                "symbol": sym_raw,
+                                "close_date": trade_date_str,
+                                "qty": qty_matched,
+                                "sell_price": price,
+                                "buy_price": total_cost_basis / (qty_matched * multiplier),
+                                "pnl": trade_pnl,
+                                "pnl_pct": (trade_pnl / total_cost_basis * 100) if total_cost_basis > 0 else 0.0
+                            })
+                            
+                    if sell_qty_remaining > 0.0001:
+                        lot_info["lots"].append({"qty": sell_qty_remaining, "price": price, "date": trade_date_str})
+                        lot_info["type"] = "short"
+                    elif len(lot_info["lots"]) == 0:
+                        lot_info["type"] = "flat"
+                        
         return {"total_pnl": realized_pnl, "closed_trades": closed_trades}
+
 

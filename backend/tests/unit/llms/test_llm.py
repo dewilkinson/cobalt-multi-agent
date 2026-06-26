@@ -90,3 +90,58 @@ def test_get_llm_by_type_caches(monkeypatch, dummy_conf):
     inst2 = llm.get_llm_by_type("basic")
     assert inst1 is inst2
     assert called["called"]
+
+
+def test_quota_protected_llm_wrapper_and_ban(monkeypatch):
+    import time
+    import json
+    from src.llms.llm_shield import QuotaProtectedLLM, VLIQuotaExhaustedError
+    from langchain_core.runnables import Runnable, RunnableBinding
+
+    class DummyModel(Runnable):
+        def invoke(self, input, config=None, **kwargs):
+            return "ok"
+        def ainvoke(self, input, config=None, **kwargs):
+            async def _run(): return "ok"
+            return _run()
+        def bind_tools(self, tools, **kwargs):
+            return RunnableBinding(bound=self, kwargs={"tools": tools})
+        def with_structured_output(self, schema, **kwargs):
+            return self
+
+    dummy_model = DummyModel()
+    wrapped = QuotaProtectedLLM(dummy_model, "basic")
+
+    # Verify standard invoke works when no ban is active
+    monkeypatch.setattr("os.path.exists", lambda path: False)
+    assert wrapped.invoke("test") == "ok"
+
+    # Verify bind_tools returns a RunnableBinding that wraps QuotaProtectedLLM
+    bound = wrapped.bind_tools(["tool1"])
+    assert isinstance(bound, RunnableBinding)
+    assert bound.bound is wrapped
+
+    # Verify structured output keeps wrapper
+    struct = wrapped.with_structured_output(dict)
+    assert struct is wrapped
+
+    # 2. Simulate synthesis ban active
+    ban_data = {"blocked_until": time.time() + 100}
+    import os
+    
+    def mock_exists(path):
+        if "synthesis_ban.json" in path:
+            return True
+        return False
+        
+    class MockOpen:
+        def __init__(self, *args, **kwargs): pass
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def read(self, *args): return json.dumps(ban_data)
+
+    monkeypatch.setattr(os.path.exists, "__code__", mock_exists.__code__)
+    monkeypatch.setattr("builtins.open", lambda *args, **kwargs: MockOpen())
+
+    with pytest.raises(VLIQuotaExhaustedError):
+        wrapped.invoke("test")

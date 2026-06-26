@@ -75,3 +75,7 @@ tmp/
 # Agent/System Generated Data
 brain/
 .gemini/
+
+# VLI local database
+backend/data/vli_main.db
+

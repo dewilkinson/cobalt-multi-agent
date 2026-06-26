@@ -2,6 +2,12 @@ import asyncio
 import os
 from datetime import datetime
 import sys
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 sys.path.append(os.getcwd())
 from src.server.app import _background_synthesis_task

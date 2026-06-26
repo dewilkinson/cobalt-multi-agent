@@ -312,8 +312,20 @@ async def get_daily_blotter(days_back: int = 2):
 
     recent_trades = []
     unique_tickers = set()
-    cutoff = datetime.now() - timedelta(days=days_back)
-    cutoff_str = cutoff.strftime("%Y-%m-%d")
+    base_date_str = os.environ.get("VLI_REPORT_DATE")
+    if base_date_str:
+        try:
+            base_date = datetime.strptime(base_date_str, "%Y-%m-%d")
+        except Exception:
+            base_date = datetime.now()
+    else:
+        base_date = datetime.now()
+
+    if days_back <= 2:
+        cutoff_str = base_date.strftime("%Y-%m-%d")
+    else:
+        cutoff = base_date - timedelta(days=days_back)
+        cutoff_str = cutoff.strftime("%Y-%m-%d")
 
     for account_id, acct_data in cache.items():
         if "TEST" in account_id.upper() or "DUMMY" in account_id.upper():
@@ -353,7 +365,7 @@ async def get_daily_blotter(days_back: int = 2):
 
     # Calculate precise realized PnL for the period using FIFO engine
     total_realized_pnl = 0.0
-    end_date_str = datetime.now().strftime("%Y-%m-%d")
+    end_date_str = base_date.strftime("%Y-%m-%d")
     for account_id in cache.keys():
         if "TEST" in account_id.upper() or "DUMMY" in account_id.upper():
             continue
@@ -380,31 +392,20 @@ async def get_daily_blotter(days_back: int = 2):
     else:
         blotter_text = f"**SINGLE-DAY PNL ({latest_trade_date_str})**: ${single_day_pnl:,.2f}\n**MULTI-DAY PERIOD PNL**: ${total_realized_pnl:,.2f}\n\nRecent Executions:\n" + "\n".join([str(t) for t in recent_trades])
     
-    # Missing Reports Logic
+    # Missing Reports Logic (Bypassed by user request)
     missing_reports = []
-    reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
     
-    for ticker in unique_tickers:
-        r_path = os.path.join(reports_dir, f"analyze_{ticker.lower()}.md")
-        if not os.path.exists(r_path):
-            missing_reports.append(ticker)
-            
-    if missing_reports:
-        logger.info(f"Daily Blotter: Auto-generating missing reports for {missing_reports}")
-        try:
-            from src.server.app import _invoke_vli_agent
-            import asyncio
-            tasks = [_invoke_vli_agent(f"analyze {ticker}", thread_id=f"bg_{ticker}") for ticker in missing_reports]
-            await asyncio.gather(*tasks, return_exceptions=True)
-        except Exception as e:
-            logger.error(f"Failed to auto-generate reports in get_daily_blotter: {e}")
+    reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
+    if not os.path.exists(reports_dir) and "backend" not in os.getcwd():
+        reports_dir = os.path.join(os.getcwd(), 'backend', 'data', 'reports')
             
     # Embed Reports
     blotter_text += "\n\n=== STRUCTURAL ANALYSIS REPORTS ===\n"
     from src.utils.compression import condense_artifact
     for ticker in unique_tickers:
-        r_path = os.path.join(reports_dir, f"analyze_{ticker.lower()}.md")
-        dense_path = os.path.join(reports_dir, f"analyze_{ticker.lower()}.dense.md")
+        ticker_clean = ticker.lower().replace('/', '').replace('=', '').replace('^', '')
+        r_path = os.path.join(reports_dir, f"analyze_{ticker_clean}.md")
+        dense_path = os.path.join(reports_dir, f"analyze_{ticker_clean}.dense.md")
         
         if os.path.exists(dense_path):
             try:

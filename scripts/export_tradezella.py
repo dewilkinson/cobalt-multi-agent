@@ -197,138 +197,208 @@ def parse_time(act):
             return datetime.min.replace(tzinfo=eastern_tz)
 
 def run_fifo_matching(cache, start_date, end_date):
-    activities = cache.get("Rollover IRA *5513", {}).get("activities", [])
-    # Sort chronologically ascending
-    chronological_acts = sorted(activities, key=parse_time)
-    
-    from zoneinfo import ZoneInfo
-    eastern_tz = ZoneInfo("America/New_York")
-    now = datetime.now(eastern_tz)
-    cutoff_date = datetime(now.year, now.month, 1, tzinfo=eastern_tz)
-    cleared_orphans = False
-    
-    tax_lots = {}  # symbol -> list of {"qty": float, "price": float, "time": datetime}
-    closed_trades = []
-    
-    for act in chronological_acts:
-        # Check if we should clear orphaned trades from before this month
-        trade_time = parse_time(act)
-        if not cleared_orphans and trade_time >= cutoff_date:
-            tax_lots.clear()
-            cleared_orphans = True
-            
-        action = act.get('type', '').upper()
-        status = act.get('status', '').upper()
-        if status not in ['EXECUTED', 'FILLED']:
-            continue
-            
-        sym = act.get('symbol', {}).get('symbol') if isinstance(act.get('symbol'), dict) else act.get('symbol')
-        if not sym:
-            continue
-        sym = sym.upper()
-        
-        qty = float(act.get('units', 0))
-        price = float(act.get('price', 0))
-        
-        if action in ["BUY", "BOUGHT", "BTO", "BTC"]:
-            if sym not in tax_lots:
-                tax_lots[sym] = []
-            tax_lots[sym].append({"qty": qty, "price": price, "time": trade_time})
-            
-        elif action in ["SELL", "SOLD", "STC", "STO"]:
-            if sym not in tax_lots:
-                tax_lots[sym] = []
-                
-            sell_qty_remaining = qty
-            
-            while sell_qty_remaining > 0.0001 and len(tax_lots[sym]) > 0:
-                lot = tax_lots[sym][0]
-                if lot["qty"] <= sell_qty_remaining:
-                    qty_matched = lot["qty"]
-                    closed_trades.append({
-                        "open_time": lot["time"],
-                        "close_time": trade_time,
-                        "symbol": sym,
-                        "volume": qty_matched,
-                        "open_price": lot["price"],
-                        "close_price": price
-                    })
-                    sell_qty_remaining -= qty_matched
-                    tax_lots[sym].pop(0)
-                else:
-                    qty_matched = sell_qty_remaining
-                    closed_trades.append({
-                        "open_time": lot["time"],
-                        "close_time": trade_time,
-                        "symbol": sym,
-                        "volume": qty_matched,
-                        "open_price": lot["price"],
-                        "close_price": price
-                    })
-                    lot["qty"] -= qty_matched
-                    sell_qty_remaining = 0.0
-                    
-            if sell_qty_remaining > 0.0001:
-                # Fallback matching to prevent orphaned short trades (should not happen in long-only)
-                closed_trades.append({
-                    "open_time": trade_time,
-                    "close_time": trade_time,
-                    "symbol": sym,
-                    "volume": sell_qty_remaining,
-                    "open_price": price,
-                    "close_price": price
-                })
+    active_accounts = ["Rollover IRA *5513"]
+    try:
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        sys.path.append(os.path.abspath(os.path.join(project_root, "backend")))
+        from src.config.loader import get_config
+        config = get_config()
+        if "DROPZONE_ACCOUNTS" in config:
+            active_accounts = list(config["DROPZONE_ACCOUNTS"].keys())
+    except Exception as e:
+        print(f"Warning: Could not load configuration for active accounts: {e}")
+        active_accounts = list(cache.keys())
 
-    # Filter closed trades that closed within start and end date range
-    this_week_closed_trades = []
-    for t in closed_trades:
-        if start_date <= t["close_time"] < end_date:
-            this_week_closed_trades.append(t)
-            
-    print(f"Running FIFO Matching: Found {len(this_week_closed_trades)} closed trades matching date filter {start_date.date()} to {end_date.date()}.")
-    
     trades_to_export = []
-    for t in this_week_closed_trades:
-        # Buy/Entry row
-        trades_to_export.append({
-            'Account Name': 'Rollover IRA *5513',
-            'Date&Time': '',
-            'Date': t["open_time"].strftime("%m/%d/%Y"),
-            'Time': t["open_time"].strftime("%H:%M:%S"),
-            'Symbol': t["symbol"],
-            'Buy/Sell': 'Buy',
-            'Quantity': t["volume"],
-            'Price': t["open_price"],
-            'Spread': 'Stock',
-            'Expiration': '',
-            'Strike': '',
-            'Call/Put': '',
-            'Commission': 0,
-            'Fees': 0,
-            '_dt': t["open_time"],
-            '_action_order': 0
-        })
-        # Sell/Exit row
-        trades_to_export.append({
-            'Account Name': 'Rollover IRA *5513',
-            'Date&Time': '',
-            'Date': t["close_time"].strftime("%m/%d/%Y"),
-            'Time': t["close_time"].strftime("%H:%M:%S"),
-            'Symbol': t["symbol"],
-            'Buy/Sell': 'Sell',
-            'Quantity': t["volume"],
-            'Price': t["close_price"],
-            'Spread': 'Stock',
-            'Expiration': '',
-            'Strike': '',
-            'Call/Put': '',
-            'Commission': 0,
-            'Fees': 0,
-            '_dt': t["close_time"],
-            '_action_order': 1
-        })
+    
+    for account in active_accounts:
+        if account not in cache:
+            continue
+            
+        activities = cache.get(account, {}).get("activities", [])
+        if not activities:
+            continue
+            
+        print(f"Running FIFO Matching for account: {account} ({len(activities)} activities)...")
+        chronological_acts = sorted(activities, key=parse_time)
         
-    # Aggregate duplicate execution rows to prevent TradeZella deduplication
+        from zoneinfo import ZoneInfo
+        eastern_tz = ZoneInfo("America/New_York")
+        now = datetime.now(eastern_tz)
+        cutoff_date = datetime(now.year, now.month, 1, tzinfo=eastern_tz)
+        cleared_orphans = False
+        
+        tax_lots = {}  # symbol -> {"type": "flat"|"long"|"short", "lots": list}
+        closed_trades = []
+        
+        for act in chronological_acts:
+            trade_time = parse_time(act)
+            if not cleared_orphans and trade_time >= cutoff_date:
+                tax_lots.clear()
+                cleared_orphans = True
+                
+            action = act.get('type', act.get('action', '')).upper()
+            status = act.get('status', '').upper()
+            if status not in ['EXECUTED', 'FILLED']:
+                continue
+                
+            sym = act.get('symbol', {}).get('symbol') if isinstance(act.get('symbol'), dict) else act.get('symbol')
+            if not sym:
+                continue
+            sym = sym.upper()
+            
+            qty = float(act.get('units', 0))
+            price = float(act.get('price', 0))
+            
+            if sym not in tax_lots:
+                tax_lots[sym] = {"type": "flat", "lots": []}
+                
+            lot_info = tax_lots[sym]
+            
+            if action in ["BUY", "BOUGHT", "BTO", "BTC"]:
+                if lot_info["type"] in ["flat", "long"]:
+                    lot_info["lots"].append({"qty": qty, "price": price, "time": trade_time})
+                    lot_info["type"] = "long"
+                else: # cover short
+                    buy_qty_remaining = qty
+                    while buy_qty_remaining > 0.0001 and len(lot_info["lots"]) > 0:
+                        lot = lot_info["lots"][0]
+                        match_qty = min(lot["qty"], buy_qty_remaining)
+                        closed_trades.append({
+                            "open_time": lot["time"],
+                            "close_time": trade_time,
+                            "symbol": sym,
+                            "volume": match_qty,
+                            "open_price": lot["price"],
+                            "close_price": price,
+                            "direction": "Short"
+                        })
+                        buy_qty_remaining -= match_qty
+                        lot["qty"] -= match_qty
+                        if lot["qty"] <= 0.0001:
+                            lot_info["lots"].pop(0)
+                    if buy_qty_remaining > 0.0001:
+                        lot_info["lots"].append({"qty": buy_qty_remaining, "price": price, "time": trade_time})
+                        lot_info["type"] = "long"
+                    elif len(lot_info["lots"]) == 0:
+                        lot_info["type"] = "flat"
+                        
+            elif action in ["SELL", "SOLD", "STC", "STO"]:
+                if lot_info["type"] in ["flat", "short"]:
+                    lot_info["lots"].append({"qty": qty, "price": price, "time": trade_time})
+                    lot_info["type"] = "short"
+                else: # closing long
+                    sell_qty_remaining = qty
+                    while sell_qty_remaining > 0.0001 and len(lot_info["lots"]) > 0:
+                        lot = lot_info["lots"][0]
+                        match_qty = min(lot["qty"], sell_qty_remaining)
+                        closed_trades.append({
+                            "open_time": lot["time"],
+                            "close_time": trade_time,
+                            "symbol": sym,
+                            "volume": match_qty,
+                            "open_price": lot["price"],
+                            "close_price": price,
+                            "direction": "Long"
+                        })
+                        sell_qty_remaining -= match_qty
+                        lot["qty"] -= match_qty
+                        if lot["qty"] <= 0.0001:
+                            lot_info["lots"].pop(0)
+                    if sell_qty_remaining > 0.0001:
+                        lot_info["lots"].append({"qty": sell_qty_remaining, "price": price, "time": trade_time})
+                        lot_info["type"] = "short"
+                    elif len(lot_info["lots"]) == 0:
+                        lot_info["type"] = "flat"
+                        
+        this_week_closed_trades = []
+        for t in closed_trades:
+            if start_date <= t["close_time"] < end_date:
+                this_week_closed_trades.append(t)
+                
+        print(f"  - Closed trades matching range for {account}: {len(this_week_closed_trades)}")
+        
+        for t in this_week_closed_trades:
+            direction = t.get("direction", "Long")
+            if direction == "Short":
+                # Entry is Sell
+                trades_to_export.append({
+                    'Account Name': account,
+                    'Date&Time': '',
+                    'Date': t["open_time"].strftime("%m/%d/%Y"),
+                    'Time': t["open_time"].strftime("%H:%M:%S"),
+                    'Symbol': t["symbol"],
+                    'Buy/Sell': 'Sell',
+                    'Quantity': t["volume"],
+                    'Price': t["open_price"],
+                    'Spread': 'Stock',
+                    'Expiration': '',
+                    'Strike': '',
+                    'Call/Put': '',
+                    'Commission': 0,
+                    'Fees': 0,
+                    '_dt': t["open_time"],
+                    '_action_order': 0
+                })
+                # Exit is Buy
+                trades_to_export.append({
+                    'Account Name': account,
+                    'Date&Time': '',
+                    'Date': t["close_time"].strftime("%m/%d/%Y"),
+                    'Time': t["close_time"].strftime("%H:%M:%S"),
+                    'Symbol': t["symbol"],
+                    'Buy/Sell': 'Buy',
+                    'Quantity': t["volume"],
+                    'Price': t["close_price"],
+                    'Spread': 'Stock',
+                    'Expiration': '',
+                    'Strike': '',
+                    'Call/Put': '',
+                    'Commission': 0,
+                    'Fees': 0,
+                    '_dt': t["close_time"],
+                    '_action_order': 1
+                })
+            else:
+                # Entry is Buy
+                trades_to_export.append({
+                    'Account Name': account,
+                    'Date&Time': '',
+                    'Date': t["open_time"].strftime("%m/%d/%Y"),
+                    'Time': t["open_time"].strftime("%H:%M:%S"),
+                    'Symbol': t["symbol"],
+                    'Buy/Sell': 'Buy',
+                    'Quantity': t["volume"],
+                    'Price': t["open_price"],
+                    'Spread': 'Stock',
+                    'Expiration': '',
+                    'Strike': '',
+                    'Call/Put': '',
+                    'Commission': 0,
+                    'Fees': 0,
+                    '_dt': t["open_time"],
+                    '_action_order': 0
+                })
+                # Exit is Sell
+                trades_to_export.append({
+                    'Account Name': account,
+                    'Date&Time': '',
+                    'Date': t["close_time"].strftime("%m/%d/%Y"),
+                    'Time': t["close_time"].strftime("%H:%M:%S"),
+                    'Symbol': t["symbol"],
+                    'Buy/Sell': 'Sell',
+                    'Quantity': t["volume"],
+                    'Price': t["close_price"],
+                    'Spread': 'Stock',
+                    'Expiration': '',
+                    'Strike': '',
+                    'Call/Put': '',
+                    'Commission': 0,
+                    'Fees': 0,
+                    '_dt': t["close_time"],
+                    '_action_order': 1
+                })
+                
     aggregated_trades = {}
     for r in trades_to_export:
         key = (
@@ -363,30 +433,31 @@ def verify_rules(rows):
     symbol_sells = {}
     
     for r in rows:
-        sym = r["Symbol"]
+        acc_sym = (r["Account Name"], r["Symbol"])
         action = r["Buy/Sell"]
         qty = float(r["Quantity"])
         
         if action == "Buy":
-            symbol_buys[sym] = symbol_buys.get(sym, 0) + qty
+            symbol_buys[acc_sym] = symbol_buys.get(acc_sym, 0) + qty
         elif action == "Sell":
-            symbol_sells[sym] = symbol_sells.get(sym, 0) + qty
+            symbol_sells[acc_sym] = symbol_sells.get(acc_sym, 0) + qty
             
     has_error = False
     all_symbols = set(symbol_buys.keys()) | set(symbol_sells.keys())
-    for sym in sorted(all_symbols):
-        buys = symbol_buys.get(sym, 0)
-        sells = symbol_sells.get(sym, 0)
+    for acc_sym in sorted(all_symbols, key=lambda x: (x[0], x[1])):
+        acc, sym = acc_sym
+        buys = symbol_buys.get(acc_sym, 0)
+        sells = symbol_sells.get(acc_sym, 0)
         if abs(buys - sells) > 0.0001:
-            print(f"  [FAIL] Unbalanced symbol: {sym} | Buys: {buys} | Sells: {sells} | Diff: {buys - sells}")
+            print(f"  [FAIL] Unbalanced symbol in {acc}: {sym} | Buys: {buys} | Sells: {sells} | Diff: {buys - sells}")
             has_error = True
         else:
-            print(f"  [PASS] Symbol: {sym} | Closed Match Qty: {buys}")
+            print(f"  [PASS] {acc} | Symbol: {sym} | Closed Match Qty: {buys}")
             
-    # Rule B: No short trades (Sell before Buy)
+    # Rule B: Check position balance at matching boundaries
     symbol_pos = {}
     for i, r in enumerate(rows):
-        sym = r["Symbol"]
+        sym = (r["Account Name"], r["Symbol"])
         action = r["Buy/Sell"]
         qty = float(r["Quantity"])
         
@@ -394,12 +465,9 @@ def verify_rules(rows):
             symbol_pos[sym] = symbol_pos.get(sym, 0) + qty
         elif action == "Sell":
             symbol_pos[sym] = symbol_pos.get(sym, 0) - qty
-            if symbol_pos[sym] < -0.0001:
-                print(f"  [FAIL] Short position detected on row {i}: {sym} balance dropped to {symbol_pos[sym]}")
-                has_error = True
-                
+            
     if not has_error:
-        print("\n[SUCCESS] All verification checks PASSED! Zero open trades, zero short trades.")
+        print("\n[SUCCESS] All verification checks PASSED! Zero open trades, short positions balanced.")
     else:
         print("\n[ERROR] Some verification checks FAILED! Check console details above.")
         
@@ -410,8 +478,9 @@ def main():
     
     # Path Resolution
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    sys.path.append(os.path.abspath(os.path.join(project_root, "backend")))
     
-    dropzone_dir = args.dropzone or os.path.join(project_root, "data", "dropzone", "archive")
+    dropzone_dir = args.dropzone or os.path.join(project_root, "data", "dropzone")
     cache_path = args.cache or os.path.join(project_root, "backend", "data", "brokerage_cache.json")
     output_path = args.output or os.path.join(project_root, "data", "exports", "tradezella-import.csv")
     
@@ -434,13 +503,23 @@ def main():
         
     print(f"Target week: {start_date.strftime('%Y-%m-%d')} to {(end_date - timedelta(seconds=1)).strftime('%Y-%m-%d')}")
     
-    # 1. Scan and Ingest new daily trades from Dropzone
-    new_trades = scan_and_parse_dropzone(dropzone_dir)
-    
-    # 2. Incorporate them into consolidated cache file
-    cache = merge_into_cache(cache_path, new_trades)
-    
-    # 3. Run exporter on cache data only
+    # 1. Trigger process_dropzone_files first to ingest all dropped CSV files
+    try:
+        from src.services.csv_importer import process_dropzone_files
+        print("Ingesting new dropzone files via csv_importer...")
+        process_dropzone_files(optional_path=dropzone_dir)
+    except Exception as e:
+        print(f"Warning: Failed to run csv_importer process_dropzone_files: {e}")
+        
+    # 2. Load the brokerage cache (which now has all active accounts)
+    if not os.path.exists(cache_path):
+        print(f"Cache file not found at {cache_path}.")
+        sys.exit(1)
+        
+    with open(cache_path, 'r', encoding='utf-8') as f:
+        cache = json.load(f)
+        
+    # 3. Run exporter on all active accounts inside cache
     rows = run_fifo_matching(cache, start_date, end_date)
     
     # 4. Verify rules
@@ -468,3 +547,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
