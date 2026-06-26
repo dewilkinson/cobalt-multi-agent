@@ -34,12 +34,12 @@ def main():
     if not candidates:
         print("Warning: No candidates found in STRIKE_LIST.json.")
         
-    # Categorize by tier
+    # Categorize by tier and grade
     watchlists = {
-        "ALL": [],
-        "SHIELD": [],
-        "SNIPER": [],
-        "SWORD": []
+        "ALL": {"S": [], "A": [], "B": []},
+        "SHIELD": {"S": [], "A": [], "B": []},
+        "SNIPER": {"S": [], "A": [], "B": []},
+        "SWORD": {"S": [], "A": [], "B": []}
     }
     
     for c in candidates:
@@ -54,16 +54,18 @@ def main():
             
         tier = c.get("tier", "").upper().strip()
         sym = sym.upper().strip()
+        base_grade = grade[0]
         
-        watchlists["ALL"].append(sym)
+        watchlists["ALL"][base_grade].append(sym)
         if tier in watchlists:
-            watchlists[tier].append(sym)
+            watchlists[tier][base_grade].append(sym)
         else:
             print(f"Warning: Unknown tier '{tier}' for symbol '{sym}'")
             
     # Sort all list contents
-    for k in watchlists:
-        watchlists[k] = sorted(list(set(watchlists[k])))
+    for tier in watchlists:
+        for grade in watchlists[tier]:
+            watchlists[tier][grade] = sorted(list(set(watchlists[tier][grade])))
         
     from datetime import datetime
     now = datetime.now()
@@ -73,19 +75,25 @@ def main():
     
     # Write watchlists to files
     files_written = {}
-    for tier, symbols in watchlists.items():
+    for tier, grades_dict in watchlists.items():
         filename_dated = f"watchlist_{tier.lower()}_{date_str}_{time_str_name}.txt"
         filename_static = f"watchlist_{tier.lower()}.txt"
         file_path_dated = os.path.join(exports_dir, filename_dated)
         file_path_static = os.path.join(exports_dir, filename_static)
         
+        total_symbols = sum(len(syms) for syms in grades_dict.values())
+        
         try:
             for file_path in [file_path_dated, file_path_static]:
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(f"# Timestamp: {time_str_file}\n")
-                    for sym in symbols:
-                        f.write(f"{sym}\n")
-            files_written[tier] = (file_path_dated, len(symbols))
+                    for grade in ["S", "A", "B"]:
+                        symbols = grades_dict[grade]
+                        if symbols:
+                            f.write(f"### GRADE {grade}\n")
+                            for sym in symbols:
+                                f.write(f"{sym}\n")
+            files_written[tier] = (file_path_dated, total_symbols)
         except Exception as e:
             print(f"Error writing watchlists for {tier}: {e}")
             
@@ -96,6 +104,7 @@ def main():
         print(f"Watchlist: {tier:<10} | Symbols: {count:<4} | Path: {path}")
     print("=" * 60)
     print("Export completed successfully. These files are ready to be imported into TradingView.")
+
 
 if __name__ == "__main__":
     main()
