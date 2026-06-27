@@ -469,17 +469,17 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to archive scan lists: {e}")
 
-    # [WATCHLIST EXPORT]
-    try:
-        logger.info("Exporting TradingView Watchlists...")
-        import sys
-        proj_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-        if proj_root not in sys.path:
-            sys.path.append(proj_root)
-        from scripts.utils.export_tradingview_watchlists import main as run_export
-        run_export()
-    except Exception as e:
-        logger.error(f"TradingView Watchlists Export Failed: {e}")
+    # [WATCHLIST EXPORT - Disabled, only run on user command]
+    # try:
+    #     logger.info("Exporting TradingView Watchlists...")
+    #     import sys
+    #     proj_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    #     if proj_root not in sys.path:
+    #         sys.path.append(proj_root)
+    #     from scripts.utils.export_tradingview_watchlists import main as run_export
+    #     run_export()
+    # except Exception as e:
+    #     logger.error(f"TradingView Watchlists Export Failed: {e}")
 
     logger.info(f"Strike List synchronized. {len(verified_list)} verified swords in the bunker.")
     return clean_strike_list

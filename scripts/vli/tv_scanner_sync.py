@@ -480,17 +480,17 @@ def sync_vli_scanners():
         except Exception as e:
             print(f"Macro Watchlist Sync Failed: {e}")
 
-        # [WATCHLIST EXPORT]
-        try:
-            print("Exporting TradingView Watchlists...")
-            proj_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-            if proj_root not in sys.path:
-                sys.path.append(proj_root)
-            from scripts.utils.export_tradingview_watchlists import main as run_export
-            run_export()
-            print("TradingView Watchlists Export Successful")
-        except Exception as e:
-            print(f"TradingView Watchlists Export Failed: {e}")
+        # [WATCHLIST EXPORT - Disabled, only run on user command]
+        # try:
+        #     print("Exporting TradingView Watchlists...")
+        #     proj_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        #     if proj_root not in sys.path:
+        #         sys.path.append(proj_root)
+        #     from scripts.utils.export_tradingview_watchlists import main as run_export
+        #     run_export()
+        #     print("TradingView Watchlists Export Successful")
+        # except Exception as e:
+        #     print(f"TradingView Watchlists Export Failed: {e}")
 
         print(f"Sync Successful: {summary}")
 
