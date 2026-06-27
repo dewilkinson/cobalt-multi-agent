@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0119";
+        const VLI_CLIENT_VERSION = "00.000.0122";
     </script>
     
     <link
@@ -1877,17 +1877,19 @@
                     bodyContent = `
                         <div class="card-body" style="overflow-y: hidden; padding: 10px; display: flex; flex-direction: column;">
                             <div style="display:flex; flex-direction:column; gap:8px; margin-bottom: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px; border: 1px solid var(--border-color);">
-                                <div style="display:flex; gap: 10px; align-items:center;">
-                                    <select id="order-hist-account-${instanceGuid}" class="vli-input" style="flex:1;" onchange="fetchOrderHistory('${instanceGuid}')">
-                                        <option value="">Loading Accounts...</option>
-                                    </select>
-                                    <label id="order-hist-combine-tv-label-${instanceGuid}" style="display:none; align-items:center; gap:5px; font-size:11px; white-space:nowrap; cursor:pointer; color:var(--text-muted);">
-                                        <input type="checkbox" id="order-hist-combine-tv-${instanceGuid}" onchange="fetchOrderHistory('${instanceGuid}')" style="accent-color: var(--cobalt-blue); cursor:pointer;">
-                                        Combine TV
-                                    </label>
+                                <div style="display:flex; gap: 10px; align-items:center; position: relative;">
+                                    <div class="custom-dropdown" id="order-hist-account-dropdown-${instanceGuid}" style="position: relative; flex: 1; user-select: none;">
+                                        <button type="button" class="vli-input" id="order-hist-account-btn-${instanceGuid}" onclick="window.toggleAccDropdown('${instanceGuid}', event)" style="width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #1a1a1a; border: 1px solid var(--card-border); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 11px; outline: none; transition: border-color 0.2s;">
+                                            <span id="order-hist-account-selected-label-${instanceGuid}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 15px);">Loading Accounts...</span>
+                                            <span style="font-size: 8px; opacity: 0.7;">▼</span>
+                                        </button>
+                                        <div class="custom-dropdown-menu" id="order-hist-account-menu-${instanceGuid}" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #161b22; border: 1px solid var(--border-color); border-radius: 4px; z-index: 1000; max-height: 200px; overflow-y: auto; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); flex-direction: column; gap: 6px;">
+                                            <!-- Checkbox items dynamically generated -->
+                                        </div>
+                                    </div>
                                 </div>
                                 <div style="display:flex; gap: 5px; align-items:center;">
-                                    <select id="order-hist-range-${instanceGuid}" class="vli-input" style="flex:1;" onchange="setOrderHistoryRange(this.value, '${instanceGuid}')">
+                                    <select id="order-hist-range-${instanceGuid}" class="vli-input" style="flex:1;" onchange="setOrderHistoryRange(this.value, '${instanceGuid}', true); window.enableFilterButton('${instanceGuid}');">
                                         <option value="today">Today</option>
                                         <option value="week">Past Week</option>
                                         <option value="month">Past Month</option>
@@ -1897,9 +1899,9 @@
                                     </select>
                                 </div>
                                 <div style="display:flex; gap: 5px; align-items:center;">
-                                    <input type="date" id="order-hist-start-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="window.validateOrderDateRange('start', '${instanceGuid}'); document.getElementById('order-hist-range-${instanceGuid}').value='custom'; fetchOrderHistory('${instanceGuid}');">
-                                    <input type="date" id="order-hist-end-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="window.validateOrderDateRange('end', '${instanceGuid}'); document.getElementById('order-hist-range-${instanceGuid}').value='custom'; fetchOrderHistory('${instanceGuid}');">
-                                    <input type="text" id="order-hist-symbol-${instanceGuid}" class="vli-input" placeholder="Sym" style="width: 50px; text-transform: uppercase;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onchange="fetchOrderHistory('${instanceGuid}')" onkeydown="if(event.key === 'Enter') fetchOrderHistory('${instanceGuid}')">
+                                    <input type="date" id="order-hist-start-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onblur="window.validateDateInput(this)" onchange="window.validateOrderDateRange('start', '${instanceGuid}'); document.getElementById('order-hist-range-${instanceGuid}').value='custom'; window.enableFilterButton('${instanceGuid}');">
+                                    <input type="date" id="order-hist-end-${instanceGuid}" class="vli-input" style="flex:1;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" onblur="window.validateDateInput(this)" onchange="window.validateOrderDateRange('end', '${instanceGuid}'); document.getElementById('order-hist-range-${instanceGuid}').value='custom'; window.enableFilterButton('${instanceGuid}');">
+                                    <input type="text" id="order-hist-symbol-${instanceGuid}" class="vli-input" placeholder="Sym" style="width: 50px; text-transform: uppercase;" autocomplete="off" data-dashlane_disable_autofill="true" data-lpignore="true" data-form-type="other" oninput="window.enableFilterButton('${instanceGuid}')" onkeydown="if(event.key === 'Enter') { const btn = document.getElementById('order-hist-filter-btn-${instanceGuid}'); if(btn && !btn.disabled) btn.click(); }">
                                     <button id="order-hist-filter-btn-${instanceGuid}" class="vli-btn" onclick="fetchOrderHistory('${instanceGuid}')" style="background:var(--cobalt-blue); border:none; color:#fff; padding:6px 12px; border-radius:4px; font-weight:700; cursor:pointer;">Filter</button>
                                 </div>
                             </div>
@@ -2027,16 +2029,16 @@
                     }
                 } else if (typeGuid === 'ORDER_HIST') {
                     populateSnaptradeAccounts(instanceGuid);
-                    setOrderHistoryRange('today', instanceGuid);
+                    setOrderHistoryRange('today', instanceGuid, true);
                     // Live auto-update every 10 seconds
                     setInterval(() => {
                         const box = document.getElementById('win-' + instanceGuid);
                         if(box && box.style.display !== 'none') {
-                            // Only auto-fetch if we are looking at 'today'
+                            // Only auto-fetch if we are looking at 'today' and user has run the filter at least once
                             const startVal = document.getElementById(`order-hist-start-${instanceGuid}`).value;
                             const d = new Date();
                             const todayStr = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0];
-                            if(startVal === todayStr) {
+                            if(startVal === todayStr && window._filterApplied && window._filterApplied[instanceGuid]) {
                                 fetchOrderHistory(instanceGuid, true);
                             }
                         }
@@ -3416,7 +3418,10 @@
         function updateCountdown() {
             refreshCountdown--;
             if (refreshCountdown < 0) refreshCountdown = 0;
-            document.getElementById('macro-timer').innerText = `Refresh in: ${refreshCountdown}s`;
+            const timerEl = document.getElementById('macro-timer');
+            if (timerEl) {
+                timerEl.innerText = `Refresh in: ${refreshCountdown}s`;
+            }
         }
         setInterval(updateCountdown, 1000);
 
@@ -5207,40 +5212,190 @@
 
         // --- End of Shield Logic ---
         
-        // --- ORDER HISTORY LOGIC ---
+        // --- ORDER HISTORY CUSTOM DROPDOWN HELPERS ---
+        window.getSelectedAccounts = function(instanceGuid) {
+            const checkedBoxes = document.querySelectorAll(`.order-hist-acc-cb-${instanceGuid}:checked`);
+            return Array.from(checkedBoxes).map(cb => cb.value).join(',');
+        };
+
+        window.updateSelectedAccountsLabel = function(instanceGuid) {
+            const labelEl = document.getElementById(`order-hist-account-selected-label-${instanceGuid}`);
+            if (!labelEl) return;
+            const checkedBoxes = document.querySelectorAll(`.order-hist-acc-cb-${instanceGuid}:checked`);
+            if (checkedBoxes.length === 0) {
+                labelEl.textContent = 'Select Accounts...';
+                labelEl.style.color = 'var(--text-muted)';
+            } else {
+                const names = Array.from(checkedBoxes).map(cb => cb.nextSibling.textContent).join(', ');
+                labelEl.textContent = names;
+                labelEl.style.color = '#fff';
+            }
+        };
+
+        window.toggleAccDropdown = function(instanceGuid, event) {
+            if (event) event.stopPropagation();
+            const menu = document.getElementById(`order-hist-account-menu-${instanceGuid}`);
+            if (!menu) return;
+            const isVisible = menu.style.display === 'flex';
+            
+            // Close all other custom dropdown menus first
+            document.querySelectorAll('.custom-dropdown-menu').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            if (!isVisible) {
+                menu.style.display = 'flex';
+            }
+        };
+
+        // Close dropdown when clicking outside
+        if (!window._dropdownClickRegistered) {
+            document.addEventListener('click', function(event) {
+                if (!event.target.closest('.custom-dropdown')) {
+                    document.querySelectorAll('.custom-dropdown-menu').forEach(el => {
+                        el.style.display = 'none';
+                    });
+                }
+            });
+            window._dropdownClickRegistered = true;
+        }
+
         window.populateSnaptradeAccounts = async function(instanceGuid) {
-            const selectEl = document.getElementById(`order-hist-account-${instanceGuid}`);
-            if(!selectEl) return;
+            const menuEl = document.getElementById(`order-hist-account-menu-${instanceGuid}`);
+            const labelEl = document.getElementById(`order-hist-account-selected-label-${instanceGuid}`);
+            if(!menuEl) return;
             try {
                 const baseUrl = '';
                 const res = await fetch(`${baseUrl}/api/brokerage/accounts`);
                 const data = await res.json();
                 if(data.accounts && data.accounts.length > 0) {
-                    selectEl.innerHTML = '';
+                    menuEl.innerHTML = '';
+                    
+                    // Prevent dropdown closing when clicking inside the dropdown menu
+                    menuEl.onclick = (e) => {
+                        e.stopPropagation();
+                    };
+                    
                     data.accounts.forEach(acc => {
-                        const opt = document.createElement('option');
-                        opt.value = acc.id;
-                        opt.textContent = acc.name || acc.id;
+                        const label = document.createElement('label');
+                        label.style.display = 'flex';
+                        label.style.alignItems = 'center';
+                        label.style.gap = '8px';
+                        label.style.fontSize = '11px';
+                        label.style.cursor = 'pointer';
+                        label.style.color = 'var(--text-muted)';
+                        label.style.padding = '4px 6px';
+                        label.style.margin = '0';
+                        label.style.borderRadius = '4px';
+                        label.className = 'acc-checkbox-label';
+                        
+                        // Hover effect
+                        label.onmouseenter = () => { label.style.background = 'rgba(255, 255, 255, 0.05)'; label.style.color = '#fff'; };
+                        label.onmouseleave = () => { label.style.background = 'transparent'; label.style.color = 'var(--text-muted)'; };
+                        
+                        const cb = document.createElement('input');
+                        cb.type = 'checkbox';
+                        cb.value = acc.id;
+                        cb.className = `order-hist-acc-cb-${instanceGuid}`;
+                        cb.style.accentColor = 'var(--cobalt-blue)';
+                        cb.style.cursor = 'pointer';
+                        
+                        // Default selections (e.g. Rollover IRA)
                         if (acc.id.includes('Rollover IRA') || (acc.name && acc.name.includes('Rollover IRA'))) {
-                            opt.selected = true;
+                            cb.checked = true;
                         }
-                        selectEl.appendChild(opt);
+                        
+                        cb.onchange = () => {
+                            window.updateSelectedAccountsLabel(instanceGuid);
+                            window.enableFilterButton(instanceGuid);
+                        };
+                        
+                        label.appendChild(cb);
+                        
+                        const textSpan = document.createElement('span');
+                        textSpan.textContent = acc.name || acc.id;
+                        label.appendChild(textSpan);
+                        
+                        menuEl.appendChild(label);
                     });
                     
-                    if (window.failedModules) window.failedModules.delete(`ACCOUNTS_${instanceGuid}`);
+                    window.updateSelectedAccountsLabel(instanceGuid);
                     
-                    // Fetch initial data after populating accounts if a date is set
-                    const startVal = document.getElementById(`order-hist-start-${instanceGuid}`).value;
-                    if(startVal) {
-                        fetchOrderHistory(instanceGuid);
-                    }
+                    if (window.failedModules) window.failedModules.delete(`ACCOUNTS_${instanceGuid}`);
                 } else {
-                    selectEl.innerHTML = '<option value="">No Accounts Found</option>';
+                    menuEl.innerHTML = '<div style="color:var(--text-muted); font-size:11px; padding:5px;">No Accounts Found</div>';
+                    labelEl.textContent = 'No Accounts Found';
                 }
             } catch (err) {
                 console.error("Failed to populate SnapTrade accounts:", err);
-                selectEl.innerHTML = '<option value="">Error Loading Accounts</option>';
+                menuEl.innerHTML = '<div style="color:var(--text-muted); font-size:11px; padding:5px;">Error Loading Accounts</div>';
+                labelEl.textContent = 'Error Loading Accounts';
                 if (window.failedModules) window.failedModules.add(`ACCOUNTS_${instanceGuid}`);
+            }
+        };
+
+        window.enableFilterButton = function(instanceGuid) {
+            const filterBtn = document.getElementById(`order-hist-filter-btn-${instanceGuid}`);
+            if (filterBtn) {
+                filterBtn.disabled = false;
+                filterBtn.style.opacity = '1';
+                filterBtn.style.cursor = 'pointer';
+                filterBtn.style.background = 'var(--cobalt-blue)';
+            }
+        };
+
+        window.disableFilterButton = function(instanceGuid) {
+            const filterBtn = document.getElementById(`order-hist-filter-btn-${instanceGuid}`);
+            if (filterBtn) {
+                filterBtn.disabled = true;
+                filterBtn.style.opacity = '0.5';
+                filterBtn.style.cursor = 'not-allowed';
+                filterBtn.style.background = 'rgba(255,255,255,0.05)';
+            }
+        };
+
+        window.validateDateInput = function(input) {
+            if (!input) return;
+            const val = input.value;
+            let isValid = false;
+            
+            if (val && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                const parts = val.split('-');
+                const y = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10) - 1;
+                const d = parseInt(parts[2], 10);
+                
+                if (y >= 1900 && y <= 2100) {
+                    const dObj = new Date(y, m, d);
+                    if (dObj.getFullYear() === y && dObj.getMonth() === m && dObj.getDate() === d) {
+                        isValid = true;
+                    }
+                }
+            }
+            
+            if (isValid) {
+                input._lastGoodValue = val;
+            } else {
+                const d = new Date();
+                const todayStr = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+                const fallback = input._lastGoodValue || todayStr;
+                
+                const origColor = input.style.color;
+                const origBorder = input.style.borderColor;
+                const origShadow = input.style.boxShadow;
+                
+                input.style.color = '#58a6ff';
+                input.style.borderColor = '#58a6ff';
+                input.style.boxShadow = '0 0 8px rgba(88, 166, 255, 0.5)';
+                input.style.transition = 'all 0.3s ease';
+                
+                input.value = fallback;
+                
+                setTimeout(() => {
+                    input.style.color = origColor;
+                    input.style.borderColor = origBorder;
+                    input.style.boxShadow = origShadow;
+                }, 500);
             }
         };
 
@@ -5270,9 +5425,12 @@
             startEl.value = getLocalIso(start);
             endEl.value = getLocalIso(end);
             
+            startEl._lastGoodValue = startEl.value;
+            endEl._lastGoodValue = endEl.value;
+            
             // Automatically fetch if account is already loaded
             if (!skipFetch) {
-                const accountVal = document.getElementById(`order-hist-account-${instanceGuid}`).value;
+                const accountVal = window.getSelectedAccounts(instanceGuid);
                 if(accountVal) {
                     fetchOrderHistory(instanceGuid);
                 }
@@ -5283,65 +5441,68 @@
             const startInput = document.getElementById(`order-hist-start-${instanceGuid}`);
             const endInput = document.getElementById(`order-hist-end-${instanceGuid}`);
             
+            if (startInput) window.validateDateInput(startInput);
+            if (endInput) window.validateDateInput(endInput);
+            
             if (startInput && endInput && startInput.value && endInput.value) {
                 if (startInput.value > endInput.value) {
                     if (type === 'start') {
                         endInput.value = startInput.value;
+                        window.validateDateInput(endInput);
                     } else if (type === 'end') {
                         startInput.value = endInput.value;
+                        window.validateDateInput(startInput);
                     }
                 }
             }
         };
 
         window.fetchOrderHistory = async function(instanceGuid, isBackground = false) {
+            const filterBtn = document.getElementById(`order-hist-filter-btn-${instanceGuid}`);
             const rangeSelect = document.getElementById(`order-hist-range-${instanceGuid}`);
             if (rangeSelect && rangeSelect.value !== 'custom') {
                 window.setOrderHistoryRange(rangeSelect.value, instanceGuid, true);
             }
             
-            const rawAccountId = document.getElementById(`order-hist-account-${instanceGuid}`).value;
-            
-            // Dynamic UI adjustment for Combine TV checkbox
-            const combineTvLabel = document.getElementById(`order-hist-combine-tv-label-${instanceGuid}`);
-            if (combineTvLabel) {
-                if (rawAccountId.startsWith('TradingView Paper')) {
-                    combineTvLabel.style.display = 'flex';
-                } else {
-                    combineTvLabel.style.display = 'none';
-                }
-            }
-            
-            let accountId = rawAccountId;
-            const combineTvCb = document.getElementById(`order-hist-combine-tv-${instanceGuid}`);
-            if (combineTvCb && combineTvCb.checked) {
-                if (accountId === 'TradingView Paper Stocks') {
-                    accountId = 'TradingView Paper Stocks,TradingView Paper Futures';
-                } else if (accountId === 'TradingView Paper Futures') {
-                    accountId = 'TradingView Paper Futures,TradingView Paper Stocks';
-                }
-            }
+            const accountId = window.getSelectedAccounts(instanceGuid);
             
             const startVal = document.getElementById(`order-hist-start-${instanceGuid}`).value;
             const endVal = document.getElementById(`order-hist-end-${instanceGuid}`).value;
             const symbolFilter = document.getElementById(`order-hist-symbol-${instanceGuid}`).value.toUpperCase().trim();
             const tbody = document.getElementById(`order-history-body-${instanceGuid}`);
             const pbody = document.getElementById(`positions-body-${instanceGuid}`);
+            const cbody = document.getElementById(`closed-positions-body-${instanceGuid}`);
             
             if(!accountId || !startVal || !endVal) {
                 if (!isBackground) {
                     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Please select account and date range.</td></tr>';
-                    if (pbody) pbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--text-muted);">Please select account and date range.</td></tr>';
+                    if (pbody) pbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px; color:var(--text-muted);">Please select account and date range.</td></tr>';
+                    if (cbody) cbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">Please select account and date range.</td></tr>';
+                }
+                if (filterBtn && !isBackground) {
+                    filterBtn.disabled = false;
+                    filterBtn.style.opacity = '1';
+                    filterBtn.style.cursor = 'pointer';
                 }
                 return;
             }
             
             if (!isBackground) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Fetching...</td></tr>';
-                if (pbody) pbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--text-muted);">Fetching...</td></tr>';
+                const elDay = document.getElementById(`pnl-day-${instanceGuid}`);
+                const elUnr = document.getElementById(`pnl-unrealized-${instanceGuid}`);
+                const elReal = document.getElementById(`pnl-realized-${instanceGuid}`);
+                const elTot = document.getElementById(`pnl-total-${instanceGuid}`);
+                
+                if (elDay) elDay.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
+                if (elUnr) elUnr.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
+                if (elReal) elReal.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
+                if (elTot) elTot.innerHTML = '<span style="color:var(--text-muted); font-weight:bold;">$0.00</span>';
+
+                if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted); opacity:0.5; font-style:italic;">Processing...</td></tr>';
+                if (pbody) pbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px; color:var(--text-muted); opacity:0.5; font-style:italic;">Processing...</td></tr>';
+                if (cbody) cbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted); opacity:0.5; font-style:italic;">Processing...</td></tr>';
             }
             
-            const filterBtn = document.getElementById(`order-hist-filter-btn-${instanceGuid}`);
             if (filterBtn && !isBackground) {
                 filterBtn.disabled = true;
                 filterBtn.style.opacity = '0.5';
@@ -5495,15 +5656,17 @@
                 if (elReal) elReal.innerHTML = formatPnl(realizedPnl);
                 if (elTot) elTot.innerHTML = formatPnl(totalPnl);
                 
+                // Mark filter as applied successfully
+                window._filterApplied = window._filterApplied || {};
+                window._filterApplied[instanceGuid] = true;
+                
             } catch (err) {
                 console.error("Failed to fetch order history:", err);
                 tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--ruby-red);">Failed to fetch order history.</td></tr>`;
                 if (pbody) pbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--ruby-red);">Failed to fetch positions.</td></tr>`;
             } finally {
-                if (filterBtn && !isBackground) {
-                    filterBtn.disabled = false;
-                    filterBtn.style.opacity = '1';
-                    filterBtn.style.cursor = 'pointer';
+                if (!isBackground) {
+                    window.disableFilterButton(instanceGuid);
                 }
             }
         };

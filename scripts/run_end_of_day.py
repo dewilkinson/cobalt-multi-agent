@@ -70,17 +70,17 @@ def main():
         print(e.stdout)
         print(e.stderr)
         
-    # 4. Generate Daily Market Report
-    print("\n[4/4] Generating Daily Market Report (AlphaVantage + Scanner Sweep)...")
+    # 4. Generate Daily Scanner Review
+    print("\n[4/4] Generating Daily Scanner Review (AlphaVantage + Scanner Sweep)...")
     cmd_market = [
         sys.executable,
-        "scripts/generate_daily_market_report.py"
+        "scripts/generate_daily_scanner_review.py"
     ]
     try:
         res = subprocess.run(cmd_market, capture_output=True, text=True, check=True)
         print(res.stdout)
     except subprocess.CalledProcessError as e:
-        print(f"Error generating market report: {e}")
+        print(f"Error generating scanner review: {e}")
         print(e.stdout)
         print(e.stderr)
         
@@ -93,7 +93,7 @@ def main():
         ("Daily TradeZella Import", today_output),
         ("Weekly TradeZella Import", weekly_output),
         ("TradingView Pine Script", os.path.join("data", "exports", "tradingview_trades.pine")),
-        ("Daily Market Report", os.path.join("data", "archive", "daily_market_reports", f"report_{today_str}.md"))
+        ("Daily Scanner Review", os.path.join("data", "archive", "daily_scanner_reviews", f"Daily_Scanner_Review_{today_str}.md"))
     ]
     
     for label, path in exports:

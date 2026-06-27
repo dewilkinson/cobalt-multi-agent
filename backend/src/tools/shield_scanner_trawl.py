@@ -314,7 +314,8 @@ async def run_shield_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
 
                 # Check Pillar 1 Constraints for Shields
                 # Defensive constraints removed to allow for high-quality mid-cap momentum assets
-                if c_sortino < 0.0: # Long-range Sortino Floor (No bleeding assets)
+                enable_sortino = os.environ.get("SCANNER_ENABLE_SORTINO", "false").lower() == "true"
+                if enable_sortino and c_sortino < 0.0: # Long-range Sortino Floor (No bleeding assets)
                     logger.info(f"Rejected {ticker} - Failed Long-Range Sortino Floor ({c_sortino})")
                     return None
                 # Grade will be calculated via relative curve

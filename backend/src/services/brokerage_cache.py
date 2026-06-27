@@ -13,6 +13,8 @@ class BrokerageCache:
     Manages a local disk cache for SnapTrade brokerage activities to prevent
     rate limits and reduce latency on long historical fetches.
     """
+    _cached_data = None
+    _cached_mtime = 0
     @classmethod
     def _parse_time(cls, act: Dict[str, Any]) -> datetime:
         from datetime import datetime
@@ -175,6 +177,10 @@ class BrokerageCache:
         if not os.path.exists(CACHE_FILE):
             return {}
         try:
+            mtime = os.path.getmtime(CACHE_FILE)
+            if cls._cached_data is not None and mtime == cls._cached_mtime:
+                return cls._cached_data
+
             with open(CACHE_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 
@@ -196,6 +202,9 @@ class BrokerageCache:
                             
             if migrated:
                 cls._save_cache(data)
+            else:
+                cls._cached_data = data
+                cls._cached_mtime = mtime
                 
             return data
         except Exception as e:
@@ -208,6 +217,8 @@ class BrokerageCache:
         try:
             with open(CACHE_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
+            cls._cached_data = data
+            cls._cached_mtime = os.path.getmtime(CACHE_FILE)
         except Exception as e:
             logger.error(f"Failed to save brokerage cache: {e}")
 
@@ -713,6 +724,7 @@ class BrokerageCache:
         tax_lots = {}
         realized_pnl = 0.0
         closed_trades = []
+        positions = cls.get_positions(account_id) or []
         
         for act in chronological_acts:
             # Check if we should clear orphaned trades from before this month
@@ -777,7 +789,6 @@ class BrokerageCache:
                     # Fallback to Positions average cost if no lots left but still covered
                     if buy_qty_remaining > 0.0001:
                         fallback_cost = 0.0
-                        positions = cls.get_positions(account_id) or []
                         for p in positions:
                             if p.get('symbol') == sym_raw:
                                 fallback_cost = float(p.get('average_cost') or 0.0)
@@ -790,8 +801,8 @@ class BrokerageCache:
                             buy_qty_remaining = 0.0
                             
                     if qty_matched > 0.0001:
-                        realized_pnl += trade_pnl
                         if in_range:
+                            realized_pnl += trade_pnl
                             closed_trades.append({
                                 "symbol": sym_raw,
                                 "close_date": trade_date_str,
@@ -836,7 +847,6 @@ class BrokerageCache:
                     # Fallback to Positions average cost if no lots left
                     if sell_qty_remaining > 0.0001:
                         fallback_cost = 0.0
-                        positions = cls.get_positions(account_id) or []
                         for p in positions:
                             if p.get('symbol') == sym_raw:
                                 fallback_cost = float(p.get('average_cost') or 0.0)
@@ -849,8 +859,8 @@ class BrokerageCache:
                             sell_qty_remaining = 0.0
                             
                     if qty_matched > 0.0001:
-                        realized_pnl += trade_pnl
                         if in_range:
+                            realized_pnl += trade_pnl
                             closed_trades.append({
                                 "symbol": sym_raw,
                                 "close_date": trade_date_str,

@@ -663,7 +663,7 @@ def sync_combined_report_files(date_str: str, combined_content: str, has_market_
     """
     Synchronizes the combined report content across the performance cache, Obsidian reports, and market reports archive.
     """
-    # 1. Save to performance cache file
+    # 1. Save to performance cache file (combined post-mortem)
     perf_path = os.path.join(PERFORMANCE_DIR, f"Daily_PostMortem_{date_str}.md")
     try:
         with open(perf_path, "w", encoding="utf-8") as f:
@@ -691,52 +691,65 @@ def sync_combined_report_files(date_str: str, combined_content: str, has_market_
     # 2. Save to Obsidian daily reports directory
     write_obsidian_daily_report(combined_content, date_str=date_str)
     
-    # 3. Save to market reports archive if there is market report content
-    if has_market_report:
+    # Extract standalone Daily Scanner Review content if marker is present
+    scanner_review_marker = "# Daily Scanner Review:"
+    start_idx = combined_content.find(scanner_review_marker)
+    if start_idx == -1:
+        scanner_review_marker = "# Daily Market Report:"
+        start_idx = combined_content.find(scanner_review_marker)
+        
+    scanner_review_content = ""
+    if start_idx != -1:
+        scanner_review_content = combined_content[start_idx:].strip()
+
+    # 3. Save Standalone Daily Scanner Review to archive
+    if has_market_report and scanner_review_content:
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-        out_dir = os.path.join(base_dir, "data", "archive", "daily_market_reports")
+        out_dir = os.path.join(base_dir, "data", "archive", "daily_scanner_reviews")
         os.makedirs(out_dir, exist_ok=True)
-        out_path = os.path.join(out_dir, f"report_{date_str}.md")
+        out_path = os.path.join(out_dir, f"Daily_Scanner_Review_{date_str}.md")
         try:
             with open(out_path, "w", encoding="utf-8") as f:
-                f.write(combined_content)
-            logger.info(f"Saved combined market report archive: {out_path}")
+                f.write(scanner_review_content)
+            logger.info(f"Saved standalone Daily Scanner Review: {out_path}")
         except Exception as e:
-            logger.error(f"Failed to save market report archive: {e}")
+            logger.error(f"Failed to save standalone Daily Scanner Review: {e}")
             
-        # Sync with alternative market report archive path (root vs backend)
+        # Sync with alternative daily scanner reviews archive path
         try:
             if "backend" in out_path:
                 alt_out_path = out_path.replace("backend" + os.sep + "data", "data")
             else:
-                alt_out_path = os.path.abspath(os.path.join(os.path.dirname(out_path), "..", "..", "backend", "data", "archive", "daily_market_reports", f"report_{date_str}.md"))
+                alt_out_path = os.path.abspath(os.path.join(os.path.dirname(out_path), "..", "..", "backend", "data", "archive", "daily_scanner_reviews", f"Daily_Scanner_Review_{date_str}.md"))
                 
             if alt_out_path != out_path and os.path.exists(os.path.dirname(os.path.dirname(alt_out_path))):
                 os.makedirs(os.path.dirname(alt_out_path), exist_ok=True)
                 with open(alt_out_path, "w", encoding="utf-8") as f:
-                    f.write(combined_content)
-                logger.info(f"Synced combined market report to alternative path: {alt_out_path}")
+                    f.write(scanner_review_content)
+                logger.info(f"Synced standalone Daily Scanner Review to alternative path: {alt_out_path}")
         except Exception as e:
-            logger.warning(f"Failed to sync alternative market report path: {e}")
+            logger.warning(f"Failed to sync alternative Daily Scanner Review path: {e}")
             
-    # Always save to VLI reports date subfolder for the current day
+    # Always save to VLI reports folders and user daily journals
     try:
         from src.tools.journal import _get_obsidian_config
-        vault_path, _ = _get_obsidian_config(None)
+        vault_path, journal_dir = _get_obsidian_config(None)
+        if not journal_dir:
+            journal_dir = os.environ.get("OBSIDIAN_JOURNAL_DIR", "Journals")
         if vault_path:
             vault_reports_dir = os.environ.get("VLI_REPORTS_ROOT")
             if not vault_reports_dir:
                 vault_reports_dir = os.path.join(vault_path, "_cobalt", "Reports")
             
-            # 1. Save as {date_str} Daily Market Report.md in the date subfolder
             vault_today_dir = os.path.join(vault_reports_dir, date_str)
             os.makedirs(vault_today_dir, exist_ok=True)
-            vault_out_path = os.path.join(vault_today_dir, f"{date_str} Daily Market Report.md")
+            
+            # Save combined report (Post-Mortem + folded Scanner Review) to VLI subfolders
+            vault_out_path = os.path.join(vault_today_dir, f"{date_str} Daily Post Mortem.md")
             with open(vault_out_path, "w", encoding="utf-8") as f:
                 f.write(combined_content)
-            logger.info(f"Saved combined market report in VLI folder: {vault_out_path}")
+            logger.info(f"Saved combined Daily Post Mortem in VLI folder: {vault_out_path}")
             
-            # 2. Save the post-mortem report to the VLI reports root and date subfolder
             os.makedirs(vault_reports_dir, exist_ok=True)
             pm_filenames = [f"Daily_PostMortem_{date_str}.md", f"{date_str} Daily Post Mortem.md"]
             for filename in pm_filenames:
@@ -746,7 +759,65 @@ def sync_combined_report_files(date_str: str, combined_content: str, has_market_
                     f.write(combined_content)
                 with open(date_sub_path, "w", encoding="utf-8") as f:
                     f.write(combined_content)
-            logger.info(f"Copied post mortem report to VLI folders: {vault_reports_dir} and {vault_today_dir}")
+            logger.info(f"Copied combined Daily Post Mortem to VLI folders: {vault_reports_dir} and {vault_today_dir}")
+            
+            # Save standalone Daily Scanner Review to VLI reports folders
+            if scanner_review_content:
+                sr_filenames = [
+                    (vault_reports_dir, f"Daily_Scanner_Review_{date_str}.md"),
+                    (vault_reports_dir, f"{date_str} Daily Scanner Review.md"),
+                    (vault_today_dir, f"Daily_Scanner_Review_{date_str}.md"),
+                    (vault_today_dir, f"{date_str} Daily Scanner Review.md"),
+                    (os.path.join(vault_path, journal_dir, "Daily Reports"), f"Daily_Scanner_Review_{date_str}.md")
+                ]
+                for folder, filename in sr_filenames:
+                    os.makedirs(folder, exist_ok=True)
+                    target_file = os.path.join(folder, filename)
+                    with open(target_file, "w", encoding="utf-8") as f:
+                        f.write(scanner_review_content)
+                logger.info(f"Saved standalone Daily Scanner Review to VLI & journal target folders")
+
+            # 3. Synchronize scanner review sections into user's Daily Journal and Daily Trading Report files
+            if start_idx != -1:
+                sep_idx = combined_content.rfind("---", 0, start_idx)
+                if sep_idx != -1:
+                    market_report_content = "\n\n" + combined_content[sep_idx:].strip()
+                else:
+                    market_report_content = "\n\n---\n\n" + combined_content[start_idx:].strip()
+                    
+                target_paths = [
+                    os.path.join(vault_path, journal_dir, f"{date_str} Daily Journal.md"),
+                    os.path.join(vault_path, journal_dir, f"Daily_Trading_Report_{date_str}.md"),
+                    os.path.join(vault_reports_dir, f"{date_str} Daily Journal.md"),
+                    os.path.join(vault_reports_dir, f"Daily_Trading_Report_{date_str}.md"),
+                    os.path.join(vault_today_dir, f"{date_str} Daily Journal.md"),
+                    os.path.join(vault_today_dir, f"Daily_Trading_Report_{date_str}.md")
+                ]
+                
+                markers = ["# Daily Scanner Review:", "# Daily Market Report:"]
+                
+                for filepath in target_paths:
+                    if os.path.exists(filepath):
+                        with open(filepath, "r", encoding="utf-8") as f:
+                            content = f.read()
+                        
+                        found_marker = None
+                        for m in markers:
+                            if m in content:
+                                found_marker = m
+                                break
+                                
+                        if found_marker:
+                            base_content = content.split(found_marker)[0].strip()
+                            if base_content.endswith("---"):
+                                base_content = base_content[:-3].strip()
+                            new_content = base_content + market_report_content
+                        else:
+                            new_content = content.strip() + market_report_content
+                            
+                        with open(filepath, "w", encoding="utf-8") as f:
+                            f.write(new_content)
+                        logger.info(f"Updated market report inside Daily Journal file: {filepath}")
     except Exception as e:
         logger.error(f"Failed to update VLI market report: {e}")
 

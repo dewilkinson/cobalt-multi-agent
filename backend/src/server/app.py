@@ -200,6 +200,9 @@ def get_daily_briefing_path() -> str:
 # Global variables for system context
 last_graph_state = None
 global_telemetry_queue = None
+_artifacts_tree_cache = None
+_artifacts_tree_cache_time = 0.0
+_artifacts_tree_cache_lock = None
 
 def get_telemetry_queue():
     global global_telemetry_queue
@@ -820,29 +823,8 @@ def build_file_tree(dir_path: str):
             })
     return tree
 
-@app.get("/api/vli/artifacts/tree")
-async def get_artifacts_tree():
+def _build_artifacts_tree_sync(reports_dir: str):
     import os
-    from datetime import datetime
-    
-    reports_dir = get_reports_root()
-    os.makedirs(reports_dir, exist_ok=True)
-        
-    now = datetime.now()
-    today_str = now.strftime("%Y-%m-%d")
-    
-    # Only auto-create folder structure on trading days (Mon-Fri) at/after 6 AM
-    if now.weekday() < 5 and now.hour >= 6:
-        today_dir = os.path.join(reports_dir, today_str)
-        notes_dir = os.path.join(today_dir, "Notes")
-        os.makedirs(notes_dir, exist_ok=True)
-        
-        # Generate Journal if missing
-        journal_path = os.path.join(today_dir, f"{today_str} Daily Journal.md")
-        if not os.path.exists(journal_path):
-            with open(journal_path, "w", encoding="utf-8") as f:
-                f.write(f"# {today_str} Daily Journal\n\n## Trades\n| Symbol | Direction | Entry | Exit | PnL | Notes |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n| | | | | | |\n\n## Notes\n- \n")
-            
     tree = []
     
     for root_item in os.listdir(reports_dir):
@@ -895,8 +877,56 @@ async def get_artifacts_tree():
         
     # Sort tree reverse chronological
     tree.sort(key=lambda x: x["name"], reverse=True)
+    return tree
+
+@app.get("/api/vli/artifacts/tree")
+async def get_artifacts_tree():
+    import os
+    import asyncio
+    import time
+    from datetime import datetime
     
-    return {"status": "OK", "tree": tree}
+    global _artifacts_tree_cache, _artifacts_tree_cache_time, _artifacts_tree_cache_lock
+    
+    if _artifacts_tree_cache_lock is None:
+        _artifacts_tree_cache_lock = asyncio.Lock()
+        
+    reports_dir = get_reports_root()
+    os.makedirs(reports_dir, exist_ok=True)
+        
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+    
+    # Only auto-create folder structure on trading days (Mon-Fri) at/after 6 AM
+    if now.weekday() < 5 and now.hour >= 6:
+        try:
+            today_dir = os.path.join(reports_dir, today_str)
+            notes_dir = os.path.join(today_dir, "Notes")
+            os.makedirs(notes_dir, exist_ok=True)
+            
+            # Generate Journal if missing
+            journal_path = os.path.join(today_dir, f"{today_str} Daily Journal.md")
+            if not os.path.exists(journal_path):
+                with open(journal_path, "w", encoding="utf-8") as f:
+                    f.write(f"# {today_str} Daily Journal\n\n## Trades\n| Symbol | Direction | Entry | Exit | PnL | Notes |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n| | | | | | |\n\n## Notes\n- \n")
+        except Exception as e:
+            logger.error(f"Failed to auto-create daily directory or journal: {e}")
+            
+    async with _artifacts_tree_cache_lock:
+        if _artifacts_tree_cache is not None and (time.time() - _artifacts_tree_cache_time) < 2.0:
+            return {"status": "OK", "tree": _artifacts_tree_cache}
+            
+        try:
+            tree = await asyncio.to_thread(_build_artifacts_tree_sync, reports_dir)
+            _artifacts_tree_cache = tree
+            _artifacts_tree_cache_time = time.time()
+            return {"status": "OK", "tree": tree}
+        except Exception as e:
+            logger.error(f"Failed to build artifacts tree: {e}")
+            if _artifacts_tree_cache is not None:
+                logger.warning("Returning stale artifacts tree due to traversal error.")
+                return {"status": "OK", "tree": _artifacts_tree_cache}
+            return {"status": "ERROR", "message": str(e)}
 
 from pydantic import BaseModel
 class RenameArtifactRequest(BaseModel):
@@ -930,6 +960,8 @@ async def rename_artifact(request: RenameArtifactRequest):
     
     try:
         os.rename(old_full_path, new_full_path)
+        global _artifacts_tree_cache
+        _artifacts_tree_cache = None
         return {"status": "OK", "message": "Renamed successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -977,6 +1009,8 @@ async def move_to_folder(request: MoveToFolderRequest):
         
     try:
         shutil.move(source_path, dest_path)
+        global _artifacts_tree_cache
+        _artifacts_tree_cache = None
         return {"status": "OK", "message": "Moved to Folder", "path": dest_path.replace("\\", "/")}
     except Exception as e:
         logger.error(f"Failed to move to notes: {e}")
@@ -1011,6 +1045,8 @@ async def create_artifact(request: CreateArtifactRequest):
     try:
         with open(new_path, "w", encoding="utf-8") as f:
             f.write(f"# {os.path.basename(new_path).replace('.md', '')}\n\nStart typing here...\n")
+        global _artifacts_tree_cache
+        _artifacts_tree_cache = None
         return {"status": "OK", "message": "Created", "path": new_path.replace("\\", "/")}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1032,6 +1068,8 @@ async def delete_artifact(request: DeleteArtifactRequest):
         
     try:
         os.remove(full_path)
+        global _artifacts_tree_cache
+        _artifacts_tree_cache = None
         return {"status": "OK", "message": "Deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -2786,6 +2824,8 @@ async def sync_fidelity_payload(request: Request):
         logger.error(f"Fidelity sync error: {e}")
         return JSONResponse({"error": str(e)}, status_code=400)
 
+_YF_HISTORY_CACHE = {}
+
 @app.get("/api/brokerage/history")
 async def get_brokerage_history(account_id: str, start_date: str, end_date: str):
     from fastapi.responses import JSONResponse
@@ -3070,7 +3110,20 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                 yf_to_raw[yf_t] = t
                 
             try:
-                data = yf.download(yf_tickers, period="5d", group_by='ticker', threads=True, progress=False)
+                import time
+                global _YF_HISTORY_CACHE
+                cache_key = tuple(sorted(yf_tickers))
+                cached = _YF_HISTORY_CACHE.get(cache_key)
+                
+                # 15-second TTL keeps data fresh while making tab switches and toggles instant (<10ms)
+                if cached and (time.time() - cached[0] < 15.0):
+                    data = cached[1]
+                else:
+                    import asyncio
+                    def fetch_yf():
+                        return yf.download(yf_tickers, period="5d", group_by='ticker', threads=True, progress=False, timeout=3.0)
+                    data = await asyncio.to_thread(fetch_yf)
+                    _YF_HISTORY_CACHE[cache_key] = (time.time(), data)
                 for yf_sym, sym in yf_to_raw.items():
                     pdata = open_positions[sym]
                     try:

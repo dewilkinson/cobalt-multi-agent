@@ -293,7 +293,7 @@ def render_miss_reasons_table(tickers, scanner_map, missed_analysis_map):
 
 def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map):
     lines = [
-        f"# Daily Market Report: {date_str}",
+        f"# Daily Scanner Review: {date_str}",
         "",
         "This report is generated automatically by sweeping the market using the AlphaVantage API and cross-referencing with your Cobalt Multiagent scanner hits.",
         ""
@@ -373,7 +373,7 @@ def main():
         
     os.environ["VLI_REPORT_DATE"] = date_str
     
-    print(f"Generating Daily Market Report for {date_str}...")
+    print(f"Generating Daily Scanner Review for {date_str}...")
     
     av_data = fetch_av_data()
     if not av_data:
@@ -386,6 +386,30 @@ def main():
     top_gainers = av_data.get("top_gainers", [])[:10]
     top_losers = av_data.get("top_losers", [])[:10]
     most_active = av_data.get("most_actively_traded", [])[:10]
+    
+    # Fetch actual volumes from yfinance since FMP biggest-gainers/losers/actives doesn't include volume in FMP response
+    all_top_tickers = list(set([item["ticker"] for item in top_gainers + top_losers + most_active if item.get("ticker")]))
+    if all_top_tickers:
+        print(f"Fetching actual volumes from yfinance for {len(all_top_tickers)} tickers on {date_str}...")
+        try:
+            df = yf.download(all_top_tickers, period="5d", interval="1d", group_by='ticker', progress=False)
+            for item in top_gainers + top_losers + most_active:
+                sym = item.get("ticker")
+                try:
+                    t_df = df if len(all_top_tickers) == 1 else df.get(sym)
+                    if t_df is not None and not t_df.empty:
+                        # Drop NaN index values if any, and convert to string
+                        valid_df = t_df.dropna(subset=['Volume'])
+                        valid_df.index = pd.to_datetime(valid_df.index).strftime("%Y-%m-%d")
+                        if date_str in valid_df.index:
+                            vol = valid_df.loc[date_str, 'Volume']
+                            if isinstance(vol, pd.Series):
+                                vol = vol.iloc[-1]
+                            item["volume"] = f"{int(vol):,}"
+                except Exception as e:
+                    print(f"Error getting volume for {sym}: {e}")
+        except Exception as e:
+            print(f"Failed to fetch volumes from yfinance: {e}")
     
     missed_gainers = [g.get("ticker", "") for g in top_gainers if g.get("ticker") and g.get("ticker") not in scanner_map]
     missed_losers = [l.get("ticker", "") for l in top_losers if l.get("ticker") and l.get("ticker") not in scanner_map]
@@ -448,13 +472,13 @@ def main():
         except Exception as e:
             print(f"Failed to combine/sync reports: {e}")
     else:
-        # Save just the market report
-        out_dir = os.path.join(base_dir, "data", "archive", "daily_market_reports")
+        # Save just the scanner review report
+        out_dir = os.path.join(base_dir, "data", "archive", "daily_scanner_reviews")
         os.makedirs(out_dir, exist_ok=True)
-        out_path = os.path.join(out_dir, f"report_{date_str}.md")
+        out_path = os.path.join(out_dir, f"Daily_Scanner_Review_{date_str}.md")
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(md_content)
-        print(f"Saved market report without post-mortem to {out_path}")
+        print(f"Saved Daily Scanner Review without post-mortem to {out_path}")
 
 if __name__ == "__main__":
     main()

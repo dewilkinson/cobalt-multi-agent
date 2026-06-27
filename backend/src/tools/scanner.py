@@ -516,7 +516,9 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
                 pre_price = info.get("preMarketPrice")
                 if not pre_price:
                     try:
-                        pm_df = yf.download(tickers=[ticker], period="1d", interval="1m", progress=False, prepost=True)
+                        def fetch_pm():
+                            return yf.download(tickers=[ticker], period="1d", interval="1m", progress=False, prepost=True, timeout=3.0)
+                        pm_df = await asyncio.to_thread(fetch_pm)
                         if pm_df is not None and not pm_df.empty:
                             ticker_df = _extract_ticker_data(pm_df, ticker)
                             if not ticker_df.empty:

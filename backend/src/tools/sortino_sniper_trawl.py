@@ -127,7 +127,11 @@ async def run_background_trawl(strategy_config: str = "{}") -> Dict[str, Any]:
     market_open = parse_time(os.environ.get("MARKET_OPEN_LOCALTIME", "09:30"))
     is_premarket = premarket_open <= now_est.time() < market_open
 
-    if is_premarket:
+    enable_sortino = os.environ.get("SCANNER_ENABLE_SORTINO", "false").lower() == "true"
+    if not enable_sortino:
+        effective_hurdle = -999.0
+        logger.info("Bunker Trawl: Sortino Hurdle disabled by SCANNER_ENABLE_SORTINO toggle (effective_hurdle=-999.0).")
+    elif is_premarket:
         effective_hurdle = 0.0
         logger.info("Bunker Trawl: Premarket Bypass Active. Sortino Hurdle bypassed.")
     else:
