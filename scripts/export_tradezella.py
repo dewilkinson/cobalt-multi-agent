@@ -320,6 +320,9 @@ def run_fifo_matching(cache, start_date, end_date):
         
         for t in this_week_closed_trades:
             direction = t.get("direction", "Long")
+            is_futures = t["symbol"].startswith("/") or t["symbol"].endswith("!") or "Futures" in account
+            spread_val = "Future" if is_futures else "Stock"
+            
             if direction == "Short":
                 # Entry is Sell
                 trades_to_export.append({
@@ -331,7 +334,7 @@ def run_fifo_matching(cache, start_date, end_date):
                     'Buy/Sell': 'Sell',
                     'Quantity': t["volume"],
                     'Price': t["open_price"],
-                    'Spread': 'Stock',
+                    'Spread': spread_val,
                     'Expiration': '',
                     'Strike': '',
                     'Call/Put': '',
@@ -350,7 +353,7 @@ def run_fifo_matching(cache, start_date, end_date):
                     'Buy/Sell': 'Buy',
                     'Quantity': t["volume"],
                     'Price': t["close_price"],
-                    'Spread': 'Stock',
+                    'Spread': spread_val,
                     'Expiration': '',
                     'Strike': '',
                     'Call/Put': '',
@@ -370,7 +373,7 @@ def run_fifo_matching(cache, start_date, end_date):
                     'Buy/Sell': 'Buy',
                     'Quantity': t["volume"],
                     'Price': t["open_price"],
-                    'Spread': 'Stock',
+                    'Spread': spread_val,
                     'Expiration': '',
                     'Strike': '',
                     'Call/Put': '',
@@ -389,7 +392,7 @@ def run_fifo_matching(cache, start_date, end_date):
                     'Buy/Sell': 'Sell',
                     'Quantity': t["volume"],
                     'Price': t["close_price"],
-                    'Spread': 'Stock',
+                    'Spread': spread_val,
                     'Expiration': '',
                     'Strike': '',
                     'Call/Put': '',
