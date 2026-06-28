@@ -2371,6 +2371,13 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                 seen_symbols[sym] = cand
                 
         scanner_res_content["candidates"] = list(seen_symbols.values())
+        
+        # Enrich candidates with dynamic trend alignments from the scanner cache
+        try:
+            from src.server.routes.scanner import enrich_candidates_with_trends
+            scanner_res_content["candidates"] = await enrich_candidates_with_trends(scanner_res_content["candidates"])
+        except Exception as enrich_e:
+            logger.error(f"Failed to enrich active state candidates with trends: {enrich_e}")
                     
         # Dynamically enrich the has_report status to ensure UI polling catches live background generation
         from datetime import datetime

@@ -425,6 +425,17 @@ def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str =
                                     master_dict[(col, t)] = yf_data[t][col]
             except Exception as yfe:
                 logger.error(f"[AV FALLBACK] YFinance download failed for {failed_tickers}: {yfe}")
+        # Standardize all indices to tz-naive to prevent TypeError: Cannot join tz-naive with tz-aware DatetimeIndex
+        for key in list(master_dict.keys()):
+            series = master_dict[key]
+            if series is not None and hasattr(series, 'index') and series.index is not None:
+                if getattr(series.index, 'tz', None) is not None:
+                    s = series.copy()
+                    try:
+                        s.index = s.index.tz_convert('America/New_York').tz_localize(None)
+                    except Exception:
+                        s.index = s.index.tz_localize(None)
+                    master_dict[key] = s
                     
         data = pd.DataFrame(master_dict) if master_dict else pd.DataFrame()
     else:

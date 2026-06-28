@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0122";
+        const VLI_CLIENT_VERSION = "00.000.0123";
     </script>
     
     <link
@@ -2129,6 +2129,9 @@
         }
         
         window.UXManager = new UXCardManager();
+        window.UXManager.closeCard = function(id) {
+            this.removeCard(id);
+        };
 
         function insertCardIdIntoChat(badge) {
             const input = document.getElementById('chat-input');
@@ -3383,7 +3386,7 @@
         function drawSparkline(values, ticker = null) {
             if (!values || values.length < 2) return '';
 
-            const validValues = values.filter(v => v !== null);
+            const validValues = values.map(v => parseFloat(v)).filter(v => !isNaN(v));
             if (validValues.length === 0) return '';
 
             const min = Math.min(...validValues);
@@ -3392,15 +3395,14 @@
             const width = 64;
             const height = 16;
 
-            const points = values.map((v, i) => {
-                const x = (i / (values.length - 1)) * width;
-                const y = v !== null ? height - ((v - min) / range) * height : null;
+            const points = validValues.map((v, i) => {
+                const x = (i / (validValues.length - 1)) * width;
+                const y = height - ((v - min) / range) * height;
                 return { x, y };
             });
 
-            // Filter out null points for drawing
-            const pathData = points.filter(p => p.y !== null).map((p, i) => {
-                return `${i === 0 ? 'M' : 'L'} ${p.x},${p.y}`;
+            const pathData = points.map((p, i) => {
+                return `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)},${p.y.toFixed(2)}`;
             }).join(' ');
 
             const isUp = validValues[validValues.length - 1] >= validValues[0];
@@ -3413,6 +3415,58 @@
                     </svg>
                 </div>
             `;
+        }
+
+        function drawTrendIndicator(trends) {
+            const timeframes = ['5m', '15m', '1h', '4h', '1d'];
+            let html = '<div style="display: flex; gap: 3px; justify-content: flex-end; align-items: center;">';
+            
+            timeframes.forEach(tf => {
+                const val = trends ? (trends[tf] || 'No Data') : 'No Data';
+                const tfLabel = tf === '1d' ? '1D' : tf;
+                
+                let bg = 'rgba(255, 255, 255, 0.05)';
+                let border = 'rgba(255, 255, 255, 0.15)';
+                let color = 'rgba(255, 255, 255, 0.4)';
+                
+                if (val === 'Bullish' || val === 'Uptrend') {
+                    color = '#3fb950';
+                    bg = 'rgba(63, 185, 80, 0.1)';
+                    border = 'rgba(63, 185, 80, 0.3)';
+                } else if (val === 'Weak Bullish') {
+                    color = '#d29922';
+                    bg = 'rgba(210, 153, 34, 0.1)';
+                    border = 'rgba(210, 153, 34, 0.3)';
+                } else if (val === 'Weak Bearish') {
+                    color = '#f59e0b';
+                    bg = 'rgba(245, 158, 11, 0.1)';
+                    border = 'rgba(245, 158, 11, 0.3)';
+                } else if (val === 'Bearish' || val === 'Downtrend') {
+                    color = 'var(--ruby-red)';
+                    bg = 'rgba(248, 81, 73, 0.1)';
+                    border = 'rgba(248, 81, 73, 0.3)';
+                }
+                
+                html += `
+                    <span style="
+                        display: inline-block; 
+                        width: 32px; 
+                        text-align: center; 
+                        background: ${bg}; 
+                        color: ${color}; 
+                        padding: 2px 0; 
+                        border-radius: 4px; 
+                        font-size: 10px; 
+                        font-weight: 800; 
+                        border: 1px solid ${border};
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+                        font-family: 'Inter', sans-serif;
+                    ">${tfLabel}</span>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
         }
 
         function updateCountdown() {
@@ -4152,13 +4206,18 @@
                     const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
                     
                     tr.innerHTML = `
-                        <td style="padding: 4px 2px; color: #fff; font-weight: 700;">${c.symbol}</td>
+                        <td style="padding: 4px 2px; color: #fff; font-weight: 700;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 11px;">${c.symbol}</span>
+                                <div style="opacity: 0.65; transform: scale(0.8); transform-origin: left center; width: 45px; height: 16px; overflow: hidden; display: flex; align-items: center;">
+                                    ${drawSparkline(c.sparkline && c.sparkline.length > 0 ? c.sparkline.map(x => x.v) : [], c.symbol)}
+                                </div>
+                            </div>
+                        </td>
                         <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</td>
                         <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
                         <td style="padding: 4px 2px; text-align: right;">
-                            <div style="display: flex; justify-content: flex-end; opacity: 0.8;">
-                                ${drawSparkline(c.sparkline && c.sparkline.length > 0 ? c.sparkline.map(x => x.v) : [], c.symbol)}
-                            </div>
+                            ${drawTrendIndicator(c.trends)}
                         </td>
                         <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
                         <td style="padding: 4px 2px;">
@@ -4973,7 +5032,15 @@
 
         // [STABILITY] Force-inject the VERIFY button if the header was overwritten
         setTimeout(() => {
-            const header = document.querySelector('.card-header:contains("MACRO WATCHLIST")') || document.querySelector('.card:nth-child(2) .card-header');
+            let header = null;
+            document.querySelectorAll('.card-header').forEach(h => {
+                if (h.innerText.includes("MACRO WATCHLIST")) {
+                    header = h;
+                }
+            });
+            if (!header) {
+                header = document.querySelector('.card:nth-child(2) .card-header');
+            }
             if (header && !document.getElementById('verify-audit-btn')) {
                 const btnContainer = document.createElement('div');
                 btnContainer.style.display = 'flex';

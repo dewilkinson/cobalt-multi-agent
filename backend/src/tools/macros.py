@@ -122,6 +122,58 @@ _LOOKBACK = 10
 _INTERVAL = "15m"
 
 
+def calculate_trend_alignment(df) -> str:
+    import pandas as pd
+    if df.empty or len(df) < 20:
+        return "No Data"
+    
+    # Flatten columns
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+    df.columns = [str(c).lower().strip() for c in df.columns]
+    
+    close_series = df["close"]
+    ema20 = close_series.ewm(span=20, adjust=False).mean()
+    ema50 = close_series.ewm(span=50, adjust=False).mean()
+    
+    if len(df) >= 200:
+        ema200 = close_series.ewm(span=200, adjust=False).mean()
+        last_ema200 = float(ema200.iloc[-1])
+    else:
+        ema200 = close_series.ewm(span=100, adjust=False).mean() if len(df) >= 100 else ema50
+        last_ema200 = float(ema200.iloc[-1])
+        
+    last_close = float(close_series.iloc[-1])
+    last_ema20 = float(ema20.iloc[-1])
+    last_ema50 = float(ema50.iloc[-1])
+    
+    if last_close > last_ema20 and last_ema20 > last_ema50 and last_ema50 > last_ema200:
+        return "Bullish"
+    elif last_close < last_ema20 and last_ema20 < last_ema50 and last_ema50 < last_ema200:
+        return "Bearish"
+    elif last_close > last_ema20:
+        return "Weak Bullish"
+    else:
+        return "Weak Bearish"
+
+def extract_single_ticker_df(batch_df, ticker):
+    import pandas as pd
+    if batch_df.empty:
+        return pd.DataFrame()
+    if isinstance(batch_df.columns, pd.MultiIndex):
+        try:
+            df = batch_df.xs(ticker, axis=1, level=1)
+            return df.dropna(subset=["Close"])
+        except Exception:
+            try:
+                df = batch_df.xs(ticker.upper(), axis=1, level=1)
+                return df.dropna(subset=["Close"])
+            except Exception:
+                return pd.DataFrame()
+    else:
+        return batch_df.dropna(subset=["Close"])
+
+
 async def get_macro_data() -> list[dict[str, Any]]:
     """
     Structured version of market macros for API consumption.
@@ -141,6 +193,22 @@ async def get_macro_data() -> list[dict[str, Any]]:
 
     # 2. Bulk Fetch Sparklines (last 5 days)
     sparkline_data = await asyncio.to_thread(_fetch_batch_history, tickers, "5d", _INTERVAL)
+
+    # 3. Bulk Fetch Trend Histories
+    import yfinance as yf
+    import pandas as pd
+    try:
+        logger.info("VLI: Bulk fetching trend histories...")
+        batch_5m = await asyncio.to_thread(yf.download, tickers, period="5d", interval="5m", progress=False)
+        batch_15m = await asyncio.to_thread(yf.download, tickers, period="1mo", interval="15m", progress=False)
+        batch_1h = await asyncio.to_thread(yf.download, tickers, period="3mo", interval="1h", progress=False)
+        batch_1d = await asyncio.to_thread(yf.download, tickers, period="2y", interval="1d", progress=False)
+    except Exception as e:
+        logger.error(f"VLI: Failed to bulk fetch trend histories: {e}")
+        batch_5m = pd.DataFrame()
+        batch_15m = pd.DataFrame()
+        batch_1h = pd.DataFrame()
+        batch_1d = pd.DataFrame()
 
     # Parse prices from bulk report
     prices = {}
@@ -218,6 +286,27 @@ async def get_macro_data() -> list[dict[str, Any]]:
             except Exception as e:
                 logger.error(f"Sparkline error for {yahoo_ticker}: {e}")
 
+            # Calculate trends
+            trends = {}
+            timeframes = {
+                "5m": extract_single_ticker_df(batch_5m, yahoo_ticker),
+                "15m": extract_single_ticker_df(batch_15m, yahoo_ticker),
+                "1h": extract_single_ticker_df(batch_1h, yahoo_ticker),
+                "4h": None,
+                "1d": extract_single_ticker_df(batch_1d, yahoo_ticker)
+            }
+            
+            # Resample 1h to 4h
+            df_1h = timeframes["1h"]
+            if df_1h is not None and not df_1h.empty:
+                timeframes["4h"] = df_1h.resample('4h').last().dropna()
+                
+            for tf_name, df in timeframes.items():
+                if df is not None and not df.empty:
+                    trends[tf_name] = calculate_trend_alignment(df)
+                else:
+                    trends[tf_name] = "No Data"
+
             return {
                 "label": label,
                 "name": MACRO_NAMES.get(label, ""),
@@ -225,7 +314,7 @@ async def get_macro_data() -> list[dict[str, Any]]:
                 "price": prices.get(yahoo_ticker, 0.0) or prices.get(yahoo_ticker.upper(), 0.0),
                 "change": change_pct,
                 "sortino": 0.0,
-                "trends": {},
+                "trends": trends,
                 "sparkline": sparkline,
             }
         except Exception as e:

@@ -119,6 +119,90 @@ async def trigger_scanner_trawl():
         logger.error(f"Trawl failed: {e}")
         return {"status": "error", "message": str(e)}
 
+import time
+
+TRENDS_CACHE = {}  # {symbol: {"trends": {...}, "timestamp": float}}
+TRENDS_CACHE_EXPIRY = 300  # 5 minutes
+
+async def enrich_candidates_with_trends(candidates):
+    if not candidates:
+        return candidates
+        
+    now = time.time()
+    symbols_to_fetch = []
+    
+    for c in candidates:
+        sym = c.get("symbol")
+        if not sym:
+            continue
+        # If candidate already contains valid pre-calculated trends, populate cache and bypass fetch
+        if "trends" in c and isinstance(c["trends"], dict) and len(c["trends"]) >= 5:
+            if sym not in TRENDS_CACHE:
+                TRENDS_CACHE[sym] = {
+                    "trends": c["trends"],
+                    "timestamp": now
+                }
+            continue
+            
+        cached = TRENDS_CACHE.get(sym)
+        if not cached or (now - cached["timestamp"] > TRENDS_CACHE_EXPIRY):
+            symbols_to_fetch.append(sym)
+            
+    if symbols_to_fetch:
+        import yfinance as yf
+        from src.tools.macros import calculate_trend_alignment, extract_single_ticker_df
+        
+        try:
+            logger.info(f"VLI: Fetching trend histories for symbols: {symbols_to_fetch}")
+            c_batch_5m = await asyncio.to_thread(yf.download, symbols_to_fetch, period="5d", interval="5m", progress=False)
+            c_batch_15m = await asyncio.to_thread(yf.download, symbols_to_fetch, period="1mo", interval="15m", progress=False)
+            c_batch_1h = await asyncio.to_thread(yf.download, symbols_to_fetch, period="3mo", interval="1h", progress=False)
+            c_batch_1d = await asyncio.to_thread(yf.download, symbols_to_fetch, period="2y", interval="1d", progress=False)
+            
+            for sym in symbols_to_fetch:
+                c_timeframes = {
+                    "5m": extract_single_ticker_df(c_batch_5m, sym),
+                    "15m": extract_single_ticker_df(c_batch_15m, sym),
+                    "1h": extract_single_ticker_df(c_batch_1h, sym),
+                    "4h": None,
+                    "1d": extract_single_ticker_df(c_batch_1d, sym)
+                }
+                
+                df_1h = c_timeframes["1h"]
+                if df_1h is not None and not df_1h.empty:
+                    try:
+                        c_timeframes["4h"] = df_1h.resample('4h').last().dropna()
+                    except Exception as resample_e:
+                        logger.error(f"Failed to resample 4h for {sym}: {resample_e}")
+                        
+                trends = {}
+                for tf_name, df in c_timeframes.items():
+                    if df is not None and not df.empty:
+                        try:
+                            trends[tf_name] = calculate_trend_alignment(df)
+                        except Exception as align_e:
+                            logger.error(f"Failed to align trend for {sym} {tf_name}: {align_e}")
+                            trends[tf_name] = "No Data"
+                    else:
+                        trends[tf_name] = "No Data"
+                
+                TRENDS_CACHE[sym] = {
+                    "trends": trends,
+                    "timestamp": now
+                }
+        except Exception as e:
+            logger.error(f"VLI: Failed to bulk compute trends: {e}")
+            
+    # Populate the trends from cache
+    for c in candidates:
+        sym = c.get("symbol")
+        if sym in TRENDS_CACHE:
+            c["trends"] = TRENDS_CACHE[sym]["trends"]
+        else:
+            c["trends"] = c.get("trends", {})
+            
+    return candidates
+
 @router.get("/bunker")
 async def get_bunker_list():
     """Retrieve the current persistent Combat List (Phase A)."""
@@ -133,10 +217,14 @@ async def get_bunker_list():
             
             payload = {"status": "success"}
             if isinstance(data, list):
-                payload["data"] = data
+                candidates = data
             else:
-                payload["data"] = data.get("candidates", data.get("strike_list", []))
+                candidates = data.get("candidates", data.get("strike_list", []))
                 
+            # Enrich candidates with dynamic trend alignments
+            enriched = await enrich_candidates_with_trends(candidates)
+            payload["data"] = enriched
+            
             if updated_at:
                 payload["updated_at"] = updated_at
                 
@@ -412,6 +500,10 @@ async def scanner_stream():
                         merged["tier"] = match["tier"]
                         
                     p2_full.append(merged)
+                
+                # Compute multi-timeframe trends for sniper candidates
+                if p2_full:
+                    p2_full = await enrich_candidates_with_trends(p2_full)
                     
                 yield f"data: {json.dumps(sanitize_data({'type': 'phase2', 'data': p2_full}), cls=NpEncoder)}\n\n"
 
