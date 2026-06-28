@@ -4085,6 +4085,7 @@
                                         <th style="padding: 4px 2px; text-align: left;">SYMBOL</th>
                                         <th style="padding: 4px 2px; text-align: right;">PRICE</th>
                                         <th style="padding: 4px 2px; text-align: right;">CHANGE</th>
+                                        <th style="padding: 4px 2px; text-align: right; width: 64px; padding-right: 16px;">CHART</th>
                                         <th style="padding: 4px 2px; text-align: right;">TREND</th>
                                         <th style="padding: 4px 2px; text-align: right;">SORTINO</th>
                                         <th style="padding: 4px 2px; text-align: center;">GRADE</th>
@@ -4139,7 +4140,7 @@
                     const styleMod = window._vliIsScanning ? "color: var(--cobalt-blue); font-weight: bold; letter-spacing: 1px;" : "color: var(--text-muted); font-style: italic;";
                     tbody.innerHTML = `
                         <tr style="border: none;">
-                            <td colspan="5" style="text-align: center; padding: 30px 10px; font-size: 12px; ${styleMod}">${statusText}</td>
+                            <td colspan="7" style="text-align: center; padding: 30px 10px; font-size: 12px; ${styleMod}">${statusText}</td>
                         </tr>
                     `;
                 }
@@ -4206,21 +4207,19 @@
                     const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
                     
                     tr.innerHTML = `
-                        <td style="padding: 4px 2px; color: #fff; font-weight: 700;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 11px;">${c.symbol}</span>
-                                <div style="opacity: 0.65; transform: scale(0.8); transform-origin: left center; width: 45px; height: 16px; overflow: hidden; display: flex; align-items: center;">
-                                    ${drawSparkline(c.sparkline && c.sparkline.length > 0 ? c.sparkline.map(x => x.v) : [], c.symbol)}
-                                </div>
+                        <td style="padding: 4px 2px; color: #fff; font-weight: 700; vertical-align: middle;">${c.symbol}</td>
+                        <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: #fff; vertical-align: middle;">$${parseFloat(c.price || 0).toFixed(2)}</td>
+                        <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${changeColor}; vertical-align: middle;">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
+                        <td style="padding: 4px 2px; text-align: right; width: 64px; vertical-align: middle;">
+                            <div style="display: flex; justify-content: flex-end; padding-right: 16px;">
+                                ${drawSparkline(c.sparkline && c.sparkline.length > 0 ? c.sparkline.map(x => x.v) : [], c.symbol)}
                             </div>
                         </td>
-                        <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</td>
-                        <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
-                        <td style="padding: 4px 2px; text-align: right;">
+                        <td style="padding: 4px 2px; text-align: right; vertical-align: middle;">
                             ${drawTrendIndicator(c.trends)}
                         </td>
-                        <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
-                        <td style="padding: 4px 2px;">
+                        <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800; vertical-align: middle;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
+                        <td style="padding: 4px 2px; vertical-align: middle;">
                             <div style="display: flex; align-items: center; justify-content: flex-end;">
                                 <span style="display: inline-block; width: 32px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; padding: 2px 0; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid ${gradeBorder};">${c.grade || 'F'}</span>
                                 <div style="width: 24px; display: flex; justify-content: flex-end;">
