@@ -1,5 +1,8 @@
 # Project Guidelines: Cobalt Multiagent
 
+## CRITICAL RESTRICTION: git push IS PERMANENTLY BLOCKED
+Do NOT under any circumstances attempt to push commits to remote repositories (e.g. GitHub). A local git hook has been installed to prevent this. All code changes should remain strictly local.
+
 ## Design & Documentation Rules
 1. **Implementation Plans**: All final implementation plans must be stored in the `docs/design` folder. Don't keep multiple copies of implementation plans for the same feature.
 2. **Lifecycle States**:
