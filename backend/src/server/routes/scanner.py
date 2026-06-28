@@ -140,8 +140,8 @@ async def bulk_fetch_trends_and_sparklines(symbols):
         
         logger.info(f"VLI: Background fetching trend histories and sparklines for: {to_fetch}")
         
-        # Download in safe chunks of 15 to avoid rate limits
-        chunk_size = 15
+        # Download in safe chunks of 10 to avoid rate limits
+        chunk_size = 10
         for i in range(0, len(to_fetch), chunk_size):
             chunk = to_fetch[i:i+chunk_size]
             
@@ -192,14 +192,19 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     except Exception as spark_e:
                         logger.error(f"Failed to extract sparkline for {sym}: {spark_e}")
                 
+                # Preserve existing cached values if the new fetch returned empty (e.g. rate limited)
+                cached = TRENDS_CACHE.get(sym)
+                existing_trends = cached.get("trends") if cached else None
+                existing_spark = cached.get("sparkline") if cached else None
+                
                 TRENDS_CACHE[sym] = {
-                    "trends": trends,
-                    "sparkline": sparkline,
+                    "trends": trends if (trends and any(v != "No Data" for v in trends.values())) else (existing_trends or {}),
+                    "sparkline": sparkline if sparkline else (existing_spark or []),
                     "timestamp": now
                 }
             
-            # Yield control back to event loop
-            await asyncio.sleep(0.5)
+            # Yield control back to event loop with generous sleep to prevent rate limiting
+            await asyncio.sleep(1.5)
             
     except Exception as e:
         logger.error(f"Failed in background sparkline and trend fetch: {e}")
@@ -212,6 +217,7 @@ async def enrich_candidates_with_trends(candidates):
         return candidates
         
     import math
+    import random
     now = time.time()
     symbols_to_fetch = []
     
@@ -237,14 +243,15 @@ async def enrich_candidates_with_trends(candidates):
                 else:
                     sample_trends[tf_name] = "Bearish"
                     
-            # Generate deterministic sample sparkline
-            h = sum(ord(char) for char in sym)
+            # Generate deterministic sample sparkline (realistic stock price walk)
+            random.seed(sym)
+            current_val = 50.0 + random.randint(10, 100)
             mock_values = []
-            current_val = 100 + (h % 30)
-            for i in range(20):
-                step = math.sin(h + i) * 2 + (0.5 if (h % 3) == 0 else -0.3)
-                current_val += step
-                mock_values.append({"v": current_val})
+            for _ in range(30):
+                # Random walk with volatility and minor upward bias
+                change_pct = (random.random() - 0.48) * 0.04
+                current_val *= (1.0 + change_pct)
+                mock_values.append({"v": round(current_val, 2)})
                 
             TRENDS_CACHE[sym] = {
                 "trends": sample_trends,
@@ -267,6 +274,8 @@ async def enrich_candidates_with_trends(candidates):
                 symbols_to_fetch.append(sym)
             
     if symbols_to_fetch:
+        # Prioritize top 25 symbols to prevent yfinance rate limits
+        symbols_to_fetch = symbols_to_fetch[:25]
         asyncio.create_task(bulk_fetch_trends_and_sparklines(symbols_to_fetch))
             
     # Populate the trends and sparklines from cache
