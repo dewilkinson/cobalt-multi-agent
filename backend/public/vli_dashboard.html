@@ -1992,7 +1992,7 @@
                     <div class="card-header">
                         <div style="display:flex; align-items:center; gap:8px;">
                             <div class="descriptor" style="cursor: pointer; transition: transform 0.1s;" onclick="insertCardIdIntoChat('${badgeLabel}')" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Insert ${badgeLabel} to Chat">${badgeLabel}</div>
-                            <div>${typeDef.title} ${liveBadgeHTML}</div>
+                            <div>${typeDef.title} ${liveBadgeHTML}${typeGuid === 'SCAN_RES' ? '<span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #f59e0b; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 800; margin-left: 8px; letter-spacing: 0.5px;">⚠️ SAMPLE DATA</span>' : ''}</div>
                         </div>
                         <div class="card-controls">
                             <div class="win-btn win-dock" onclick="dockWindow('win-${instanceGuid}')" title="Dock to Main Workspace"></div>
@@ -3453,7 +3453,7 @@
                 let border = 'rgba(255, 255, 255, 0.15)';
                 let color = 'rgba(255, 255, 255, 0.4)';
                 
-                if (val === 'Bullish' || val === 'Uptrend') {
+                if (val === 'Bullish' || val === 'Uptrend' || val === 'UP') {
                     color = '#3fb950';
                     bg = 'rgba(63, 185, 80, 0.1)';
                     border = 'rgba(63, 185, 80, 0.3)';
@@ -3465,7 +3465,7 @@
                     color = '#f59e0b';
                     bg = 'rgba(245, 158, 11, 0.1)';
                     border = 'rgba(245, 158, 11, 0.3)';
-                } else if (val === 'Bearish' || val === 'Downtrend') {
+                } else if (val === 'Bearish' || val === 'Downtrend' || val === 'DOWN') {
                     color = 'var(--ruby-red)';
                     bg = 'rgba(248, 81, 73, 0.1)';
                     border = 'rgba(248, 81, 73, 0.3)';
