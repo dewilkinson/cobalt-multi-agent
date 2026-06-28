@@ -121,8 +121,63 @@ async def trigger_scanner_trawl():
 
 import time
 
-TRENDS_CACHE = {}  # {symbol: {"trends": {...}, "timestamp": float}}
+TRENDS_CACHE = {}  # {symbol: {"trends": {...}, "sparkline": [...], "timestamp": float}}
 TRENDS_CACHE_EXPIRY = 300  # 5 minutes
+PENDING_FETCH = set()
+
+async def bulk_fetch_trends_and_sparklines(symbols):
+    # Filter out symbols that are already being fetched
+    to_fetch = [s for s in symbols if s not in PENDING_FETCH]
+    if not to_fetch:
+        return
+        
+    for s in to_fetch:
+        PENDING_FETCH.add(s)
+        
+    try:
+        import yfinance as yf
+        from src.tools.macros import extract_single_ticker_df
+        
+        logger.info(f"VLI: Background fetching sparkline histories for: {to_fetch}")
+        
+        # Download in chunks of 30 to avoid rate limits
+        chunk_size = 30
+        for i in range(0, len(to_fetch), chunk_size):
+            chunk = to_fetch[i:i+chunk_size]
+            
+            # Fetch ONLY the 15m timeframe for sparklines to minimize payload and yfinance connections
+            c_batch_15m = await asyncio.to_thread(yf.download, chunk, period="1mo", interval="15m", progress=False)
+            
+            now = time.time()
+            for sym in chunk:
+                df_15m = extract_single_ticker_df(c_batch_15m, sym)
+                
+                sparkline = []
+                if df_15m is not None and not df_15m.empty and "Close" in df_15m.columns:
+                    try:
+                        closes = df_15m["Close"].tail(30).tolist()
+                        sparkline = [{"v": float(v)} for v in closes]
+                    except Exception as spark_e:
+                        logger.error(f"Failed to extract sparkline for {sym}: {spark_e}")
+                        
+                # Preserve existing trends, update sparkline
+                cached = TRENDS_CACHE.get(sym)
+                existing_trends = cached.get("trends") if cached else None
+                
+                TRENDS_CACHE[sym] = {
+                    "trends": existing_trends or {},
+                    "sparkline": sparkline,
+                    "timestamp": now
+                }
+            
+            # Yield control back to event loop
+            await asyncio.sleep(0.3)
+            
+    except Exception as e:
+        logger.error(f"Failed in background sparkline fetch: {e}")
+    finally:
+        for s in to_fetch:
+            PENDING_FETCH.discard(s)
 
 async def enrich_candidates_with_trends(candidates):
     if not candidates:
@@ -135,71 +190,38 @@ async def enrich_candidates_with_trends(candidates):
         sym = c.get("symbol")
         if not sym:
             continue
-        # If candidate already contains valid pre-calculated trends, populate cache and bypass fetch
-        if "trends" in c and isinstance(c["trends"], dict) and len(c["trends"]) >= 5:
+        # If candidate already contains valid pre-calculated trends and sparkline, populate cache and bypass fetch
+        if "trends" in c and isinstance(c["trends"], dict) and len(c["trends"]) >= 5 and c.get("sparkline"):
             if sym not in TRENDS_CACHE:
                 TRENDS_CACHE[sym] = {
                     "trends": c["trends"],
+                    "sparkline": c["sparkline"],
                     "timestamp": now
                 }
-            continue
             
         cached = TRENDS_CACHE.get(sym)
-        if not cached or (now - cached["timestamp"] > TRENDS_CACHE_EXPIRY):
-            symbols_to_fetch.append(sym)
+        if not cached or (now - cached["timestamp"] > TRENDS_CACHE_EXPIRY) or not cached.get("sparkline"):
+            if sym not in PENDING_FETCH and sym not in symbols_to_fetch:
+                symbols_to_fetch.append(sym)
             
     if symbols_to_fetch:
-        import yfinance as yf
-        from src.tools.macros import calculate_trend_alignment, extract_single_ticker_df
-        
-        try:
-            logger.info(f"VLI: Fetching trend histories for symbols: {symbols_to_fetch}")
-            c_batch_5m = await asyncio.to_thread(yf.download, symbols_to_fetch, period="5d", interval="5m", progress=False)
-            c_batch_15m = await asyncio.to_thread(yf.download, symbols_to_fetch, period="1mo", interval="15m", progress=False)
-            c_batch_1h = await asyncio.to_thread(yf.download, symbols_to_fetch, period="3mo", interval="1h", progress=False)
-            c_batch_1d = await asyncio.to_thread(yf.download, symbols_to_fetch, period="2y", interval="1d", progress=False)
+        asyncio.create_task(bulk_fetch_trends_and_sparklines(symbols_to_fetch))
             
-            for sym in symbols_to_fetch:
-                c_timeframes = {
-                    "5m": extract_single_ticker_df(c_batch_5m, sym),
-                    "15m": extract_single_ticker_df(c_batch_15m, sym),
-                    "1h": extract_single_ticker_df(c_batch_1h, sym),
-                    "4h": None,
-                    "1d": extract_single_ticker_df(c_batch_1d, sym)
-                }
-                
-                df_1h = c_timeframes["1h"]
-                if df_1h is not None and not df_1h.empty:
-                    try:
-                        c_timeframes["4h"] = df_1h.resample('4h').last().dropna()
-                    except Exception as resample_e:
-                        logger.error(f"Failed to resample 4h for {sym}: {resample_e}")
-                        
-                trends = {}
-                for tf_name, df in c_timeframes.items():
-                    if df is not None and not df.empty:
-                        try:
-                            trends[tf_name] = calculate_trend_alignment(df)
-                        except Exception as align_e:
-                            logger.error(f"Failed to align trend for {sym} {tf_name}: {align_e}")
-                            trends[tf_name] = "No Data"
-                    else:
-                        trends[tf_name] = "No Data"
-                
-                TRENDS_CACHE[sym] = {
-                    "trends": trends,
-                    "timestamp": now
-                }
-        except Exception as e:
-            logger.error(f"VLI: Failed to bulk compute trends: {e}")
-            
-    # Populate the trends from cache
+    # Populate the trends and sparklines from cache
     for c in candidates:
         sym = c.get("symbol")
+        db_trends = c.get("trends", {})
+        db_sparkline = c.get("sparkline", [])
+        
         if sym in TRENDS_CACHE:
-            c["trends"] = TRENDS_CACHE[sym]["trends"]
+            cached_trends = TRENDS_CACHE[sym].get("trends")
+            c["trends"] = cached_trends if (cached_trends and len(cached_trends) >= 5) else db_trends
+            
+            cached_spark = TRENDS_CACHE[sym].get("sparkline")
+            c["sparkline"] = cached_spark if cached_spark else db_sparkline
         else:
-            c["trends"] = c.get("trends", {})
+            c["trends"] = db_trends
+            c["sparkline"] = db_sparkline
             
     return candidates
 
