@@ -36,7 +36,7 @@ def main():
         
     # Categorize by tier and grade
     watchlists = {
-        "ALL": {"S": [], "A": [], "B": []},
+        "ALL": {"S": [], "A": [], "B": [], "C": [], "D": [], "F": []},
         "SHIELD": {"S": [], "A": [], "B": []},
         "SNIPER": {"S": [], "A": [], "B": []},
         "SWORD": {"S": [], "A": [], "B": []}
@@ -47,20 +47,24 @@ def main():
         if not sym:
             continue
             
-        # Export only S, A, and B grades (e.g. S, A+, A, B+, B)
         grade = c.get("grade", "").upper().strip()
-        if not (grade.startswith("S") or grade.startswith("A") or grade.startswith("B")):
-            continue
+        base_grade = grade[0] if grade else "F"
+        if base_grade not in ["S", "A", "B", "C", "D", "F"]:
+            base_grade = "F"
             
         tier = c.get("tier", "").upper().strip()
         sym = sym.upper().strip()
-        base_grade = grade[0]
         
-        watchlists["ALL"][base_grade].append(sym)
-        if tier in watchlists:
-            watchlists[tier][base_grade].append(sym)
-        else:
-            print(f"Warning: Unknown tier '{tier}' for symbol '{sym}'")
+        # Add to ALL watchlist (all grades are allowed)
+        if base_grade in watchlists["ALL"]:
+            watchlists["ALL"][base_grade].append(sym)
+            
+        # Add to specific tier (only S, A, B grades allowed)
+        if base_grade in ["S", "A", "B"]:
+            if tier in watchlists:
+                watchlists[tier][base_grade].append(sym)
+            else:
+                print(f"Warning: Unknown tier '{tier}' for symbol '{sym}'")
             
     # Sort all list contents
     for tier in watchlists:
@@ -91,8 +95,13 @@ def main():
     # Write watchlists to files
     files_written = {}
     for tier, grades_dict in watchlists.items():
-        filename_dated = f"watchlist_{tier.lower()}_{session_ts}.txt"
-        filename_static = f"watchlist_{tier.lower()}.txt"
+        if tier == "ALL":
+            filename_dated = f"scanner_watchlist_all_{session_ts}.txt"
+            filename_static = f"scanner_watchlist_all.txt"
+        else:
+            filename_dated = f"watchlist_{tier.lower()}_{session_ts}.txt"
+            filename_static = f"watchlist_{tier.lower()}.txt"
+            
         file_path_dated = os.path.join(exports_dir, filename_dated)
         file_path_static = os.path.join(exports_dir, filename_static)
         
@@ -102,8 +111,9 @@ def main():
             for file_path in [file_path_dated, file_path_static]:
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(f"# Timestamp: {time_str_file}\n")
-                    for grade in ["S", "A", "B"]:
-                        symbols = grades_dict[grade]
+                    grades_to_write = ["S", "A", "B", "C", "D", "F"] if tier == "ALL" else ["S", "A", "B"]
+                    for grade in grades_to_write:
+                        symbols = grades_dict.get(grade, [])
                         if symbols:
                             f.write(f"### GRADE {grade}\n")
                             for sym in symbols:

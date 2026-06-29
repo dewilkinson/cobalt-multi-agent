@@ -47,7 +47,7 @@ def save_watchlist_entries(entries: list):
 
 def resolve_color_from_filename(filename: str) -> str:
     lower = filename.lower()
-    if "watchlist_all" in lower:
+    if "scanner_watchlist_all" in lower or "watchlist_all" in lower:
         return "Scanner Watchlist"
     elif "primary" in lower or "cyan" in lower:
         return "Cyan"

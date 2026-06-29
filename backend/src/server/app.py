@@ -730,11 +730,12 @@ async def lifespan(app: FastAPI):
         if not os.path.exists(exports_dir):
             exports_dir = os.path.join(os.getcwd(), "backend", "data", "exports")
         if os.path.exists(exports_dir):
-            for filepath in glob.glob(os.path.join(exports_dir, "watchlist_*_*.txt")):
-                try:
-                    os.remove(filepath)
-                except Exception as e:
-                    logger.warning(f"Failed to delete old watchlist file {filepath}: {e}")
+            for pattern in ["watchlist_*_*.txt", "scanner_watchlist_all_*.txt"]:
+                for filepath in glob.glob(os.path.join(exports_dir, pattern)):
+                    try:
+                        os.remove(filepath)
+                    except Exception as e:
+                        logger.warning(f"Failed to delete old watchlist file {filepath}: {e}")
         session_ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         meta_path = os.path.join(os.getcwd(), "data", ".session_metadata.json")
         if not os.path.exists(os.path.dirname(meta_path)):
