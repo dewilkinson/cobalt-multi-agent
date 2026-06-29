@@ -3529,11 +3529,13 @@
             
             table.style.tableLayout = 'fixed';
             
+            const totalWidth = table.offsetWidth;
             for (let i = 0; i < cols.length - 1; i++) {
                 const col = cols[i];
-                const minWidthPx = parseInt(window.getComputedStyle(col).minWidth) || 40;
+                const div = col.querySelector('div');
+                const minWidthPx = (div ? parseInt(window.getComputedStyle(div).minWidth) : 0) || parseInt(window.getComputedStyle(col).minWidth) || 40;
                 const widthPx = Math.max(minWidthPx, col.offsetWidth);
-                col.style.width = widthPx + 'px';
+                col.style.width = ((widthPx / totalWidth) * 100) + '%';
                 
                 const resizer = document.createElement('div');
                 resizer.className = 'col-resizer';
@@ -3548,12 +3550,14 @@
         function createResizableColumn(col, resizer, table) {
             let x = 0;
             let w = 0;
-            const minWidthPx = parseInt(window.getComputedStyle(col).minWidth) || 40;
+            const div = col.querySelector('div');
+            const minWidthPx = (div ? parseInt(window.getComputedStyle(div).minWidth) : 0) || parseInt(window.getComputedStyle(col).minWidth) || 40;
             
             const mouseMoveHandler = function(e) {
                 const dx = e.clientX - x;
+                const totalWidth = table.offsetWidth;
                 const newWidthPx = Math.max(minWidthPx, w + dx);
-                col.style.width = newWidthPx + 'px';
+                col.style.width = ((newWidthPx / totalWidth) * 100) + '%';
             };
             
             const mouseUpHandler = function() {
