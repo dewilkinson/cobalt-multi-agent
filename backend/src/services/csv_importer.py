@@ -476,19 +476,50 @@ def process_dropzone_files(optional_path=None):
     config = get_config()
     dropzone_accounts = config.get("DROPZONE_ACCOUNTS", {})
     
-    if os.path.isfile(dropzone_dir) and dropzone_dir.endswith('.csv'):
-        all_csvs = [dropzone_dir]
+    if os.path.isfile(dropzone_dir):
+        all_files = [dropzone_dir]
     else:
-        all_csvs = glob.glob(os.path.join(dropzone_dir, "*.csv"))
-        all_csvs.sort(key=os.path.getctime, reverse=True)
+        all_files = glob.glob(os.path.join(dropzone_dir, "*.csv")) + glob.glob(os.path.join(dropzone_dir, "*.txt"))
+        all_files.sort(key=os.path.getctime, reverse=True)
         
     updates_made = False
     messages = []
     
-    for file_path in all_csvs:
+    for file_path in all_files:
         filename = os.path.basename(file_path)
         lower_name = filename.lower()
         
+        # Intercept color-coded watchlist files
+        if "watchlist" in lower_name:
+            from src.services.watchlist_db import (
+                resolve_color_from_filename,
+                resolve_date_from_filename,
+                parse_watchlist_file,
+                save_watchlist_entries
+            )
+            default_color = resolve_color_from_filename(filename)
+            file_date = resolve_date_from_filename(filename, file_path)
+            
+            try:
+                symbols_colors = parse_watchlist_file(file_path, default_color)
+                if symbols_colors:
+                    db_entries = []
+                    imported_at_str = datetime.datetime.now().isoformat()
+                    for sym, color in symbols_colors:
+                        db_entries.append((file_date, color, sym, filename, imported_at_str))
+                    save_watchlist_entries(db_entries)
+                    
+                    # Move processed file to archive
+                    shutil.move(file_path, os.path.join(archive_dir, filename))
+                    messages.append(f"Imported color-coded watchlist {filename} for {file_date} with {len(symbols_colors)} symbols.")
+                    updates_made = True
+                else:
+                    logger.warning(f"No valid symbols parsed from watchlist file {filename}.")
+            except Exception as e:
+                logger.error(f"Failed to process watchlist file {filename}: {e}")
+                messages.append(f"Error processing watchlist {filename}: {e}")
+            continue
+            
         # 1. Match exporting tool/account from config regexes
         target_account = None
         for acct, pattern in dropzone_accounts.items():
