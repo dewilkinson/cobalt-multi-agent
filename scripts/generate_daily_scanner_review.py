@@ -314,7 +314,36 @@ def render_miss_reasons_table(tickers, scanner_map, missed_analysis_map):
     
     return ["", "### Scan Miss Reasons", ""] + table_lines + [""]
 
-def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map):
+def load_watchlist_map(date_str):
+    watchlist_map = {}
+    try:
+        import sqlite3
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        db_path = os.path.join(base_dir, "data", "watchlists.db")
+        if os.path.exists(db_path):
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            rows = cursor.execute("SELECT symbol, color FROM watchlists WHERE date = ?", (date_str,)).fetchall()
+            for sym, color in rows:
+                sym = sym.upper().strip()
+                if sym:
+                    if sym not in watchlist_map:
+                        watchlist_map[sym] = set()
+                    watchlist_map[sym].add(color)
+            conn.close()
+    except Exception as e:
+        print(f"Error loading watchlist map: {e}")
+    return watchlist_map
+
+def format_watchlist_cell(sym, target_color, watchlist_map):
+    if sym in watchlist_map:
+        colors = watchlist_map[sym]
+        for c in colors:
+            if target_color.lower() in c.lower() or c.lower() in target_color.lower():
+                return "✅ Yes"
+    return "❌ No"
+
+def build_markdown(date_str, av_data, gappers, scanner_map, watchlist_map, missed_analysis_map):
     lines = [
         f"# Daily Scanner Review: {date_str}",
         "",
@@ -324,16 +353,25 @@ def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map)
     
     # 1. Top Gainers
     lines.extend(["## Top 10 Market Gainers", ""])
-    lines.extend(["| Symbol | Price | Change % | Volume | Sword | Shield | Sortino Sniper |", "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |"])
+    lines.extend(["| Symbol | Price | Change % | Volume | Sword | Shield | Sortino Sniper | Cyan | Gold | Pink | Red | Scanner Watchlist |",
+                  "| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |"])
     for item in av_data.get("top_gainers", [])[:10]:
         sym = item.get("ticker", "")
         price = item.get("price", "0")
         change = item.get("change_percentage", "0")
         vol = item.get("volume", "0")
+        
         sword_s = format_strategy_cell(sym, "SWORD", scanner_map)
         shield_s = format_strategy_cell(sym, "SHIELD", scanner_map)
         sniper_s = format_strategy_cell(sym, "SNIPER", scanner_map)
-        lines.append(f"| {sym} | ${price} | {change} | {vol} | {sword_s} | {shield_s} | {sniper_s} |")
+        
+        cyan_s = format_watchlist_cell(sym, "Cyan", watchlist_map)
+        gold_s = format_watchlist_cell(sym, "Gold", watchlist_map)
+        pink_s = format_watchlist_cell(sym, "Pink", watchlist_map)
+        red_s = format_watchlist_cell(sym, "Red", watchlist_map)
+        scan_wl_s = format_watchlist_cell(sym, "Scanner Watchlist", watchlist_map)
+        
+        lines.append(f"| {sym} | ${price} | {change} | {vol} | {sword_s} | {shield_s} | {sniper_s} | {cyan_s} | {gold_s} | {pink_s} | {red_s} | {scan_wl_s} |")
     lines.append("")
     
     gainer_tickers = [item.get("ticker", "") for item in av_data.get("top_gainers", [])[:10]]
@@ -341,16 +379,25 @@ def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map)
     
     # 2. Top Losers
     lines.extend(["## Top 10 Market Losers", ""])
-    lines.extend(["| Symbol | Price | Change % | Volume | Sword | Shield | Sortino Sniper |", "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |"])
+    lines.extend(["| Symbol | Price | Change % | Volume | Sword | Shield | Sortino Sniper | Cyan | Gold | Pink | Red | Scanner Watchlist |",
+                  "| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |"])
     for item in av_data.get("top_losers", [])[:10]:
         sym = item.get("ticker", "")
         price = item.get("price", "0")
         change = item.get("change_percentage", "0")
         vol = item.get("volume", "0")
+        
         sword_s = format_strategy_cell(sym, "SWORD", scanner_map)
         shield_s = format_strategy_cell(sym, "SHIELD", scanner_map)
         sniper_s = format_strategy_cell(sym, "SNIPER", scanner_map)
-        lines.append(f"| {sym} | ${price} | {change} | {vol} | {sword_s} | {shield_s} | {sniper_s} |")
+        
+        cyan_s = format_watchlist_cell(sym, "Cyan", watchlist_map)
+        gold_s = format_watchlist_cell(sym, "Gold", watchlist_map)
+        pink_s = format_watchlist_cell(sym, "Pink", watchlist_map)
+        red_s = format_watchlist_cell(sym, "Red", watchlist_map)
+        scan_wl_s = format_watchlist_cell(sym, "Scanner Watchlist", watchlist_map)
+        
+        lines.append(f"| {sym} | ${price} | {change} | {vol} | {sword_s} | {shield_s} | {sniper_s} | {cyan_s} | {gold_s} | {pink_s} | {red_s} | {scan_wl_s} |")
     lines.append("")
     
     loser_tickers = [item.get("ticker", "") for item in av_data.get("top_losers", [])[:10]]
@@ -358,16 +405,25 @@ def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map)
     
     # 3. Most Actively Traded
     lines.extend(["## Top 10 Most Actively Traded (Volume)", ""])
-    lines.extend(["| Symbol | Price | Change % | Volume | Sword | Shield | Sortino Sniper |", "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |"])
+    lines.extend(["| Symbol | Price | Change % | Volume | Sword | Shield | Sortino Sniper | Cyan | Gold | Pink | Red | Scanner Watchlist |",
+                  "| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |"])
     for item in av_data.get("most_actively_traded", [])[:10]:
         sym = item.get("ticker", "")
         price = item.get("price", "0")
         change = item.get("change_percentage", "0")
         vol = item.get("volume", "0")
+        
         sword_s = format_strategy_cell(sym, "SWORD", scanner_map)
         shield_s = format_strategy_cell(sym, "SHIELD", scanner_map)
         sniper_s = format_strategy_cell(sym, "SNIPER", scanner_map)
-        lines.append(f"| {sym} | ${price} | {change} | {vol} | {sword_s} | {shield_s} | {sniper_s} |")
+        
+        cyan_s = format_watchlist_cell(sym, "Cyan", watchlist_map)
+        gold_s = format_watchlist_cell(sym, "Gold", watchlist_map)
+        pink_s = format_watchlist_cell(sym, "Pink", watchlist_map)
+        red_s = format_watchlist_cell(sym, "Red", watchlist_map)
+        scan_wl_s = format_watchlist_cell(sym, "Scanner Watchlist", watchlist_map)
+        
+        lines.append(f"| {sym} | ${price} | {change} | {vol} | {sword_s} | {shield_s} | {sniper_s} | {cyan_s} | {gold_s} | {pink_s} | {red_s} | {scan_wl_s} |")
     lines.append("")
     
     active_tickers = [item.get("ticker", "") for item in av_data.get("most_actively_traded", [])[:10]]
@@ -375,14 +431,22 @@ def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map)
     
     # 4. Top Gappers
     lines.extend(["## Top 10 Gappers", "*(Calculated from the open vs previous close of the top gainers/actives)*", ""])
-    lines.extend(["| Symbol | Pre-Market Gap % | Sword | Shield | Sortino Sniper |", "| :--- | :--- | :--- | :--- | :--- |"])
+    lines.extend(["| Symbol | Pre-Market Gap % | Sword | Shield | Sortino Sniper | Cyan | Gold | Pink | Red | Scanner Watchlist |",
+                  "| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |"])
     for item in gappers[:10]:
         sym = item["symbol"]
         gap = item["gap_pct"]
         sword_s = format_strategy_cell(sym, "SWORD", scanner_map)
         shield_s = format_strategy_cell(sym, "SHIELD", scanner_map)
         sniper_s = format_strategy_cell(sym, "SNIPER", scanner_map)
-        lines.append(f"| {sym} | {gap:.2f}% | {sword_s} | {shield_s} | {sniper_s} |")
+        
+        cyan_s = format_watchlist_cell(sym, "Cyan", watchlist_map)
+        gold_s = format_watchlist_cell(sym, "Gold", watchlist_map)
+        pink_s = format_watchlist_cell(sym, "Pink", watchlist_map)
+        red_s = format_watchlist_cell(sym, "Red", watchlist_map)
+        scan_wl_s = format_watchlist_cell(sym, "Scanner Watchlist", watchlist_map)
+        
+        lines.append(f"| {sym} | {gap:.2f}% | {sword_s} | {shield_s} | {sniper_s} | {cyan_s} | {gold_s} | {pink_s} | {red_s} | {scan_wl_s} |")
     lines.append("")
             
     return "\n".join(lines)
@@ -489,7 +553,8 @@ def main():
     missed_results = analyze_missed_gainers(all_missed, scanner_map)
     missed_analysis_map = {item["symbol"]: item["reasons"] for item in missed_results}
     
-    md_content = build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map)
+    watchlist_map = load_watchlist_map(date_str)
+    md_content = build_markdown(date_str, av_data, gappers, scanner_map, watchlist_map, missed_analysis_map)
     
     # Check if today's post-mortem report exists to combine it
     post_mortem_content = ""
