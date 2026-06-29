@@ -107,6 +107,7 @@
             position: absolute;
             min-height: 60px;
             min-width: 150px;
+            margin-top: 38px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.8);
             transition: opacity 0.2s ease, transform 0.1s ease;
         }
@@ -2203,7 +2204,7 @@
                 const dx = e.clientX - winManager.startX;
                 const dy = e.clientY - winManager.startY;
                 
-                let rawTop = winManager.startTop + dy;
+                let rawTop = Math.max(0, winManager.startTop + dy);
                 let rawLeft = winManager.startLeft + dx;
                 let newTop = rawTop;
                 let newLeft = rawLeft;
@@ -2334,6 +2335,7 @@
                         let gridTop = Math.round(newTop / 40) * 40;
                         if (Math.abs(newTop - gridTop) < gridSnapThreshold) newTop = gridTop;
                     }
+                    newTop = Math.max(0, newTop);
                     newH = winManager.startH + (winManager.startTop - newTop);
                     if (newH < 100) { newH = 100; newTop = winManager.startTop + winManager.startH - 100; }
                 }
