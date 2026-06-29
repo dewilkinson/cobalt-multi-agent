@@ -52,6 +52,21 @@
             --amber-gold: #d29922;
         }
 
+        .col-resizer {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 6px;
+            height: 100%;
+            cursor: col-resize;
+            user-select: none;
+            z-index: 10;
+            transition: background-color 0.2s;
+        }
+        .col-resizer:hover, .col-resizer.resizing {
+            background-color: rgba(88, 166, 255, 0.5);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -3497,6 +3512,57 @@
             return html;
         }
 
+        function makeTableResizable(table) {
+            const row = table.querySelector('thead tr');
+            const cols = row ? row.children : [];
+            if (!cols.length) return;
+            
+            table.style.tableLayout = 'fixed';
+            
+            const totalWidth = table.offsetWidth;
+            for (let i = 0; i < cols.length - 1; i++) {
+                const col = cols[i];
+                const widthPx = col.offsetWidth;
+                col.style.width = ((widthPx / totalWidth) * 100) + '%';
+                
+                const resizer = document.createElement('div');
+                resizer.className = 'col-resizer';
+                
+                col.style.position = 'relative';
+                col.appendChild(resizer);
+                
+                createResizableColumn(col, resizer, table);
+            }
+        }
+        
+        function createResizableColumn(col, resizer, table) {
+            let x = 0;
+            let w = 0;
+            
+            const mouseMoveHandler = function(e) {
+                const dx = e.clientX - x;
+                const totalWidth = table.offsetWidth;
+                const newWidthPx = Math.max(40, w + dx);
+                col.style.width = ((newWidthPx / totalWidth) * 100) + '%';
+            };
+            
+            const mouseUpHandler = function() {
+                document.removeEventListener('mousemove', mouseMoveHandler);
+                document.removeEventListener('mouseup', mouseUpHandler);
+                resizer.classList.remove('resizing');
+            };
+            
+            resizer.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                x = e.clientX;
+                w = col.offsetWidth;
+                
+                resizer.classList.add('resizing');
+                document.addEventListener('mousemove', mouseMoveHandler);
+                document.addEventListener('mouseup', mouseUpHandler);
+            });
+        }
+
         function updateCountdown() {
             refreshCountdown--;
             if (refreshCountdown < 0) refreshCountdown = 0;
@@ -4141,6 +4207,7 @@
                         </div>
                     `;
                     table = body.querySelector('table');
+                    makeTableResizable(table);
                 } else {
                     const timeEl = body.querySelector('#sr-updated-at');
                     if (timeEl) timeEl.innerText = new Date().toLocaleTimeString();
