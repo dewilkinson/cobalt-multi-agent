@@ -69,14 +69,29 @@ def main():
         
     from datetime import datetime
     now = datetime.now()
-    date_str = now.strftime("%Y-%m-%d")
     time_str_file = now.strftime("%H:%M:%S")
-    time_str_name = now.strftime("%H-%M-%S")
+    
+    # Try to load session timestamp
+    session_ts = None
+    meta_path = os.path.join(base_dir, "backend", "data", ".session_metadata.json")
+    if not os.path.exists(meta_path):
+        meta_path = os.path.join(base_dir, "data", ".session_metadata.json")
+    if os.path.exists(meta_path):
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                session_ts = json.load(f).get("session_timestamp")
+        except:
+            pass
+            
+    if not session_ts:
+        date_str = now.strftime("%Y-%m-%d")
+        time_str_name = now.strftime("%H-%M-%S")
+        session_ts = f"{date_str}_{time_str_name}"
     
     # Write watchlists to files
     files_written = {}
     for tier, grades_dict in watchlists.items():
-        filename_dated = f"watchlist_{tier.lower()}_{date_str}_{time_str_name}.txt"
+        filename_dated = f"watchlist_{tier.lower()}_{session_ts}.txt"
         filename_static = f"watchlist_{tier.lower()}.txt"
         file_path_dated = os.path.join(exports_dir, filename_dated)
         file_path_static = os.path.join(exports_dir, filename_static)

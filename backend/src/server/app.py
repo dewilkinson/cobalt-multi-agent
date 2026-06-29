@@ -723,6 +723,38 @@ async def lifespan(app: FastAPI):
         callback=poll_5m_patterns
     )
 
+    # Initialize Watchlist Exports Session (Clean previous sessions, generate new unique session timestamp)
+    try:
+        import glob
+        exports_dir = os.path.join(os.getcwd(), "data", "exports")
+        if not os.path.exists(exports_dir):
+            exports_dir = os.path.join(os.getcwd(), "backend", "data", "exports")
+        if os.path.exists(exports_dir):
+            for filepath in glob.glob(os.path.join(exports_dir, "watchlist_*_*.txt")):
+                try:
+                    os.remove(filepath)
+                except Exception as e:
+                    logger.warning(f"Failed to delete old watchlist file {filepath}: {e}")
+        session_ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        meta_path = os.path.join(os.getcwd(), "data", ".session_metadata.json")
+        if not os.path.exists(os.path.dirname(meta_path)):
+            meta_path = os.path.join(os.getcwd(), "backend", "data", ".session_metadata.json")
+        os.makedirs(os.path.dirname(meta_path), exist_ok=True)
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump({"session_timestamp": session_ts}, f)
+        logger.info(f"Initialized new watchlist export session with timestamp: {session_ts}")
+    except Exception as e:
+        logger.error(f"Failed to initialize watchlist export session: {e}")
+
+    cobalt_scheduler.add_timer(
+        task_id="TV_WATCHLIST_EXPORT",
+        name="TradingView Watchlist Periodic Export",
+        type="CALENDAR",
+        schedule="*/5 4-20 * * 1-5", # Every 5 minutes, 4:00 AM to 8:59 PM, Monday through Friday
+        priority="LOW",
+        callback=run_tv_watchlist_export_task
+    )
+
     cobalt_scheduler.start()
     
     # Load examples into Milvus if configured
@@ -1230,6 +1262,15 @@ async def poll_5m_patterns():
                 
     except Exception as e:
         logger.error(f"[SMC WATCHDOG] Internal polling failure: {e}")
+
+def run_tv_watchlist_export_task():
+    """Scheduled task to execute the TradingView watchlist export."""
+    try:
+        from scripts.utils.export_tradingview_watchlists import main as run_export
+        logger.info("Executing periodic TradingView watchlist export...")
+        run_export()
+    except Exception as e:
+        logger.error(f"Failed to execute periodic TradingView watchlist export: {e}")
 
 async def poll_market_pulse():
     """
