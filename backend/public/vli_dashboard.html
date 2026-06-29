@@ -3515,6 +3515,14 @@
         }
 
         function makeTableResizable(table) {
+            if (table.dataset.resizableInitialized) return;
+            
+            // Only initialize if we have actual data rows populated (not just the colspan loading/error row)
+            const hasDataRows = table.querySelector('tbody tr:not([colspan])') !== null;
+            if (!hasDataRows) return;
+            
+            table.dataset.resizableInitialized = 'true';
+            
             const row = table.querySelector('thead tr');
             const cols = row ? row.children : [];
             if (!cols.length) return;
@@ -4349,6 +4357,7 @@
                     
                     tbody.appendChild(tr);
                 });
+                makeTableResizable(table);
             });
         }
 
