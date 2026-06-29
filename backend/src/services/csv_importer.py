@@ -653,10 +653,10 @@ def watch_dropzone_and_process(optional_path=None):
         return "Dropzone directory not found."
         
     try:
-        if os.path.isfile(dropzone_dir) and dropzone_dir.endswith('.csv'):
+        if os.path.isfile(dropzone_dir):
             current_files = {os.path.basename(dropzone_dir)}
         else:
-            current_files = {os.path.basename(f) for f in glob.glob(os.path.join(dropzone_dir, "*.csv"))}
+            current_files = {os.path.basename(f) for f in glob.glob(os.path.join(dropzone_dir, "*.csv")) + glob.glob(os.path.join(dropzone_dir, "*.txt"))}
             
         if _last_dropzone_files is None:
             # Initialize on first run
