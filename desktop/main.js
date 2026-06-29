@@ -155,8 +155,8 @@ function startWeb() {
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 1600,
-        height: 1000,
+        width: 2400,
+        height: 1331,
         backgroundColor: '#0a0c10',
         autoHideMenuBar: true,
         webPreferences: {
