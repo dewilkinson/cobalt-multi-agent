@@ -488,27 +488,6 @@ def synthesize_journal_and_assessment(date_str: str, grades: dict, raw_notes: st
     history_summary = get_trader_performance_summary()
     trends_summary = get_recent_grades_trend(date_str, limit_days=7)
     
-    notes_prompt = f"""
-You are a journaling companion for a professional trader.
-Take their raw, informal daily trading notes and self-assessment grades, and synthesize them into a clean, friendly, reflective journal entry written in the first person ("I").
-Correct grammar, improve formatting, and make it read like a cohesive personal diary entry of the day's experiences.
-
-Trader's Self-Assessment Grades:
-- Prep: {grades.get('prep', 3)}/5
-- Sleep: {grades.get('sleep', 3)}/5
-- Mood: {grades.get('mood', 3)}/5
-- Energy: {grades.get('energy', 3)}/5
-- Confidence: {grades.get('confidence', 3)}/5
-- Overall Execution Grade: {grades.get('performance', 'C')}
-
-Raw Daily Journal Notes:
-\"\"\"
-{raw_notes}
-\"\"\"
-
-Output only the synthesized markdown journal body. Keep it reflective, constructive, and friendly. Do not add any greeting, intro, or wrap-up conversation.
-"""
-    
     assessment_prompt = f"""
 You are an expert trading coach and performance psychologist.
 Analyze today's trading notes, self-assessment grades, and today's post-mortem execution details, in the context of the trader's historical performance history and recent grade trends.
@@ -539,7 +518,6 @@ Keep the tone direct, supportive, and analytical.
 Output only the markdown content (do not write "## Self Assessment" heading, just write the paragraphs/bullets directly). Do not add any greeting, intro, or wrap-up conversation.
 """
     try:
-        res_notes = llm.invoke([SystemMessage(content="You are a data synthesis engine."), HumanMessage(content=notes_prompt)])
         res_assess = llm.invoke([SystemMessage(content="You are an expert trading coach."), HumanMessage(content=assessment_prompt)])
 
         def extract_content(res):
@@ -550,7 +528,7 @@ Output only the markdown content (do not write "## Self Assessment" heading, jus
                 return " ".join([b.get("text", "") if isinstance(b, dict) else str(b) for b in content]).strip()
             return str(content).strip()
 
-        notes_md = clean_val(extract_content(res_notes))
+        notes_md = ""
         assess_md = clean_val(extract_content(res_assess))
         
         return notes_md, assess_md

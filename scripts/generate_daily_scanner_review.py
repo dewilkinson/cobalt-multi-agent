@@ -82,11 +82,19 @@ def load_scanner_list(date_str, base_dir):
                     if last_seen.startswith(date_str) or first_added.startswith(date_str):
                         sym = item.get("symbol", "").upper().strip()
                         if sym:
-                            scanner_map[sym] = {
-                                "grade": item.get("grade", "N/A"),
-                                "tier": item.get("tier", "N/A"),
-                                "sortino": item.get("sortino")
-                            }
+                            if sym not in scanner_map:
+                                scanner_map[sym] = {
+                                    "grade": "N/A",
+                                    "sortino": None,
+                                    "tiers": set()
+                                }
+                            if item.get("grade"):
+                                scanner_map[sym]["grade"] = item.get("grade")
+                            if item.get("sortino") is not None:
+                                scanner_map[sym]["sortino"] = item.get("sortino")
+                            t = item.get("tier", "N/A").upper().strip()
+                            if t and t != "N/A":
+                                scanner_map[sym]["tiers"].add(t)
         except Exception as e:
             print(f"Error loading daily scanner archive: {e}")
 
@@ -129,11 +137,19 @@ def load_scanner_list(date_str, base_dir):
                             continue
                         sym = item.get("symbol", "").upper().strip()
                         if sym:
-                            scanner_map[sym] = {
-                                "grade": item.get("grade") or scanner_map.get(sym, {}).get("grade", "N/A"),
-                                "tier": item.get("tier") or scanner_map.get(sym, {}).get("tier", "N/A"),
-                                "sortino": item.get("sortino") or scanner_map.get(sym, {}).get("sortino")
-                            }
+                            if sym not in scanner_map:
+                                scanner_map[sym] = {
+                                    "grade": "N/A",
+                                    "sortino": None,
+                                    "tiers": set()
+                                }
+                            if item.get("grade"):
+                                scanner_map[sym]["grade"] = item.get("grade")
+                            if item.get("sortino") is not None:
+                                scanner_map[sym]["sortino"] = item.get("sortino")
+                            t = item.get("tier", "N/A").upper().strip()
+                            if t and t != "N/A":
+                                scanner_map[sym]["tiers"].add(t)
             except Exception as e:
                 print(f"Error loading strike list from {path}: {e}")
                 
@@ -269,10 +285,17 @@ def analyze_missed_gainers(missed_tickers, scanner_map=None):
             
     return analysis_results
 
-def format_scanner_cell(sym, scanner_map):
+def format_strategy_cell(sym, strategy, scanner_map):
     if sym in scanner_map:
         info = scanner_map[sym]
-        return f"✅ Yes ({info['tier']} - {info['grade']})"
+        tiers = info.get("tiers", set())
+        matched = False
+        for t in tiers:
+            if strategy.upper() in t or t in strategy.upper():
+                matched = True
+                break
+        if matched:
+            return f"✅ Yes ({info.get('grade', 'N/A')})"
     return "❌ No"
 
 def render_miss_reasons_table(tickers, scanner_map, missed_analysis_map):
@@ -301,14 +324,16 @@ def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map)
     
     # 1. Top Gainers
     lines.extend(["## Top 10 Market Gainers", ""])
-    lines.extend(["| Symbol | Price | Change % | Volume | On Scanner? |", "| :--- | :--- | :--- | :--- | :--- |"])
+    lines.extend(["| Symbol | Price | Change % | Volume | Sword | Shield | Sortino Sniper |", "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |"])
     for item in av_data.get("top_gainers", [])[:10]:
         sym = item.get("ticker", "")
         price = item.get("price", "0")
         change = item.get("change_percentage", "0")
         vol = item.get("volume", "0")
-        on_scan = format_scanner_cell(sym, scanner_map)
-        lines.append(f"| {sym} | ${price} | {change} | {vol} | {on_scan} |")
+        sword_s = format_strategy_cell(sym, "SWORD", scanner_map)
+        shield_s = format_strategy_cell(sym, "SHIELD", scanner_map)
+        sniper_s = format_strategy_cell(sym, "SNIPER", scanner_map)
+        lines.append(f"| {sym} | ${price} | {change} | {vol} | {sword_s} | {shield_s} | {sniper_s} |")
     lines.append("")
     
     gainer_tickers = [item.get("ticker", "") for item in av_data.get("top_gainers", [])[:10]]
@@ -316,14 +341,16 @@ def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map)
     
     # 2. Top Losers
     lines.extend(["## Top 10 Market Losers", ""])
-    lines.extend(["| Symbol | Price | Change % | Volume | On Scanner? |", "| :--- | :--- | :--- | :--- | :--- |"])
+    lines.extend(["| Symbol | Price | Change % | Volume | Sword | Shield | Sortino Sniper |", "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |"])
     for item in av_data.get("top_losers", [])[:10]:
         sym = item.get("ticker", "")
         price = item.get("price", "0")
         change = item.get("change_percentage", "0")
         vol = item.get("volume", "0")
-        on_scan = format_scanner_cell(sym, scanner_map)
-        lines.append(f"| {sym} | ${price} | {change} | {vol} | {on_scan} |")
+        sword_s = format_strategy_cell(sym, "SWORD", scanner_map)
+        shield_s = format_strategy_cell(sym, "SHIELD", scanner_map)
+        sniper_s = format_strategy_cell(sym, "SNIPER", scanner_map)
+        lines.append(f"| {sym} | ${price} | {change} | {vol} | {sword_s} | {shield_s} | {sniper_s} |")
     lines.append("")
     
     loser_tickers = [item.get("ticker", "") for item in av_data.get("top_losers", [])[:10]]
@@ -331,14 +358,16 @@ def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map)
     
     # 3. Most Actively Traded
     lines.extend(["## Top 10 Most Actively Traded (Volume)", ""])
-    lines.extend(["| Symbol | Price | Change % | Volume | On Scanner? |", "| :--- | :--- | :--- | :--- | :--- |"])
+    lines.extend(["| Symbol | Price | Change % | Volume | Sword | Shield | Sortino Sniper |", "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |"])
     for item in av_data.get("most_actively_traded", [])[:10]:
         sym = item.get("ticker", "")
         price = item.get("price", "0")
         change = item.get("change_percentage", "0")
         vol = item.get("volume", "0")
-        on_scan = format_scanner_cell(sym, scanner_map)
-        lines.append(f"| {sym} | ${price} | {change} | {vol} | {on_scan} |")
+        sword_s = format_strategy_cell(sym, "SWORD", scanner_map)
+        shield_s = format_strategy_cell(sym, "SHIELD", scanner_map)
+        sniper_s = format_strategy_cell(sym, "SNIPER", scanner_map)
+        lines.append(f"| {sym} | ${price} | {change} | {vol} | {sword_s} | {shield_s} | {sniper_s} |")
     lines.append("")
     
     active_tickers = [item.get("ticker", "") for item in av_data.get("most_actively_traded", [])[:10]]
@@ -346,12 +375,14 @@ def build_markdown(date_str, av_data, gappers, scanner_map, missed_analysis_map)
     
     # 4. Top Gappers
     lines.extend(["## Top 10 Gappers", "*(Calculated from the open vs previous close of the top gainers/actives)*", ""])
-    lines.extend(["| Symbol | Pre-Market Gap % | On Scanner? |", "| :--- | :--- | :--- |"])
+    lines.extend(["| Symbol | Pre-Market Gap % | Sword | Shield | Sortino Sniper |", "| :--- | :--- | :--- | :--- | :--- |"])
     for item in gappers[:10]:
         sym = item["symbol"]
         gap = item["gap_pct"]
-        on_scan = format_scanner_cell(sym, scanner_map)
-        lines.append(f"| {sym} | {gap:.2f}% | {on_scan} |")
+        sword_s = format_strategy_cell(sym, "SWORD", scanner_map)
+        shield_s = format_strategy_cell(sym, "SHIELD", scanner_map)
+        sniper_s = format_strategy_cell(sym, "SNIPER", scanner_map)
+        lines.append(f"| {sym} | {gap:.2f}% | {sword_s} | {shield_s} | {sniper_s} |")
     lines.append("")
             
     return "\n".join(lines)
