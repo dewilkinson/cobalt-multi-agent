@@ -256,9 +256,20 @@ def calculate_static_grade(price: float, cap: int, float_shares: int, config: Di
     if price < config["price_min"]:
         return "F"
         
-    p_min, p_max = config["price_min"], config["price_max"]
-    c_min, c_max = config["market_cap_min"], config["market_cap_max"]
-    f_min, f_max = config["float_min"], config["float_max"]
+    p_min = config["price_min"]
+    p_max = config.get("price_max") or float('inf')
+    if p_max == 0:
+        p_max = float('inf')
+
+    c_min = config["market_cap_min"]
+    c_max = config.get("market_cap_max") or float('inf')
+    if c_max == 0:
+        c_max = float('inf')
+
+    f_min = config["float_min"]
+    f_max = config.get("float_max") or float('inf')
+    if f_max == 0:
+        f_max = float('inf')
 
     # 1. Primary Checks
     p_pass = p_min <= price <= p_max
@@ -398,7 +409,7 @@ async def _build_session_watchlist_impl(strategy_config: str = "{}", universe_cs
         "valid_count": int(len(valid_candidates)),
         "watchlist": valid_candidates,
         "detail": results,
-        "criteria": f"Price ${config['price_min']}-${config['price_max']}, Cap: {config['market_cap_min']/1e6}M-{config['market_cap_max']/1e6}M"
+        "criteria": f"Price ${config['price_min']}-" + (f"${config['price_max']:.2f}" if config.get('price_max') else "No Limit") + f", Cap: {config['market_cap_min']/1e6:.1f}M-" + (f"{config['market_cap_max']/1e6:.1f}M" if config.get('market_cap_max') else "No Limit")
     })
     return json.dumps(response_payload, cls=NpEncoder)
 

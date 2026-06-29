@@ -2,7 +2,7 @@
     "price_min": 15.0,
     "price_max": 999999.0,
     "market_cap_min": 300000000,
-    "market_cap_max": 999999999999.0,
+    "market_cap_max": 0,
     "float_min": 100000000,
     "float_max": 999999999999.0,
     "volume_hurdle": 1000000,

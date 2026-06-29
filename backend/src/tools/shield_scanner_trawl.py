@@ -36,7 +36,7 @@ def sanitize_data(data):
 
 # Constants
 STRIKE_LIST_PATH = Path(__file__).parent.parent.parent / "data" / "STRIKE_LIST.json"
-# TV Shield Scan Minimums: Market Cap >= 300M, Price >= 15, Volume >= 1M, Float >= 100M
+# TV Shield Scan Minimums: Market Cap >= 300M, Price >= 15, Volume >= 1M, Float >= 100M (No maximum market cap limit)
 # We use cap_smallover (>= 300M) and ta_sma200_pa (Price > SMA200) to keep initial results broad but aligned with TV.
 # sh_price_o15, sh_vol_o1000, sh_float_o100 are handled natively but can also be enforced here to reduce load.
 FINVIZ_FILTERS = "f=cap_smallover,ta_sma200_pa,sh_price_o15,sh_vol_o1000,sh_float_o100&o=-change"
