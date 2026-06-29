@@ -4195,16 +4195,17 @@
                             <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
                         <div style="flex-grow: 1; overflow-x: auto; overflow-y: auto;">
-                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 730px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
+                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 760px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 32px; box-sizing: border-box;">SYMBOL</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 24px; box-sizing: border-box;">DOC</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">PRICE</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 64px; box-sizing: border-box;">CHART</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 208px; box-sizing: border-box;">TREND</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">SORTINO</div></th>
-                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 53px; box-sizing: border-box;">GRADE</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 32px; box-sizing: border-box;">GRADE</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -4257,7 +4258,7 @@
                     const styleMod = window._vliIsScanning ? "color: var(--cobalt-blue); font-weight: bold; letter-spacing: 1px;" : "color: var(--text-muted); font-style: italic;";
                     tbody.innerHTML = `
                         <tr style="border: none;">
-                            <td colspan="7" style="text-align: center; padding: 30px 10px; font-size: 12px; ${styleMod}">${statusText}</td>
+                            <td colspan="8" style="text-align: center; padding: 30px 10px; font-size: 12px; ${styleMod}">${statusText}</td>
                         </tr>
                     `;
                 }
@@ -4328,6 +4329,14 @@
                             <div style="min-width: 32px; display: inline-block; box-sizing: border-box; font-weight: 700; color: #fff;">${c.symbol}</div>
                         </td>
                         <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
+                            <div style="min-width: 24px; display: flex; justify-content: center; align-items: center; box-sizing: border-box;">
+                                ${isRefreshing ? 
+                                `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
+                                : 
+                                `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.handleReportIconClick(event, '${c.symbol}', ${c.has_report}, this.closest('tr'))" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
+                            </div>
+                        </td>
+                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
                             <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</div>
                         </td>
                         <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
@@ -4347,21 +4356,15 @@
                             <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</div>
                         </td>
                         <td style="padding: 4px 16px; vertical-align: middle;">
-                            <div style="min-width: 53px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+                            <div style="min-width: 32px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
                                 <span style="display: inline-block; width: 32px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; padding: 2px 0; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid ${gradeBorder};">${c.grade || 'F'}</span>
-                                <div style="width: 24px; display: flex; justify-content: center; margin-left: 4px;">
-                                    ${isRefreshing ? 
-                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
-                                    : 
-                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.handleReportIconClick(event, '${c.symbol}', ${c.has_report}, this.closest('tr'))" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
-                                </div>
                             </div>
                         </td>
                     `;
                     
                     if (isRefreshing) {
                         Array.from(tr.children).forEach((td, idx) => {
-                            if (idx !== tr.children.length - 1) {
+                            if (idx !== 1) {
                                 td.style.opacity = '0.3';
                                 td.style.filter = 'grayscale(1)';
                             }
