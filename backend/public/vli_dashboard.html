@@ -3538,11 +3538,12 @@
         function createResizableColumn(col, resizer, table) {
             let x = 0;
             let w = 0;
+            const minWidthPx = parseInt(window.getComputedStyle(col).minWidth) || 40;
             
             const mouseMoveHandler = function(e) {
                 const dx = e.clientX - x;
                 const totalWidth = table.offsetWidth;
-                const newWidthPx = Math.max(40, w + dx);
+                const newWidthPx = Math.max(minWidthPx, w + dx);
                 col.style.width = ((newWidthPx / totalWidth) * 100) + '%';
             };
             
@@ -4180,17 +4181,17 @@
                             </div>
                             <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
-                        <div style="flex-grow: 1; overflow-y: auto;">
+                        <div style="flex-grow: 1; overflow-x: auto; overflow-y: auto;">
                             <table class="macro-table ibkr-style-table scanner-table" style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        <th style="padding: 4px 2px; text-align: center;">SYMBOL</th>
-                                        <th style="padding: 4px 2px; text-align: center;">PRICE</th>
-                                        <th style="padding: 4px 2px; text-align: center;">CHANGE</th>
-                                        <th style="padding: 4px 2px; text-align: center; width: 88px; padding-left: 12px; padding-right: 12px;">CHART</th>
-                                        <th style="padding: 4px 2px; text-align: center;">TREND</th>
-                                        <th style="padding: 4px 2px; text-align: center;">SORTINO</th>
-                                        <th style="padding: 4px 2px; text-align: center;">GRADE</th>
+                                        <th style="padding: 4px 2px; text-align: center; min-width: 55px;">SYMBOL</th>
+                                        <th style="padding: 4px 2px; text-align: center; min-width: 60px;">PRICE</th>
+                                        <th style="padding: 4px 2px; text-align: center; min-width: 65px;">CHANGE</th>
+                                        <th style="padding: 4px 2px; text-align: center; width: 88px; min-width: 88px; padding-left: 12px; padding-right: 12px;">CHART</th>
+                                        <th style="padding: 4px 2px; text-align: center; min-width: 215px;">TREND</th>
+                                        <th style="padding: 4px 2px; text-align: center; min-width: 60px;">SORTINO</th>
+                                        <th style="padding: 4px 2px; text-align: center; min-width: 65px;">GRADE</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>

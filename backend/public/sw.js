@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vli-dashboard-cache-v36';
+const CACHE_NAME = 'vli-dashboard-cache-v37';
 const URLS_TO_CACHE = [
   '/vli_dashboard.html'
 ];
