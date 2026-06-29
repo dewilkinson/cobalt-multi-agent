@@ -318,6 +318,9 @@ async def get_bunker_list():
             enriched = await enrich_candidates_with_trends(candidates)
             payload["data"] = enriched
             
+            from src.server.app import get_scanner_is_sample
+            payload["is_sample"] = get_scanner_is_sample()
+            
             if updated_at:
                 payload["updated_at"] = updated_at
                 

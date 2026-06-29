@@ -1343,6 +1343,33 @@ def get_global_thinking_mode() -> bool:
     except:
         pass
     return False
+
+def get_scanner_is_sample() -> bool:
+    settings_path = os.path.join(os.getcwd(), 'data', 'vli_settings.json')
+    try:
+        if not os.path.exists(settings_path):
+            settings_path = os.path.join(os.getcwd(), 'backend', 'data', 'vli_settings.json')
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                return json.load(f).get("use_sample_data", False)
+    except:
+        pass
+    return False
+
+def update_scanner_is_sample(is_sample: bool):
+    settings_path = os.path.join(os.getcwd(), 'data', 'vli_settings.json')
+    try:
+        if not os.path.exists(settings_path):
+            settings_path = os.path.join(os.getcwd(), 'backend', 'data', 'vli_settings.json')
+        settings = {}
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+        settings["use_sample_data"] = is_sample
+        with open(settings_path, 'w', encoding='utf-8') as f:
+            json.dump(settings, f)
+    except:
+        pass
 async def run_idle_analysis(manual_trigger: bool = False):
     """
     Background orchestrator that diffs the scanner state against generated reports
@@ -2378,6 +2405,8 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
             scanner_res_content["candidates"] = await enrich_candidates_with_trends(scanner_res_content["candidates"])
         except Exception as enrich_e:
             logger.error(f"Failed to enrich active state candidates with trends: {enrich_e}")
+            
+        scanner_res_content["is_sample"] = get_scanner_is_sample()
                     
         # Dynamically enrich the has_report status to ensure UI polling catches live background generation
         from datetime import datetime
