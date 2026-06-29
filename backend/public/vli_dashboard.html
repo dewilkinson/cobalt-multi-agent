@@ -3529,11 +3529,11 @@
             
             table.style.tableLayout = 'fixed';
             
-            const totalWidth = table.offsetWidth;
             for (let i = 0; i < cols.length - 1; i++) {
                 const col = cols[i];
-                const widthPx = col.offsetWidth;
-                col.style.width = ((widthPx / totalWidth) * 100) + '%';
+                const minWidthPx = parseInt(window.getComputedStyle(col).minWidth) || 40;
+                const widthPx = Math.max(minWidthPx, col.offsetWidth);
+                col.style.width = widthPx + 'px';
                 
                 const resizer = document.createElement('div');
                 resizer.className = 'col-resizer';
@@ -3552,9 +3552,8 @@
             
             const mouseMoveHandler = function(e) {
                 const dx = e.clientX - x;
-                const totalWidth = table.offsetWidth;
                 const newWidthPx = Math.max(minWidthPx, w + dx);
-                col.style.width = ((newWidthPx / totalWidth) * 100) + '%';
+                col.style.width = newWidthPx + 'px';
             };
             
             const mouseUpHandler = function() {
@@ -4195,13 +4194,13 @@
                             <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 730px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        <th style="padding: 4px 16px; text-align: center; min-width: 64px;">SYMBOL</th>
-                                        <th style="padding: 4px 16px; text-align: center; min-width: 80px;">PRICE</th>
-                                        <th style="padding: 4px 16px; text-align: center; min-width: 80px;">CHANGE</th>
-                                        <th style="padding: 4px 16px; text-align: center; width: 96px; min-width: 96px;">CHART</th>
-                                        <th style="padding: 4px 16px; text-align: center; min-width: 240px;">TREND</th>
-                                        <th style="padding: 4px 16px; text-align: center; min-width: 80px;">SORTINO</th>
-                                        <th style="padding: 4px 16px; text-align: center; min-width: 85px;">GRADE</th>
+                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 32px; box-sizing: border-box;">SYMBOL</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">PRICE</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 64px; box-sizing: border-box;">CHART</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 208px; box-sizing: border-box;">TREND</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">SORTINO</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 53px; box-sizing: border-box;">GRADE</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -4321,20 +4320,30 @@
                     const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
                     
                     tr.innerHTML = `
-                        <td style="padding: 4px 16px; text-align: center; min-width: 64px; color: #fff; font-weight: 700; vertical-align: middle;">${c.symbol}</td>
-                        <td style="padding: 4px 16px; text-align: center; min-width: 80px; font-family: var(--font-mono); color: #fff; vertical-align: middle;">$${parseFloat(c.price || 0).toFixed(2)}</td>
-                        <td style="padding: 4px 16px; text-align: center; min-width: 80px; font-family: var(--font-mono); color: ${changeColor}; vertical-align: middle;">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
-                        <td style="padding: 4px 16px; text-align: center; width: 96px; min-width: 96px; vertical-align: middle;">
-                            <div style="display: flex; justify-content: center;">
+                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
+                            <div style="min-width: 32px; display: inline-block; box-sizing: border-box; font-weight: 700; color: #fff;">${c.symbol}</div>
+                        </td>
+                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
+                            <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</div>
+                        </td>
+                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
+                            <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</div>
+                        </td>
+                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
+                            <div style="min-width: 64px; display: flex; justify-content: center; box-sizing: border-box;">
                                 ${drawSparkline(c.sparkline && c.sparkline.length > 0 ? c.sparkline.map(x => x.v) : [], c.symbol)}
                             </div>
                         </td>
-                        <td style="padding: 4px 16px; text-align: center; min-width: 240px; vertical-align: middle;">
-                            ${drawTrendIndicator(c.trends)}
+                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
+                            <div style="min-width: 208px; display: flex; justify-content: center; box-sizing: border-box;">
+                                ${drawTrendIndicator(c.trends)}
+                            </div>
                         </td>
-                        <td style="padding: 4px 16px; text-align: center; min-width: 80px; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800; vertical-align: middle;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
-                        <td style="padding: 4px 16px; min-width: 85px; vertical-align: middle;">
-                            <div style="display: flex; align-items: center; justify-content: center;">
+                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
+                            <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</div>
+                        </td>
+                        <td style="padding: 4px 16px; vertical-align: middle;">
+                            <div style="min-width: 53px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
                                 <span style="display: inline-block; width: 32px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; padding: 2px 0; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid ${gradeBorder};">${c.grade || 'F'}</span>
                                 <div style="width: 24px; display: flex; justify-content: center; margin-left: 4px;">
                                     ${isRefreshing ? 
