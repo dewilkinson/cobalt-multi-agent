@@ -4182,14 +4182,14 @@
                             <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
                         <div style="flex-grow: 1; overflow-x: auto; overflow-y: auto;">
-                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 680px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
+                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 630px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
                                         <th style="padding: 4px 2px; text-align: center; min-width: 55px;">SYMBOL</th>
                                         <th style="padding: 4px 2px; text-align: center; min-width: 60px;">PRICE</th>
                                         <th style="padding: 4px 2px; text-align: center; min-width: 65px;">CHANGE</th>
-                                        <th style="padding: 4px 2px; text-align: center; width: 128px; min-width: 128px; padding-left: 16px; padding-right: 48px;">CHART</th>
-                                        <th style="padding: 4px 2px; text-align: center; min-width: 240px; padding-left: 24px; padding-right: 2px;">TREND</th>
+                                        <th style="padding: 4px 2px; text-align: center; width: 96px; min-width: 96px; padding-left: 16px; padding-right: 16px;">CHART</th>
+                                        <th style="padding: 4px 2px; text-align: center; min-width: 225px; padding-left: 16px; padding-right: 2px;">TREND</th>
                                         <th style="padding: 4px 2px; text-align: center; min-width: 60px;">SORTINO</th>
                                         <th style="padding: 4px 2px; text-align: center; min-width: 65px;">GRADE</th>
                                     </tr>
@@ -4314,12 +4314,12 @@
                         <td style="padding: 4px 2px; text-align: center; min-width: 55px; color: #fff; font-weight: 700; vertical-align: middle;">${c.symbol}</td>
                         <td style="padding: 4px 2px; text-align: center; min-width: 60px; font-family: var(--font-mono); color: #fff; vertical-align: middle;">$${parseFloat(c.price || 0).toFixed(2)}</td>
                         <td style="padding: 4px 2px; text-align: center; min-width: 65px; font-family: var(--font-mono); color: ${changeColor}; vertical-align: middle;">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
-                        <td style="padding: 4px 2px; text-align: center; width: 128px; min-width: 128px; padding-left: 16px; padding-right: 48px; vertical-align: middle;">
+                        <td style="padding: 4px 2px; text-align: center; width: 96px; min-width: 96px; padding-left: 16px; padding-right: 16px; vertical-align: middle;">
                             <div style="display: flex; justify-content: center;">
                                 ${drawSparkline(c.sparkline && c.sparkline.length > 0 ? c.sparkline.map(x => x.v) : [], c.symbol)}
                             </div>
                         </td>
-                        <td style="padding: 4px 2px; text-align: center; min-width: 240px; padding-left: 24px; padding-right: 2px; vertical-align: middle;">
+                        <td style="padding: 4px 2px; text-align: center; min-width: 225px; padding-left: 16px; padding-right: 2px; vertical-align: middle;">
                             ${drawTrendIndicator(c.trends)}
                         </td>
                         <td style="padding: 4px 2px; text-align: center; min-width: 60px; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800; vertical-align: middle;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
