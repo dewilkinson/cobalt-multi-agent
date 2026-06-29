@@ -441,6 +441,33 @@ def main():
                     print(f"Error getting volume for {sym}: {e}")
         except Exception as e:
             print(f"Failed to fetch volumes from yfinance: {e}")
+            
+    # Save top 10 lists to the watchlist database
+    try:
+        from src.services.watchlist_db import save_watchlist_entries
+        db_entries = []
+        imported_at_str = datetime.now().isoformat()
+        
+        for item in top_gainers:
+            sym = item.get("ticker", "").upper().strip()
+            if sym:
+                db_entries.append((date_str, "Top 10 Market Gainers", sym, "AlphaVantage Sweeper", imported_at_str))
+                
+        for item in top_losers:
+            sym = item.get("ticker", "").upper().strip()
+            if sym:
+                db_entries.append((date_str, "Top 10 Market Losers", sym, "AlphaVantage Sweeper", imported_at_str))
+                
+        for item in most_active:
+            sym = item.get("ticker", "").upper().strip()
+            if sym:
+                db_entries.append((date_str, "Top 10 Most Actively Traded (Volume)", sym, "AlphaVantage Sweeper", imported_at_str))
+                
+        if db_entries:
+            save_watchlist_entries(db_entries)
+            print(f"Added {len(db_entries)} top 10 market leaders to watchlist database.")
+    except Exception as dbe:
+        print(f"Failed to save top 10 leaders to watchlist database: {dbe}")
     
     missed_gainers = [g.get("ticker", "") for g in top_gainers if g.get("ticker") and g.get("ticker") not in scanner_map]
     missed_losers = [l.get("ticker", "") for l in top_losers if l.get("ticker") and l.get("ticker") not in scanner_map]
