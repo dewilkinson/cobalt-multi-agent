@@ -3442,8 +3442,8 @@
         }
 
         function drawTrendIndicator(trends) {
-            const timeframes = ['5m', '15m', '1h', '4h', '1d'];
-            let html = '<div style="display: flex; gap: 3px; justify-content: flex-end; align-items: center;">';
+            const timeframes = ['1m', '5m', '15m', '1h', '4h', '1d'];
+            let html = '<div style="display: flex; gap: 3px; justify-content: center; align-items: center;">';
             
             timeframes.forEach(tf => {
                 const val = trends ? (trends[tf] || 'No Data') : 'No Data';
@@ -4118,12 +4118,12 @@
                             <table class="macro-table ibkr-style-table scanner-table" style="width:100%; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        <th style="padding: 4px 2px; text-align: left;">SYMBOL</th>
-                                        <th style="padding: 4px 2px; text-align: right;">PRICE</th>
-                                        <th style="padding: 4px 2px; text-align: right;">CHANGE</th>
-                                        <th style="padding: 4px 2px; text-align: right; width: 64px; padding-right: 16px;">CHART</th>
-                                        <th style="padding: 4px 2px; text-align: right;">TREND</th>
-                                        <th style="padding: 4px 2px; text-align: right;">SORTINO</th>
+                                        <th style="padding: 4px 2px; text-align: center;">SYMBOL</th>
+                                        <th style="padding: 4px 2px; text-align: center;">PRICE</th>
+                                        <th style="padding: 4px 2px; text-align: center;">CHANGE</th>
+                                        <th style="padding: 4px 2px; text-align: center; width: 72px; padding-left: 12px; padding-right: 4px;">CHART</th>
+                                        <th style="padding: 4px 2px; text-align: center;">TREND</th>
+                                        <th style="padding: 4px 2px; text-align: center;">SORTINO</th>
                                         <th style="padding: 4px 2px; text-align: center;">GRADE</th>
                                     </tr>
                                 </thead>
@@ -4243,22 +4243,22 @@
                     const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
                     
                     tr.innerHTML = `
-                        <td style="padding: 4px 2px; color: #fff; font-weight: 700; vertical-align: middle;">${c.symbol}</td>
-                        <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: #fff; vertical-align: middle;">$${parseFloat(c.price || 0).toFixed(2)}</td>
-                        <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${changeColor}; vertical-align: middle;">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
-                        <td style="padding: 4px 2px; text-align: right; width: 64px; vertical-align: middle;">
-                            <div style="display: flex; justify-content: flex-end; padding-right: 16px;">
+                        <td style="padding: 4px 2px; text-align: center; color: #fff; font-weight: 700; vertical-align: middle;">${c.symbol}</td>
+                        <td style="padding: 4px 2px; text-align: center; font-family: var(--font-mono); color: #fff; vertical-align: middle;">$${parseFloat(c.price || 0).toFixed(2)}</td>
+                        <td style="padding: 4px 2px; text-align: center; font-family: var(--font-mono); color: ${changeColor}; vertical-align: middle;">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
+                        <td style="padding: 4px 2px; text-align: center; width: 72px; padding-left: 12px; padding-right: 4px; vertical-align: middle;">
+                            <div style="display: flex; justify-content: center;">
                                 ${drawSparkline(c.sparkline && c.sparkline.length > 0 ? c.sparkline.map(x => x.v) : [], c.symbol)}
                             </div>
                         </td>
-                        <td style="padding: 4px 2px; text-align: right; vertical-align: middle;">
+                        <td style="padding: 4px 2px; text-align: center; vertical-align: middle;">
                             ${drawTrendIndicator(c.trends)}
                         </td>
-                        <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800; vertical-align: middle;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
+                        <td style="padding: 4px 2px; text-align: center; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800; vertical-align: middle;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
                         <td style="padding: 4px 2px; vertical-align: middle;">
-                            <div style="display: flex; align-items: center; justify-content: flex-end;">
+                            <div style="display: flex; align-items: center; justify-content: center;">
                                 <span style="display: inline-block; width: 32px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; padding: 2px 0; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid ${gradeBorder};">${c.grade || 'F'}</span>
-                                <div style="width: 24px; display: flex; justify-content: flex-end;">
+                                <div style="width: 24px; display: flex; justify-content: center; margin-left: 4px;">
                                     ${isRefreshing ? 
                                     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
                                     : 
