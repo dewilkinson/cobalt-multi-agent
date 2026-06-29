@@ -47,7 +47,9 @@ def save_watchlist_entries(entries: list):
 
 def resolve_color_from_filename(filename: str) -> str:
     lower = filename.lower()
-    if "primary" in lower or "cyan" in lower:
+    if "watchlist_all" in lower:
+        return "Scanner Watchlist"
+    elif "primary" in lower or "cyan" in lower:
         return "Cyan"
     elif "rejected" in lower or "red" in lower:
         return "Red"
@@ -77,29 +79,37 @@ def parse_watchlist_file(file_path: str, default_color: str) -> list:
             if not line:
                 continue
                 
-            # Check for header color section
-            if line.startswith("#"):
-                clean_header = line.lstrip("#").strip().lower()
-                if "primary" in clean_header or "cyan" in clean_header:
-                    active_color = "Cyan"
-                elif "rejected" in clean_header or "red" in clean_header:
-                    active_color = "Red"
-                elif "potential" in clean_header or "pink" in clean_header:
-                    active_color = "Pink"
-                elif "gold" in clean_header or "yellow" in clean_header:
-                    active_color = "Gold"
-                continue
-                
-            # Parse symbol line (e.g., NASDAQ:AAPL or AAPL or AAPL, comment)
             parts = line.split(",")
-            raw_sym = parts[0].strip()
-            
-            # Remove exchange prefix if present (e.g., BATS:OSCR or NASDAQ:AAPL)
-            if ":" in raw_sym:
-                raw_sym = raw_sym.split(":")[-1].strip()
+            for part in parts:
+                part = part.strip()
+                if not part:
+                    continue
                 
-            sym = raw_sym.upper()
-            if sym.isalnum() and 1 <= len(sym) <= 6:
-                symbols_with_colors.append((sym, active_color))
+                # Check for header color section
+                if part.startswith("#"):
+                    clean_header = part.lstrip("#").strip().lower()
+                    if default_color != "Scanner Watchlist":
+                        if "primary" in clean_header or "cyan" in clean_header:
+                            active_color = "Cyan"
+                        elif "rejected" in clean_header or "red" in clean_header:
+                            active_color = "Red"
+                        elif "potential" in clean_header or "pink" in clean_header:
+                            active_color = "Pink"
+                        elif "gold" in clean_header or "yellow" in clean_header:
+                            active_color = "Gold"
+                    continue
                 
+                # Skip grade/timestamp sections
+                if "grade" in part.lower():
+                    continue
+                    
+                raw_sym = part
+                # Remove exchange prefix if present (e.g., BATS:OSCR or NASDAQ:AAPL)
+                if ":" in raw_sym:
+                    raw_sym = raw_sym.split(":")[-1].strip()
+                    
+                sym = raw_sym.upper()
+                if sym.isalnum() and 1 <= len(sym) <= 6:
+                    symbols_with_colors.append((sym, active_color))
+                    
     return symbols_with_colors
