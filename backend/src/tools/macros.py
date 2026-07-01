@@ -133,6 +133,7 @@ def calculate_trend_alignment(df) -> str:
     df.columns = [str(c).lower().strip() for c in df.columns]
     
     close_series = df["close"]
+    ema9 = close_series.ewm(span=9, adjust=False).mean()
     ema20 = close_series.ewm(span=20, adjust=False).mean()
     ema50 = close_series.ewm(span=50, adjust=False).mean()
     
@@ -144,12 +145,20 @@ def calculate_trend_alignment(df) -> str:
         last_ema200 = float(ema200.iloc[-1])
         
     last_close = float(close_series.iloc[-1])
+    last_ema9 = float(ema9.iloc[-1])
     last_ema20 = float(ema20.iloc[-1])
     last_ema50 = float(ema50.iloc[-1])
     
-    if last_close > last_ema20 and last_ema20 > last_ema50 and last_ema50 > last_ema200:
+    # Check for accumulation/sideways consolidation
+    if last_close > 0:
+        ema_spread = abs(last_ema20 - last_ema50) / last_close
+        price_deviation = abs(last_close - last_ema20) / last_close
+        if ema_spread < 0.008 and price_deviation < 0.012:
+            return "Accumulation"
+    
+    if last_close > last_ema20 and last_ema9 > last_ema20 and last_ema20 > last_ema50 and last_ema50 > last_ema200:
         return "Bullish"
-    elif last_close < last_ema20 and last_ema20 < last_ema50 and last_ema50 < last_ema200:
+    elif last_close < last_ema20 and last_ema9 < last_ema20 and last_ema20 < last_ema50 and last_ema50 < last_ema200:
         return "Bearish"
     elif last_close > last_ema20:
         return "Weak Bullish"

@@ -296,29 +296,22 @@ def main():
     pine_script.append(f'today_start = {today_start_ms} // {today_start.strftime("%Y-%m-%d %H:%M:%S")} UTC')
     pine_script.append('current_sym = syminfo.ticker')
     pine_script.append('')
-    pine_script.append('var has_plotted = false')
-    pine_script.append('if not has_plotted')
-    pine_script.append('    has_plotted := true')
-    
     # Sort symbols so code is deterministic
     all_symbols = sorted(list(set(list(recent_executions_by_symbol.keys()) + list(recent_closed_by_symbol.keys()))))
     
-    first_sym = True
     for sym in all_symbols:
-        cond_keyword = "if" if first_sym else "else if"
-        first_sym = False
-        pine_script.append(f'    {cond_keyword} current_sym == "{sym}"')
+        pine_script.append(f'if barstate.islast and current_sym == "{sym}"')
         
         # Plot trade lines first
         lines = recent_closed_by_symbol.get(sym, [])
         for ln in lines:
-            pine_script.append(f'        draw_trade_line({ln["open_time_ms"]}, {ln["open_price"]}, {ln["close_time_ms"]}, {ln["close_price"]}, {ln["pnl"]}, only_today, today_start)')
+            pine_script.append(f'    draw_trade_line({ln["open_time_ms"]}, {ln["open_price"]}, {ln["close_time_ms"]}, {ln["close_price"]}, {ln["pnl"]}, only_today, today_start)')
             
         execs = recent_executions_by_symbol.get(sym, [])
         for ex in execs:
             is_buy_str = "true" if ex["is_buy"] else "false"
             tooltip_val = f'{"Buy Entry" if ex["is_buy"] else "Sell Exit"}\\nAccount: {ex.get("account", "Unknown")}\\nTime: {ex["time_str"]}\\nQty: {ex["qty"]}\\nPrice: ${format_price(ex["price"])}'
-            pine_script.append(f'        draw_execution({ex["time_ms"]}, {ex["price"]}, {is_buy_str}, "{tooltip_val}", only_today, today_start)')
+            pine_script.append(f'    draw_execution({ex["time_ms"]}, {ex["price"]}, {is_buy_str}, "{tooltip_val}", only_today, today_start)')
             
     # Output file
     output_dir = os.path.join(project_root, "data", "exports")

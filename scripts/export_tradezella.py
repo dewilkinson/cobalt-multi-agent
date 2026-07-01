@@ -285,6 +285,8 @@ def run_fifo_matching(cache, start_date, end_date):
                         
             elif action in ["SELL", "SOLD", "STC", "STO"]:
                 if lot_info["type"] in ["flat", "short"]:
+                    if account in {"Rollover IRA *5513", "Health Savings Account *6937"}:
+                        continue
                     lot_info["lots"].append({"qty": qty, "price": price, "time": trade_time})
                     lot_info["type"] = "short"
                 else: # closing long
@@ -305,7 +307,7 @@ def run_fifo_matching(cache, start_date, end_date):
                         lot["qty"] -= match_qty
                         if lot["qty"] <= 0.0001:
                             lot_info["lots"].pop(0)
-                    if sell_qty_remaining > 0.0001:
+                    if sell_qty_remaining > 0.0001 and account not in {"Rollover IRA *5513", "Health Savings Account *6937"}:
                         lot_info["lots"].append({"qty": sell_qty_remaining, "price": price, "time": trade_time})
                         lot_info["type"] = "short"
                     elif len(lot_info["lots"]) == 0:
@@ -323,16 +325,29 @@ def run_fifo_matching(cache, start_date, end_date):
             is_futures = t["symbol"].startswith("/") or t["symbol"].endswith("!") or "Futures" in account
             spread_val = "Future" if is_futures else "Stock"
             
+            # Scale quantity for paper futures to match TradingView unit PnL in TradeZella
+            if is_futures and "Paper" in account:
+                try:
+                    from src.services.brokerage_cache import BrokerageCache
+                    multiplier = BrokerageCache.get_futures_multiplier(t["symbol"])
+                    if multiplier > 0:
+                        scaled_qty = t["volume"] * multiplier
+                    else:
+                        scaled_qty = t["volume"]
+                except Exception as e:
+                    print(f"Error scaling futures quantity for {t['symbol']}: {e}")
+                    scaled_qty = t["volume"]
+            else:
+                scaled_qty = t["volume"]
+            
             if direction == "Short":
                 # Entry is Sell
                 trades_to_export.append({
                     'Account Name': account,
-                    'Date&Time': '',
-                    'Date': t["open_time"].strftime("%m/%d/%Y"),
-                    'Time': t["open_time"].strftime("%H:%M:%S"),
+                    'Date / Time': t["open_time"].strftime("%m/%d/%Y %H:%M:%S"),
                     'Symbol': t["symbol"],
-                    'Buy/Sell': 'Sell',
-                    'Quantity': t["volume"],
+                    'Side': 'Sell',
+                    'Quantity': scaled_qty,
                     'Price': t["open_price"],
                     'Spread': spread_val,
                     'Expiration': '',
@@ -346,12 +361,10 @@ def run_fifo_matching(cache, start_date, end_date):
                 # Exit is Buy
                 trades_to_export.append({
                     'Account Name': account,
-                    'Date&Time': '',
-                    'Date': t["close_time"].strftime("%m/%d/%Y"),
-                    'Time': t["close_time"].strftime("%H:%M:%S"),
+                    'Date / Time': t["close_time"].strftime("%m/%d/%Y %H:%M:%S"),
                     'Symbol': t["symbol"],
-                    'Buy/Sell': 'Buy',
-                    'Quantity': t["volume"],
+                    'Side': 'Buy',
+                    'Quantity': scaled_qty,
                     'Price': t["close_price"],
                     'Spread': spread_val,
                     'Expiration': '',
@@ -366,12 +379,10 @@ def run_fifo_matching(cache, start_date, end_date):
                 # Entry is Buy
                 trades_to_export.append({
                     'Account Name': account,
-                    'Date&Time': '',
-                    'Date': t["open_time"].strftime("%m/%d/%Y"),
-                    'Time': t["open_time"].strftime("%H:%M:%S"),
+                    'Date / Time': t["open_time"].strftime("%m/%d/%Y %H:%M:%S"),
                     'Symbol': t["symbol"],
-                    'Buy/Sell': 'Buy',
-                    'Quantity': t["volume"],
+                    'Side': 'Buy',
+                    'Quantity': scaled_qty,
                     'Price': t["open_price"],
                     'Spread': spread_val,
                     'Expiration': '',
@@ -385,12 +396,10 @@ def run_fifo_matching(cache, start_date, end_date):
                 # Exit is Sell
                 trades_to_export.append({
                     'Account Name': account,
-                    'Date&Time': '',
-                    'Date': t["close_time"].strftime("%m/%d/%Y"),
-                    'Time': t["close_time"].strftime("%H:%M:%S"),
+                    'Date / Time': t["close_time"].strftime("%m/%d/%Y %H:%M:%S"),
                     'Symbol': t["symbol"],
-                    'Buy/Sell': 'Sell',
-                    'Quantity': t["volume"],
+                    'Side': 'Sell',
+                    'Quantity': scaled_qty,
                     'Price': t["close_price"],
                     'Spread': spread_val,
                     'Expiration': '',
@@ -406,10 +415,9 @@ def run_fifo_matching(cache, start_date, end_date):
     for r in trades_to_export:
         key = (
             r['Account Name'],
-            r['Date'],
-            r['Time'],
+            r['Date / Time'],
             r['Symbol'],
-            r['Buy/Sell'],
+            r['Side'],
             r['Price'],
             r['Spread'],
             r['Expiration'],
@@ -437,7 +445,7 @@ def verify_rules(rows):
     
     for r in rows:
         acc_sym = (r["Account Name"], r["Symbol"])
-        action = r["Buy/Sell"]
+        action = r["Side"]
         qty = float(r["Quantity"])
         
         if action == "Buy":
@@ -461,7 +469,7 @@ def verify_rules(rows):
     symbol_pos = {}
     for i, r in enumerate(rows):
         sym = (r["Account Name"], r["Symbol"])
-        action = r["Buy/Sell"]
+        action = r["Side"]
         qty = float(r["Quantity"])
         
         if action == "Buy":
@@ -529,7 +537,7 @@ def main():
     success = verify_rules(rows)
     
     # Write to TradeZella CSV
-    tz_headers = ["Account Name", "Date&Time", "Date", "Time", "Symbol", "Buy/Sell", "Quantity", "Price", "Spread", "Expiration", "Strike", "Call/Put", "Commission", "Fees"]
+    tz_headers = ["Account Name", "Date / Time", "Symbol", "Side", "Quantity", "Price", "Spread", "Expiration", "Strike", "Call/Put", "Commission", "Fees"]
     
     # Clean up verification fields
     for row in rows:
@@ -539,12 +547,29 @@ def main():
             del row["_action_order"]
             
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    
+    # Write combined TradeZella CSV
     with open(output_path, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=tz_headers)
         writer.writeheader()
         writer.writerows(rows)
+    print(f"Exported {len(rows)} execution rows to combined file: {output_path}")
+
+    # Write separate files per account
+    import re
+    accounts = set(r["Account Name"] for r in rows)
+    for acc in accounts:
+        acc_rows = [r for r in rows if r["Account Name"] == acc]
+        acc_clean = re.sub(r'[^a-zA-Z0-9\s_*-]', '', acc)
+        acc_clean = acc_clean.replace(' ', '_').replace('*', '').replace('-', '_')
+        acc_output_path = os.path.join(os.path.dirname(output_path), f"tradezella-import-{acc_clean}.csv")
         
-    print(f"Exported {len(rows)} execution rows to: {output_path}")
+        with open(acc_output_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=tz_headers)
+            writer.writeheader()
+            writer.writerows(acc_rows)
+        print(f"Exported {len(acc_rows)} execution rows for account '{acc}' to: {acc_output_path}")
+
     if not success:
         sys.exit(1)
 

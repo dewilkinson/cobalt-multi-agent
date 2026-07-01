@@ -197,6 +197,13 @@ def get_daily_briefing_path() -> str:
     today_str = datetime.now().strftime("%Y-%m-%d")
     return os.path.join(get_reports_root(), today_str, f"{today_str} Daily Briefing.md")
 
+def get_data_file_path(filename: str) -> str:
+    import os
+    path = os.path.join(os.getcwd(), "data", filename)
+    if not os.path.exists(path):
+        path = os.path.join(os.getcwd(), "backend", "data", filename)
+    return path
+
 # Global variables for system context
 last_graph_state = None
 global_telemetry_queue = None
@@ -549,7 +556,7 @@ async def lifespan(app: FastAPI):
         task_id="DROPZONE_WATCHER",
         name="VLI Dropzone CSV Processor",
         type="REPEAT",
-        schedule=2,
+        schedule=5,
         period_unit="seconds",
         priority="NORMAL",
         callback=watch_dropzone_and_process
@@ -1435,20 +1442,7 @@ async def _run_idle_analysis_impl(manual_trigger: bool = False):
         logger.info("[BG_ANALYST] System idle. Holding report generation until 07:00 AM.")
         return
         
-    target_path = os.path.join(os.getcwd(), 'data', 'STRIKE_LIST.json')
-    if not os.path.exists(target_path):
-        return
-        
     candidates = []
-    try:
-        if os.path.exists(target_path):
-            with open(target_path, 'r') as f:
-                state = json.load(f)
-            candidates.extend(state if isinstance(state, list) else (state.get("candidates", []) or state.get("strike_list", [])))
-            
-    except Exception as e:
-        logger.error(f"[BG_ANALYST] Failed to read combat lists: {e}")
-
     try:
         from src.config.vli import get_vli_path
         macro_path = get_vli_path(os.path.join("01_Transit", "Buckets", "MACRO_WATCHLIST_state.json"))
@@ -1461,7 +1455,7 @@ async def _run_idle_analysis_impl(manual_trigger: bool = False):
     except Exception as e:
         logger.error(f"[BG_ANALYST] Failed to read macro watchlist: {e}")
 
-    reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
+    reports_dir = get_reports_root()
     os.makedirs(reports_dir, exist_ok=True)
         
     candidates_to_process = []
@@ -1599,7 +1593,7 @@ Synthesize these metrics into a brief technical outlook. Focus on risk managemen
                     else:
                         result_text = str(res)
                         
-                    r_path = os.path.join(os.getcwd(), 'data', 'reports', f"analyze_{sym.lower()}.md")
+                    r_path = os.path.join(get_reports_root(), f"analyze_{sym.lower()}.md")
                     
                     os.makedirs(os.path.dirname(r_path), exist_ok=True)
                     generation_ts = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
@@ -1613,7 +1607,7 @@ Synthesize these metrics into a brief technical outlook. Focus on risk managemen
                     # Update scanner UI state
                     try:
                         for target_state in ["STRIKE_RES_state.json", "STRIKE_LIST.json"]:
-                            s_path = get_vli_path(os.path.join("01_Transit", "Buckets", target_state)) if "state" in target_state else os.path.join(os.getcwd(), 'data', target_state)
+                            s_path = get_vli_path(os.path.join("01_Transit", "Buckets", target_state)) if "state" in target_state else get_data_file_path(target_state)
                             if os.path.exists(s_path):
                                 with open(s_path, "r", encoding="utf-8") as f:
                                     s_data = json.load(f)
@@ -1666,7 +1660,7 @@ Synthesize these metrics into a brief technical outlook. Focus on risk managemen
             
             if is_valid:
                 try:
-                    r_path = os.path.join(os.getcwd(), 'data', 'reports', f"analyze_{sym.lower()}.md")
+                    r_path = os.path.join(get_reports_root(), f"analyze_{sym.lower()}.md")
                     os.makedirs(os.path.dirname(r_path), exist_ok=True)
                     generation_ts = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
                     header = f"> **Generated:** {generation_ts}\n\n"
@@ -1677,7 +1671,7 @@ Synthesize these metrics into a brief technical outlook. Focus on risk managemen
                     try:
                         from src.config.vli import get_vli_path
                         for target_state in ["STRIKE_RES_state.json", "STRIKE_LIST.json"]:
-                            s_path = get_vli_path(os.path.join("01_Transit", "Buckets", target_state)) if "state" in target_state else os.path.join(os.getcwd(), 'data', target_state)
+                            s_path = get_vli_path(os.path.join("01_Transit", "Buckets", target_state)) if "state" in target_state else get_data_file_path(target_state)
                             if os.path.exists(s_path):
                                 with open(s_path, "r", encoding="utf-8") as f:
                                     s_data = json.load(f)
@@ -1790,20 +1784,7 @@ async def run_meta_analysis(manual_trigger: bool = False):
         telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
         timestamp = datetime.now().strftime("[%H:%M:%S]")
         
-        scanner_bucket_path = os.path.join(os.getcwd(), 'data', 'STRIKE_LIST.json')
-        if not os.path.exists(scanner_bucket_path):
-            if manual_trigger: return "Error: STRIKE_LIST.json not found."
-            return
-            
-        with open(scanner_bucket_path, encoding="utf-8") as f:
-            scanner_res_content = json.load(f)
-            
-        candidates = scanner_res_content if isinstance(scanner_res_content, list) else (scanner_res_content.get("candidates", []) or scanner_res_content.get("strike_list", []))
-        if not candidates:
-            if manual_trigger: return "Error: No scanner candidates found."
-            return
-            
-        reports_dir = os.path.join(os.getcwd(), 'data', 'reports')
+        reports_dir = get_reports_root()
         os.makedirs(reports_dir, exist_ok=True)
         
         # [NEW] Check if already generated today
@@ -1813,37 +1794,52 @@ async def run_meta_analysis(manual_trigger: bool = False):
             if mtime.date() == datetime.now().date():
                 return
                 
+        # 1. Load macro watchlist (required reports)
+        macro_symbols = []
+        try:
+            macro_path = get_vli_path(os.path.join("01_Transit", "Buckets", "MACRO_WATCHLIST_state.json"))
+            if os.path.exists(macro_path):
+                with open(macro_path, 'r', encoding='utf-8') as f:
+                    macro_state = json.load(f)
+                for row in macro_state.get("rows", []):
+                    if len(row) > 1:
+                        macro_symbols.append(row[1])
+        except Exception as e:
+            logger.error(f"[META_ANALYST] Failed to read macro watchlist: {e}")
+
         compiled_reports = []
         missing_reports = []
         
-        for c in candidates:
-            sym = c.get("symbol")
-            if not sym: continue
-            
-            grade = c.get("grade", "F") if isinstance(c, dict) else "F"
-            if grade not in ["S", "A+", "A", "A-"]:
-                continue
-            
-            r_path = os.path.join(reports_dir, f"analyze_{sym.lower()}.md")
-            if os.path.exists(r_path):
-                mtime = datetime.fromtimestamp(os.path.getmtime(r_path))
-                if mtime.date() == datetime.now().date():
-                    with open(r_path, "r", encoding="utf-8") as rf:
-                        content = rf.read()
-                        if len(content) > 100:
-                            compiled_reports.append(f"### REPORT: {sym}\n{content}\n---\n")
-                            continue
-            missing_reports.append(sym)
-            
+        # 2. Check and compile all generated reports in the reports directory today
+        # If any report was generated today for any symbol (whether macro or scanner symbol), compile it!
+        if os.path.exists(reports_dir):
+            for filename in os.listdir(reports_dir):
+                if filename.startswith("analyze_") and filename.endswith(".md"):
+                    sym = filename.replace("analyze_", "").replace(".md", "").upper()
+                    r_path = os.path.join(reports_dir, filename)
+                    mtime = datetime.fromtimestamp(os.path.getmtime(r_path))
+                    if mtime.date() == datetime.now().date():
+                        with open(r_path, "r", encoding="utf-8") as rf:
+                            content = rf.read()
+                            if len(content) > 100:
+                                compiled_reports.append(f"### REPORT: {sym}\n{content}\n---\n")
+
+        # 3. Required Reports Check: Verify all macro symbols have reports today
+        compiled_syms_set = {r.split("\n")[0].replace("### REPORT: ", "").upper().strip() for r in compiled_reports}
+        for msym in macro_symbols:
+            msym_clean = msym.replace('^', '').replace('=', '').upper().strip()
+            if msym.upper().strip() not in compiled_syms_set and msym_clean not in compiled_syms_set:
+                missing_reports.append(msym)
+
         if missing_reports:
-            logger.warning(f"[META_ANALYST] Missing valid reports for: {missing_reports}. Triggering background generation.")
+            logger.warning(f"[META_ANALYST] Missing valid reports for macro: {missing_reports}. Triggering background generation.")
             
             import asyncio
             # Trigger background generation
             asyncio.create_task(run_idle_analysis(manual_trigger=True))
             
             if manual_trigger:
-                return f"Missing valid reports for {len(missing_reports)} candidates. Initiating background generation... You will be notified with a UX card when the Executive Briefing is ready."
+                return f"Missing valid reports for {len(missing_reports)} macro assets. Initiating background generation... You will be notified with a UX card when the Executive Briefing is ready."
             return
             
         # Write to telemetry
@@ -1856,7 +1852,7 @@ async def run_meta_analysis(manual_trigger: bool = False):
             
         # Bundle for LLM
         bundle = "\n".join(compiled_reports)
-        compiled_symbols = [c.get("symbol") for c in candidates if c.get("symbol")]
+        compiled_symbols = sorted(list(compiled_syms_set))
         source_str = f"Source Scans: {', '.join(compiled_symbols)}"
         
         session_config = _get_vli_session_config()
@@ -2354,12 +2350,14 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                         sym_clean = sym.replace('^', '').replace('=', '').lower()
                         r_path1 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
                         r_path2 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym_clean}.md')
-                        has_report = os.path.exists(r_path1) or os.path.exists(r_path2)
+                        r_path3 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym.lower()}.md')
+                        r_path4 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym_clean}.md')
+                        has_report = os.path.exists(r_path1) or os.path.exists(r_path2) or os.path.exists(r_path3) or os.path.exists(r_path4)
                         
                         meta = {"has_report": has_report}
                         if has_report:
-                            mtime = max(os.path.getmtime(r_path1) if os.path.exists(r_path1) else 0,
-                                        os.path.getmtime(r_path2) if os.path.exists(r_path2) else 0)
+                            paths_to_check = [r_path1, r_path2, r_path3, r_path4]
+                            mtime = max(os.path.getmtime(p) if os.path.exists(p) else 0 for p in paths_to_check)
                             meta["updated_at"] = datetime.fromtimestamp(mtime).isoformat()
                             
                         # Append the report status at the end of the row (or as the 7th element)
@@ -2456,11 +2454,18 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
             for cand in scanner_res_content.get(key, []):
                 sym = cand.get("symbol", "")
                 if sym:
-                    r_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
+                    r_path1 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
+                    r_path2 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym.lower()}.md')
                     cand["has_report"] = False
-                    if os.path.exists(r_path):
+                    active_path = None
+                    if os.path.exists(r_path1):
+                        active_path = r_path1
+                    elif os.path.exists(r_path2):
+                        active_path = r_path2
+                        
+                    if active_path:
                         cand["has_report"] = True
-                        mtime = os.path.getmtime(r_path)
+                        mtime = os.path.getmtime(active_path)
                         report_dt = datetime.fromtimestamp(mtime).isoformat()
                         cand_dt = cand.get("updated_at", "")
                         if not cand_dt or report_dt > cand_dt:
@@ -3764,6 +3769,7 @@ async def _background_synthesis_task(text: str, image: str | None, direct_mode: 
             vli_llm_type=vli_llm_type,
             thread_id=thread_id,
             snaptrade_settings=snaptrade_settings,
+            thinking_mode=thinking_mode,
         )
         
         # [NEW] Persist to Chat History with abstracted thoughts
@@ -5493,7 +5499,9 @@ async def get_vli_report(symbol: str):
     if symbol == "DAILY_BRIEFING":
         report_path = get_daily_briefing_path()
     else:
-        report_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{symbol.lower()}.md')
+        path1 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{symbol.lower()}.md')
+        path2 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{symbol.lower()}.md')
+        report_path = path1 if os.path.exists(path1) else path2
     if os.path.exists(report_path):
         with open(report_path, "r", encoding="utf-8") as f:
             content = f.read()

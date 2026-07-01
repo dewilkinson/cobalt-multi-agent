@@ -179,66 +179,39 @@ def _bucket_sparkline_data(df: pd.DataFrame, ref_time: datetime, current_price: 
         else:
             ref_time_naive = ref_time_ts
 
+        # Generate a list of naive NY datetimes going back in time spanning exactly 24 hours (1440 minutes)
+        # step_mins is dynamically calculated to span 24 hours (1440 mins) over num_points
+        step_mins = (24.0 * 60.0) / float(num_points - 1)
+        
         # Identify target date based on the latest available row's date
         latest_row_time = target_data.index[-1]
-        target_date = latest_row_time.date()
-
-        # Define pre-market start (4:00 AM) and post-market end (7:00 PM) for the target date
-        start_dt = datetime.combine(target_date, datetime.min.time()).replace(hour=4, minute=0)
-        end_dt = datetime.combine(target_date, datetime.min.time()).replace(hour=19, minute=0)
-
-        # Set the active cutoff time for today's session
-        if target_date < ref_time_naive.date():
-            cutoff_dt = end_dt
-        elif target_date == ref_time_naive.date():
-            if ref_time_naive < start_dt:
-                cutoff_dt = start_dt
-            elif ref_time_naive > end_dt:
-                cutoff_dt = end_dt
-            else:
-                cutoff_dt = ref_time_naive
-        else:
-            cutoff_dt = ref_time_naive
+        cutoff_dt = ref_time_naive
 
         # Anchor cutoff to the latest available data if it stopped trading before cutoff_dt
         if latest_row_time < cutoff_dt:
             cutoff_dt = latest_row_time
 
-        # Generate a list of naive NY datetimes going back in time
         dts = []
         curr = cutoff_dt
 
-        def is_weekend(d):
-            return d.weekday() >= 5
-
         while len(dts) < num_points:
-            # Skip weekends
-            if is_weekend(curr):
-                curr = datetime.combine(curr.date(), datetime.min.time()).replace(hour=18, minute=55)
-                while is_weekend(curr):
-                    curr -= timedelta(days=1)
-                continue
-
-            # Skip non-active hours (overnight)
-            if curr.hour < 4:
-                prev_day = curr - timedelta(days=1)
-                curr = datetime.combine(prev_day.date(), datetime.min.time()).replace(hour=18, minute=55)
-                continue
-
-            if curr.hour >= 19:
-                curr = datetime.combine(curr.date(), datetime.min.time()).replace(hour=18, minute=55)
+            # Skip weekends: shift to Friday at the same time of day
+            if curr.weekday() >= 5: # 5 = Saturday, 6 = Sunday
+                days_to_subtract = 1 if curr.weekday() == 5 else 2
+                curr -= timedelta(days=days_to_subtract)
                 continue
 
             dts.append(curr)
-            curr -= timedelta(minutes=step_minutes)
+            curr -= timedelta(minutes=step_mins)
 
         dts.reverse()
 
         # Sample prices at each index
         output_values = []
         for i, dt in enumerate(dts):
-            # Check if this point is in the previous session
-            is_prev = dt.date() < target_date
+            # Check if this point is in the previous day relative to latest date in the 24h span
+            latest_date_in_span = dts[-1].date()
+            is_prev = dt.date() < latest_date_in_span
 
             if i == num_points - 1:
                 # Last slot is always the current real-time price

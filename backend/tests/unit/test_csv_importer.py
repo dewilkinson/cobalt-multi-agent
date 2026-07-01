@@ -134,7 +134,9 @@ def test_process_dropzone_regex_routing(monkeypatch):
     # Drop recognized TradingView Paper Futures (Futures token in front)
     tv_futures_csv = os.path.join(temp_dropzone, "futures.paper-trading-order-history.csv")
     with open(tv_futures_csv, "w", encoding="utf-8") as f:
-        f.write(MOCK_TV_CSV)
+        f.write("""Symbol,Side,Type,Quantity,Limit price,Stop price,Fill price,Status,Commission,Placing time,Closing time,Order ID,Level ID,Leverage,Margin
+COMEX_MINI:MGC1!,Buy,Market,1,,,4014.2,Filled,,2026-06-25 01:13:56,2026-06-25 01:13:56,3221287730,,20:1,"2,007.10 USD"
+""")
         
     try:
         msg = process_dropzone_files(optional_path=temp_dropzone)
@@ -164,8 +166,8 @@ def test_process_dropzone_regex_routing(monkeypatch):
 
         # Verify TradingView Paper Futures got the futures
         tc_acts = cache["TradingView Paper Futures"]["activities"]
-        assert len(tc_acts) == 2
-        assert any(a["symbol"]["symbol"] == "PSNL" for a in tc_acts)
+        assert len(tc_acts) == 1
+        assert any(a["symbol"]["symbol"] == "/MGC" for a in tc_acts)
         
     finally:
         shutil.rmtree(temp_dropzone)
@@ -225,5 +227,70 @@ def test_futures_multipliers():
     assert BrokerageCache.get_futures_multiplier("MNK") == 0.5
     assert BrokerageCache.get_futures_multiplier("/ES") == 50.0
     assert BrokerageCache.get_futures_multiplier("AAPL") == 1.0
+
+
+def test_tradingview_paper_trading_prefixes(monkeypatch):
+    import src.services.csv_importer
+    from src.services.csv_importer import get_tradingview_csv_asset_type
+    temp_dropzone = tempfile.mkdtemp()
+    temp_backup = tempfile.mkdtemp()
+    temp_cache_dir = tempfile.mkdtemp()
+    mock_cache_path = os.path.join(temp_cache_dir, "brokerage_cache.json")
+    
+    with open(mock_cache_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "TradingView Paper Stocks": {"activities": [], "positions": [], "closed_positions": []},
+            "TradingView Paper Futures": {"activities": [], "positions": [], "closed_positions": []}
+        }, f)
+        
+    monkeypatch.setattr(src.services.brokerage_cache, "CACHE_FILE", mock_cache_path)
+    monkeypatch.setattr(BrokerageCache, "get_backup_dir", lambda: temp_backup)
+    
+    mock_config = {
+        "DROPZONE_ACCOUNTS": {
+            "TradingView Paper Trading": ".*paper-trading-order-history.*\\.csv"
+        }
+    }
+    monkeypatch.setattr(src.services.csv_importer, "get_config", lambda: mock_config)
+    
+    stocks_csv = os.path.join(temp_dropzone, "paper-trading-order-history.csv")
+    with open(stocks_csv, "w", encoding="utf-8") as f:
+        f.write(MOCK_TV_CSV)
+        
+    futures_csv = os.path.join(temp_dropzone, "futures.paper-trading-order-history.csv")
+    mock_futures_csv = """Symbol,Side,Type,Quantity,Limit price,Stop price,Fill price,Status,Commission,Placing time,Closing time,Order ID,Level ID,Leverage,Margin
+COMEX_MINI:MGC1!,Buy,Market,1,,,4014.2,Filled,,2026-06-25 01:13:56,2026-06-25 01:13:56,3221287730,,20:1,"2,007.10 USD"
+"""
+    with open(futures_csv, "w", encoding="utf-8") as f:
+        f.write(mock_futures_csv)
+        
+    try:
+        assert get_tradingview_csv_asset_type(stocks_csv) == "STOCKS"
+        assert get_tradingview_csv_asset_type(futures_csv) == "FUTURES"
+        
+        msg = process_dropzone_files(optional_path=temp_dropzone)
+        assert "STOCKS_paper-trading-order-history.csv" in msg
+        assert "FUTURES_futures.paper-trading-order-history.csv" in msg
+        
+        # Verify archive prefix
+        assert os.path.exists(os.path.join(temp_dropzone, "archive", "STOCKS_paper-trading-order-history.csv"))
+        assert os.path.exists(os.path.join(temp_dropzone, "archive", "FUTURES_futures.paper-trading-order-history.csv"))
+        
+        # Verify backup prefix
+        backups = os.listdir(temp_backup)
+        assert any(b.startswith("STOCKS_") for b in backups)
+        assert any(b.startswith("FUTURES_") for b in backups)
+        
+        # Verify brokerage cache routing results
+        with open(mock_cache_path, "r", encoding="utf-8") as f:
+            cache = json.load(f)
+        assert len(cache.get("TradingView Paper Stocks", {}).get("activities", [])) == 2
+        assert len(cache.get("TradingView Paper Futures", {}).get("activities", [])) == 1
+        assert len(cache.get("TradingView Paper Trading", {}).get("activities", [])) == 0
+    finally:
+        shutil.rmtree(temp_dropzone)
+        shutil.rmtree(temp_backup)
+        shutil.rmtree(temp_cache_dir)
+
 
 

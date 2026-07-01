@@ -757,23 +757,29 @@ export default function MacroDashboard() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex gap-2">
-                            {['15m', '1h', '4h', '1d'].map(tf => {
+                            {['5m', '15m', '1h', '4h', '1d'].map(tf => {
                               const trend = item.trends?.[tf];
-                              const isBullish = trend === 'Bullish';
-                              const isBearish = trend === 'Bearish';
+                              const isBullish = trend === 'Bullish' || trend === 'Uptrend';
+                              const isBearish = trend === 'Bearish' || trend === 'Downtrend';
+                              const isWeakBullish = trend === 'Weak Bullish';
+                              const isWeakBearish = trend === 'Weak Bearish';
                               
                               return (
                                 <motion.div 
                                   whileHover={{ scale: 1.2, zIndex: 10 }}
                                   key={tf}
-                                  title={`${tf}: ${trend}`}
+                                  title={`${tf === '1d' ? '1D' : tf}: ${trend || 'No Data'}`}
                                   className={`w-9 h-9 rounded-lg flex items-center justify-center border shadow-sm transition-all ${
                                     isBullish ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-emerald-500/10' :
+                                    isWeakBullish ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400 shadow-yellow-500/10' :
+                                    isWeakBearish ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 shadow-amber-500/10' :
                                     isBearish ? 'bg-rose-500/20 border-rose-500/40 text-rose-400 shadow-rose-500/10' :
                                     'bg-slate-800/50 border-slate-700 text-slate-500'
                                   }`}
                                 >
-                                  <span className="text-[11px] font-black uppercase tracking-tighter">{tf}</span>
+                                  <span className="text-[11px] font-black uppercase tracking-tighter">
+                                    {tf === '1d' ? '1D' : tf}
+                                  </span>
                                 </motion.div>
                               );
                             })}
@@ -871,6 +877,7 @@ export default function MacroDashboard() {
                         <tr className="border-b border-white/5">
                           <th className="pb-3 text-[10px] uppercase text-slate-500 font-bold">Symbol</th>
                           <th className="pb-3 text-[10px] uppercase text-slate-500 font-bold">Price</th>
+                          <th className="pb-3 text-[10px] uppercase text-slate-500 font-bold">Trend</th>
                           <th className="pb-3 text-[10px] uppercase text-slate-500 font-bold text-right">Heat Score</th>
                         </tr>
                       </thead>
@@ -904,6 +911,33 @@ export default function MacroDashboard() {
                             <td className="py-3 text-white font-mono text-xs">
                               ${c.price?.toFixed(2) || '---'}
                             </td>
+                            <td className="py-3">
+                              <div className="flex gap-1">
+                                {['5m', '15m', '1h', '4h', '1d'].map(tf => {
+                                  const trend = c.trends?.[tf];
+                                  const isBullish = trend === 'Bullish' || trend === 'Uptrend';
+                                  const isBearish = trend === 'Bearish' || trend === 'Downtrend';
+                                  const isWeakBullish = trend === 'Weak Bullish';
+                                  const isWeakBearish = trend === 'Weak Bearish';
+                                  
+                                  return (
+                                    <div 
+                                      key={tf}
+                                      title={`${tf === '1d' ? '1D' : tf}: ${trend || 'No Data'}`}
+                                      className={`w-5 h-5 rounded flex items-center justify-center border text-[7px] font-black uppercase tracking-tighter transition-all ${
+                                        isBullish ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-emerald-500/10' :
+                                        isWeakBullish ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400 shadow-yellow-500/10' :
+                                        isWeakBearish ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 shadow-amber-500/10' :
+                                        isBearish ? 'bg-rose-500/20 border-rose-500/40 text-rose-400 shadow-rose-500/10' :
+                                        'bg-slate-800/50 border-slate-700 text-slate-500'
+                                      }`}
+                                    >
+                                      {tf === '1d' ? '1D' : tf}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </td>
                             <td className="py-3 text-right">
                               {(() => {
                                 const score = c.heat_score || 0;
@@ -912,7 +946,7 @@ export default function MacroDashboard() {
                                 else if (score >= 82) colorClass = "bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-400 shadow-[0_0_10px_rgba(217,70,239,0.2)]"; // A
                                 else if (score >= 65) colorClass = "bg-indigo-500/10 border-indigo-500/30 text-indigo-400"; // B
                                 else if (score >= 50) colorClass = "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"; // C
-
+ 
                                 return (
                                   <div className="flex flex-col items-end gap-1">
                                     <span className={`px-2 py-0.5 border rounded text-[10px] font-bold font-mono ${colorClass}`}>

@@ -3449,10 +3449,19 @@
             const isUp = validValues[validValues.length - 1] >= validValues[0];
             const color = isUp ? '#34d399' : '#fb7185';
 
+            const lastVal = validValues[validValues.length - 1];
+            const prevVal = validValues.length >= 2 ? validValues[validValues.length - 2] : lastVal;
+            const justMovedUp = lastVal >= prevVal;
+            const dotColor = justMovedUp ? '#00ff00' : '#ff0000';
+            
+            const lastPoint = points[points.length - 1];
+            const dotHTML = lastPoint ? `<circle cx="${lastPoint.x.toFixed(2)}" cy="${lastPoint.y.toFixed(2)}" r="2.5" fill="${dotColor}" style="filter: drop-shadow(0 0 3px ${dotColor});" />` : '';
+
             return `
                 <div style="width: 64px; height: 16px; display: flex; align-items: center;">
                     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible; display: block;" data-ticker="${ticker}">
                         <path d="${pathData}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 4px ${color}66);" />
+                        ${dotHTML}
                     </svg>
                 </div>
             `;
@@ -4197,14 +4206,14 @@
                             <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
                         <div style="flex-grow: 1; overflow-x: auto; overflow-y: auto;">
-                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 760px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
+                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 880px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 32px; box-sizing: border-box;">SYMBOL</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 24px; box-sizing: border-box;">DOC</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">PRICE</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
-                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 64px; box-sizing: border-box;">CHART</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 290px; box-sizing: border-box;">CHART</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 208px; box-sizing: border-box;">TREND</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 32px; box-sizing: border-box;">GRADE</div></th>
@@ -4345,8 +4354,23 @@
                             <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</div>
                         </td>
                         <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
-                            <div style="min-width: 64px; display: flex; justify-content: center; box-sizing: border-box;">
-                                ${drawSparkline(c.sparkline && c.sparkline.length > 0 ? c.sparkline.map(x => x.v) : [], c.symbol)}
+                            <div style="min-width: 290px; display: flex; justify-content: center; align-items: center; box-sizing: border-box; gap: 8px; padding-right: 48px;">
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">1m</span>
+                                    ${drawSparkline(c.sparkline_1m && c.sparkline_1m.length > 0 ? c.sparkline_1m.map(x => x.v) : [], c.symbol)}
+                                </div>
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">5m</span>
+                                    ${drawSparkline(c.sparkline_5m && c.sparkline_5m.length > 0 ? c.sparkline_5m.map(x => x.v) : [], c.symbol)}
+                                </div>
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">15m</span>
+                                    ${drawSparkline(c.sparkline_15m && c.sparkline_15m.length > 0 ? c.sparkline_15m.map(x => x.v) : [], c.symbol)}
+                                </div>
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">1h</span>
+                                    ${drawSparkline(c.sparkline_1h && c.sparkline_1h.length > 0 ? c.sparkline_1h.map(x => x.v) : [], c.symbol)}
+                                </div>
                             </div>
                         </td>
                         <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">

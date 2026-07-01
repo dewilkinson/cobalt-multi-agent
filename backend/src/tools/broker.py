@@ -296,7 +296,7 @@ def get_personal_risk_metrics(config: RunnableConfig):
 
 
 @tool
-async def get_daily_blotter(days_back: int = 2):
+async def get_daily_blotter(days_back: int = 1):
     """
     Retrieves the raw executions exclusively from the last N days (defaults to 2 for daily journaling).
     Use this for daily or weekly journaling and diary reflection.
@@ -357,7 +357,25 @@ async def get_daily_blotter(days_back: int = 2):
                 qty = act.get('units') or act.get('quantity') or 0
                 price = act.get('price') or 0
                 
-                recent_trades.append(f"{t_date}: {action} {qty} {sym} @ ${price}")
+                snapshot_str = ""
+                try:
+                    from src.tools.indicators import get_intraday_snapshot
+                    func = getattr(get_intraday_snapshot, "coroutine", getattr(get_intraday_snapshot, "func", None))
+                    if func:
+                        import asyncio
+                        if asyncio.iscoroutinefunction(func):
+                            snap_res = await func(sym, t_date)
+                        else:
+                            snap_res = func(sym, t_date)
+                        
+                        import json
+                        snap_data = json.loads(snap_res)
+                        if isinstance(snap_data, dict) and "rsi" in snap_data:
+                            snapshot_str = f" [Snapshot: RSI={snap_data['rsi']}, Sortino={snap_data['sortino']}, POC={snap_data['poc']}, CVD={snap_data['cvd']}, RVOL={snap_data['rvol']}]"
+                except Exception as ex:
+                    logger.warning(f"Failed to embed intraday snapshot for {sym} at {t_date}: {ex}")
+
+                recent_trades.append(f"{t_date}: {action} {qty} {sym} @ ${price}{snapshot_str}")
                 unique_tickers.add(sym)
 
     if not recent_trades:
@@ -401,38 +419,39 @@ async def get_daily_blotter(days_back: int = 2):
             
     # Embed Reports
     blotter_text += "\n\n=== STRUCTURAL ANALYSIS REPORTS ===\n"
-    from src.utils.compression import condense_artifact
     for ticker in unique_tickers:
         ticker_clean = ticker.lower().replace('/', '').replace('=', '').replace('^', '')
         r_path = os.path.join(reports_dir, f"analyze_{ticker_clean}.md")
-        dense_path = os.path.join(reports_dir, f"analyze_{ticker_clean}.dense.md")
         
-        if os.path.exists(dense_path):
-            try:
-                with open(dense_path, "r", encoding="utf-8") as f:
-                    blotter_text += f"\n\n--- Analysis for {ticker} (Condensed) ---\n"
-                    blotter_text += f.read()
-            except Exception as e:
-                logger.error(f"Failed to read condensed report for {ticker}: {e}")
-        elif os.path.exists(r_path):
+        if os.path.exists(r_path):
             try:
                 with open(r_path, "r", encoding="utf-8") as f:
                     raw_text = f.read()
                 
-                # Compress on the fly
-                compressed_text = await condense_artifact(raw_text)
+                # Parse technical parameters directly (lightning fast, zero LLM calls, robust)
+                lines = raw_text.splitlines()
+                summary = []
+                for line in lines:
+                    line_strip = line.strip()
+                    if line_strip.startswith("Active Strategy:"):
+                        summary.append(line_strip)
+                    elif "- **Execution State**:" in line_strip or "- **Execution Parameter**:" in line_strip:
+                        summary.append(line_strip)
+                    elif line_strip.startswith("- **Strike Zone"):
+                        summary.append(line_strip)
+                    elif line_strip.startswith("- **Hard Stop"):
+                        summary.append(line_strip)
+                    elif line_strip.startswith("- **Take Profit"):
+                        summary.append(line_strip)
+                    elif "POC" in line_strip or "VAH" in line_strip or "VAL" in line_strip:
+                        if line_strip.startswith("- **") or line_strip.startswith("Session Point of Control") or "Session VAL" in line_strip or "Value Area" in line_strip:
+                            summary.append(line_strip)
                 
-                # Cache it for future runs
-                try:
-                    with open(dense_path, "w", encoding="utf-8") as f:
-                        f.write(compressed_text)
-                except Exception as e:
-                    logger.warning(f"Failed to cache condensed report for {ticker}: {e}")
-                    
+                parsed_text = "\n".join(summary) if summary else raw_text[:500] + "..."
                 blotter_text += f"\n\n--- Analysis for {ticker} (Condensed) ---\n"
-                blotter_text += compressed_text
+                blotter_text += parsed_text
             except Exception as e:
-                logger.error(f"Failed to read/condense report for {ticker}: {e}")
+                logger.error(f"Failed to parse report for {ticker}: {e}")
         else:
             blotter_text += f"\n\n--- Analysis for {ticker} ---\n[REPORT MISSING OR FAILED TO GENERATE]"
 

@@ -123,6 +123,22 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({ headers, rows, id })
               style={{ filter: `drop-shadow(0 0 4px ${isUp ? 'rgba(52, 211, 153, 0.4)' : 'rgba(251, 113, 133, 0.4)'})` }}
             />
           )}
+          {(() => {
+            const lastPoint = pointsArray[pointsArray.length - 1];
+            const lastVal = parsedValues[parsedValues.length - 1]?.v;
+            const prevVal = parsedValues.length >= 2 ? parsedValues[parsedValues.length - 2]?.v : lastVal;
+            const justMovedUp = lastVal !== undefined && prevVal !== undefined ? lastVal >= prevVal : true;
+            const dotColor = justMovedUp ? '#00ff00' : '#ff0000';
+            return lastPoint ? (
+              <circle
+                cx={lastPoint.x}
+                cy={lastPoint.y}
+                r="2.5"
+                fill={dotColor}
+                style={{ filter: `drop-shadow(0 0 3px ${dotColor})` }}
+              />
+            ) : null;
+          })()}
         </svg>
       </div>
     );

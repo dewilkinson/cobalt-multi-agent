@@ -13,5 +13,10 @@
     "rvol_veto_max": 100.0,
     "sortino_hurdle": 2.0,
     "rs_hurdle": 90,
-    "binary_veto_hours": 24
+    "binary_veto_hours": 24,
+    "market_cap_tolerance_pct": 5.0,
+    "float_premium_max": 1000000,
+    "sweep_types_allowed": ["ORL", "PML", "PSL"],
+    "breakout_entry_enabled": true,
+    "breakout_rvol_min": 2.0
 }

@@ -273,7 +273,14 @@ def calculate_static_grade(price: float, cap: int, float_shares: int, config: Di
 
     # 1. Primary Checks
     p_pass = p_min <= price <= p_max
-    c_pass = c_min <= cap <= c_max
+    
+    tolerance_pct = config.get("market_cap_tolerance_pct", 0.0)
+    premium_float_max = config.get("float_premium_max", 0)
+    effective_c_min = c_min
+    if tolerance_pct > 0 and premium_float_max > 0 and float_shares <= premium_float_max:
+        effective_c_min = c_min * (1.0 - (tolerance_pct / 100.0))
+        
+    c_pass = effective_c_min <= cap <= c_max
     # If float_shares is 0, we count it as a fail now to be stricter, 
     # unless we want to allow 0-float (unlikely for equities)
     f_pass = f_min <= float_shares <= f_max

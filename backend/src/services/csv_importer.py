@@ -398,6 +398,13 @@ def parse_tradingview_paper_trading(csv_path: str):
             if "paper" in acct.lower() and re.match(pattern, filename):
                 target_account = acct
                 break
+                
+        # Perform dynamic mapping along with the dropzone folder scan/parsing rules!
+        asset_type = get_tradingview_csv_asset_type(csv_path)
+        if asset_type == "STOCKS":
+            target_account = "TradingView Paper Stocks"
+        elif asset_type == "FUTURES":
+            target_account = "TradingView Paper Futures"
     except Exception as e:
         logger.error(f"Error resolving target account in parse_tradingview_paper_trading: {e}")
         
@@ -431,7 +438,58 @@ def get_dropzone_csvs(optional_path=None):
             
     return csvs
 
-def check_and_backup_dropzone_file(csv_path: str):
+def get_tradingview_csv_asset_type(csv_path: str) -> str:
+    """
+    Examines all tickers in the TradingView paper trading CSV.
+    Returns 'STOCKS' if all filled symbols are stocks/index funds.
+    Returns 'FUTURES' if any filled symbols are futures.
+    """
+    if not os.path.exists(csv_path):
+        return ""
+        
+    has_stocks = False
+    has_futures = False
+    
+    try:
+        with open(csv_path, "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            if not reader or not reader.fieldnames:
+                return ""
+            for row in reader:
+                status = row.get("Status") or ""
+                if status != "Filled":
+                    continue
+                symbol_raw = row.get("Symbol") or ""
+                if not symbol_raw:
+                    continue
+                    
+                is_futures = False
+                exchange = ""
+                if ":" in symbol_raw:
+                    parts = symbol_raw.split(":")
+                    exchange = parts[0].upper().strip()
+                    symbol_name = parts[-1].upper().strip()
+                else:
+                    symbol_name = symbol_raw.upper().strip()
+                    
+                if exchange in ["CME", "COMEX", "COMEX_MINI", "NYMEX", "CBOT", "ICE"] or symbol_name.endswith("!"):
+                    is_futures = True
+                    
+                if is_futures:
+                    has_futures = True
+                else:
+                    has_stocks = True
+    except Exception as e:
+        logger.error(f"Error checking asset type for TradingView CSV {csv_path}: {e}")
+        return ""
+        
+    if has_futures:
+        return "FUTURES"
+    elif has_stocks:
+        return "STOCKS"
+    return ""
+
+def check_and_backup_dropzone_file(csv_path: str, prefix: str = ""):
     if not csv_path or not os.path.exists(csv_path):
         return
         
@@ -454,7 +512,7 @@ def check_and_backup_dropzone_file(csv_path: str):
             
             base, ext = os.path.splitext(os.path.basename(csv_path))
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
-            backup_filename = f"{base}_{timestamp}{ext}"
+            backup_filename = f"{prefix}{base}_{timestamp}{ext}"
             backup_path = os.path.join(backup_dir, backup_filename)
             
             shutil.copy2(csv_path, backup_path)
@@ -538,10 +596,21 @@ def process_dropzone_files(optional_path=None):
         # 2. Determine target tool and select appropriate parser
         parsed_data = {}
         file_type_label = ""
+        paper_prefix = ""
         
         if "paper" in target_account.lower():
             # TradingView Paper Trading export
-            check_and_backup_dropzone_file(file_path)
+            asset_type = get_tradingview_csv_asset_type(file_path)
+            if asset_type:
+                paper_prefix = f"{asset_type}_"
+            
+            # Map generic/specific TradingView accounts based on asset type check
+            if asset_type == "STOCKS":
+                target_account = "TradingView Paper Stocks"
+            elif asset_type == "FUTURES":
+                target_account = "TradingView Paper Futures"
+                
+            check_and_backup_dropzone_file(file_path, prefix=paper_prefix)
             parsed_data = parse_tradingview_paper_trading(file_path)
             if parsed_data:
                 parsed_data = {target_account: list(parsed_data.values())[0]}
@@ -606,8 +675,9 @@ def process_dropzone_files(optional_path=None):
                 
         if file_updated:
             try:
-                shutil.move(file_path, os.path.join(archive_dir, filename))
-                messages.append(f"Imported {file_type_label}: {filename}")
+                dest_filename = f"{paper_prefix}{filename}" if paper_prefix else filename
+                shutil.move(file_path, os.path.join(archive_dir, dest_filename))
+                messages.append(f"Imported {file_type_label}: {dest_filename}")
             except Exception as e:
                 logger.error(f"Failed to archive {file_path}: {e}")
                 messages.append(f"Imported {file_type_label} (failed to archive): {filename}")

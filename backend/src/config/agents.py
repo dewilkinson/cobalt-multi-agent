@@ -32,7 +32,7 @@ _BASE_AGENT_LLM_MAP: dict[str, LLMType] = {
     "prose_writer": "basic",
     "prompt_enhancer": "basic",
     "scout": "basic",
-    "journaler": "basic",
+    "journaler": "reasoning",
     "portfolio_manager": "basic",
     "risk_manager": "basic",
     "analyst": "basic",

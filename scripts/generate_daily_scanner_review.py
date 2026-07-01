@@ -196,18 +196,14 @@ def analyze_missed_gainers(missed_tickers, scanner_map=None):
         
     analysis_results = []
     
-    # Dynamically load constraints for the default strategy
-    strat_config = load_strategy_constraints("default")
+def analyze_missed_gainers(missed_tickers, scanner_map):
+    """
+    Analyzes missed gainers and evaluates why they failed constraints for each active strategy profile (Sword, Shield, Sniper).
+    """
+    if not missed_tickers:
+        return []
         
-    PRICE_MIN = strat_config["price_min"]
-    PRICE_MAX = strat_config["price_max"]
-    CAP_MIN = strat_config["market_cap_min"]
-    CAP_MAX = strat_config["market_cap_max"]
-    FLOAT_MIN = strat_config["float_min"]
-    FLOAT_MAX = strat_config["float_max"]
-    SORTINO_MIN = strat_config["sortino_hurdle"]
-    VOLUME_MIN = strat_config["volume_hurdle"]
-
+    analysis_results = []
     print(f"Analyzing {len(missed_tickers)} missed gainers...")
     
     # Filter out tickers that have cached Sortino values to avoid redundant downloads
@@ -227,40 +223,19 @@ def analyze_missed_gainers(missed_tickers, scanner_map=None):
             hist_data = None
 
     for sym in missed_tickers:
-        reasons = []
         try:
             ticker_obj = yf.Ticker(sym)
             info = ticker_obj.info
-            
             q_type = info.get('quoteType', 'EQUITY')
-            
-            # 1. Price Check
             price = info.get('regularMarketPrice') or info.get('currentPrice') or info.get('previousClose', 0)
-            if price < PRICE_MIN or price > PRICE_MAX:
-                reasons.append(f"**Price (${price})** out of bounds (${PRICE_MIN}-${PRICE_MAX})")
-                
-            # 2. Market Cap Check
-            if q_type != "ETF":
-                cap = info.get('marketCap', 0)
-                if cap < CAP_MIN or cap > CAP_MAX:
-                    reasons.append(f"**Market Cap (${cap/1e6:.1f}M)** out of bounds (${CAP_MIN/1e6:.0f}M-${CAP_MAX/1e6:.0f}M)")
-                
-            # 3. Float Check
-            if q_type != "ETF":
-                float_shares = info.get('floatShares', 0)
-                if float_shares < FLOAT_MIN or float_shares > FLOAT_MAX:
-                    reasons.append(f"**Float ({float_shares/1e6:.1f}M)** out of bounds ({FLOAT_MIN/1e6:.0f}M-{FLOAT_MAX/1e6:.0f}M)")
-                
-            # 4. Volume Check
+            cap = info.get('marketCap', 0)
+            float_shares = info.get('floatShares', 0)
             vol = info.get('regularMarketVolume') or info.get('volume', 0)
-            if vol < VOLUME_MIN:
-                reasons.append(f"**Volume ({vol})** below minimum ({VOLUME_MIN})")
-                
-            # 5. Sortino Calculation
+            
+            # Sortino Calculation
             sortino = 0.0
             if sym in scanner_map and scanner_map[sym].get("sortino") is not None:
                 sortino = scanner_map[sym]["sortino"]
-                print(f"Using cached Sortino for {sym}: {sortino}")
             elif hist_data is not None:
                 try:
                     t_df = hist_data if len(tickers_to_download) == 1 else hist_data.get(sym)
@@ -269,16 +244,68 @@ def analyze_missed_gainers(missed_tickers, scanner_map=None):
                         sortino = calculate_sortino(prices)
                 except Exception:
                     pass
+            
+            strat_results = {}
+            for s_name in ["sword", "shield", "default"]:
+                s_config = load_strategy_constraints(s_name)
+                s_reasons = []
                 
-            enable_sortino = os.environ.get("SCANNER_ENABLE_SORTINO", "false").lower() == "true"
-            if enable_sortino:
-                if sortino < SORTINO_MIN:
-                    reasons.append(f"**Sortino Ratio ({sortino:.2f})** below minimum ({SORTINO_MIN})")
+                p_min = s_config["price_min"]
+                p_max = s_config.get("price_max") or float('inf')
+                if p_max == 0: p_max = float('inf')
                 
-            if not reasons:
-                reasons.append("Met all constraints (Might have failed LLM Phase 2 or Sentiment Filter).")
+                c_min = s_config["market_cap_min"]
+                c_max = s_config.get("market_cap_max") or float('inf')
+                if c_max == 0: c_max = float('inf')
                 
-            analysis_results.append({"symbol": sym, "reasons": reasons})
+                f_min = s_config["float_min"]
+                f_max = s_config.get("float_max") or float('inf')
+                if f_max == 0: f_max = float('inf')
+                
+                # Apply tolerance for market cap
+                t_pct = s_config.get("market_cap_tolerance_pct", 0.0)
+                p_f_max = s_config.get("float_premium_max", 0)
+                eff_c_min = c_min
+                if t_pct > 0 and p_f_max > 0 and float_shares <= p_f_max:
+                    eff_c_min = c_min * (1.0 - (t_pct / 100.0))
+                
+                # 1. Price Check
+                if price < p_min or price > p_max:
+                    p_max_str = f"${p_max:.2f}" if p_max != float('inf') else "No Limit"
+                    s_reasons.append(f"Price (${price}) out of bounds (${p_min}-{p_max_str})")
+                    
+                # 2. Market Cap Check
+                if q_type != "ETF":
+                    if cap < eff_c_min or cap > c_max:
+                        c_max_str = f"${c_max/1e6:.0f}M" if c_max != float('inf') else "No Limit"
+                        eff_c_min_str = f"${eff_c_min/1e6:.1f}M" if eff_c_min != c_min else f"${c_min/1e6:.0f}M"
+                        s_reasons.append(f"Cap (${cap/1e6:.1f}M) out of bounds ({eff_c_min_str}-{c_max_str})")
+                        
+                # 3. Float Check
+                if q_type != "ETF":
+                    if float_shares < f_min or float_shares > f_max:
+                        float_max_str = f"{f_max/1e6:.0f}M" if f_max != float('inf') else "No Limit"
+                        s_reasons.append(f"Float ({float_shares/1e6:.1f}M) out of bounds ({f_min/1e6:.0f}M-{float_max_str})")
+                
+                # 4. Volume Check
+                v_hurdle = s_config["volume_hurdle"]
+                if vol < v_hurdle:
+                    s_reasons.append(f"Volume ({vol}) below minimum ({v_hurdle})")
+                    
+                # 5. Sortino Check
+                enable_sortino = os.environ.get("SCANNER_ENABLE_SORTINO", "false").lower() == "true"
+                s_min = s_config["sortino_hurdle"]
+                if enable_sortino and sortino < s_min:
+                    s_reasons.append(f"Sortino ({sortino:.2f}) below minimum ({s_min})")
+                    
+                disp_name = s_name.upper() if s_name != "default" else "SNIPER"
+                if not s_reasons:
+                    strat_results[disp_name] = "Passed static constraints"
+                else:
+                    strat_results[disp_name] = f"Failed ({'; '.join(s_reasons)})"
+                    
+            reasons_parts = [f"**{k}**: {v}" for k, v in strat_results.items()]
+            analysis_results.append({"symbol": sym, "reasons": ["<br>".join(reasons_parts)]})
             
         except Exception as e:
             analysis_results.append({"symbol": sym, "reasons": [f"Failed to fetch data: {e}"]})
@@ -572,7 +599,8 @@ def main():
                 reporter_llm_type="reasoning",
                 vli_llm_type="core",
                 thread_id=f"POSTMORTEM_{date_str}",
-                silent=True
+                silent=True,
+                thinking_mode=True
             ))
         except Exception as e:
             print(f"Failed to generate post-mortem report in real-time: {e}")

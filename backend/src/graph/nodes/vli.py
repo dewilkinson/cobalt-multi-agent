@@ -363,7 +363,7 @@ async def vli_node(
     is_admin = any(kw in stripped_query for kw in ["invalidate", "clear cache", "vli tick", "reset diagnostic", "heat map"])
     
     is_arithmetic = bool(re.match(r'^[\d\s\+\-\*\/\(\)\.]+$', stripped_query))
-    is_algebra = "solve for" in stripped_query or "calculate" in stripped_query or "=" in stripped_query
+    is_algebra = len(stripped_query) < 150 and (("solve for" in stripped_query) or ("calculate" in stripped_query) or ("=" in stripped_query and not any(f"={suffix}" in stripped_query.upper() for suffix in ["F", "X"])))
     
     # State Synchronization for routing stability
     state_intent = state.get("intent", "")

@@ -145,7 +145,8 @@ async def bulk_fetch_trends_and_sparklines(symbols):
         for i in range(0, len(to_fetch), chunk_size):
             chunk = to_fetch[i:i+chunk_size]
             
-            c_batch_5m = await asyncio.to_thread(yf.download, chunk, period="5d", interval="5m", progress=False)
+            c_batch_1m = await asyncio.to_thread(yf.download, chunk, period="2d", interval="1m", prepost=True, progress=False)
+            c_batch_5m = await asyncio.to_thread(yf.download, chunk, period="5d", interval="5m", prepost=True, progress=False)
             c_batch_15m = await asyncio.to_thread(yf.download, chunk, period="1mo", interval="15m", progress=False)
             c_batch_1h = await asyncio.to_thread(yf.download, chunk, period="3mo", interval="1h", progress=False)
             c_batch_1d = await asyncio.to_thread(yf.download, chunk, period="2y", interval="1d", progress=False)
@@ -153,6 +154,7 @@ async def bulk_fetch_trends_and_sparklines(symbols):
             now = time.time()
             for sym in chunk:
                 c_timeframes = {
+                    "1m": extract_single_ticker_df(c_batch_1m, sym),
                     "5m": extract_single_ticker_df(c_batch_5m, sym),
                     "15m": extract_single_ticker_df(c_batch_15m, sym),
                     "1h": extract_single_ticker_df(c_batch_1h, sym),
@@ -178,28 +180,38 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     else:
                         trends[tf_name] = "No Data"
                 
-                # Extract sparkline
-                df_15m = c_timeframes["15m"]
-                df_for_spark = df_15m if (df_15m is not None and not df_15m.empty) else c_timeframes["5m"]
-                if df_for_spark is None or df_for_spark.empty:
-                    df_for_spark = c_timeframes["1d"]
-                    
-                sparkline = []
-                if df_for_spark is not None and not df_for_spark.empty and "Close" in df_for_spark.columns:
-                    try:
-                        closes = df_for_spark["Close"].tail(30).tolist()
-                        sparkline = [{"v": float(v)} for v in closes]
-                    except Exception as spark_e:
-                        logger.error(f"Failed to extract sparkline for {sym}: {spark_e}")
+                # Extract sparklines for 1m, 5m, 15m, 1h
+                def extract_raw_sparkline(df, num_points=30):
+                    if df is None or df.empty:
+                        return []
+                    col = "Close" if "Close" in df.columns else "close"
+                    if col not in df.columns:
+                        return []
+                    series = df[col].dropna()
+                    if series.empty:
+                        return []
+                    vals = series.iloc[-num_points:].tolist()
+                    return [{"v": float(v)} for v in vals]
+
+                spark_1m = extract_raw_sparkline(c_timeframes["1m"])
+                spark_5m = extract_raw_sparkline(c_timeframes["5m"])
+                spark_15m = extract_raw_sparkline(c_timeframes["15m"])
+                spark_1h = extract_raw_sparkline(c_timeframes["1h"])
                 
                 # Preserve existing cached values if the new fetch returned empty (e.g. rate limited)
                 cached = TRENDS_CACHE.get(sym)
                 existing_trends = cached.get("trends") if cached else None
-                existing_spark = cached.get("sparkline") if cached else None
+                existing_spark_1m = cached.get("sparkline_1m") if cached else None
+                existing_spark_5m = cached.get("sparkline_5m") if cached else None
+                existing_spark_15m = cached.get("sparkline_15m") if cached else None
+                existing_spark_1h = cached.get("sparkline_1h") if cached else None
                 
                 TRENDS_CACHE[sym] = {
                     "trends": trends if (trends and any(v != "No Data" for v in trends.values())) else (existing_trends or {}),
-                    "sparkline": sparkline if sparkline else (existing_spark or []),
+                    "sparkline_1m": spark_1m if spark_1m else (existing_spark_1m or []),
+                    "sparkline_5m": spark_5m if spark_5m else (existing_spark_5m or []),
+                    "sparkline_15m": spark_15m if spark_15m else (existing_spark_15m or []),
+                    "sparkline_1h": spark_1h if spark_1h else (existing_spark_1h or []),
                     "timestamp": now
                 }
             
@@ -243,33 +255,47 @@ async def enrich_candidates_with_trends(candidates):
                 else:
                     sample_trends[tf_name] = "Bearish"
                     
-            # Generate deterministic sample sparkline (realistic stock price walk)
+            # Generate deterministic sample sparklines for 1m, 5m, 15m, 1h (realistic stock price walk)
             random.seed(sym)
-            current_val = 50.0 + random.randint(10, 100)
-            mock_values = []
-            for _ in range(30):
-                # Random walk with volatility and minor upward bias
-                change_pct = (random.random() - 0.48) * 0.04
-                current_val *= (1.0 + change_pct)
-                mock_values.append({"v": round(current_val, 2)})
+            def make_mock_spark(seed_val):
+                current_val = seed_val
+                mock_values = []
+                for _ in range(30):
+                    # Random walk with volatility and minor upward bias
+                    change_pct = (random.random() - 0.48) * 0.04
+                    current_val *= (1.0 + change_pct)
+                    mock_values.append({"v": round(current_val, 2)})
+                return mock_values
+
+            base_val = 50.0 + random.randint(10, 100)
+            mock_1m = make_mock_spark(base_val)
+            mock_5m = make_mock_spark(base_val * 1.01)
+            mock_15m = make_mock_spark(base_val * 1.02)
+            mock_1h = make_mock_spark(base_val * 1.03)
                 
             TRENDS_CACHE[sym] = {
                 "trends": sample_trends,
-                "sparkline": mock_values,
+                "sparkline_1m": mock_1m,
+                "sparkline_5m": mock_5m,
+                "sparkline_15m": mock_15m,
+                "sparkline_1h": mock_1h,
                 "timestamp": now - 600 # mark as stale so background task updates it
             }
             
         # If candidate already contains valid pre-calculated trends and sparkline, populate cache and bypass fetch
-        if "trends" in c and isinstance(c["trends"], dict) and len(c["trends"]) >= 5 and c.get("sparkline"):
+        if "trends" in c and isinstance(c["trends"], dict) and len(c["trends"]) >= 5 and c.get("sparkline_1m"):
             if sym not in TRENDS_CACHE:
                 TRENDS_CACHE[sym] = {
                     "trends": c["trends"],
-                    "sparkline": c["sparkline"],
+                    "sparkline_1m": c.get("sparkline_1m", []),
+                    "sparkline_5m": c.get("sparkline_5m", []),
+                    "sparkline_15m": c.get("sparkline_15m", []),
+                    "sparkline_1h": c.get("sparkline_1h", []),
                     "timestamp": now
                 }
             
         cached = TRENDS_CACHE.get(sym)
-        if not cached or (now - cached["timestamp"] > TRENDS_CACHE_EXPIRY) or not cached.get("sparkline"):
+        if not cached or (now - cached["timestamp"] > TRENDS_CACHE_EXPIRY) or not cached.get("sparkline_1m"):
             if sym not in PENDING_FETCH and sym not in symbols_to_fetch:
                 symbols_to_fetch.append(sym)
             
@@ -282,17 +308,21 @@ async def enrich_candidates_with_trends(candidates):
     for c in candidates:
         sym = c.get("symbol")
         db_trends = c.get("trends", {})
-        db_sparkline = c.get("sparkline", [])
         
         if sym in TRENDS_CACHE:
             cached_trends = TRENDS_CACHE[sym].get("trends")
             c["trends"] = cached_trends if (cached_trends and len(cached_trends) >= 5) else db_trends
             
-            cached_spark = TRENDS_CACHE[sym].get("sparkline")
-            c["sparkline"] = cached_spark if cached_spark else db_sparkline
+            c["sparkline_1m"] = TRENDS_CACHE[sym].get("sparkline_1m", [])
+            c["sparkline_5m"] = TRENDS_CACHE[sym].get("sparkline_5m", [])
+            c["sparkline_15m"] = TRENDS_CACHE[sym].get("sparkline_15m", [])
+            c["sparkline_1h"] = TRENDS_CACHE[sym].get("sparkline_1h", [])
         else:
             c["trends"] = db_trends
-            c["sparkline"] = db_sparkline
+            c["sparkline_1m"] = c.get("sparkline_1m", [])
+            c["sparkline_5m"] = c.get("sparkline_5m", [])
+            c["sparkline_15m"] = c.get("sparkline_15m", [])
+            c["sparkline_1h"] = c.get("sparkline_1h", [])
             
     return candidates
 
