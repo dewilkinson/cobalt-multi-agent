@@ -700,22 +700,22 @@ async def lifespan(app: FastAPI):
         callback=trigger_daily_postmortem
     )
     
-    # Register 7:00 AM Full Generation Cron
+    # Register 8:30 AM Start of Day (SOD) Morning Analyst Prep
     cobalt_scheduler.add_timer(
         task_id="DAILY_ANALYST",
-        name="7:00 AM Morning Analyst Prep",
+        name="8:30 AM Start of Day Prep (SOD)",
         type="CALENDAR",
-        schedule="0 7 * * *",
+        schedule="30 8 * * *",
         priority="HIGH",
         callback=run_daily_morning_analysis
     )
 
-    # Register 7:15 AM Executive Morning Briefing
+    # Register 8:30 AM Start of Day (SOD) Executive Morning Briefing
     cobalt_scheduler.add_timer(
         task_id="EXECUTIVE_BRIEFING",
-        name="Daily Executive Briefing",
+        name="Daily Executive Briefing (SOD)",
         type="CALENDAR",
-        schedule="15 7 * * *",
+        schedule="30 8 * * *",
         priority="HIGH",
         callback=run_meta_analysis
     )
@@ -1723,22 +1723,22 @@ Synthesize these metrics into a brief technical outlook. Focus on risk managemen
 
 async def run_daily_morning_analysis():
     """
-    Cron task running at 7:00 AM EDT. Pulls TV Sync and then triggers idle analysis.
+    Cron task running at 8:30 AM EDT (Start of Day / SOD). Pulls TV Sync and then triggers idle analysis.
     """
     global _is_morning_scan_running
     if _is_morning_scan_running:
-        logger.warning("[BG_ANALYST] Morning Market Scan is already running. Ignoring duplicate trigger.")
+        logger.warning("[BG_ANALYST] SOD Morning Market Scan is already running. Ignoring duplicate trigger.")
         return
 
     _is_morning_scan_running = True
-    logger.info("[BG_ANALYST] Triggering 7:00 AM Morning Market Scan.")
+    logger.info("[BG_ANALYST] Triggering 8:30 AM Start of Day (SOD) Morning Market Scan.")
     try:
         from src.config.vli import get_vli_path
         from datetime import datetime
         telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
         timestamp = datetime.now().strftime("[%H:%M:%S]")
         with open(telemetry_file, "a", encoding="utf-8") as tf:
-            tf.write(f"\n{timestamp}  **[ORCHESTRATOR]** Running Daily Scanner...\n")
+            tf.write(f"\n{timestamp}  **[ORCHESTRATOR]** Running Start of Day (SOD) Scanner...\n")
             tf.flush()
     except Exception:
         pass

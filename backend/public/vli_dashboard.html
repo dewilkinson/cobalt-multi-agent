@@ -4206,7 +4206,7 @@
                             <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
                         <div style="flex-grow: 1; overflow-x: auto; overflow-y: auto;">
-                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 880px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
+                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 940px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 32px; box-sizing: border-box;">SYMBOL</div></th>
@@ -4215,6 +4215,7 @@
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 290px; box-sizing: border-box;">CHART</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 208px; box-sizing: border-box;">TREND</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">RVOL</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 32px; box-sizing: border-box;">GRADE</div></th>
                                     </tr>
@@ -4335,6 +4336,32 @@
                     const changeVal = parseFloat(c.change || c.gap || 0);
                     const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
                     
+                    const rvolVal = parseFloat(c.rvol || 0);
+                    let rvolBg = 'rgba(255,255,255,0.05)';
+                    let rvolColor = 'var(--text-muted)';
+                    let rvolBorder = 'var(--card-border)';
+                    let rvolGlow = 'none';
+
+                    if (rvolVal >= 2.0 && rvolVal <= 100.0) {
+                        // Authorized - Strong
+                        rvolBg = 'rgba(63, 185, 80, 0.15)';
+                        rvolColor = 'var(--emerald-green)';
+                        rvolBorder = 'var(--emerald-green)';
+                        rvolGlow = '0 0 6px rgba(63, 185, 80, 0.3)';
+                    } else if (rvolVal >= 1.0 && rvolVal < 2.0) {
+                        // Authorized - Weak
+                        rvolBg = 'rgba(210, 153, 34, 0.15)';
+                        rvolColor = 'var(--amber-gold)';
+                        rvolBorder = 'var(--amber-gold)';
+                        rvolGlow = '0 0 6px rgba(210, 153, 34, 0.3)';
+                    } else {
+                        // Unauthorized
+                        rvolBg = 'rgba(248, 81, 73, 0.1)';
+                        rvolColor = 'var(--ruby-red)';
+                        rvolBorder = 'var(--ruby-red)';
+                        rvolGlow = 'none';
+                    }
+                    
                     tr.innerHTML = `
                         <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
                             <div style="min-width: 32px; display: inline-block; box-sizing: border-box; font-weight: 700; color: #fff;">${c.symbol}</div>
@@ -4376,6 +4403,11 @@
                         <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
                             <div style="min-width: 208px; display: flex; justify-content: center; box-sizing: border-box;">
                                 ${drawTrendIndicator(c.trends)}
+                            </div>
+                        </td>
+                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
+                            <div style="min-width: 48px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+                                <span style="display: inline-flex; width: 32px; height: 22px; align-items: center; justify-content: center; background: ${rvolBg}; color: ${rvolColor}; border: 1px solid ${rvolBorder}; border-radius: 4px; font-size: 10px; font-weight: 800; font-family: var(--font-mono); box-shadow: ${rvolGlow};" title="${rvolVal >= 1.0 ? (rvolVal >= 2.0 ? 'STRIKE Authorized (Strong)' : 'SCOUT Authorized (Weak)') : 'Unauthorized'}">${rvolVal.toFixed(1)}</span>
                             </div>
                         </td>
                         <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
