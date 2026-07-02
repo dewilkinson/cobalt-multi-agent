@@ -4263,8 +4263,8 @@
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 290px; box-sizing: border-box;">CHART</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 208px; box-sizing: border-box;">TREND</div></th>
-                                        <th style="padding: 4px 4px 4px 24px; text-align: center;"><div style="min-width: 52px; box-sizing: border-box;">RVOL</div></th>
-                                        <th style="padding: 4px 16px 4px 0px; text-align: center;"><div style="min-width: 52px; box-sizing: border-box;">VWAP</div></th>
+                                        <th style="padding: 4px 0px 4px 32px; text-align: center;"><div style="min-width: 52px; box-sizing: border-box;">RVOL</div></th>
+                                        <th style="padding: 4px 12px 4px 4px; text-align: center;"><div style="min-width: 52px; box-sizing: border-box;">VWAP</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 32px; box-sizing: border-box;">GRADE</div></th>
                                     </tr>
@@ -4413,7 +4413,7 @@
                         rvolBorder = 'rgba(248, 81, 73, 0.3)';
                     }
 
-                    const vwapVal = c.vwap_state || 'VWAP+';
+                    const vwapVal = c.vwap_state || 'VWAP';
                     let vwapColor = '#3fb950';
                     let vwapBg = 'rgba(63, 185, 80, 0.1)';
                     let vwapBorder = 'rgba(63, 185, 80, 0.3)';
@@ -4467,17 +4467,17 @@
                                 ${drawTrendIndicator(c.trends)}
                             </div>
                         </td>
-                        <td style="padding: 4px 4px 4px 24px; text-align: center; vertical-align: middle;">
+                        <td style="padding: 4px 0px 4px 32px; text-align: center; vertical-align: middle;">
                             <div style="min-width: 52px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
                                 <span style="
                                     display: inline-block;
-                                    width: 52px;
-                                    min-width: 52px;
+                                    width: auto;
+                                    min-width: 36px;
                                     flex-shrink: 0;
                                     text-align: center;
                                     background: ${rvolBg};
                                     color: ${rvolColor};
-                                    padding: 2px 0;
+                                    padding: 2px 4px;
                                     border-radius: 4px;
                                     font-size: 10px;
                                     font-weight: 800;
@@ -4487,7 +4487,7 @@
                                 " title="${rvolVal >= 1.0 ? (rvolVal >= 2.0 ? 'STRIKE Authorized (Strong)' : 'SCOUT Authorized (Weak)') : 'Unauthorized'}">${rvolVal.toFixed(1)}</span>
                             </div>
                         </td>
-                        <td style="padding: 4px 16px 4px 0px; text-align: center; vertical-align: middle;">
+                        <td style="padding: 4px 12px 4px 4px; text-align: center; vertical-align: middle;">
                             <div style="min-width: 52px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
                                 <span style="
                                     display: inline-block;

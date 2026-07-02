@@ -128,10 +128,10 @@ def calculate_vwap_state(df_5m):
     """
     Given a 5m interval DataFrame with datetime index, calculate the current day's VWAP
     and check if the latest Close is above (+) or below (-) VWAP.
-    Returns: "VWAP+" or "VWAP-" (or "VWAP+" default if not enough data / no volume)
+    Returns: "VWAP" or "VWAP-" (or "VWAP" default if not enough data / no volume)
     """
     if df_5m is None or df_5m.empty:
-        return "VWAP+"
+        return "VWAP"
         
     try:
         df = df_5m.copy()
@@ -144,7 +144,7 @@ def calculate_vwap_state(df_5m):
         low_col = col_map.get("low")
         
         if not close_col or not volume_col:
-            return "VWAP+"
+            return "VWAP"
             
         # Standard Typical Price calculation
         if high_col and low_col:
@@ -154,7 +154,7 @@ def calculate_vwap_state(df_5m):
             
         # Convert index to Eastern Time zone to correctly align trading days
         if not isinstance(df.index, pd.DatetimeIndex):
-            return "VWAP+"
+            return "VWAP"
             
         # If timezone-naive, localize to UTC first, then convert
         if df.index.tz is None:
@@ -168,7 +168,7 @@ def calculate_vwap_state(df_5m):
         latest_day_df = df[df["et_date"] == latest_date]
         
         if latest_day_df.empty:
-            return "VWAP+"
+            return "VWAP"
             
         cum_vol = latest_day_df[volume_col].cumsum()
         cum_tp_vol = (latest_day_df["Typical_Price"] * latest_day_df[volume_col]).cumsum()
@@ -183,13 +183,13 @@ def calculate_vwap_state(df_5m):
         last_close = latest_day_df[close_col].iloc[-1]
         
         if last_close >= vwap:
-            return "VWAP+"
+            return "VWAP"
         else:
             return "VWAP-"
             
     except Exception as e:
         logger.error(f"Error calculating VWAP state: {e}")
-        return "VWAP+"
+        return "VWAP"
 
 PENDING_FETCH = set()
 
@@ -348,7 +348,7 @@ async def enrich_candidates_with_trends(candidates):
                 "sparkline_5m": mock_5m,
                 "sparkline_15m": mock_15m,
                 "sparkline_1h": mock_1h,
-                "vwap_state": "VWAP+" if (sum(ord(c) for c in sym) % 2 == 0) else "VWAP-",
+                "vwap_state": "VWAP" if (sum(ord(c) for c in sym) % 2 == 0) else "VWAP-",
                 "timestamp": now - 600 # mark as stale so background task updates it
             }
             
@@ -361,7 +361,7 @@ async def enrich_candidates_with_trends(candidates):
                     "sparkline_5m": c.get("sparkline_5m", []),
                     "sparkline_15m": c.get("sparkline_15m", []),
                     "sparkline_1h": c.get("sparkline_1h", []),
-                    "vwap_state": c.get("vwap_state", "VWAP+"),
+                    "vwap_state": c.get("vwap_state", "VWAP"),
                     "timestamp": now
                 }
             
@@ -388,14 +388,14 @@ async def enrich_candidates_with_trends(candidates):
             c["sparkline_5m"] = TRENDS_CACHE[sym].get("sparkline_5m", [])
             c["sparkline_15m"] = TRENDS_CACHE[sym].get("sparkline_15m", [])
             c["sparkline_1h"] = TRENDS_CACHE[sym].get("sparkline_1h", [])
-            c["vwap_state"] = TRENDS_CACHE[sym].get("vwap_state", "VWAP+")
+            c["vwap_state"] = TRENDS_CACHE[sym].get("vwap_state", "VWAP")
         else:
             c["trends"] = db_trends
-            c["sparkline_1m"] = c.get("sparkline_1m", [])
-            c["sparkline_5m"] = c.get("sparkline_5m", [])
-            c["sparkline_15m"] = c.get("sparkline_15m", [])
-            c["sparkline_1h"] = c.get("sparkline_1h", [])
-            c["vwap_state"] = c.get("vwap_state", "VWAP+")
+            c["sparkline_1m"] = c.get("sparkline_1m", []),
+            c["sparkline_5m"] = c.get("sparkline_5m", []),
+            c["sparkline_15m"] = c.get("sparkline_15m", []),
+            c["sparkline_1h"] = c.get("sparkline_1h", []),
+            c["vwap_state"] = c.get("vwap_state", "VWAP")
             
     return candidates
 
