@@ -4106,6 +4106,54 @@
         function handleScannerTierChange(selectElement) {
             // Decoupled: Only refilter locally, do not trigger global backend rescans
             updateScannerResultsUI();
+            
+            const instanceGuid = selectElement.id.replace('scan-filter-', '');
+            const exportBtn = document.getElementById(`scanner-export-btn-${instanceGuid}`);
+            if (exportBtn) {
+                exportBtn.innerHTML = `
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    scanner_watchlist_${selectElement.value.toLowerCase()}.txt
+                `;
+            }
+        }
+
+        function exportScannerWatchlist(instanceGuid) {
+            const card = document.querySelector(`.card[data-instance-guid="${instanceGuid}"]`);
+            if (!card) return;
+            const select = card.querySelector(`#scan-filter-${instanceGuid}`);
+            const tier = select ? select.value : 'SNIPER';
+            const label = tier.toLowerCase();
+            
+            const rows = card.querySelectorAll('.scanner-table tbody tr');
+            const symbols = [];
+            rows.forEach(tr => {
+                const firstTd = tr.querySelector('td');
+                if (firstTd) {
+                    const symDiv = firstTd.querySelector('div');
+                    if (symDiv) {
+                        const sym = symDiv.textContent.trim();
+                        if (sym && sym.length <= 10 && /^[A-Z0-9.\-/^]+$/.test(sym)) {
+                            symbols.push(sym);
+                        }
+                    }
+                }
+            });
+            
+            if (symbols.length === 0) {
+                alert(`No candidates to export for ${tier}`);
+                return;
+            }
+            
+            const fileContent = symbols.join('\n');
+            const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `scanner_watchlist_${label}.txt`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
         }
 
         async function initScannerSettings() {
@@ -4227,10 +4275,16 @@
                             <label style="display: flex; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 600; text-transform: uppercase;" title="Filter by Relative Strength against S&P">
                                 <input type="checkbox" class="track-spy-cb" onchange="toggleTrackSpy(this)" style="accent-color: var(--emerald-green); cursor: pointer;" ${window.vliScannerTrackSpy && window.vliScannerTrackSpy[card.dataset.instanceGuid] ? 'checked' : ''}> RS Filter
                             </label>
-                            <button class="scanner-refresh-btn" onclick="let b=this.closest('.card-body'); b.querySelectorAll('tbody tr').forEach(r => r.style.opacity = '0.3'); fetch('/api/scanner/bunker').then(r=>r.json()).then(d=>{if(d.status==='success'){activeScannerCandidates=d.data;updateScannerResultsUI();}});" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Refresh">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
-                                Refresh
-                            </button>
+                            <div style="display: flex; gap: 8px;">
+                                <button id="scanner-export-btn-${card.dataset.instanceGuid}" class="scanner-export-btn" onclick="exportScannerWatchlist('${card.dataset.instanceGuid}')" style="background: rgba(88, 166, 255, 0.1); border: 1px solid rgba(88, 166, 255, 0.3); color: var(--cobalt-blue); padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Export Watchlist">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    scanner_watchlist_${(card.dataset.instanceGuid === 'shield' ? 'shield' : 'sniper')}.txt
+                                </button>
+                                <button class="scanner-refresh-btn" onclick="let b=this.closest('.card-body'); b.querySelectorAll('tbody tr').forEach(r => r.style.opacity = '0.3'); fetch('/api/scanner/bunker').then(r=>r.json()).then(d=>{if(d.status==='success'){activeScannerCandidates=d.data;updateScannerResultsUI();}});" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Refresh">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                                    Refresh
+                                </button>
+                            </div>
                         </div>
                     `;
                     table = body.querySelector('table');
