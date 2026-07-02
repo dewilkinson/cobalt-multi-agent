@@ -123,6 +123,74 @@ import time
 
 TRENDS_CACHE = {}  # {symbol: {"trends": {...}, "sparkline": [...], "timestamp": float}}
 TRENDS_CACHE_EXPIRY = 300  # 5 minutes
+
+def calculate_vwap_state(df_5m):
+    """
+    Given a 5m interval DataFrame with datetime index, calculate the current day's VWAP
+    and check if the latest Close is above (+) or below (-) VWAP.
+    Returns: "VWAP+" or "VWAP-" (or "VWAP+" default if not enough data / no volume)
+    """
+    if df_5m is None or df_5m.empty:
+        return "VWAP+"
+        
+    try:
+        df = df_5m.copy()
+        
+        # Check standard column names (case-insensitive)
+        col_map = {str(col).lower(): col for col in df.columns}
+        close_col = col_map.get("close")
+        volume_col = col_map.get("volume")
+        high_col = col_map.get("high")
+        low_col = col_map.get("low")
+        
+        if not close_col or not volume_col:
+            return "VWAP+"
+            
+        # Standard Typical Price calculation
+        if high_col and low_col:
+            df["Typical_Price"] = (df[high_col] + df[low_col] + df[close_col]) / 3.0
+        else:
+            df["Typical_Price"] = df[close_col]
+            
+        # Convert index to Eastern Time zone to correctly align trading days
+        if not isinstance(df.index, pd.DatetimeIndex):
+            return "VWAP+"
+            
+        # If timezone-naive, localize to UTC first, then convert
+        if df.index.tz is None:
+            df.index = df.index.tz_localize("UTC")
+        df_et = df.tz_convert("America/New_York")
+        
+        # Group by the ET date to isolate the current day's data
+        df["et_date"] = df_et.index.date
+        
+        latest_date = df["et_date"].iloc[-1]
+        latest_day_df = df[df["et_date"] == latest_date]
+        
+        if latest_day_df.empty:
+            return "VWAP+"
+            
+        cum_vol = latest_day_df[volume_col].cumsum()
+        cum_tp_vol = (latest_day_df["Typical_Price"] * latest_day_df[volume_col]).cumsum()
+        
+        # Avoid division by zero
+        last_cum_vol = cum_vol.iloc[-1]
+        if last_cum_vol <= 0:
+            vwap = latest_day_df["Typical_Price"].mean()
+        else:
+            vwap = cum_tp_vol.iloc[-1] / last_cum_vol
+            
+        last_close = latest_day_df[close_col].iloc[-1]
+        
+        if last_close >= vwap:
+            return "VWAP+"
+        else:
+            return "VWAP-"
+            
+    except Exception as e:
+        logger.error(f"Error calculating VWAP state: {e}")
+        return "VWAP+"
+
 PENDING_FETCH = set()
 
 async def bulk_fetch_trends_and_sparklines(symbols):
@@ -212,6 +280,7 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     "sparkline_5m": spark_5m if spark_5m else (existing_spark_5m or []),
                     "sparkline_15m": spark_15m if spark_15m else (existing_spark_15m or []),
                     "sparkline_1h": spark_1h if spark_1h else (existing_spark_1h or []),
+                    "vwap_state": calculate_vwap_state(c_timeframes["5m"]),
                     "timestamp": now
                 }
             
@@ -279,6 +348,7 @@ async def enrich_candidates_with_trends(candidates):
                 "sparkline_5m": mock_5m,
                 "sparkline_15m": mock_15m,
                 "sparkline_1h": mock_1h,
+                "vwap_state": "VWAP+" if (sum(ord(c) for c in sym) % 2 == 0) else "VWAP-",
                 "timestamp": now - 600 # mark as stale so background task updates it
             }
             
@@ -291,6 +361,7 @@ async def enrich_candidates_with_trends(candidates):
                     "sparkline_5m": c.get("sparkline_5m", []),
                     "sparkline_15m": c.get("sparkline_15m", []),
                     "sparkline_1h": c.get("sparkline_1h", []),
+                    "vwap_state": c.get("vwap_state", "VWAP+"),
                     "timestamp": now
                 }
             
@@ -317,12 +388,14 @@ async def enrich_candidates_with_trends(candidates):
             c["sparkline_5m"] = TRENDS_CACHE[sym].get("sparkline_5m", [])
             c["sparkline_15m"] = TRENDS_CACHE[sym].get("sparkline_15m", [])
             c["sparkline_1h"] = TRENDS_CACHE[sym].get("sparkline_1h", [])
+            c["vwap_state"] = TRENDS_CACHE[sym].get("vwap_state", "VWAP+")
         else:
             c["trends"] = db_trends
             c["sparkline_1m"] = c.get("sparkline_1m", [])
             c["sparkline_5m"] = c.get("sparkline_5m", [])
             c["sparkline_15m"] = c.get("sparkline_15m", [])
             c["sparkline_1h"] = c.get("sparkline_1h", [])
+            c["vwap_state"] = c.get("vwap_state", "VWAP+")
             
     return candidates
 
