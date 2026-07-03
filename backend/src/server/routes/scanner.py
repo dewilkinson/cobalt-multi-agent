@@ -123,6 +123,7 @@ import time
 
 TRENDS_CACHE = {}  # {symbol: {"trends": {...}, "sparkline": [...], "timestamp": float}}
 TRENDS_CACHE_EXPIRY = 300  # 5 minutes
+YF_LOCK = asyncio.Lock()
 
 def calculate_vwap_state(df_5m):
     """
@@ -213,11 +214,12 @@ async def bulk_fetch_trends_and_sparklines(symbols):
         for i in range(0, len(to_fetch), chunk_size):
             chunk = to_fetch[i:i+chunk_size]
             
-            c_batch_1m = await asyncio.to_thread(yf.download, chunk, period="2d", interval="1m", prepost=True, progress=False)
-            c_batch_5m = await asyncio.to_thread(yf.download, chunk, period="5d", interval="5m", prepost=True, progress=False)
-            c_batch_15m = await asyncio.to_thread(yf.download, chunk, period="1mo", interval="15m", progress=False)
-            c_batch_1h = await asyncio.to_thread(yf.download, chunk, period="3mo", interval="1h", progress=False)
-            c_batch_1d = await asyncio.to_thread(yf.download, chunk, period="2y", interval="1d", progress=False)
+            async with YF_LOCK:
+                c_batch_1m = await asyncio.to_thread(yf.download, chunk, period="2d", interval="1m", prepost=True, progress=False)
+                c_batch_5m = await asyncio.to_thread(yf.download, chunk, period="5d", interval="5m", prepost=True, progress=False)
+                c_batch_15m = await asyncio.to_thread(yf.download, chunk, period="1mo", interval="15m", prepost=True, progress=False)
+                c_batch_1h = await asyncio.to_thread(yf.download, chunk, period="3mo", interval="1h", prepost=True, progress=False)
+                c_batch_1d = await asyncio.to_thread(yf.download, chunk, period="2y", interval="1d", progress=False)
             
             now = time.time()
             for sym in chunk:
@@ -258,6 +260,16 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     series = df[col].dropna()
                     if series.empty:
                         return []
+                    
+                    # Convert to America/New_York (Eastern Time) for consistent representation
+                    try:
+                        if hasattr(series.index, "tz") and series.index.tz is not None:
+                            series.index = series.index.tz_convert("America/New_York")
+                        elif not hasattr(series.index, "tz") or series.index.tz is None:
+                            series.index = series.index.tz_localize("UTC").tz_convert("America/New_York")
+                    except Exception as tz_e:
+                        logger.warning(f"Timezone conversion failed for sparkline: {tz_e}")
+                        
                     subset = series.iloc[-num_points:]
                     result = []
                     for idx, val in subset.items():
@@ -270,6 +282,76 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                 spark_15m = extract_raw_sparkline(c_timeframes["15m"])
                 spark_1h = extract_raw_sparkline(c_timeframes["1h"])
                 
+                # Calculate live price, change, and rvol dynamically
+                live_price = None
+                live_change = None
+                live_rvol = None
+                
+                df_1m = c_timeframes["1m"]
+                df_1d = c_timeframes["1d"]
+                
+                if df_1m is not None and not df_1m.empty:
+                    close_col = "Close" if "Close" in df_1m.columns else "close"
+                    vol_col = "Volume" if "Volume" in df_1m.columns else "volume"
+                    if close_col in df_1m.columns:
+                        live_price = float(df_1m[close_col].dropna().iloc[-1])
+                    
+                    try:
+                        df_local = df_1m.copy()
+                        if df_local.index.tz is None:
+                            df_local.index = df_local.index.tz_localize("UTC")
+                        df_local.index = df_local.index.tz_convert("America/New_York")
+                        df_local["local_date"] = df_local.index.date
+                        latest_date = df_local["local_date"].iloc[-1]
+                        today_df = df_local[df_local["local_date"] == latest_date]
+                        curr_vol = float(today_df[vol_col].sum()) if vol_col in today_df.columns else 0.0
+                    except Exception as vol_e:
+                        curr_vol = float(df_1m[vol_col].dropna().iloc[-1]) if (vol_col in df_1m.columns and not df_1m[vol_col].dropna().empty) else 0.0
+                else:
+                    curr_vol = 0.0
+
+                if df_1d is not None and not df_1d.empty:
+                    close_col_d = "Close" if "Close" in df_1d.columns else "close"
+                    vol_col_d = "Volume" if "Volume" in df_1d.columns else "volume"
+                    try:
+                        if vol_col_d in df_1d.columns:
+                            valid_vols = df_1d[vol_col_d].dropna()
+                            avg_vol = float(valid_vols.iloc[-30:-1].mean()) if len(valid_vols) > 30 else float(valid_vols.mean())
+                        else:
+                            avg_vol = 0.0
+                            
+                        if close_col_d in df_1d.columns:
+                            valid_closes = df_1d[close_col_d].dropna()
+                            prev_close = float(valid_closes.iloc[-2]) if len(valid_closes) >= 2 else float(valid_closes.iloc[-1])
+                        else:
+                            prev_close = 0.0
+                        
+                        if live_price is None and close_col_d in df_1d.columns and not valid_closes.empty:
+                            live_price = float(valid_closes.iloc[-1])
+                            curr_vol = float(valid_vols.iloc[-1]) if not valid_vols.empty else 0.0
+                            
+                        if prev_close > 0 and live_price is not None:
+                            live_change = float(((live_price - prev_close) / prev_close) * 100.0)
+                        if avg_vol > 0:
+                            import pytz
+                            est = pytz.timezone('America/New_York')
+                            now_est = datetime.now(est)
+                            mkt_open = now_est.replace(hour=9, minute=30, second=0, microsecond=0)
+                            mkt_close = now_est.replace(hour=16, minute=0, second=0, microsecond=0)
+                            
+                            if mkt_open <= now_est <= mkt_close:
+                                elapsed_mins = (now_est - mkt_open).total_seconds() / 60.0
+                                elapsed_mins = max(15.0, elapsed_mins)
+                                scaled_avg_vol = avg_vol * (elapsed_mins / 390.0)
+                                live_rvol = float(curr_vol / scaled_avg_vol)
+                            else:
+                                if now_est < mkt_open:
+                                    live_rvol = float(curr_vol / (avg_vol * 0.05))
+                                else:
+                                    live_rvol = float(curr_vol / avg_vol)
+                    except Exception as quant_e:
+                        logger.error(f"Failed to calculate quant metrics for {sym}: {quant_e}")
+
                 # Preserve existing cached values if the new fetch returned empty (e.g. rate limited)
                 cached = TRENDS_CACHE.get(sym)
                 existing_trends = cached.get("trends") if cached else None
@@ -285,6 +367,9 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     "sparkline_15m": spark_15m if spark_15m else (existing_spark_15m or []),
                     "sparkline_1h": spark_1h if spark_1h else (existing_spark_1h or []),
                     "vwap_state": calculate_vwap_state(c_timeframes["5m"]),
+                    "price": live_price if live_price is not None else (cached.get("price") if cached else None),
+                    "change": live_change if live_change is not None else (cached.get("change") if cached else None),
+                    "rvol": live_rvol if live_rvol is not None else (cached.get("rvol") if cached else None),
                     "timestamp": now
                 }
             
@@ -395,6 +480,18 @@ async def enrich_candidates_with_trends(candidates):
             c["sparkline_15m"] = TRENDS_CACHE[sym].get("sparkline_15m", [])
             c["sparkline_1h"] = TRENDS_CACHE[sym].get("sparkline_1h", [])
             c["vwap_state"] = TRENDS_CACHE[sym].get("vwap_state", "VWAP")
+            
+            # Update live stats dynamically
+            cached_price = TRENDS_CACHE[sym].get("price")
+            cached_change = TRENDS_CACHE[sym].get("change")
+            cached_rvol = TRENDS_CACHE[sym].get("rvol")
+            
+            if cached_price is not None:
+                c["price"] = cached_price
+            if cached_change is not None:
+                c["change"] = cached_change
+            if cached_rvol is not None:
+                c["rvol"] = cached_rvol
         else:
             c["trends"] = db_trends
             c["sparkline_1m"] = c.get("sparkline_1m", []),

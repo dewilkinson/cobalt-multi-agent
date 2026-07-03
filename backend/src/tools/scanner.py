@@ -13,6 +13,7 @@ import traceback
 import sys
 
 from langchain_core.tools import tool
+from src.tools.finance import _extract_ticker_data
 
 logger = logging.getLogger(__name__)
 
