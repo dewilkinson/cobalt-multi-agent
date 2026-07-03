@@ -3400,7 +3400,7 @@
             }
         }
 
-        function drawSparkline(values, ticker = null) {
+        function drawSparkline(values, ticker = null, timeframe = null) {
             // Generate deterministic sample sparkline if empty/missing and ticker is present
             if ((!values || values.length < 2) && ticker) {
                 let h = 0;
@@ -3410,47 +3410,55 @@
                 }
                 const mockValues = [];
                 let currentVal = 100 + (h % 30);
+                const mockIntervalMins = timeframe === '1m' ? 1 : (timeframe === '15m' ? 15 : (timeframe === '1h' ? 60 : 5));
+                const baseTime = new Date();
                 for (let i = 0; i < 20; i++) {
                     const step = Math.sin(h + i) * 2 + ((h % 3) === 0 ? 0.5 : -0.3);
                     currentVal += step;
-                    mockValues.push(currentVal);
+                    const tVal = new Date(baseTime.getTime() - (20 - i) * mockIntervalMins * 60000).toISOString().slice(0, 16).replace('T', ' ');
+                    mockValues.push({ v: currentVal, t: tVal });
                 }
                 values = mockValues;
             }
 
             if (!values || values.length < 2) return '';
 
-            const validValues = values.map(item => {
-                if (item === null || item === undefined) return NaN;
+            const validItems = values.map(item => {
+                if (item === null || item === undefined) return null;
+                let v = NaN;
+                let t = '';
                 if (typeof item === 'object') {
-                    return parseFloat(item.v !== undefined ? item.v : item.price);
+                    v = parseFloat(item.v !== undefined ? item.v : item.price);
+                    t = item.t || '';
+                } else {
+                    v = parseFloat(item);
                 }
-                return parseFloat(item);
-            }).filter(v => !isNaN(v));
+                return isNaN(v) ? null : { v, t };
+            }).filter(item => item !== null);
 
-            if (validValues.length === 0) return '';
+            if (validItems.length === 0) return '';
 
-            const min = Math.min(...validValues);
-            const max = Math.max(...validValues);
+            const min = Math.min(...validItems.map(item => item.v));
+            const max = Math.max(...validItems.map(item => item.v));
             const range = (max - min) || 1;
             const width = 64;
             const height = 16;
 
-            const points = validValues.map((v, i) => {
-                const x = (i / (validValues.length - 1)) * width;
-                const y = height - ((v - min) / range) * height;
-                return { x, y };
+            const points = validItems.map((item, i) => {
+                const x = (i / (validItems.length - 1)) * width;
+                const y = height - ((item.v - min) / range) * height;
+                return { x, y, val: item.v, time: item.t || '' };
             });
 
             const pathData = points.map((p, i) => {
                 return `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)},${p.y.toFixed(2)}`;
             }).join(' ');
 
-            const isUp = validValues[validValues.length - 1] >= validValues[0];
+            const isUp = validItems[validItems.length - 1].v >= validItems[0].v;
             const color = isUp ? '#34d399' : '#fb7185';
 
-            const lastVal = validValues[validValues.length - 1];
-            const prevVal = validValues.length >= 2 ? validValues[validValues.length - 2] : lastVal;
+            const lastVal = validItems[validItems.length - 1].v;
+            const prevVal = validItems.length >= 2 ? validItems[validItems.length - 2].v : lastVal;
             const justMovedUp = lastVal >= prevVal;
             const dotColor = justMovedUp ? '#00ff00' : '#ff0000';
             
@@ -3458,10 +3466,12 @@
             const dotHTML = lastPoint ? `<circle cx="${lastPoint.x.toFixed(2)}" cy="${lastPoint.y.toFixed(2)}" r="2.5" fill="${dotColor}" style="filter: drop-shadow(0 0 3px ${dotColor});" />` : '';
 
             return `
-                <div style="width: 64px; height: 16px; display: flex; align-items: center;">
-                    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible; display: block;" data-ticker="${ticker}">
+                <div class="sparkline-wrapper" style="width: 64px; height: 16px; display: flex; align-items: center; position: relative;">
+                    <svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible; display: block; cursor: crosshair;" data-ticker="${ticker || ''}" data-timeframe="${timeframe || ''}">
                         <path d="${pathData}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 4px ${color}66);" />
                         ${dotHTML}
+                        <line class="hover-line" x1="0" y1="0" x2="0" y2="${height}" stroke="rgba(255,255,255,0.12)" stroke-width="0.5" stroke-dasharray="1,1" style="display: none; pointer-events: none;" />
+                        <circle class="hover-dot" r="1.2" fill="#ffffff" style="display: none; pointer-events: none;" />
                     </svg>
                 </div>
             `;
@@ -4446,19 +4456,19 @@
                             <div style="min-width: 290px; display: flex; justify-content: center; align-items: center; box-sizing: border-box; gap: 8px; padding-right: 48px;">
                                 <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
                                     <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">1m</span>
-                                    ${drawSparkline(c.sparkline_1m && c.sparkline_1m.length > 0 ? c.sparkline_1m.map(x => x.v) : [], c.symbol)}
+                                    ${drawSparkline(c.sparkline_1m, c.symbol, '1m')}
                                 </div>
                                 <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
                                     <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">5m</span>
-                                    ${drawSparkline(c.sparkline_5m && c.sparkline_5m.length > 0 ? c.sparkline_5m.map(x => x.v) : [], c.symbol)}
+                                    ${drawSparkline(c.sparkline_5m, c.symbol, '5m')}
                                 </div>
                                 <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
                                     <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">15m</span>
-                                    ${drawSparkline(c.sparkline_15m && c.sparkline_15m.length > 0 ? c.sparkline_15m.map(x => x.v) : [], c.symbol)}
+                                    ${drawSparkline(c.sparkline_15m, c.symbol, '15m')}
                                 </div>
                                 <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
                                     <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">1h</span>
-                                    ${drawSparkline(c.sparkline_1h && c.sparkline_1h.length > 0 ? c.sparkline_1h.map(x => x.v) : [], c.symbol)}
+                                    ${drawSparkline(c.sparkline_1h, c.symbol, '1h')}
                                 </div>
                             </div>
                         </td>
@@ -6999,6 +7009,7 @@
         // Initialize on load
         window.addEventListener('DOMContentLoaded', () => {
             initScannerSettings();
+            initSparklineTooltips();
             
             // Resolve target href dynamically for journaling tab to bypass popup blockers natively
             const journalBtn = document.getElementById('tab-btn-journal');
@@ -7014,6 +7025,112 @@
                 initScannerSSE();
             }, 500);
         });
+
+        // Sparkline Interactive Tooltip Event Delegation
+        function initSparklineTooltips() {
+            const tooltip = document.getElementById('sparkline-tooltip');
+            if (!tooltip) return;
+
+            document.addEventListener('mousemove', (e) => {
+                const svg = e.target.closest('.sparkline-svg');
+                if (!svg) {
+                    tooltip.style.display = 'none';
+                    // Hide hover lines and dots in all wrapper scopes
+                    document.querySelectorAll('.hover-line, .hover-dot').forEach(el => el.style.display = 'none');
+                    return;
+                }
+
+                const ticker = svg.dataset.ticker;
+                const timeframe = svg.dataset.timeframe;
+                if (!ticker || !timeframe) return;
+
+                const candidates = activeScannerCandidates || [];
+                const candidate = candidates.find(c => c.symbol === ticker);
+                if (!candidate) return;
+
+                const sparklineKey = 'sparkline_' + timeframe;
+                const rawPoints = candidate[sparklineKey] || [];
+                if (rawPoints.length < 2) return;
+
+                const validItems = rawPoints.map(item => {
+                    if (item === null || item === undefined) return null;
+                    let v = NaN;
+                    let t = '';
+                    if (typeof item === 'object') {
+                        v = parseFloat(item.v !== undefined ? item.v : item.price);
+                        t = item.t || '';
+                    } else {
+                        v = parseFloat(item);
+                    }
+                    return isNaN(v) ? null : { v, t };
+                }).filter(item => item !== null);
+
+                if (validItems.length === 0) return;
+
+                const rect = svg.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                
+                const width = 64;
+                const height = 16;
+                const pct = Math.max(0, Math.min(1, mouseX / rect.width));
+                const index = Math.round(pct * (validItems.length - 1));
+                const item = validItems[index];
+
+                if (!item) return;
+
+                const min = Math.min(...validItems.map(x => x.v));
+                const max = Math.max(...validItems.map(x => x.v));
+                const range = (max - min) || 1;
+
+                const px = (index / (validItems.length - 1)) * width;
+                const py = height - ((item.v - min) / range) * height;
+
+                // Hide all hover highlights except this SVG's ones
+                document.querySelectorAll('.hover-line, .hover-dot').forEach(el => {
+                    if (el.closest('.sparkline-svg') !== svg) {
+                        el.style.display = 'none';
+                    }
+                });
+
+                const hoverLine = svg.querySelector('.hover-line');
+                const hoverDot = svg.querySelector('.hover-dot');
+
+                if (hoverLine) {
+                    hoverLine.setAttribute('x1', px.toFixed(2));
+                    hoverLine.setAttribute('x2', px.toFixed(2));
+                    hoverLine.style.display = 'block';
+                }
+                if (hoverDot) {
+                    hoverDot.setAttribute('cx', px.toFixed(2));
+                    hoverDot.setAttribute('cy', py.toFixed(2));
+                    hoverDot.style.display = 'block';
+                }
+
+                tooltip.innerHTML = `
+                    <div style="font-weight: 700; color: #0f172a; margin-bottom: 2px;">${ticker} (${timeframe.toUpperCase()})</div>
+                    <div style="display: flex; flex-direction: column; gap: 2px; font-weight: 400; color: #334155;">
+                        <div><span style="color: #64748b;">Time:</span> ${item.t || 'N/A'}</div>
+                        <div><span style="color: #64748b;">Price:</span> $${item.v.toFixed(2)}</div>
+                    </div>
+                `;
+
+                const tooltipRect = tooltip.getBoundingClientRect();
+                let left = e.pageX + 12;
+                let top = e.pageY - tooltipRect.height - 12;
+
+                if (left + tooltipRect.width > window.innerWidth) {
+                    left = e.pageX - tooltipRect.width - 12;
+                }
+                if (top < 0) {
+                    top = e.pageY + 12;
+                }
+
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+                tooltip.style.display = 'block';
+            });
+        }
     </script>
+    <div id="sparkline-tooltip" style="position: absolute; display: none; background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(0, 0, 0, 0.15); color: #0f172a; padding: 6px 10px; border-radius: 6px; font-size: 10px; pointer-events: none; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: 'Inter', sans-serif;"></div>
 </body>
 </html>

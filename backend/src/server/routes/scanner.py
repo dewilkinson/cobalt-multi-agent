@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import traceback
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, List
 from zoneinfo import ZoneInfo
 from src.tools.finance import _fetch_batch_history, _extract_ticker_data
@@ -258,8 +258,12 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     series = df[col].dropna()
                     if series.empty:
                         return []
-                    vals = series.iloc[-num_points:].tolist()
-                    return [{"v": float(v)} for v in vals]
+                    subset = series.iloc[-num_points:]
+                    result = []
+                    for idx, val in subset.items():
+                        time_str = idx.strftime("%Y-%m-%d %H:%M") if hasattr(idx, "strftime") else str(idx)
+                        result.append({"v": float(val), "t": time_str})
+                    return result
 
                 spark_1m = extract_raw_sparkline(c_timeframes["1m"])
                 spark_5m = extract_raw_sparkline(c_timeframes["5m"])
@@ -326,21 +330,23 @@ async def enrich_candidates_with_trends(candidates):
                     
             # Generate deterministic sample sparklines for 1m, 5m, 15m, 1h (realistic stock price walk)
             random.seed(sym)
-            def make_mock_spark(seed_val):
+            def make_mock_spark(seed_val, interval_mins=5):
                 current_val = seed_val
                 mock_values = []
-                for _ in range(30):
+                base_time = datetime.now()
+                for i in range(30):
                     # Random walk with volatility and minor upward bias
                     change_pct = (random.random() - 0.48) * 0.04
                     current_val *= (1.0 + change_pct)
-                    mock_values.append({"v": round(current_val, 2)})
+                    t_val = (base_time - timedelta(minutes=(30-i)*interval_mins)).strftime("%Y-%m-%d %H:%M")
+                    mock_values.append({"v": round(current_val, 2), "t": t_val})
                 return mock_values
 
             base_val = 50.0 + random.randint(10, 100)
-            mock_1m = make_mock_spark(base_val)
-            mock_5m = make_mock_spark(base_val * 1.01)
-            mock_15m = make_mock_spark(base_val * 1.02)
-            mock_1h = make_mock_spark(base_val * 1.03)
+            mock_1m = make_mock_spark(base_val, interval_mins=1)
+            mock_5m = make_mock_spark(base_val * 1.01, interval_mins=5)
+            mock_15m = make_mock_spark(base_val * 1.02, interval_mins=15)
+            mock_1h = make_mock_spark(base_val * 1.03, interval_mins=60)
                 
             TRENDS_CACHE[sym] = {
                 "trends": sample_trends,
