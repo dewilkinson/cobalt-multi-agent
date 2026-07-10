@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0123";
+        const VLI_CLIENT_VERSION = "00.000.0164";
     </script>
     
     <link
@@ -1846,21 +1846,7 @@
                     bodyContent = `<div class="card-body terminal telemetry-body-instance" id="telemetry-body-${instanceGuid}" data-guid="${instanceGuid}"></div>`;
                 } else if (typeGuid === 'MACRO_WL') {
                     bodyContent = `
-                        <div class="card-body" style="overflow-y: hidden; padding: 10px;">
-                            <table class="macro-table">
-                                <thead>
-                                    <tr>
-                                        <th>TICKER</th>
-                                        <th>PRICE</th>
-                                        <th>CHANGE</th>
-                                        <th>SORTINO</th>
-                                        <th style="text-align: right; padding-right: 16px;">TREND (5M)</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="macro-watchlist-body-instance" id="macro-watchlist-body-${instanceGuid}" data-guid="${instanceGuid}">
-                                    <tr><td colspan="5" style="text-align:center; padding:20px;">Standby...</td></tr>
-                                </tbody>
-                            </table>
+                        <div class="card-body" style="overflow-y: auto; padding: 10px;">
                         </div>`;
                 } else if (typeGuid === 'STRUCTURAL_ANALY') {
                     bodyContent = `
@@ -3400,7 +3386,7 @@
             }
         }
 
-        function drawSparkline(values, ticker = null, timeframe = null) {
+        function drawSparkline(values, ticker = null, timeframe = null, trends = null) {
             // Generate deterministic sample sparkline if empty/missing and ticker is present
             if ((!values || values.length < 2) && ticker) {
                 let h = 0;
@@ -3454,8 +3440,22 @@
                 return `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)},${p.y.toFixed(2)}`;
             }).join(' ');
 
-            const isUp = validItems[validItems.length - 1].v >= validItems[0].v;
-            const color = isUp ? '#34d399' : '#fb7185';
+            const trendVal = (trends && timeframe) ? trends[timeframe] : null;
+            let color = '#9ca3af';
+            if (trendVal === 'Bullish' || trendVal === 'Uptrend' || trendVal === 'UP') {
+                color = '#3fb950';
+            } else if (trendVal === 'Weak Bullish') {
+                color = '#ffdd00';
+            } else if (trendVal === 'Weak Bearish') {
+                color = '#ff8800';
+            } else if (trendVal === 'Bearish' || trendVal === 'Downtrend' || trendVal === 'DOWN') {
+                color = 'var(--ruby-red)';
+            } else if (trendVal === 'Accumulation') {
+                color = '#9ca3af';
+            } else {
+                const isUp = validItems[validItems.length - 1].v >= validItems[0].v;
+                color = isUp ? '#34d399' : '#fb7185';
+            }
 
             const lastVal = validItems[validItems.length - 1].v;
             const prevVal = validItems.length >= 2 ? validItems[validItems.length - 2].v : lastVal;
@@ -3465,8 +3465,11 @@
             const lastPoint = points[points.length - 1];
             const dotHTML = lastPoint ? `<circle cx="${lastPoint.x.toFixed(2)}" cy="${lastPoint.y.toFixed(2)}" r="2.5" fill="${dotColor}" style="filter: drop-shadow(0 0 3px ${dotColor});" />` : '';
 
+            const trendText = trendVal ? ` (${trendVal})` : '';
+            const wrapperTitle = `${timeframe} Sparkline${trendText}`;
+
             return `
-                <div class="sparkline-wrapper" style="width: 64px; height: 16px; display: flex; align-items: center; position: relative;">
+                <div class="sparkline-wrapper" style="width: 64px; height: 16px; display: flex; align-items: center; position: relative;" title="${wrapperTitle}">
                     <svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible; display: block; cursor: crosshair;" data-ticker="${ticker || ''}" data-timeframe="${timeframe || ''}">
                         <path d="${pathData}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 4px ${color}66);" />
                         ${dotHTML}
@@ -3479,60 +3482,158 @@
 
         function drawTrendIndicator(trends) {
             const timeframes = ['1m', '5m', '15m', '1h', '4h', '1d'];
-            let html = '<div style="display: flex; gap: 3px; justify-content: center; align-items: center;">';
             
-            timeframes.forEach(tf => {
+            let segmentsHtml = '';
+            let summaryText = 'Trend Alignment: ';
+            
+            timeframes.forEach((tf, idx) => {
                 const val = trends ? (trends[tf] || 'No Data') : 'No Data';
                 const tfLabel = tf === '1d' ? '1D' : tf;
+                summaryText += `${tfLabel}: ${val}${idx < 5 ? ', ' : ''}`;
                 
-                let bg = 'rgba(255, 255, 255, 0.05)';
-                let border = 'rgba(255, 255, 255, 0.15)';
-                let color = 'rgba(255, 255, 255, 0.4)';
+                let bg = 'rgba(255, 255, 255, 0.03)';
+                let color = 'rgba(255, 255, 255, 0.2)';
                 
                 if (val === 'Bullish' || val === 'Uptrend' || val === 'UP') {
-                    color = '#3fb950';
-                    bg = 'rgba(63, 185, 80, 0.1)';
-                    border = 'rgba(63, 185, 80, 0.3)';
+                    color = '#58d672';
+                    bg = 'rgba(63, 185, 80, 0.15)';
                 } else if (val === 'Weak Bullish') {
-                    color = '#ffdd00';
-                    bg = 'rgba(255, 221, 0, 0.1)';
-                    border = 'rgba(255, 221, 0, 0.3)';
+                    color = '#ffe63b';
+                    bg = 'rgba(255, 221, 0, 0.12)';
                 } else if (val === 'Weak Bearish') {
-                    color = '#ff8800';
-                    bg = 'rgba(255, 136, 0, 0.1)';
-                    border = 'rgba(255, 136, 0, 0.3)';
+                    color = '#ff9d3b';
+                    bg = 'rgba(255, 136, 0, 0.12)';
                 } else if (val === 'Accumulation' || val === 'Sideways' || val === 'CONSOLIDATION') {
-                    color = '#90caf9';
-                    bg = 'rgba(144, 202, 249, 0.1)';
-                    border = 'rgba(144, 202, 249, 0.3)';
+                    color = '#d1d5db';
+                    bg = 'rgba(156, 163, 175, 0.08)';
                 } else if (val === 'Bearish' || val === 'Downtrend' || val === 'DOWN') {
-                    color = 'var(--ruby-red)';
-                    bg = 'rgba(248, 81, 73, 0.1)';
-                    border = 'rgba(248, 81, 73, 0.3)';
+                    color = '#ff6b6b';
+                    bg = 'rgba(248, 81, 73, 0.15)';
                 }
                 
-                html += `
-                    <span style="
-                        display: inline-block; 
-                        width: 32px; 
-                        min-width: 32px;
-                        flex-shrink: 0;
-                        text-align: center; 
-                        background: ${bg}; 
-                        color: ${color}; 
-                        padding: 2px 0; 
-                        border-radius: 4px; 
-                        font-size: 10px; 
-                        font-weight: 800; 
-                        border: 1px solid ${border};
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+                const borderRight = idx < 5 ? 'border-right: 1px solid rgba(255, 255, 255, 0.08);' : '';
+                
+                segmentsHtml += `
+                    <div style="
+                        flex: 1;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: ${bg};
+                        color: ${color};
+                        font-size: 10px;
+                        font-weight: 800;
                         font-family: 'Inter', sans-serif;
-                    ">${tfLabel}</span>
+                        height: 100%;
+                        ${borderRight}
+                        box-sizing: border-box;
+                    " title="${tfLabel}: ${val}">${tfLabel}</div>
                 `;
             });
             
-            html += '</div>';
-            return html;
+            return `
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    width: 190px;
+                    min-width: 190px;
+                    height: 18px;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    background: rgba(255, 255, 255, 0.02);
+                    border-radius: 4px;
+                    overflow: hidden;
+                    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+                    box-sizing: border-box;
+                " title="${summaryText}">
+                    ${segmentsHtml}
+                </div>
+            `;
+        }
+
+        function drawEQBarIndicator(val, isReversed, tooltipText, customColors = null) {
+            const numVal = val !== undefined && val !== null ? parseFloat(val) : 0.0;
+            
+            // Standard colors
+            const green = '#3fb950';
+            const yellow = '#ffdd00';
+            const gray = '#9ca3af';
+            const orange = '#ff8800';
+            const red = 'var(--ruby-red)';
+            
+            // Map colors to segments
+            let colors = [];
+            if (customColors) {
+                colors = customColors;
+            } else if (isReversed) {
+                colors = [green, green, yellow, yellow, gray, orange, orange, red, red];
+            } else {
+                colors = [red, red, orange, orange, gray, yellow, yellow, green, green];
+            }
+            
+            // Determine active/illuminated states
+            let active = new Array(9).fill(false);
+            active[4] = true; // Center (Gray) is always active
+            
+            if (numVal > 0.0) {
+                active[5] = true;
+                if (numVal > 0.25) active[6] = true;
+                if (numVal > 0.50) active[7] = true;
+                if (numVal > 0.75) active[8] = true;
+            } else if (numVal < 0.0) {
+                active[3] = true;
+                if (numVal <= -0.25) active[2] = true;
+                if (numVal <= -0.50) active[1] = true;
+                if (numVal < -0.75) active[0] = true;
+            }
+            
+            let barsHtml = '';
+            for (let i = 0; i < 9; i++) {
+                const opacity = active[i] ? '1.0' : '0.20';
+                barsHtml += `<div style="width: 4px; height: 12px; background: ${colors[i]}; opacity: ${opacity}; border-radius: 1px;"></div>`;
+            }
+            
+            return `
+                <div style="display: flex; gap: 2px; align-items: center; justify-content: center; height: 14px;" 
+                     title="${tooltipText}">
+                    ${barsHtml}
+                </div>
+            `;
+        }
+
+        function drawDSCIndicator(val) {
+            const pdVal = val !== undefined && val !== null ? parseFloat(val) : 0.0;
+            const pdLabel = pdVal >= 0 ? '+' + pdVal.toFixed(1) : pdVal.toFixed(1);
+            const tooltipText = `${pdLabel}\n\n• <= -0.57: Deep Discount\n• -0.57 to -0.24: Mild Discount\n• -0.24 to +0.24: Equilibrium\n• +0.24 to +0.53: Mild Premium\n• >= +0.53: Deep Premium`;
+            const customColors = ['#ffffff', '#ffffff', '#cbd5e1', '#cbd5e1', '#9ca3af', '#a5c2f9', '#a5c2f9', '#7aa2f7', '#7aa2f7'];
+            return drawEQBarIndicator(pdVal, true, tooltipText, customColors);
+        }
+
+        function drawVWAPIndicator(val) {
+            const vwapVal = val !== undefined && val !== null ? parseFloat(val) : 0.0;
+            const vwapLabel = vwapVal >= 0 ? '+' + vwapVal.toFixed(2) : vwapVal.toFixed(2);
+            const tooltipText = `${vwapLabel}\n\n• <= -0.50: Strong Bearish\n• -0.50 to -0.10: Weak Bearish\n• -0.10 to +0.10: At VWAP\n• +0.10 to +0.50: Weak Bullish\n• >= +0.50: Strong Bullish`;
+            return drawEQBarIndicator(vwapVal, false, tooltipText);
+        }
+
+        function drawRVOLIndicator(val) {
+            const rvolVal = val !== undefined && val !== null ? parseFloat(val) : 1.0;
+            const displayLabel = rvolVal.toFixed(1);
+            
+            // Map RVOL around 1.0 baseline (positive/negative deviation)
+            const deviation = rvolVal - 1.0;
+            
+            const tooltipText = `${displayLabel}\n\n• <= 0.25: Extremely Low (Red)\n• 0.25-0.75: Low (Orange)\n• 0.75-1.25: Baseline (Gray)\n• 1.25-1.75: Elevated (Yellow)\n• >= 1.75: Active / High (Green)`;
+            
+            return drawEQBarIndicator(deviation, false, tooltipText);
+        }
+
+        function drawSortinoIndicator(val) {
+            const sortinoVal = val !== undefined && val !== null ? parseFloat(val) : 0.0;
+            const displayLabel = sortinoVal.toFixed(2);
+            
+            const tooltipText = `${displayLabel}\n\n• <= -1.50: Extremely Poor (Red)\n• -1.50 to -0.50: Low / Negative (Orange)\n• -0.50 to +0.50: Neutral / Okay (Gray)\n• +0.50 to +1.50: Good (Yellow)\n• >= +1.50: Optimal Risk-Adjusted (Green)`;
+            
+            return drawEQBarIndicator(sortinoVal, false, tooltipText);
         }
 
         function makeTableResizable(table) {
@@ -3550,7 +3651,7 @@
             
             table.style.tableLayout = 'fixed';
             
-            const totalWidth = table.offsetWidth;
+            const totalWidth = table.offsetWidth || 1000;
             for (let i = 0; i < cols.length - 1; i++) {
                 const col = cols[i];
                 const div = col.querySelector('div');
@@ -3811,141 +3912,304 @@
         }
 
         // 1b. Macro Watchlist Content (Structural JSON Support)
+        // 1b. Macro Watchlist Content (Structural JSON Support)
+        window.lastMacroWatchlistData = null;
+        
+        function handleMacroFilterChange(selectElement) {
+            if (window.lastMacroWatchlistData) {
+                renderWatchlist(window.lastMacroWatchlistData);
+            }
+        }
+        
+        function exportMacroWatchlist(instanceGuid) {
+            const card = document.querySelector(`.card[data-instance-guid="${instanceGuid}"]`);
+            if (!card) return;
+            
+            const rows = card.querySelectorAll('.scanner-table tbody tr');
+            const symbols = [];
+            rows.forEach(tr => {
+                const firstTd = tr.querySelector('td');
+                if (firstTd) {
+                    const symDiv = firstTd.querySelector('div:nth-child(2)');
+                    if (symDiv) {
+                        const sym = symDiv.textContent.trim();
+                        if (sym && sym.length <= 10 && /^[A-Z0-9.\-/^]+$/.test(sym)) {
+                            symbols.push(sym);
+                        }
+                    }
+                }
+            });
+            
+            if (symbols.length === 0) {
+                alert(`No macro candidates to export`);
+                return;
+            }
+            
+            const fileContent = symbols.join('\n');
+            const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `macro_watchlist.txt`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
         function renderWatchlist(data) {
-            if (!data.macro_watchlist_content) return;
+            if (!data.macro_watchlist_content || !data.macro_watchlist_content.candidates) return;
+            window.lastMacroWatchlistData = data;
+            
             const mw = data.macro_watchlist_content;
-            if (!(mw.type === 'table' && mw.rows)) return;
             if (!window.lastMacroWatchlistState) window.lastMacroWatchlistState = {};
 
-            document.querySelectorAll('.macro-watchlist-body-instance').forEach(tbody => {
-                const instanceGuid = tbody.dataset.guid;
+            document.querySelectorAll('.card[data-type-guid="MACRO_WL"]').forEach(card => {
+                let body = card.querySelector('.card-body');
+                if (!body) {
+                    console.warn("[VLI_UI_HEALING] MACRO_WL missing .card-body. Auto-injecting structure.");
+                    body = document.createElement('div');
+                    body.className = 'card-body';
+                    body.style.display = 'flex';
+                    body.style.flexDirection = 'column';
+                    body.style.overflowY = 'hidden';
+                    body.style.padding = '10px';
+                    body.style.height = 'calc(100% - 30px)'; // Account for header
+                    card.appendChild(body);
+                }
+                
+                let table = body.querySelector('table');
+                if (!table) {
+                    body.innerHTML = `
+                        <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display:flex; gap: 8px; align-items: center;">
+                                <select id="macro-filter-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="handleMacroFilterChange(this)">
+                                    <option value="ALL">All Macro Assets</option>
+                                    <option value="EQUITY">Equity Indices</option>
+                                    <option value="RATES">Rates & Yields</option>
+                                    <option value="COMMODITIES">Commodities</option>
+                                    <option value="CURRENCIES">Currencies & Volatility</option>
+                                    <option value="CRYPTO">Cryptocurrencies</option>
+                                </select>
+                            </div>
+                            <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="mw-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
+                        </div>
+                        <div style="flex-grow: 1; overflow-x: auto; overflow-y: auto;">
+                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 1000px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        <th style="padding: 4px 16px; text-align: center;" title="Stock Symbol"><div style="min-width: 32px; box-sizing: border-box;">SYMBOL</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;" title="Specialist Structural Analysis Report"><div style="min-width: 24px; box-sizing: border-box;">DOC</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;" title="Latest Close Price"><div style="min-width: 48px; box-sizing: border-box;">PRICE</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;" title="Price Change from Open"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
+                                        <th style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Sparkline Charts (1m, 5m, 15m, 1h)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CHART</div></th>
+                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">Zone</div></th>
+                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
+                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
+                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;" title="Overall Quantitative Grade (S, A+, A, B+, B, C)"><div style="min-width: 32px; box-sizing: border-box;">GRADE</div></th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 600; text-transform: uppercase;" title="Filter by Relative Strength against S&P">
+                                <input type="checkbox" class="track-spy-cb" onchange="toggleTrackSpy(this)" style="accent-color: var(--emerald-green); cursor: pointer;" ${window.vliScannerTrackSpy && window.vliScannerTrackSpy[card.dataset.instanceGuid] ? 'checked' : ''}> RS Filter
+                            </label>
+                            <div style="display: flex; gap: 8px;">
+                                <button id="macro-export-btn-${card.dataset.instanceGuid}" class="scanner-export-btn" onclick="exportMacroWatchlist('${card.dataset.instanceGuid}')" style="background: rgba(88, 166, 255, 0.1); border: 1px solid rgba(88, 166, 255, 0.3); color: var(--cobalt-blue); padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Export Watchlist">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    macro_watchlist.txt
+                                </button>
+                                <button class="scanner-refresh-btn" onclick="let b=this.closest('.card-body'); b.querySelectorAll('tbody tr').forEach(r => r.style.opacity = '0.3'); fetch('/api/vli/force-scanner-sync').then(r=>r.json()).then(d=>{if(d.status==='success'){console.log('macro sync forced');}});" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Refresh">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    table = body.querySelector('table');
+                    makeTableResizable(table);
+                } else {
+                    const timeEl = body.querySelector('#mw-updated-at');
+                    if (timeEl) timeEl.innerText = new Date().toLocaleTimeString();
+                    
+                    const cb = body.querySelector('.track-spy-cb');
+                    if (cb) {
+                        cb.checked = window.vliScannerTrackSpy && window.vliScannerTrackSpy[card.dataset.instanceGuid] ? true : false;
+                    }
+                }
+                
+                const tbody = table.querySelector('tbody');
                 tbody.innerHTML = '';
-            
-                mw.rows.forEach(row => {
-                    const label = row[0];
-                    const ticker = row[1];
-                    const priceDisplay = row[2];
-                    const changeObj = row[3];
-                    const sortino = row[4];
-                    const sparklineObj = row[5];
-
-                    const priceNum = parseFloat(priceDisplay.replace(/[$,%]/g, ''));
-                    const pctChange = changeObj.value;
-
-                    const metaObj = row.length >= 7 ? row[6] : {};
-                    const hasReport = metaObj.has_report || false;
-
-                    let sortinoColor = '#ff4444';
-                    if (sortino >= 2.0) sortinoColor = '#00ff88';
-                    else if (sortino >= 1.0) sortinoColor = '#ff9900';
-
-                    let color = '#fff';
-                    if (window.lastMacroWatchlistState[ticker]) {
-                        const lastPrice = window.lastMacroWatchlistState[ticker].price;
-                        if (priceNum > lastPrice) color = 'var(--price-up)';
-                        else if (priceNum < lastPrice) color = 'var(--price-down)';
-                    }
-                    
-                    function getMacroRowBackground(t, val) {
-                        if (t === '^TNX') {
-                            if (val >= 4.5) return 'rgba(255, 20, 20, 0.4)'; // Neon Red
-                            if (val >= 4.3) return 'rgba(255, 165, 0, 0.4)'; // Clear Orange
-                            if (val >= 4.0) return 'rgba(255, 230, 0, 0.35)'; // Bright Yellow
-                            return 'rgba(0, 255, 100, 0.3)'; // Mint Green
+                
+                const filterEl = body.querySelector('#macro-filter-' + card.dataset.instanceGuid);
+                const activeFilter = filterEl ? filterEl.value : 'ALL';
+                
+                let filteredCandidates = mw.candidates || [];
+                
+                if (activeFilter !== 'ALL') {
+                    filteredCandidates = filteredCandidates.filter(c => {
+                        const sym = c.symbol.toUpperCase();
+                        if (activeFilter === 'EQUITY') {
+                            return ['SPY', 'QQQ', 'IWM', 'DIA'].some(s => sym.includes(s));
                         }
-                        if (t === '^VIX') {
-                            if (val >= 25) return 'rgba(255, 20, 20, 0.4)';
-                            if (val >= 20) return 'rgba(255, 165, 0, 0.4)';
-                            if (val >= 15) return 'rgba(255, 230, 0, 0.35)';
-                            return 'rgba(0, 255, 100, 0.3)';
+                        if (activeFilter === 'RATES') {
+                            return ['TNX', 'TYX', 'FVX', 'BX', 'IRX', 'SHY', 'TLT', 'IEF'].some(s => sym.includes(s));
                         }
-                        if (t === 'DX-Y.NYB' || t === 'DXY') {
-                            if (val >= 106.0) return 'rgba(255, 20, 20, 0.4)';
-                            if (val >= 104.0) return 'rgba(255, 165, 0, 0.4)';
-                            if (val >= 102.0) return 'rgba(255, 230, 0, 0.35)';
-                            return 'rgba(0, 255, 100, 0.3)';
+                        if (activeFilter === 'COMMODITIES') {
+                            return ['CL=F', 'WTI', 'GC=F', 'GOLD', 'SI=F', 'SILVER', 'HG=F', 'COPPER'].some(s => sym.includes(s));
                         }
-                        return 'transparent';
-                    }
-                    
-                    const rowBg = getMacroRowBackground(ticker, priceNum);
-                    
-                    const mwTime = mw.timestamp ? new Date(mw.timestamp).getTime() : 0;
-                    const reportTime = metaObj.updated_at ? new Date(metaObj.updated_at).getTime() : 0;
-                    const dataTime = Math.max(mwTime, reportTime);
-                    
-                    const requestTime = window.vliRefreshingSymbols.get(ticker);
-                    if (requestTime) {
-                        if (dataTime > requestTime) {
-                            console.log(`[VLI_UX] Macro Symbol ${ticker} verified fresh. Restoring formatting.`);
-                            window.vliRefreshingSymbols.delete(ticker);
-                        } else if (Date.now() - requestTime > 60000) {
-                            console.log(`[VLI_UX] Macro Symbol ${ticker} refresh timed out.`);
-                            window.vliRefreshingSymbols.delete(ticker);
+                        if (activeFilter === 'CURRENCIES') {
+                            return ['DX-Y.NYB', 'DXY', '^VIX', 'VIX'].some(s => sym.includes(s));
                         }
-                    }
+                        if (activeFilter === 'CRYPTO') {
+                            return ['BTC', 'ETH', 'SOL'].some(s => sym.includes(s));
+                        }
+                        return true;
+                    });
+                }
+                
+                if (window.vliScannerTrackSpy && window.vliScannerTrackSpy[card.dataset.instanceGuid]) {
+                    filteredCandidates = filteredCandidates.filter(c => {
+                        const score = parseInt(c.heat_score) || 0;
+                        return score >= 80;
+                    });
+                }
+                
+                if (filteredCandidates.length === 0) {
+                    tbody.innerHTML = `
+                        <tr style="border: none;">
+                            <td colspan="11" style="text-align: center; padding: 30px 10px; font-size: 12px; color: var(--text-muted); font-style: italic;">No macro assets passed selection criteria.</td>
+                        </tr>
+                    `;
+                }
+                
+                // Sort candidates by heat score
+                filteredCandidates.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
+                
+                filteredCandidates.forEach(c => {
+                    let gradeColor = 'var(--text-muted)';
+                    let gradeBg = 'rgba(255,255,255,0.05)';
+                    let gradeBorder = 'rgba(255,255,255,0.2)';
+
+                    if (c.grade === 'S') { gradeColor = '#ffaa00'; gradeBg = 'rgba(255, 170, 0, 0.1)'; gradeBorder = 'rgba(255, 170, 0, 0.3)'; }
+                    else if (c.grade === 'A+' || c.grade === 'A') { gradeColor = '#d866ff'; gradeBg = 'rgba(216, 102, 255, 0.1)'; gradeBorder = 'rgba(216, 102, 255, 0.3)'; }
+                    else if (c.grade === 'B+' || c.grade === 'B') { gradeColor = '#00aaff'; gradeBg = 'rgba(0, 170, 255, 0.1)'; gradeBorder = 'rgba(0, 170, 255, 0.3)'; }
+                    else if (c.grade === 'C+' || c.grade === 'C') { gradeColor = '#3fb950'; gradeBg = 'rgba(63, 185, 80, 0.1)'; gradeBorder = 'rgba(63, 185, 80, 0.3)'; }
+                    else { gradeColor = 'var(--ruby-red)'; gradeBg = 'rgba(248, 81, 73, 0.1)'; gradeBorder = 'rgba(248, 81, 73, 0.3)'; }
+
+                    const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
                     
-                    const isRefreshing = window.vliRefreshingSymbols.has(ticker);
                     const tr = document.createElement('tr');
                     tr.style.cursor = 'pointer';
+                    tr.className = 'scanner-res-row';
                     tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
-                    tr.style.background = rowBg;
                     
                     if (isRefreshing) {
                         tr.style.pointerEvents = 'none';
                     }
+                    
+                    tr.onclick = () => insertCardIdIntoChat(`analyze ${c.symbol}`);
+                    
+                    const changeVal = parseFloat(c.change || 0);
+                    const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
+                    
 
-                    tr.onmouseenter = () => {
-                        tr.style.background = 'rgba(255,255,255,0.05)';
-                    };
-                    tr.onmouseleave = () => {
-                        tr.style.background = rowBg;
-                    };
-                    tr.onclick = () => insertCardIdIntoChat(`analyze ${ticker}`);
+
+
+                    
+                    const isYield = ['TNX', 'TYX', 'FVX', 'BX', 'IRX'].some(y => c.symbol.toUpperCase().includes(y));
+                    const priceDisplay = isYield ? `${parseFloat(c.price || 0).toFixed(2)}%` : `$${parseFloat(c.price || 0).toFixed(2)}`;
+                    
+                    let color = '#fff';
+                    if (window.lastMacroWatchlistState[c.symbol]) {
+                        const lastPrice = window.lastMacroWatchlistState[c.symbol].price;
+                        if (c.price > lastPrice) color = 'var(--price-up)';
+                        else if (c.price < lastPrice) color = 'var(--price-down)';
+                    }
+                    window.lastMacroWatchlistState[c.symbol] = { price: c.price };
 
                     tr.innerHTML = `
-                        <td class="symbol-bold" style="padding: 4px 2px; vertical-align: middle; max-width: 110px;" data-ticker="${ticker}">
-                            <div style="font-size: 11px; color: var(--text-muted); line-height: 1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${label}</div>
-                            <div style="line-height: 1; display: flex; align-items: center; gap: 4px;">
-                                ${ticker}
+                        <td style="padding: 4px 16px; text-align: left; vertical-align: middle; max-width: 140px;">
+                            <div style="font-size: 10px; color: var(--text-muted); line-height: 1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.name || ''}</div>
+                            <div style="font-weight: 700; color: #fff;">${c.symbol}</div>
+                        </td>
+                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
+                            <div style="min-width: 24px; display: flex; justify-content: center; align-items: center; box-sizing: border-box;">
+                                ${isRefreshing ? 
+                                `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
+                                : 
+                                `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.handleReportIconClick(event, '${c.symbol}', ${c.has_report}, this.closest('tr'))" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
                             </div>
                         </td>
-                        <td class="val-mono" style="color: ${color}; transition: color 0.5s ease; padding: 4px 2px; vertical-align: middle;">${priceDisplay}</td>
-                        <td class="val-mono" style="color: ${pctChange >= 0 ? 'var(--price-up)' : 'var(--price-down)'}; padding: 4px 2px; vertical-align: middle;">
-                            ${pctChange >= 0 ? '▲' : '▼'} ${Math.abs(pctChange).toFixed(2)}%
+                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
+                            <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: ${color}; transition: color 0.5s ease;">${priceDisplay}</div>
                         </td>
-                        <td class="val-mono" style="color: ${sortinoColor}; font-weight: 700; padding: 4px 2px; vertical-align: middle;">${sortino}</td>
-                        <td style="padding: 4px 2px; vertical-align: middle;">
-                            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding-right: 16px;">
-                                ${drawSparkline(sparklineObj.value, ticker)}
-                                <div style="width: 24px; display: flex; justify-content: center;">
-                                    ${isRefreshing ? 
-                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
-                                    : 
-                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${hasReport ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.handleReportIconClick(event, '${ticker}', ${hasReport}, this.closest('tr'))" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
+                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
+                            <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</div>
+                        </td>
+                        <td style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; justify-content: center; align-items: center; width: 100%; box-sizing: border-box; gap: 8px;">
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">1m</span>
+                                    ${drawSparkline(c.sparkline_1m, c.symbol, '1m', c.trends)}
+                                </div>
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">5m</span>
+                                    ${drawSparkline(c.sparkline_5m, c.symbol, '5m', c.trends)}
+                                </div>
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">15m</span>
+                                    ${drawSparkline(c.sparkline_15m, c.symbol, '15m', c.trends)}
+                                </div>
+                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">1h</span>
+                                    ${drawSparkline(c.sparkline_1h, c.symbol, '1h', c.trends)}
                                 </div>
                             </div>
                         </td>
+                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                                ${drawDSCIndicator(c.pd_zone)}
+                            </div>
+                        </td>
+                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                                ${drawRVOLIndicator(c.rvol)}
+                            </div>
+                        </td>
+                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                                ${drawVWAPIndicator(c.vwap_state)}
+                            </div>
+                        </td>
+                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                                ${drawSortinoIndicator(c.sortino)}
+                            </div>
+                        </td>
+                        <td style="padding: 4px 16px; vertical-align: middle;">
+                            <div style="min-width: 32px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+                                <span style="display: inline-block; width: 32px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; padding: 2px 0; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid ${gradeBorder};">${c.grade || 'F'}</span>
+                            </div>
+                        </td>
                     `;
+                    
                     if (isRefreshing) {
                         Array.from(tr.children).forEach((td, idx) => {
-                            if (idx !== tr.children.length - 1) {
+                            if (idx !== 1) {
                                 td.style.opacity = '0.3';
                                 td.style.filter = 'grayscale(1)';
                             }
                         });
                     }
+                    
                     tbody.appendChild(tr);
                 });
+                makeTableResizable(table);
             });
-            
-            // Only update tracker state once per broadcast to avoid duplicate overrides in multi-instance environments
-            if (mw.rows.length > 0) {
-                 mw.rows.forEach(row => {
-                     const priceNum = parseFloat(row[2].replace(/[$,%]/g, ''));
-                     window.lastMacroWatchlistState[row[1]] = { price: priceNum };
-                 });
-            }
         }
 
         // 1c. Scanner State & SSE Logic
@@ -4267,16 +4531,16 @@
                             <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 1000px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 32px; box-sizing: border-box;">SYMBOL</div></th>
-                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 24px; box-sizing: border-box;">DOC</div></th>
-                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">PRICE</div></th>
-                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
-                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 290px; box-sizing: border-box;">CHART</div></th>
-                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 208px; box-sizing: border-box;">TREND</div></th>
-                                        <th style="padding: 4px 0px 4px 32px; text-align: center;"><div style="min-width: 52px; box-sizing: border-box;">RVOL</div></th>
-                                        <th style="padding: 4px 12px 4px 4px; text-align: center;"><div style="min-width: 52px; box-sizing: border-box;">VWAP</div></th>
-                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 48px; box-sizing: border-box;">SORTINO</div></th>
-                                        <th style="padding: 4px 16px; text-align: center;"><div style="min-width: 32px; box-sizing: border-box;">GRADE</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;" title="Stock Symbol"><div style="min-width: 32px; box-sizing: border-box;">SYMBOL</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;" title="Specialist Structural Analysis Report"><div style="min-width: 24px; box-sizing: border-box;">DOC</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;" title="Latest Close Price"><div style="min-width: 48px; box-sizing: border-box;">PRICE</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;" title="Price Change from Open"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
+                                        <th style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Sparkline Charts (1m, 5m, 15m, 1h)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CHART</div></th>
+                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">Zone</div></th>
+                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
+                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
+                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
+                                        <th style="padding: 4px 16px; text-align: center;" title="Overall Quantitative Grade (S, A+, A, B+, B, C)"><div style="min-width: 32px; box-sizing: border-box;">GRADE</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -4335,7 +4599,7 @@
                     const styleMod = window._vliIsScanning ? "color: var(--cobalt-blue); font-weight: bold; letter-spacing: 1px;" : "color: var(--text-muted); font-style: italic;";
                     tbody.innerHTML = `
                         <tr style="border: none;">
-                            <td colspan="8" style="text-align: center; padding: 30px 10px; font-size: 12px; ${styleMod}">${statusText}</td>
+                            <td colspan="11" style="text-align: center; padding: 30px 10px; font-size: 12px; ${styleMod}">${statusText}</td>
                         </tr>
                     `;
                 }
@@ -4401,38 +4665,9 @@
                     const changeVal = parseFloat(c.change || c.gap || 0);
                     const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
                     
-                    const rvolVal = parseFloat(c.rvol || 0);
-                    let rvolBg = 'rgba(255, 255, 255, 0.05)';
-                    let rvolBorder = 'rgba(255, 255, 255, 0.15)';
-                    let rvolColor = 'rgba(255, 255, 255, 0.4)';
 
-                    if (rvolVal >= 2.0 && rvolVal <= 100.0) {
-                        // Authorized - Strong
-                        rvolColor = '#3fb950';
-                        rvolBg = 'rgba(63, 185, 80, 0.1)';
-                        rvolBorder = 'rgba(63, 185, 80, 0.3)';
-                    } else if (rvolVal >= 1.0 && rvolVal < 2.0) {
-                        // Authorized - Weak
-                        rvolColor = '#ffdd00';
-                        rvolBg = 'rgba(255, 221, 0, 0.1)';
-                        rvolBorder = 'rgba(255, 221, 0, 0.3)';
-                    } else {
-                        // Unauthorized
-                        rvolColor = 'var(--ruby-red)';
-                        rvolBg = 'rgba(248, 81, 73, 0.1)';
-                        rvolBorder = 'rgba(248, 81, 73, 0.3)';
-                    }
 
-                    const vwapVal = c.vwap_state || 'VWAP';
-                    let vwapColor = '#3fb950';
-                    let vwapBg = 'rgba(63, 185, 80, 0.1)';
-                    let vwapBorder = 'rgba(63, 185, 80, 0.3)';
-                    
-                    if (vwapVal === 'VWAP-') {
-                        vwapColor = 'var(--ruby-red)';
-                        vwapBg = 'rgba(248, 81, 73, 0.1)';
-                        vwapBorder = 'rgba(248, 81, 73, 0.3)';
-                    }
+
                     
                     tr.innerHTML = `
                         <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
@@ -4452,73 +4687,45 @@
                         <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
                             <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</div>
                         </td>
-                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
-                            <div style="min-width: 290px; display: flex; justify-content: center; align-items: center; box-sizing: border-box; gap: 8px; padding-right: 48px;">
+                        <td style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; justify-content: center; align-items: center; width: 100%; box-sizing: border-box; gap: 8px;">
                                 <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
                                     <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">1m</span>
-                                    ${drawSparkline(c.sparkline_1m, c.symbol, '1m')}
+                                    ${drawSparkline(c.sparkline_1m, c.symbol, '1m', c.trends)}
                                 </div>
                                 <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
                                     <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">5m</span>
-                                    ${drawSparkline(c.sparkline_5m, c.symbol, '5m')}
+                                    ${drawSparkline(c.sparkline_5m, c.symbol, '5m', c.trends)}
                                 </div>
                                 <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
                                     <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">15m</span>
-                                    ${drawSparkline(c.sparkline_15m, c.symbol, '15m')}
+                                    ${drawSparkline(c.sparkline_15m, c.symbol, '15m', c.trends)}
                                 </div>
                                 <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
                                     <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">1h</span>
-                                    ${drawSparkline(c.sparkline_1h, c.symbol, '1h')}
+                                    ${drawSparkline(c.sparkline_1h, c.symbol, '1h', c.trends)}
                                 </div>
                             </div>
                         </td>
-                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
-                            <div style="min-width: 208px; display: flex; justify-content: center; box-sizing: border-box;">
-                                ${drawTrendIndicator(c.trends)}
+                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                                ${drawDSCIndicator(c.pd_zone)}
                             </div>
                         </td>
-                        <td style="padding: 4px 0px 4px 32px; text-align: center; vertical-align: middle;">
-                            <div style="min-width: 52px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
-                                <span style="
-                                    display: inline-block;
-                                    width: auto;
-                                    min-width: 36px;
-                                    flex-shrink: 0;
-                                    text-align: center;
-                                    background: ${rvolBg};
-                                    color: ${rvolColor};
-                                    padding: 2px 4px;
-                                    border-radius: 4px;
-                                    font-size: 10px;
-                                    font-weight: 800;
-                                    border: 1px solid ${rvolBorder};
-                                    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-                                    font-family: 'Inter', sans-serif;
-                                " title="${rvolVal >= 1.0 ? (rvolVal >= 2.0 ? 'STRIKE Authorized (Strong)' : 'SCOUT Authorized (Weak)') : 'Unauthorized'}">${rvolVal.toFixed(1)}</span>
+                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                                ${drawRVOLIndicator(c.rvol)}
                             </div>
                         </td>
-                        <td style="padding: 4px 12px 4px 4px; text-align: center; vertical-align: middle;">
-                            <div style="min-width: 52px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
-                                <span style="
-                                    display: inline-block;
-                                    width: 52px;
-                                    min-width: 52px;
-                                    flex-shrink: 0;
-                                    text-align: center;
-                                    background: ${vwapBg};
-                                    color: ${vwapColor};
-                                    padding: 2px 0;
-                                    border-radius: 4px;
-                                    font-size: 10px;
-                                    font-weight: 800;
-                                    border: 1px solid ${vwapBorder};
-                                    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-                                    font-family: 'Inter', sans-serif;
-                                " title="VWAP State: ${vwapVal}">${vwapVal}</span>
+                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                                ${drawVWAPIndicator(c.vwap_state)}
                             </div>
                         </td>
-                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
-                            <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</div>
+                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                                ${drawSortinoIndicator(c.sortino || c.score)}
+                            </div>
                         </td>
                         <td style="padding: 4px 16px; vertical-align: middle;">
                             <div style="min-width: 32px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
@@ -6172,7 +6379,7 @@
             }, 2500);
         }
 
-        let vliPollingEnabled = true;
+        var vliPollingEnabled = true;
         function toggleServerConnection() {
             vliPollingEnabled = !vliPollingEnabled;
             const syncBadge = document.getElementById('menu-sync-status');
@@ -7010,6 +7217,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             initScannerSettings();
             initSparklineTooltips();
+            initGlobalCustomTooltips();
             
             // Resolve target href dynamically for journaling tab to bypass popup blockers natively
             const journalBtn = document.getElementById('tab-btn-journal');
@@ -7050,9 +7258,7 @@
 
                 const sparklineKey = 'sparkline_' + timeframe;
                 const rawPoints = candidate[sparklineKey] || [];
-                if (rawPoints.length < 2) return;
-
-                const validItems = rawPoints.map(item => {
+                   const validItems = rawPoints.map((item, idx) => {
                     if (item === null || item === undefined) return null;
                     let v = NaN;
                     let t = '';
@@ -7062,7 +7268,21 @@
                     } else {
                         v = parseFloat(item);
                     }
-                    return isNaN(v) ? null : { v, t };
+                    if (isNaN(v)) return null;
+                    if (!t) {
+                        // Calculate fallback timestamp based on timeframe and current time
+                        const intervalMins = timeframe === '1m' ? 1 : (timeframe === '15m' ? 15 : (timeframe === '1h' ? 60 : 5));
+                        const now = new Date();
+                        const ago = rawPoints.length - 1 - idx;
+                        const date = new Date(now.getTime() - ago * intervalMins * 60 * 1000);
+                        const yyyy = date.getFullYear();
+                        const mm = String(date.getMonth() + 1).padStart(2, '0');
+                        const dd = String(date.getDate()).padStart(2, '0');
+                        const hh = String(date.getHours()).padStart(2, '0');
+                        const min = String(date.getMinutes()).padStart(2, '0');
+                        t = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+                    }
+                    return { v, t };
                 }).filter(item => item !== null);
 
                 if (validItems.length === 0) return;
@@ -7098,6 +7318,8 @@
                 if (hoverLine) {
                     hoverLine.setAttribute('x1', px.toFixed(2));
                     hoverLine.setAttribute('x2', px.toFixed(2));
+                    hoverLine.setAttribute('y1', py.toFixed(2));
+                    hoverLine.setAttribute('y2', '16');
                     hoverLine.style.display = 'block';
                 }
                 if (hoverDot) {
@@ -7106,10 +7328,15 @@
                     hoverDot.style.display = 'block';
                 }
 
+                const parts = (item.t || '').split(' ');
+                const datePart = parts[0] || 'N/A';
+                const timePart = parts[1] || 'N/A';
+
                 tooltip.innerHTML = `
                     <div style="font-weight: 700; color: #0f172a; margin-bottom: 2px;">${ticker} (${timeframe.toUpperCase()})</div>
                     <div style="display: flex; flex-direction: column; gap: 2px; font-weight: 400; color: #334155;">
-                        <div><span style="color: #64748b;">Time:</span> ${item.t || 'N/A'}</div>
+                        <div><span style="color: #64748b;">Date:</span> ${datePart}</div>
+                        <div><span style="color: #64748b;">Time:</span> ${timePart}</div>
                         <div><span style="color: #64748b;">Price:</span> $${item.v.toFixed(2)}</div>
                     </div>
                 `;
@@ -7130,7 +7357,64 @@
                 tooltip.style.display = 'block';
             });
         }
+
+        function initGlobalCustomTooltips() {
+            const tooltip = document.getElementById('global-custom-tooltip');
+            if (!tooltip) return;
+
+            document.addEventListener('mouseover', (e) => {
+                const target = e.target.closest('[title], [data-vli-tooltip]');
+                if (!target) return;
+
+                // Ignore elements that are SVGs inside sparklines
+                if (target.closest('.sparkline-svg')) return;
+
+                // Move title to data attribute to prevent default browser tooltip from showing up
+                if (target.hasAttribute('title')) {
+                    target.dataset.vliTooltip = target.getAttribute('title');
+                    target.removeAttribute('title');
+                }
+
+                const text = target.dataset.vliTooltip;
+                if (!text || !text.trim()) return;
+
+                tooltip.innerHTML = `<div style="font-weight: 500; font-size: 9.5px; line-height: 1.3;">${text.replace(/\n/g, '<br>')}</div>`;
+                tooltip.style.display = 'block';
+                
+                positionTooltip(e);
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (tooltip.style.display === 'block') {
+                    positionTooltip(e);
+                }
+            });
+
+            document.addEventListener('mouseout', (e) => {
+                const target = e.target.closest('[data-vli-tooltip]');
+                if (target) {
+                    tooltip.style.display = 'none';
+                }
+            });
+
+            function positionTooltip(e) {
+                const rect = tooltip.getBoundingClientRect();
+                let left = e.pageX + 12;
+                let top = e.pageY + 12;
+
+                if (left + rect.width > window.innerWidth) {
+                    left = e.pageX - rect.width - 12;
+                }
+                if (top + rect.height > window.innerHeight + window.scrollY) {
+                    top = e.pageY - rect.height - 12;
+                }
+
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+            }
+        }
     </script>
     <div id="sparkline-tooltip" style="position: absolute; display: none; background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(0, 0, 0, 0.15); color: #0f172a; padding: 6px 10px; border-radius: 6px; font-size: 10px; pointer-events: none; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: 'Inter', sans-serif;"></div>
+    <div id="global-custom-tooltip" style="position: absolute; display: none; background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(0, 0, 0, 0.15); color: #0f172a; padding: 6px 10px; border-radius: 6px; font-size: 10px; line-height: 1.4; pointer-events: none; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: 'Inter', sans-serif; max-width: 260px; word-wrap: break-word; white-space: normal;"></div>
 </body>
 </html>
