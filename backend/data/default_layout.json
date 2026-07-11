@@ -1,0 +1,74 @@
+{
+  "win-order_history": {
+    "instanceGuid": "order_history",
+    "typeGuid": "ORDER_HIST",
+    "top": "763px",
+    "left": "40px",
+    "right": "",
+    "width": "1459px",
+    "height": "297px",
+    "zIndex": "1001",
+    "display": "",
+    "collapsed": false
+  },
+  "win-telemetry": {
+    "instanceGuid": "telemetry",
+    "typeGuid": "VLI_TELEMETRY",
+    "top": "902px",
+    "left": "757px",
+    "right": "",
+    "width": "697px",
+    "height": "178px",
+    "zIndex": "1002",
+    "display": "none",
+    "collapsed": true
+  },
+  "win-scheduler": {
+    "instanceGuid": "scheduler",
+    "typeGuid": "SCHEDULER_LOG",
+    "top": "880px",
+    "left": "213px",
+    "right": "",
+    "width": "33%",
+    "height": "200px",
+    "zIndex": "1003",
+    "display": "none",
+    "collapsed": false
+  },
+  "win-scanner": {
+    "instanceGuid": "scanner",
+    "typeGuid": "SCAN_RES",
+    "top": "31px",
+    "left": "4px",
+    "right": "",
+    "width": "1476px",
+    "height": "388px",
+    "zIndex": "1004",
+    "display": "none",
+    "collapsed": false
+  },
+  "win-watchlist": {
+    "instanceGuid": "watchlist",
+    "typeGuid": "MACRO_WL",
+    "top": "419px",
+    "left": "40px",
+    "right": "",
+    "width": "1440px",
+    "height": "344px",
+    "zIndex": "1005",
+    "display": "",
+    "collapsed": false
+  },
+  "win-shield": {
+    "instanceGuid": "shield",
+    "typeGuid": "SCAN_RES",
+    "top": "67px",
+    "left": "40px",
+    "right": "auto",
+    "width": "1479px",
+    "height": "390px",
+    "zIndex": "1534",
+    "display": "",
+    "collapsed": false
+  }
+}

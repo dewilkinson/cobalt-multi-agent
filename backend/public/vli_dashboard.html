@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0164";
+        const VLI_CLIENT_VERSION = "00.000.0201";
     </script>
     
     <link
@@ -2356,54 +2356,16 @@
                 };
             });
             localStorage.setItem('vli_wm_layout', JSON.stringify(layout));
+            
+            // Persist as default layout to the backend
+            fetch('/api/settings/save_default_layout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(layout)
+            }).catch(e => console.error('Failed to persist default layout to backend', e));
         }
 
-        function loadWorkspace(customKey = null) {
-            let targetKey = 'vli_wm_layout';
-            if (!customKey) {
-                const manual = prompt('Enter workspace name to load (leave blank for default):');
-                if (manual) targetKey = 'vli_wm_layout_' + manual;
-            } else {
-                targetKey = customKey;
-            }
-            
-            const saved = localStorage.getItem(targetKey);
-            if (!saved) {
-                if (targetKey === 'vli_wm_layout') {
-                    // Optimized High-Fidelity Workspace Layout
-                    // UXManager.createCard('VLI_CHAT', {top: '2%', left: '66%', width: '33%', height: '96%'}, 'coordinator');
-                    UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '19%', height: '55%'}, 'watchlist');
-                    UXManager.createCard('SCAN_RES', {top: '2%', left: '21%', width: '21%', height: '55%'}, 'scanner');
-                    UXManager.createCard('SCAN_RES', {top: '2%', left: '43%', width: '22%', height: '55%'}, 'shield');
-                    
-                    // Add RUN button to Scanner Results header for backup
-                    setTimeout(() => {
-                        const scHeader = document.querySelector('.card[data-type-guid="SCAN_RES"] .card-header');
-                        if (scHeader && !document.getElementById('sr-run-btn')) {
-                            const btnContainer = document.createElement('div');
-                            btnContainer.style.display = 'flex';
-                            btnContainer.style.alignItems = 'center';
-                            btnContainer.style.gap = '6px';
-                            btnContainer.innerHTML = `
-                                <button id="sr-run-btn" onclick="initScannerSSE()" 
-                                        style="background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.4); 
-                                        color: var(--emerald-green); font-size: 9px; padding: 2px 6px; border-radius: 4px; 
-                                        cursor: pointer; font-weight: 700;">RUN</button>
-                                <button id="sr-stop-btn" onclick="stopScanner()" 
-                                        style="background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.4); 
-                                        color: var(--ruby-red); font-size: 9px; padding: 2px 6px; border-radius: 4px; 
-                                        cursor: pointer; font-weight: 700;">STOP</button>
-                            `;
-                            scHeader.insertBefore(btnContainer, scHeader.querySelector('.card-controls'));
-                        }
-                    }, 500);
-                    UXManager.createCard('ORDER_HIST', {top: '59%', left: '1%', width: '41%', height: '39%'}, 'order_history');
-                    UXManager.createCard('VLI_TELEMETRY', {top: '59%', left: '43%', width: '22%', height: '39%'}, 'telemetry');
-                } else {
-                    alert('Workspace not found: ' + targetKey);
-                }
-                return;
-            }
+        function applyLayout(layout) {
             try {
                 // Clear existing
                 Object.keys(UXManager.instances).forEach(id => {
@@ -2414,7 +2376,6 @@
                     }
                 });
                 
-                const layout = JSON.parse(saved);
                 for (const id in layout) {
                     const state = layout[id];
                     if (!state.typeGuid) continue;
@@ -2439,7 +2400,7 @@
                         card = UXManager.createCard(state.typeGuid, state, state.instanceGuid);
                     }
                     if (card) {
-                        // [NEW] Restore artifact content if present
+                        // Restore artifact content if present
                         if (state.artifactPath) {
                             card.dataset.artifactPath = state.artifactPath;
                             if (state.artifactName) {
@@ -2491,6 +2452,79 @@
                 }
                 if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'shield')) {
                     UXManager.createCard('SCAN_RES', {top: '2%', left: '43%', width: '22%', height: '55%'}, 'shield');
+                }
+            } catch(e) {
+                console.error("applyLayout error:", e);
+            }
+        }
+
+        function loadHardcodedDefaultLayout() {
+            // Optimized High-Fidelity Workspace Layout
+            UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '19%', height: '55%'}, 'watchlist');
+            UXManager.createCard('SCAN_RES', {top: '2%', left: '21%', width: '21%', height: '55%'}, 'scanner');
+            UXManager.createCard('SCAN_RES', {top: '2%', left: '43%', width: '22%', height: '55%'}, 'shield');
+            
+            // Add RUN button to Scanner Results header for backup
+            setTimeout(() => {
+                const scHeader = document.querySelector('.card[data-type-guid="SCAN_RES"] .card-header');
+                if (scHeader && !document.getElementById('sr-run-btn')) {
+                    const btnContainer = document.createElement('div');
+                    btnContainer.style.display = 'flex';
+                    btnContainer.style.alignItems = 'center';
+                    btnContainer.style.gap = '6px';
+                    btnContainer.innerHTML = `
+                        <button id="sr-run-btn" onclick="initScannerSSE()" 
+                                style="background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.4); 
+                                color: var(--emerald-green); font-size: 9px; padding: 2px 6px; border-radius: 4px; 
+                                cursor: pointer; font-weight: 700;">RUN</button>
+                        <button id="sr-stop-btn" onclick="stopScanner()" 
+                                style="background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.4); 
+                                color: var(--ruby-red); font-size: 9px; padding: 2px 6px; border-radius: 4px; 
+                                cursor: pointer; font-weight: 700;">STOP</button>
+                    `;
+                    scHeader.insertBefore(btnContainer, scHeader.querySelector('.card-controls'));
+                }
+            }, 500);
+            UXManager.createCard('ORDER_HIST', {top: '59%', left: '1%', width: '41%', height: '39%'}, 'order_history');
+            UXManager.createCard('VLI_TELEMETRY', {top: '59%', left: '43%', width: '22%', height: '39%'}, 'telemetry');
+        }
+
+        function loadWorkspace(customKey = null) {
+            let targetKey = 'vli_wm_layout';
+            if (!customKey) {
+                const manual = prompt('Enter workspace name to load (leave blank for default):');
+                if (manual) targetKey = 'vli_wm_layout_' + manual;
+            } else {
+                targetKey = customKey;
+            }
+            
+            const saved = localStorage.getItem(targetKey);
+            if (!saved) {
+                if (targetKey === 'vli_wm_layout') {
+                    // Try fetching default layout from backend first
+                    fetch('/api/settings/default_layout')
+                    .then(res => res.json())
+                    .then(resData => {
+                        if (resData.status === 'success' && resData.layout) {
+                            applyLayout(resData.layout);
+                        } else {
+                            loadHardcodedDefaultLayout();
+                        }
+                    })
+                    .catch(() => {
+                        loadHardcodedDefaultLayout();
+                    });
+                } else {
+                    alert('Workspace not found: ' + targetKey);
+                }
+                return;
+            }
+            try {
+                const layout = JSON.parse(saved);
+                applyLayout(layout);
+                // Background sync layout to backend to keep default layout in sync
+                if (targetKey === 'vli_wm_layout') {
+                    setTimeout(saveLayout, 1000);
                 }
             } catch(e) {}
         }
@@ -2814,6 +2848,15 @@
                         renderShieldResults(data);
                         if (window.VLI_DEBUG) console.log("[VLI_ORCHESTRA] Satellite Node Re-Sync Successful.");
                     }
+                    if (e.data.type === 'CANDIDATES_UPDATE') {
+                        activeScannerCandidates = e.data.candidates;
+                        renderScannerResults({
+                            scanner_results: {
+                                pulse_mode: 'InstitutionalPulse',
+                                candidates: activeScannerCandidates
+                            }
+                        });
+                    }
                 };
             } else {
                 bc.onmessage = (e) => {
@@ -2821,6 +2864,15 @@
                         const instanceGuid = e.data.popoutId.replace('win-', '');
                         UXManager.createCard(e.data.typeGuid, {}, instanceGuid);
                         bc.postMessage({ type: 'REDOCK_COMPLETE', popoutId: e.data.popoutId });
+                    }
+                    if (e.data.type === 'CANDIDATES_UPDATE') {
+                        activeScannerCandidates = e.data.candidates;
+                        renderScannerResults({
+                            scanner_results: {
+                                pulse_mode: 'InstitutionalPulse',
+                                candidates: activeScannerCandidates
+                            }
+                        });
                     }
                 };
 
@@ -3386,7 +3438,7 @@
             }
         }
 
-        function drawSparkline(values, ticker = null, timeframe = null, trends = null) {
+        function drawSparkline(values, ticker = null, timeframe = null, trends = null, candidate = null) {
             // Generate deterministic sample sparkline if empty/missing and ticker is present
             if ((!values || values.length < 2) && ticker) {
                 let h = 0;
@@ -3466,7 +3518,10 @@
             const dotHTML = lastPoint ? `<circle cx="${lastPoint.x.toFixed(2)}" cy="${lastPoint.y.toFixed(2)}" r="2.5" fill="${dotColor}" style="filter: drop-shadow(0 0 3px ${dotColor});" />` : '';
 
             const trendText = trendVal ? ` (${trendVal})` : '';
-            const wrapperTitle = `${timeframe} Sparkline${trendText}`;
+            let wrapperTitle = `${timeframe} Sparkline${trendText}`;
+            if (candidate && candidate.price !== undefined) {
+                wrapperTitle += `\nPrice: $${parseFloat(candidate.price).toFixed(2)}`;
+            }
 
             return `
                 <div class="sparkline-wrapper" style="width: 64px; height: 16px; display: flex; align-items: center; position: relative;" title="${wrapperTitle}">
@@ -3553,21 +3608,22 @@
         function drawEQBarIndicator(val, isReversed, tooltipText, customColors = null) {
             const numVal = val !== undefined && val !== null ? parseFloat(val) : 0.0;
             
-            // Standard colors
-            const green = '#3fb950';
-            const yellow = '#ffdd00';
-            const gray = '#9ca3af';
-            const orange = '#ff8800';
+            // 4-color scheme colors + gray for equilibrium
+            const green = 'var(--emerald-green)';
+            const blue = 'var(--cobalt-blue)';
+            const gray = 'var(--text-muted)';
+            const gold = 'var(--amber-gold)';
             const red = 'var(--ruby-red)';
+            const darkRed = '#a61c24'; // Deep dark red shade
             
             // Map colors to segments
             let colors = [];
             if (customColors) {
                 colors = customColors;
             } else if (isReversed) {
-                colors = [green, green, yellow, yellow, gray, orange, orange, red, red];
+                colors = [green, green, blue, blue, gray, gold, gold, red, darkRed];
             } else {
-                colors = [red, red, orange, orange, gray, yellow, yellow, green, green];
+                colors = [darkRed, red, gold, gold, gray, blue, blue, green, green];
             }
             
             // Determine active/illuminated states
@@ -3589,7 +3645,13 @@
             let barsHtml = '';
             for (let i = 0; i < 9; i++) {
                 const opacity = active[i] ? '1.0' : '0.20';
-                barsHtml += `<div style="width: 4px; height: 12px; background: ${colors[i]}; opacity: ${opacity}; border-radius: 1px;"></div>`;
+                let brightnessStyle = '';
+                if (active[i]) {
+                    if ((i === 8 && numVal >= 1.0) || (i === 0 && numVal <= -1.0)) {
+                        brightnessStyle = 'filter: brightness(1.5);';
+                    }
+                }
+                barsHtml += `<div style="width: 4px; height: 12px; background: ${colors[i]}; opacity: ${opacity}; border-radius: 1px; ${brightnessStyle}"></div>`;
             }
             
             return `
@@ -3603,27 +3665,431 @@
         function drawDSCIndicator(val) {
             const pdVal = val !== undefined && val !== null ? parseFloat(val) : 0.0;
             const pdLabel = pdVal >= 0 ? '+' + pdVal.toFixed(1) : pdVal.toFixed(1);
-            const tooltipText = `${pdLabel}\n\n• <= -0.57: Deep Discount\n• -0.57 to -0.24: Mild Discount\n• -0.24 to +0.24: Equilibrium\n• +0.24 to +0.53: Mild Premium\n• >= +0.53: Deep Premium`;
-            const customColors = ['#ffffff', '#ffffff', '#cbd5e1', '#cbd5e1', '#9ca3af', '#a5c2f9', '#a5c2f9', '#7aa2f7', '#7aa2f7'];
-            return drawEQBarIndicator(pdVal, true, tooltipText, customColors);
+            
+            let zoneThreshold = "Equilibrium";
+            if (pdVal <= -0.57) zoneThreshold = "Deep Discount";
+            else if (pdVal <= -0.24) zoneThreshold = "Mild Discount";
+            else if (pdVal < 0.24) zoneThreshold = "Equilibrium";
+            else if (pdVal < 0.53) zoneThreshold = "Mild Premium";
+            else zoneThreshold = "Deep Premium";
+
+            const normVal = pdVal >= 0.0 ? (pdVal / 0.53) : (pdVal / 0.57);
+            const tooltipText = `${pdLabel} (${zoneThreshold})\n\n• <= -0.57: Deep Discount\n• -0.57 to -0.24: Mild Discount\n• -0.24 to +0.24: Equilibrium\n• +0.24 to +0.53: Mild Premium\n• >= +0.53: Deep Premium`;
+            return drawEQBarIndicator(normVal, true, tooltipText);
         }
+
+        function drawTrendEQBar(val) {
+            const trendVal = val !== undefined && val !== null ? parseFloat(val) : 0.0;
+            const trendLabel = trendVal >= 0 ? '+' + trendVal.toFixed(2) : trendVal.toFixed(2);
+            
+            let thresholdLabel = "Equilibrium";
+            if (trendVal <= -0.50) thresholdLabel = "Strong Bearish";
+            else if (trendVal <= -0.10) thresholdLabel = "Weak Bearish";
+            else if (trendVal < 0.10) thresholdLabel = "Equilibrium";
+            else if (trendVal < 0.50) thresholdLabel = "Weak Bullish";
+            else thresholdLabel = "Strong Bullish";
+
+            const normVal = trendVal / 0.50;
+            const tooltipText = `${trendLabel} (${thresholdLabel})\n\n• <= -0.50: Strong Bearish\n• -0.50 to -0.10: Weak Bearish\n• -0.10 to +0.10: Equilibrium\n• +0.10 to +0.50: Weak Bullish\n• >= +0.50: Strong Bullish`;
+            return drawEQBarIndicator(normVal, false, tooltipText);
+        }
+
+        function drawZoneEntryEQBar(adjustedZoneVal) {
+            const adjVal = adjustedZoneVal !== undefined && adjustedZoneVal !== null ? parseFloat(adjustedZoneVal) : 0.0;
+            
+            let discountPct = 0.0;
+            if (adjVal > 0.0) {
+                discountPct = Math.min(1.0, adjVal);
+            }
+            
+            let numActive = 1;
+            if (adjVal > 0.0) {
+                numActive = Math.max(1, Math.ceil(discountPct * 9));
+            }
+            
+            let active = new Array(9).fill(false);
+            for (let i = 0; i < numActive; i++) {
+                active[i] = true;
+            }
+            
+            const red = 'var(--ruby-red)';
+            const orange = '#ff7a00';
+            const yellow = '#ffc400';
+            const blue = '#00e5ff';
+            const green = 'var(--emerald-green)';
+            
+            const colors = [red, red, orange, orange, yellow, yellow, blue, blue, green];
+            
+            let barsHtml = '';
+            for (let i = 0; i < 9; i++) {
+                const opacity = active[i] ? '1.0' : '0.20';
+                let brightnessStyle = '';
+                if (active[i] && i === 8 && discountPct >= 0.9) {
+                    brightnessStyle = 'filter: brightness(1.5);';
+                }
+                barsHtml += `<div style="width: 4px; height: 12px; background: ${colors[i]}; opacity: ${opacity}; border-radius: 1px; ${brightnessStyle}"></div>`;
+            }
+            
+            let tooltipText = "";
+            if (adjVal <= 0.0) {
+                tooltipText = `Discount Zone: NO\n(Current price is NOT in discount zone)\n\n• Red: No Discount\n• Green (9th bar): Full Discount (Meets Deep Discount threshold)`;
+            } else if (discountPct >= 0.9) {
+                tooltipText = `Discount Zone: HARD YES\n(Current price is fully in discount zone)\n\n• Red: No Discount\n• Green (9th bar): Full Discount (Meets Deep Discount threshold)`;
+            } else {
+                tooltipText = `Discount Zone: YES (${Math.round(discountPct * 100)}% to target)\n\n• Red: No Discount\n• Green (9th bar): Full Discount (Meets Deep Discount threshold)`;
+            }
+            
+            return `
+                <div style="display: flex; gap: 2px; align-items: center; justify-content: center; height: 14px;" 
+                     title="${tooltipText}">
+                    ${barsHtml}
+                </div>
+            `;
+        }
+
+        function calculateConfidenceScore(c, card) {
+            let trendVal = getTrendValueForCandidate(card, c);
+            if (trendVal === undefined || trendVal === null) {
+                trendVal = 0.0;
+            }
+            const activeSide = card.dataset.activeSide || 'TREND';
+            let isBullish = trendVal >= 0.0;
+            if (activeSide === 'LONG') {
+                isBullish = true;
+            } else if (activeSide === 'SHORT') {
+                isBullish = false;
+            }
+            
+            let trendScore = 0.0;
+            if (activeSide === 'LONG') {
+                trendScore = Math.max(0.0, trendVal);
+            } else if (activeSide === 'SHORT') {
+                trendScore = Math.max(0.0, -trendVal);
+            } else {
+                trendScore = Math.abs(trendVal);
+            }
+
+            let rawZone = (card.zoneValues && c.symbol in card.zoneValues) ? card.zoneValues[c.symbol] : c.pd_zone;
+            let zoneVal = rawZone !== undefined && rawZone !== null ? parseFloat(rawZone) : 0.0;
+            let adjustedZoneVal = isBullish ? -zoneVal : zoneVal;
+            let zoneScore = Math.max(0.0, Math.min(1.0, adjustedZoneVal));
+
+            let rvolVal = c.rvol !== undefined && c.rvol !== null ? parseFloat(c.rvol) : 1.0;
+            let rvolScore = Math.max(0.0, Math.min(1.0, (rvolVal - 0.5) / 1.5));
+
+            let vwapVal = c.vwap_state !== undefined && c.vwap_state !== null ? parseFloat(c.vwap_state) : 0.0;
+            let vwapScore = 0.0;
+            if (vwapVal >= 0.1 && vwapVal <= 0.5) {
+                vwapScore = 1.0;
+            } else if (vwapVal > 0.5) {
+                vwapScore = Math.max(0.0, 1.0 - (vwapVal - 0.5) / 0.3);
+            } else if (vwapVal > 0.0) {
+                vwapScore = vwapVal / 0.1;
+            }
+
+            let sortinoVal = c.sortino !== undefined && c.sortino !== null ? parseFloat(c.sortino) : 0.0;
+            let sortinoScore = Math.max(0.0, Math.min(1.0, sortinoVal / 1.5));
+
+            let total = (trendScore * 0.30) + (zoneScore * 0.30) + (rvolScore * 0.15) + (vwapScore * 0.15) + (sortinoScore * 0.10);
+            return {
+                total,
+                trendScore,
+                zoneScore,
+                rvolScore,
+                vwapScore,
+                sortinoScore
+            };
+        }
+
+        function drawConfidenceEQBar(scoreObj) {
+            const total = scoreObj.total;
+            const numActive = Math.max(1, Math.ceil(total * 9));
+            
+            let active = new Array(9).fill(false);
+            for (let i = 0; i < numActive; i++) {
+                active[i] = true;
+            }
+            
+            const red = 'var(--ruby-red)';
+            const orange = '#ff7a00';
+            const yellow = '#ffc400';
+            const blue = '#00e5ff';
+            const green = 'var(--emerald-green)';
+            
+            const colors = [red, red, orange, orange, yellow, yellow, blue, blue, green];
+            
+            let barsHtml = '';
+            for (let i = 0; i < 9; i++) {
+                const opacity = active[i] ? '1.0' : '0.20';
+                let brightnessStyle = '';
+                if (active[i] && i === 8 && total >= 0.9) {
+                    brightnessStyle = 'filter: brightness(1.5);';
+                }
+                barsHtml += `<div style="width: 4px; height: 12px; background: ${colors[i]}; opacity: ${opacity}; border-radius: 1px; ${brightnessStyle}"></div>`;
+            }
+            
+            let tier = "D-Tier (Weak Setup)";
+            if (total >= 0.9) tier = "S-Tier (Perfect Setup)";
+            else if (total >= 0.75) tier = "A-Tier (Strong Setup)";
+            else if (total >= 0.6) tier = "B-Tier (Moderate Setup)";
+            else if (total >= 0.45) tier = "C-Tier (Fair Setup)";
+            
+            const tooltipText = `Setup Confidence: ${Math.round(total * 100)}% (${tier})\n\n` +
+                                `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 30%)\n` +
+                                `• Zone Entry: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 30%)\n` +
+                                `• Relative Volume: ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 15%)\n` +
+                                `• VWAP Position: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 15%)\n` +
+                                `• Sortino Ratio: ${Math.round(scoreObj.sortinoScore * 100)}% (Weight: 10%)`;
+                                
+            return `
+                <div style="display: flex; gap: 2px; align-items: center; justify-content: center; height: 14px;" 
+                     title="${tooltipText}">
+                    ${barsHtml}
+                </div>
+            `;
+        }
+
+        function drawRrEQBar(maxRrVal, targetRrVal) {
+            const maxRr = maxRrVal !== undefined && maxRrVal !== null ? parseFloat(maxRrVal) : 0.0;
+            const targetRr = targetRrVal !== undefined && targetRrVal !== null ? parseFloat(targetRrVal) : 3.0;
+            
+            let barsHtml = '';
+            for (let i = 0; i < 9; i++) {
+                const vi = ((i + 1) / 9.0) * targetRr;
+                
+                let segColor = 'var(--emerald-green)';
+                if (vi < 1.0) {
+                    segColor = 'var(--ruby-red)';
+                } else if (vi >= targetRr || targetRr <= 1.0) {
+                    segColor = 'var(--emerald-green)';
+                } else {
+                    const x = (vi - 1.0) / (targetRr - 1.0);
+                    if (x < 0.33) {
+                        segColor = '#ff7a00';
+                    } else if (x < 0.66) {
+                        segColor = '#ffc400';
+                    } else {
+                        segColor = '#00e5ff';
+                    }
+                }
+                
+                const isActive = maxRr >= vi;
+                const opacity = isActive ? '1.0' : '0.20';
+                let brightnessStyle = '';
+                if (isActive && i === 8 && maxRr >= targetRr) {
+                    brightnessStyle = 'filter: brightness(1.5);';
+                }
+                barsHtml += `<div style="width: 4px; height: 12px; background: ${segColor}; opacity: ${opacity}; border-radius: 1px; ${brightnessStyle}"></div>`;
+            }
+            
+            let thresholdLabel = "Breaches Threshold";
+            if (maxRr >= targetRr) {
+                thresholdLabel = "Target Met";
+            } else if (maxRr >= 1.0) {
+                const x = (maxRr - 1.0) / (targetRr - 1.0);
+                if (x < 0.33) thresholdLabel = "1:1 Achievable";
+                else if (x < 0.66) thresholdLabel = "2:1 Achievable";
+                else thresholdLabel = "3:1 Achievable";
+            }
+            
+            const tooltipText = `Risk-to-Reward: ${maxRr.toFixed(2)}:1 (${thresholdLabel})\n\n• Target RR: ${targetRr}:1\n• Red: < 1:1 (Breaches ATR*1.4 threshold)\n• Orange/Yellow/Blue: Graded achievement below target\n• Green: Meets or exceeds Target RR (extreme segment brightened)`;
+            
+            return `
+                <div style="display: flex; gap: 2px; align-items: center; justify-content: center; height: 14px;" 
+                     title="${tooltipText}">
+                    ${barsHtml}
+                </div>
+            `;
+        }
+
+        function getTrendValueForCandidate(card, c) {
+            if (card.trendValues && c.symbol in card.trendValues) {
+                return parseFloat(card.trendValues[c.symbol]);
+            }
+            const timeframe = card.dataset.trendTimeframe || '1d';
+            if (c.trends && timeframe in c.trends) {
+                const tStr = c.trends[timeframe];
+                if (tStr === 'Strong Bullish') return 1.0;
+                if (tStr === 'Bullish') return 0.6;
+                if (tStr === 'Weak Bullish') return 0.2;
+                if (tStr === 'Weak Bearish') return -0.2;
+                if (tStr === 'Bearish') return -0.6;
+                if (tStr === 'Strong Bearish') return -1.0;
+                if (tStr === 'Accumulation') return 0.0;
+            }
+            return 0.0;
+        }
+
+        window.generateCandidateRowInnerHTML = function(c, card) {
+            const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
+            const changeVal = parseFloat(c.change || c.gap || 0);
+            const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
+            
+            let rawZone = (card.zoneValues && c.symbol in card.zoneValues) ? card.zoneValues[c.symbol] : c.pd_zone;
+            let zoneVal = rawZone !== undefined && rawZone !== null ? parseFloat(rawZone) : 0.0;
+            let trendVal = getTrendValueForCandidate(card, c);
+            if (trendVal === undefined || trendVal === null) {
+                trendVal = 0.0;
+            }
+            const activeSide = card.dataset.activeSide || 'TREND';
+            let isBullish = trendVal >= 0.0;
+            if (activeSide === 'LONG') {
+                isBullish = true;
+            } else if (activeSide === 'SHORT') {
+                isBullish = false;
+            }
+            let adjustedZoneVal = isBullish ? -zoneVal : zoneVal;
+            
+            let zoneHtml = drawZoneEntryEQBar(adjustedZoneVal);
+            
+            let symbolHtml = '';
+            if (card.dataset.typeGuid === 'MACRO_WL') {
+                symbolHtml = `
+                    <td style="padding: 4px 16px; text-align: left; vertical-align: middle; max-width: 140px;">
+                        <div style="font-size: 10px; color: var(--text-muted); line-height: 1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.name || ''}</div>
+                        <div style="font-weight: 700; color: #fff;">${c.symbol}</div>
+                    </td>
+                `;
+            } else {
+                symbolHtml = `
+                    <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
+                        <div style="min-width: 32px; display: inline-block; box-sizing: border-box; font-weight: 700; color: #fff;">${c.symbol}</div>
+                    </td>
+                `;
+            }
+            
+            let priceText = '';
+            let priceColor = '#fff';
+            if (card.dataset.typeGuid === 'MACRO_WL') {
+                const isYield = ['TNX', 'TYX', 'FVX', 'BX', 'IRX'].some(y => c.symbol.toUpperCase().includes(y));
+                priceText = isYield ? `${parseFloat(c.price || 0).toFixed(2)}%` : `$${parseFloat(c.price || 0).toFixed(2)}`;
+                if (window.lastMacroWatchlistState && window.lastMacroWatchlistState[c.symbol]) {
+                    const lastPrice = window.lastMacroWatchlistState[c.symbol].price;
+                    if (c.price > lastPrice) priceColor = 'var(--price-up)';
+                    else if (c.price < lastPrice) priceColor = 'var(--price-down)';
+                }
+            } else {
+                priceText = `$${parseFloat(c.price || 0).toFixed(2)}`;
+            }
+            
+            const scoreObj = calculateConfidenceScore(c, card);
+            const confidenceHtml = drawConfidenceEQBar(scoreObj);
+            
+            const sortinoVal = c.sortino !== undefined ? c.sortino : c.score;
+            
+            let sparklineTfs = ['1m', '5m', '15m', '1h'];
+            if (card.dataset.sparklineTimeframes) {
+                sparklineTfs = card.dataset.sparklineTimeframes.split(',');
+            } else if (card.dataset.typeGuid === 'MACRO_WL') {
+                sparklineTfs = ['15m', '1h', '4h', '1d'];
+            }
+
+            let sparklinesHtml = '';
+            sparklineTfs.forEach(tf => {
+                const sparkData = c['sparkline_' + tf] || [];
+                sparklinesHtml += `
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                        <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">${tf}</span>
+                        ${drawSparkline(sparkData, c.symbol, tf, c.trends, c)}
+                    </div>
+                `;
+            });
+
+            return `
+                ${symbolHtml}
+                <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
+                    <div style="min-width: 24px; display: flex; justify-content: center; align-items: center; box-sizing: border-box;">
+                        ${isRefreshing ? 
+                        `<svg class="loading-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" title="Analysing"><circle cx="12" cy="12" r="10"></circle><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></svg>` : 
+                        `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.handleReportIconClick(event, '${c.symbol}', ${c.has_report}, this.closest('tr'))" title="Open PDF Report"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
+                    </div>
+                </td>
+                <td style="padding: 4px 16px; text-align: right; vertical-align: middle;">
+                    <div style="font-family: var(--font-mono); font-weight: 700; color: #fff;">${priceText}</div>
+                </td>
+                <td style="padding: 4px 16px; text-align: right; vertical-align: middle;">
+                    <div style="font-family: var(--font-mono); font-weight: 700; color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</div>
+                </td>
+                <td style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; justify-content: center; align-items: center; width: 100%; box-sizing: border-box; gap: 8px;">
+                        ${sparklinesHtml}
+                    </div>
+                </td>
+                <td class="trend-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.trendRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
+                        ${drawTrendEQBar(trendVal)}
+                    </div>
+                </td>
+                <td class="zone-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.zoneRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
+                        ${zoneHtml}
+                    </div>
+                </td>
+                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawRVOLIndicator(c.rvol)}
+                    </div>
+                </td>
+                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawVWAPIndicator(c.vwap_state)}
+                    </div>
+                </td>
+                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawSortinoIndicator(sortinoVal)}
+                    </div>
+                </td>
+                <td class="rr-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.rrRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
+                        ${(() => {
+                            let maxRrVal = (card.rrValues && c.symbol in card.rrValues) ? card.rrValues[c.symbol] : undefined;
+                            if (maxRrVal === undefined) {
+                                const sumChars = str => str.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+                                const h = sumChars(c.symbol || '') + sumChars(card.dataset.trendTimeframe || '4h');
+                                maxRrVal = 0.5 + (h % 50) / 10.0;
+                            }
+                            const targetRrVal = parseFloat(card.dataset.activeTargetRr || '3');
+                            return drawRrEQBar(maxRrVal, targetRrVal);
+                        })()}
+                    </div>
+                </td>
+                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.trendRecalculating === 'true' || card.dataset.zoneRecalculating === 'true' || card.dataset.rrRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
+                        ${confidenceHtml}
+                    </div>
+                </td>
+            `;
+        };
 
         function drawVWAPIndicator(val) {
             const vwapVal = val !== undefined && val !== null ? parseFloat(val) : 0.0;
             const vwapLabel = vwapVal >= 0 ? '+' + vwapVal.toFixed(2) : vwapVal.toFixed(2);
-            const tooltipText = `${vwapLabel}\n\n• <= -0.50: Strong Bearish\n• -0.50 to -0.10: Weak Bearish\n• -0.10 to +0.10: At VWAP\n• +0.10 to +0.50: Weak Bullish\n• >= +0.50: Strong Bullish`;
+            
+            let vwapThreshold = "At VWAP";
+            if (vwapVal <= -0.50) vwapThreshold = "Strong Bearish";
+            else if (vwapVal <= -0.10) vwapThreshold = "Weak Bearish";
+            else if (vwapVal < 0.10) vwapThreshold = "At VWAP";
+            else if (vwapVal < 0.50) vwapThreshold = "Weak Bullish";
+            else vwapThreshold = "Strong Bullish";
+
+            const tooltipText = `${vwapLabel} (${vwapThreshold})\n\n• <= -0.50: Strong Bearish\n• -0.50 to -0.10: Weak Bearish\n• -0.10 to +0.10: At VWAP\n• +0.10 to +0.50: Weak Bullish\n• >= +0.50: Strong Bullish`;
             return drawEQBarIndicator(vwapVal, false, tooltipText);
         }
 
         function drawRVOLIndicator(val) {
             const rvolVal = val !== undefined && val !== null ? parseFloat(val) : 1.0;
             const displayLabel = rvolVal.toFixed(1);
-            
-            // Map RVOL around 1.0 baseline (positive/negative deviation)
             const deviation = rvolVal - 1.0;
             
-            const tooltipText = `${displayLabel}\n\n• <= 0.25: Extremely Low (Red)\n• 0.25-0.75: Low (Orange)\n• 0.75-1.25: Baseline (Gray)\n• 1.25-1.75: Elevated (Yellow)\n• >= 1.75: Active / High (Green)`;
-            
+            let rvolThreshold = "Baseline";
+            if (rvolVal <= 0.25) rvolThreshold = "Extremely Low";
+            else if (rvolVal <= 0.75) rvolThreshold = "Low";
+            else if (rvolVal <= 1.25) rvolThreshold = "Baseline";
+            else if (rvolVal <= 1.75) rvolThreshold = "Elevated";
+            else rvolThreshold = "Active / High";
+
+            const tooltipText = `${displayLabel} (${rvolThreshold})\n\n• <= 0.25: Extremely Low (Red)\n• 0.25-0.75: Low (Orange)\n• 0.75-1.25: Baseline (Gray)\n• 1.25-1.75: Elevated (Yellow)\n• >= 1.75: Active / High (Green)`;
             return drawEQBarIndicator(deviation, false, tooltipText);
         }
 
@@ -3631,8 +4097,14 @@
             const sortinoVal = val !== undefined && val !== null ? parseFloat(val) : 0.0;
             const displayLabel = sortinoVal.toFixed(2);
             
-            const tooltipText = `${displayLabel}\n\n• <= -1.50: Extremely Poor (Red)\n• -1.50 to -0.50: Low / Negative (Orange)\n• -0.50 to +0.50: Neutral / Okay (Gray)\n• +0.50 to +1.50: Good (Yellow)\n• >= +1.50: Optimal Risk-Adjusted (Green)`;
-            
+            let sortinoThreshold = "Neutral / Okay";
+            if (sortinoVal <= -1.50) sortinoThreshold = "Extremely Poor";
+            else if (sortinoVal <= -0.50) sortinoThreshold = "Low / Negative";
+            else if (sortinoVal <= 0.50) sortinoThreshold = "Neutral / Okay";
+            else if (sortinoVal <= 1.50) sortinoThreshold = "Good";
+            else sortinoThreshold = "Optimal Risk-Adjusted";
+
+            const tooltipText = `${displayLabel} (${sortinoThreshold})\n\n• <= -1.50: Extremely Poor (Red)\n• -1.50 to -0.50: Low / Negative (Orange)\n• -0.50 to +0.50: Neutral / Okay (Gray)\n• +0.50 to +1.50: Good (Yellow)\n• >= +1.50: Optimal Risk-Adjusted (Green)`;
             return drawEQBarIndicator(sortinoVal, false, tooltipText);
         }
 
@@ -3965,6 +4437,18 @@
             if (!window.lastMacroWatchlistState) window.lastMacroWatchlistState = {};
 
             document.querySelectorAll('.card[data-type-guid="MACRO_WL"]').forEach(card => {
+                if (!card.dataset.activeDuration) card.dataset.activeDuration = 'SWING_MED';
+                if (!card.dataset.activeSide) card.dataset.activeSide = 'TREND';
+                if (!card.dataset.activeTargetRr) card.dataset.activeTargetRr = '3';
+                if (!card.dataset.trendTimeframe) card.dataset.trendTimeframe = '4h';
+                if (!card.dataset.zoneLookback) card.dataset.zoneLookback = '20';
+
+                let sparklineTfs = ['15m', '1h', '4h', '1d'];
+                if (card.dataset.sparklineTimeframes) {
+                    sparklineTfs = card.dataset.sparklineTimeframes.split(',');
+                }
+                const tfTitle = `Sparkline Charts (${sparklineTfs.join(', ')})`;
+
                 let body = card.querySelector('.card-body');
                 if (!body) {
                     console.warn("[VLI_UI_HEALING] MACRO_WL missing .card-body. Auto-injecting structure.");
@@ -3982,15 +4466,45 @@
                 if (!table) {
                     body.innerHTML = `
                         <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
-                            <div style="display:flex; gap: 8px; align-items: center;">
-                                <select id="macro-filter-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="handleMacroFilterChange(this)">
-                                    <option value="ALL">All Macro Assets</option>
-                                    <option value="EQUITY">Equity Indices</option>
-                                    <option value="RATES">Rates & Yields</option>
-                                    <option value="COMMODITIES">Commodities</option>
-                                    <option value="CURRENCIES">Currencies & Volatility</option>
-                                    <option value="CRYPTO">Cryptocurrencies</option>
-                                </select>
+                            <div style="display:flex; gap: 12px; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="font-weight: 600; text-transform: uppercase;">Filter:</span>
+                                    <select id="macro-filter-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="handleMacroFilterChange(this)">
+                                        <option value="ALL">All Macro Assets</option>
+                                        <option value="EQUITY">Equity Indices</option>
+                                        <option value="RATES">Rates & Yields</option>
+                                        <option value="COMMODITIES">Commodities</option>
+                                        <option value="CURRENCIES">Currencies & Volatility</option>
+                                        <option value="CRYPTO">Cryptocurrencies</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="font-weight: 600; text-transform: uppercase;">Timeframe:</span>
+                                    <select id="timeframe-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="window.handleCardTimeframeChange(this)">
+                                        <option value="DAY" ${card.dataset.activeDuration === 'DAY' ? 'selected' : ''}>Day Trade</option>
+                                        <option value="SWING_LOW" ${card.dataset.activeDuration === 'SWING_LOW' ? 'selected' : ''}>Swing (Low)</option>
+                                        <option value="SWING_MED" ${card.dataset.activeDuration === 'SWING_MED' ? 'selected' : ''}>Swing (Med)</option>
+                                        <option value="HOLD" ${card.dataset.activeDuration === 'HOLD' ? 'selected' : ''}>Hold</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="font-weight: 600; text-transform: uppercase;">Side:</span>
+                                    <select id="side-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="window.handleCardSideChange(this)">
+                                        <option value="LONG" ${card.dataset.activeSide === 'LONG' ? 'selected' : ''}>Long</option>
+                                        <option value="SHORT" ${card.dataset.activeSide === 'SHORT' ? 'selected' : ''}>Short</option>
+                                        <option value="TREND" ${(!card.dataset.activeSide || card.dataset.activeSide === 'TREND') ? 'selected' : ''}>Trend</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="font-weight: 600; text-transform: uppercase;">Target RR:</span>
+                                    <select id="target-rr-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="window.handleCardTargetRrChange(this)">
+                                        <option value="1" ${card.dataset.activeTargetRr === '1' ? 'selected' : ''}>1:1</option>
+                                        <option value="2" ${card.dataset.activeTargetRr === '2' ? 'selected' : ''}>2:1</option>
+                                        <option value="3" ${(!card.dataset.activeTargetRr || card.dataset.activeTargetRr === '3') ? 'selected' : ''}>3:1</option>
+                                        <option value="4" ${card.dataset.activeTargetRr === '4' ? 'selected' : ''}>4:1</option>
+                                        <option value="10" ${card.dataset.activeTargetRr === '10' ? 'selected' : ''}>10:1</option>
+                                    </select>
+                                </div>
                             </div>
                             <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="mw-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
@@ -4002,12 +4516,14 @@
                                         <th style="padding: 4px 16px; text-align: center;" title="Specialist Structural Analysis Report"><div style="min-width: 24px; box-sizing: border-box;">DOC</div></th>
                                         <th style="padding: 4px 16px; text-align: center;" title="Latest Close Price"><div style="min-width: 48px; box-sizing: border-box;">PRICE</div></th>
                                         <th style="padding: 4px 16px; text-align: center;" title="Price Change from Open"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
-                                        <th style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Sparkline Charts (1m, 5m, 15m, 1h)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CHART</div></th>
-                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">Zone</div></th>
-                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
-                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
-                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
-                                        <th style="padding: 4px 16px; text-align: center;" title="Overall Quantitative Grade (S, A+, A, B+, B, C)"><div style="min-width: 32px; box-sizing: border-box;">GRADE</div></th>
+                                        <th style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="${tfTitle}"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CHART</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Timeframe Trend Alignment (EQ Bar): Bearish/Red <= -0.50, Neutral/Gray = 0.0, Bullish/Green >= +0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">TREND</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">ZONE ENTRY</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Zone Entry, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -4039,6 +4555,20 @@
                     if (cb) {
                         cb.checked = window.vliScannerTrackSpy && window.vliScannerTrackSpy[card.dataset.instanceGuid] ? true : false;
                     }
+                }
+                
+                let currentLookback = card.dataset.zoneLookback || '20';
+                card.dataset.zoneLookback = currentLookback;
+                const selectEl = body.querySelector('.zone-lookback-select');
+                if (selectEl) {
+                    selectEl.value = currentLookback;
+                }
+                
+                let currentTrendTimeframe = card.dataset.trendTimeframe || '1d';
+                card.dataset.trendTimeframe = currentTrendTimeframe;
+                const trendSelectEl = body.querySelector('.trend-timeframe-select');
+                if (trendSelectEl) {
+                    trendSelectEl.value = currentTrendTimeframe;
                 }
                 
                 const tbody = table.querySelector('tbody');
@@ -4081,7 +4611,7 @@
                 if (filteredCandidates.length === 0) {
                     tbody.innerHTML = `
                         <tr style="border: none;">
-                            <td colspan="11" style="text-align: center; padding: 30px 10px; font-size: 12px; color: var(--text-muted); font-style: italic;">No macro assets passed selection criteria.</td>
+                            <td colspan="12" style="text-align: center; padding: 30px 10px; font-size: 12px; color: var(--text-muted); font-style: italic;">No macro assets passed selection criteria.</td>
                         </tr>
                     `;
                 }
@@ -4090,16 +4620,6 @@
                 filteredCandidates.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
                 
                 filteredCandidates.forEach(c => {
-                    let gradeColor = 'var(--text-muted)';
-                    let gradeBg = 'rgba(255,255,255,0.05)';
-                    let gradeBorder = 'rgba(255,255,255,0.2)';
-
-                    if (c.grade === 'S') { gradeColor = '#ffaa00'; gradeBg = 'rgba(255, 170, 0, 0.1)'; gradeBorder = 'rgba(255, 170, 0, 0.3)'; }
-                    else if (c.grade === 'A+' || c.grade === 'A') { gradeColor = '#d866ff'; gradeBg = 'rgba(216, 102, 255, 0.1)'; gradeBorder = 'rgba(216, 102, 255, 0.3)'; }
-                    else if (c.grade === 'B+' || c.grade === 'B') { gradeColor = '#00aaff'; gradeBg = 'rgba(0, 170, 255, 0.1)'; gradeBorder = 'rgba(0, 170, 255, 0.3)'; }
-                    else if (c.grade === 'C+' || c.grade === 'C') { gradeColor = '#3fb950'; gradeBg = 'rgba(63, 185, 80, 0.1)'; gradeBorder = 'rgba(63, 185, 80, 0.3)'; }
-                    else { gradeColor = 'var(--ruby-red)'; gradeBg = 'rgba(248, 81, 73, 0.1)'; gradeBorder = 'rgba(248, 81, 73, 0.3)'; }
-
                     const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
                     
                     const tr = document.createElement('tr');
@@ -4113,89 +4633,13 @@
                     
                     tr.onclick = () => insertCardIdIntoChat(`analyze ${c.symbol}`);
                     
-                    const changeVal = parseFloat(c.change || 0);
-                    const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
-                    
-
-
-
-                    
-                    const isYield = ['TNX', 'TYX', 'FVX', 'BX', 'IRX'].some(y => c.symbol.toUpperCase().includes(y));
-                    const priceDisplay = isYield ? `${parseFloat(c.price || 0).toFixed(2)}%` : `$${parseFloat(c.price || 0).toFixed(2)}`;
-                    
-                    let color = '#fff';
+                    // Track watchlist price state (stored uniquely for macro list blinking)
                     if (window.lastMacroWatchlistState[c.symbol]) {
-                        const lastPrice = window.lastMacroWatchlistState[c.symbol].price;
-                        if (c.price > lastPrice) color = 'var(--price-up)';
-                        else if (c.price < lastPrice) color = 'var(--price-down)';
+                        // Note: updated inside generateCandidateRowInnerHTML, but we keep the track state here too for continuity
                     }
                     window.lastMacroWatchlistState[c.symbol] = { price: c.price };
 
-                    tr.innerHTML = `
-                        <td style="padding: 4px 16px; text-align: left; vertical-align: middle; max-width: 140px;">
-                            <div style="font-size: 10px; color: var(--text-muted); line-height: 1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.name || ''}</div>
-                            <div style="font-weight: 700; color: #fff;">${c.symbol}</div>
-                        </td>
-                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
-                            <div style="min-width: 24px; display: flex; justify-content: center; align-items: center; box-sizing: border-box;">
-                                ${isRefreshing ? 
-                                `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
-                                : 
-                                `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.handleReportIconClick(event, '${c.symbol}', ${c.has_report}, this.closest('tr'))" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
-                            </div>
-                        </td>
-                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
-                            <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: ${color}; transition: color 0.5s ease;">${priceDisplay}</div>
-                        </td>
-                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
-                            <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</div>
-                        </td>
-                        <td style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                            <div style="display: flex; justify-content: center; align-items: center; width: 100%; box-sizing: border-box; gap: 8px;">
-                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">1m</span>
-                                    ${drawSparkline(c.sparkline_1m, c.symbol, '1m', c.trends)}
-                                </div>
-                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">5m</span>
-                                    ${drawSparkline(c.sparkline_5m, c.symbol, '5m', c.trends)}
-                                </div>
-                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">15m</span>
-                                    ${drawSparkline(c.sparkline_15m, c.symbol, '15m', c.trends)}
-                                </div>
-                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">1h</span>
-                                    ${drawSparkline(c.sparkline_1h, c.symbol, '1h', c.trends)}
-                                </div>
-                            </div>
-                        </td>
-                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                                ${drawDSCIndicator(c.pd_zone)}
-                            </div>
-                        </td>
-                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                                ${drawRVOLIndicator(c.rvol)}
-                            </div>
-                        </td>
-                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                                ${drawVWAPIndicator(c.vwap_state)}
-                            </div>
-                        </td>
-                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                                ${drawSortinoIndicator(c.sortino)}
-                            </div>
-                        </td>
-                        <td style="padding: 4px 16px; vertical-align: middle;">
-                            <div style="min-width: 32px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
-                                <span style="display: inline-block; width: 32px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; padding: 2px 0; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid ${gradeBorder};">${c.grade || 'F'}</span>
-                            </div>
-                        </td>
-                    `;
+                    tr.innerHTML = generateCandidateRowInnerHTML(c, card);
                     
                     if (isRefreshing) {
                         Array.from(tr.children).forEach((td, idx) => {
@@ -4278,9 +4722,12 @@
             }
             
             window._vliIsScanning = true;
+            activeScannerCandidates = [];
+            window.vliNewSymbols.clear();
             updateScannerResultsUI();
             
-            scannerEventSource = new EventSource('/api/scanner/stream');
+            const lb = window.zoneLookback || 20;
+            scannerEventSource = new EventSource(`/api/scanner/stream?pd_lookback=${lb}`);
 
             scannerEventSource.onmessage = (e) => {
                 const data = JSON.parse(e.data);
@@ -4300,16 +4747,16 @@
                     appendSystemLog(`[PHASE 1] Structural Verify: ${data.msg || data.message || 'Applying Sortino filters...'}`, 'rgba(0, 170, 255, 0.7)');
                 } else if (data.type === 'phase2') {
                     const candidates = data.data || data.candidates || [];
-                    const existingSymbols = new Set(activeScannerCandidates.map(c => c.symbol));
-                    const newCandidates = candidates.filter(c => !existingSymbols.has(c.symbol));
-                    
-                    newCandidates.forEach(c => window.vliNewSymbols.add(c.symbol));
-                    activeScannerCandidates = [...activeScannerCandidates, ...newCandidates];
-                    
-                    newCandidates.forEach(c => {
-                        appendSystemLog(`[SELECTED] ${c.symbol} (Score: ${c.score || c.sortino || 'N/A'}) - Passing Pulse Filter.`, 'var(--emerald-green)');
+                    candidates.forEach(incoming => {
+                        const existing = activeScannerCandidates.find(c => c.symbol === incoming.symbol);
+                        if (existing) {
+                            Object.assign(existing, incoming);
+                        } else {
+                            window.vliNewSymbols.add(incoming.symbol);
+                            activeScannerCandidates.push(incoming);
+                            appendSystemLog(`[SELECTED] ${incoming.symbol} (Score: ${incoming.score || incoming.sortino || 'N/A'}) - Passing Pulse Filter.`, 'var(--emerald-green)');
+                        }
                     });
-                    
                     updateScannerResultsUI();
                 }
             };
@@ -4333,17 +4780,16 @@
                 const data = JSON.parse(e.data);
                 const candidates = data.data || data.candidates || [];
                 if (candidates && candidates.length > 0) {
-                    // Filter duplicates and merge
-                    const existingSymbols = new Set(activeScannerCandidates.map(c => c.symbol));
-                    const newCandidates = candidates.filter(c => !existingSymbols.has(c.symbol));
-                    
-                    newCandidates.forEach(c => window.vliNewSymbols.add(c.symbol));
-                    activeScannerCandidates = [...activeScannerCandidates, ...newCandidates];
-                    
-                    newCandidates.forEach(c => {
-                        appendSystemLog(`[SELECTED] ${c.symbol} (Score: ${c.score || c.sortino || 'N/A'}) - Passing Pulse Filter.`, 'var(--emerald-green)');
+                    candidates.forEach(incoming => {
+                        const existing = activeScannerCandidates.find(c => c.symbol === incoming.symbol);
+                        if (existing) {
+                            Object.assign(existing, incoming);
+                        } else {
+                            window.vliNewSymbols.add(incoming.symbol);
+                            activeScannerCandidates.push(incoming);
+                            appendSystemLog(`[SELECTED] ${incoming.symbol} (Score: ${incoming.score || incoming.sortino || 'N/A'}) - Passing Pulse Filter.`, 'var(--emerald-green)');
+                        }
                     });
-                    
                     updateScannerResultsUI();
                 }
             });
@@ -4357,6 +4803,7 @@
 
         function stopScanner() {
             window._vliIsScanning = false;
+            window.vliLookbackRecalculating = false;
             if (scannerEventSource) {
                 scannerEventSource.close();
                 scannerEventSource = null;
@@ -4364,6 +4811,279 @@
             }
             updateScannerResultsUI();
         }
+
+        window.handleCardTimeframeChange = function(selectEl) {
+            const card = selectEl.closest('.card');
+            if (!card) return;
+            
+            const duration = selectEl.value;
+            card.dataset.activeDuration = duration;
+            
+            let trendTf = "4h";
+            let zoneLb = "20";
+            if (duration === 'DAY') {
+                trendTf = "15m";
+                zoneLb = "1";
+            } else if (duration === 'SWING_LOW') {
+                trendTf = "1h";
+                zoneLb = "3";
+            } else if (duration === 'SWING_MED') {
+                trendTf = "4h";
+                zoneLb = "20";
+            } else if (duration === 'HOLD') {
+                trendTf = "1d";
+                zoneLb = "60";
+            }
+            
+            card.dataset.trendTimeframe = trendTf;
+            card.dataset.zoneLookback = zoneLb;
+            
+            let symbols = [];
+            if (card.dataset.typeGuid === 'SCAN_RES') {
+                const filterEl = card.querySelector('#scan-filter-' + card.dataset.instanceGuid);
+                const activeFilter = filterEl ? filterEl.value : 'SHIELD';
+                let candidates = activeScannerCandidates;
+                let filtered = candidates.filter(c => {
+                    if (activeFilter === 'SNIPER' && c.tier === 'SNIPER') return true;
+                    if (activeFilter === 'SHIELD' && c.tier === 'SHIELD') return true;
+                    if (activeFilter === 'SWORD' && (c.tier === 'SWORD' || !c.tier)) return true;
+                    return false;
+                });
+                symbols = filtered.map(c => c.symbol);
+            } else if (card.dataset.typeGuid === 'MACRO_WL') {
+                const candidates = (window.lastMacroWatchlistData && window.lastMacroWatchlistData.macro_watchlist_content && window.lastMacroWatchlistData.macro_watchlist_content.candidates)
+                    ? window.lastMacroWatchlistData.macro_watchlist_content.candidates
+                    : [];
+                symbols = candidates.map(c => c.symbol);
+            }
+            
+            if (symbols.length === 0) return;
+            
+            // Dim cells
+            card.querySelectorAll('.trend-column-cell div').forEach(div => {
+                div.style.opacity = '0.3';
+                div.style.filter = 'blur(0.5px)';
+            });
+            card.querySelectorAll('.zone-column-cell div').forEach(div => {
+                div.style.opacity = '0.3';
+                div.style.filter = 'blur(0.5px)';
+            });
+            card.querySelectorAll('.rr-column-cell div').forEach(div => {
+                div.style.opacity = '0.3';
+                div.style.filter = 'blur(0.5px)';
+            });
+            
+            card.dataset.trendRecalculating = "true";
+            card.dataset.zoneRecalculating = "true";
+            card.dataset.rrRecalculating = "true";
+            
+            console.log(`[VLI_PROFILE] Profile change to ${duration} on card ${card.id}. recalculating trend (${trendTf}), zone (${zoneLb}) and RR.`);
+            
+            const p1 = fetch('/api/scanner/recalculate_trend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tickers: symbols, timeframe: trendTf })
+            })
+            .then(res => res.json())
+            .then(resData => {
+                card.dataset.trendRecalculating = "false";
+                if (resData.status === 'success') {
+                    if (!card.trendValues) card.trendValues = {};
+                    Object.assign(card.trendValues, resData.data);
+                }
+            })
+            .catch(err => {
+                console.error("[VLI_PROFILE] Recalculate trend error:", err);
+                card.dataset.trendRecalculating = "false";
+            });
+
+            const p2 = fetch('/api/scanner/recalculate_zone', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tickers: symbols, lookback_days: parseInt(zoneLb) })
+            })
+            .then(res => res.json())
+            .then(resData => {
+                card.dataset.zoneRecalculating = "false";
+                if (resData.status === 'success') {
+                    if (!card.zoneValues) card.zoneValues = {};
+                    Object.assign(card.zoneValues, resData.data);
+                }
+            })
+            .catch(err => {
+                console.error("[VLI_PROFILE] Recalculate zone error:", err);
+                card.dataset.zoneRecalculating = "false";
+            });
+
+            // Prepare trend map for p3
+            const p3 = Promise.resolve(p1).then(() => {
+                const trendMap = {};
+                if (card.trendValues) {
+                    Object.assign(trendMap, card.trendValues);
+                }
+                symbols.forEach(sym => {
+                    if (!(sym in trendMap)) trendMap[sym] = 0.0;
+                });
+                
+                return fetch('/api/scanner/recalculate_rr', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tickers: symbols,
+                        timeframe: trendTf,
+                        lookback_days: parseInt(zoneLb),
+                        side: card.dataset.activeSide || 'TREND',
+                        trend_values: trendMap
+                    })
+                });
+            })
+            .then(res => res.json())
+            .then(resData => {
+                card.dataset.rrRecalculating = "false";
+                if (resData.status === 'success') {
+                    if (!card.rrValues) card.rrValues = {};
+                    Object.assign(card.rrValues, resData.data);
+                }
+            })
+            .catch(err => {
+                console.error("[VLI_PROFILE] Recalculate RR error:", err);
+                card.dataset.rrRecalculating = "false";
+            });
+
+            Promise.all([p1, p2, p3]).then(() => {
+                if (card.dataset.typeGuid === 'SCAN_RES') {
+                    renderScannerResults({
+                        scanner_results: {
+                            pulse_mode: 'InstitutionalPulse',
+                            candidates: activeScannerCandidates
+                        }
+                    });
+                } else if (card.dataset.typeGuid === 'MACRO_WL') {
+                    if (window.lastMacroWatchlistData) {
+                        renderWatchlist(window.lastMacroWatchlistData);
+                    }
+                }
+            });
+        };
+
+        window.handleCardSideChange = function(selectEl) {
+            const card = selectEl.closest('.card');
+            if (!card) return;
+            
+            const newSide = selectEl.value;
+            card.dataset.activeSide = newSide;
+            console.log(`[VLI_PROFILE] Side selection updated to: ${newSide}`);
+            
+            // Dim RR cells only
+            card.querySelectorAll('.rr-column-cell div').forEach(div => {
+                div.style.opacity = '0.3';
+                div.style.filter = 'blur(0.5px)';
+            });
+            card.dataset.rrRecalculating = "true";
+            
+            // Re-render immediately
+            if (card.dataset.typeGuid === 'SCAN_RES') {
+                renderScannerResults({
+                    scanner_results: {
+                        pulse_mode: 'InstitutionalPulse',
+                        candidates: activeScannerCandidates
+                    }
+                });
+            } else if (card.dataset.typeGuid === 'MACRO_WL') {
+                if (window.lastMacroWatchlistData) {
+                    renderWatchlist(window.lastMacroWatchlistData);
+                }
+            }
+            
+            // Trigger recalculation of RR for the new Side
+            let symbols = [];
+            if (card.dataset.typeGuid === 'SCAN_RES') {
+                const filterEl = card.querySelector('#scan-filter-' + card.dataset.instanceGuid);
+                const activeFilter = filterEl ? filterEl.value : 'SHIELD';
+                let candidates = activeScannerCandidates;
+                let filtered = candidates.filter(c => {
+                    if (activeFilter === 'SNIPER' && c.tier === 'SNIPER') return true;
+                    if (activeFilter === 'SHIELD' && c.tier === 'SHIELD') return true;
+                    if (activeFilter === 'SWORD' && (c.tier === 'SWORD' || !c.tier)) return true;
+                    return false;
+                });
+                symbols = filtered.map(c => c.symbol);
+            } else if (card.dataset.typeGuid === 'MACRO_WL') {
+                const candidates = (window.lastMacroWatchlistData && window.lastMacroWatchlistData.macro_watchlist_content && window.lastMacroWatchlistData.macro_watchlist_content.candidates)
+                    ? window.lastMacroWatchlistData.macro_watchlist_content.candidates
+                    : [];
+                symbols = candidates.map(c => c.symbol);
+            }
+            
+            if (symbols.length === 0) return;
+            
+            const trendMap = {};
+            if (card.trendValues) {
+                Object.assign(trendMap, card.trendValues);
+            }
+            symbols.forEach(sym => {
+                if (!(sym in trendMap)) trendMap[sym] = 0.0;
+            });
+            
+            fetch('/api/scanner/recalculate_rr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tickers: symbols,
+                    timeframe: card.dataset.trendTimeframe || '4h',
+                    lookback_days: parseInt(card.dataset.zoneLookback || '20'),
+                    side: newSide,
+                    trend_values: trendMap
+                })
+            })
+            .then(res => res.json())
+            .then(resData => {
+                card.dataset.rrRecalculating = "false";
+                if (resData.status === 'success') {
+                    if (!card.rrValues) card.rrValues = {};
+                    Object.assign(card.rrValues, resData.data);
+                }
+                
+                // Re-render again with final RR values
+                if (card.dataset.typeGuid === 'SCAN_RES') {
+                    renderScannerResults({
+                        scanner_results: {
+                            pulse_mode: 'InstitutionalPulse',
+                            candidates: activeScannerCandidates
+                        }
+                    });
+                } else if (card.dataset.typeGuid === 'MACRO_WL') {
+                    if (window.lastMacroWatchlistData) {
+                        renderWatchlist(window.lastMacroWatchlistData);
+                    }
+                }
+            })
+            .catch(err => {
+                console.error("[VLI_PROFILE] Recalculate RR error on Side change:", err);
+                card.dataset.rrRecalculating = "false";
+            });
+        };
+
+        window.handleCardTargetRrChange = function(selectEl) {
+            const card = selectEl.closest('.card');
+            if (!card) return;
+            
+            card.dataset.activeTargetRr = selectEl.value;
+            console.log(`[VLI_PROFILE] Target RR updated to: ${selectEl.value}`);
+            
+            if (card.dataset.typeGuid === 'SCAN_RES') {
+                renderScannerResults({
+                    scanner_results: {
+                        pulse_mode: 'InstitutionalPulse',
+                        candidates: activeScannerCandidates
+                    }
+                });
+            } else if (card.dataset.typeGuid === 'MACRO_WL') {
+                if (window.lastMacroWatchlistData) {
+                    renderWatchlist(window.lastMacroWatchlistData);
+                }
+            }
+        };
 
         function toggleTrackSpy(cb) {
             const card = cb.closest('.card');
@@ -4467,6 +5187,7 @@
                     candidates: activeScannerCandidates
                 }
             });
+            bc.postMessage({ type: 'CANDIDATES_UPDATE', candidates: activeScannerCandidates });
         }
 
         // 1c. Scanner Results UI
@@ -4482,6 +5203,7 @@
             });
             
             const allCandidates = data.scanner_results.candidates;
+            activeScannerCandidates = allCandidates;
 
             // [NEW CANDIDATE TRACKING] Determine differential highlights across all tracked candidates
             const currentSymbols = new Set(allCandidates.map(c => c.symbol));
@@ -4498,6 +5220,18 @@
             const res = { ...data.scanner_results, candidates: allCandidates };
             
             document.querySelectorAll('.card[data-type-guid="SCAN_RES"]').forEach(card => {
+                if (!card.dataset.activeDuration) card.dataset.activeDuration = 'SWING_MED';
+                if (!card.dataset.activeSide) card.dataset.activeSide = 'TREND';
+                if (!card.dataset.activeTargetRr) card.dataset.activeTargetRr = '3';
+                if (!card.dataset.trendTimeframe) card.dataset.trendTimeframe = '4h';
+                if (!card.dataset.zoneLookback) card.dataset.zoneLookback = '20';
+
+                let sparklineTfs = ['1m', '5m', '15m', '1h'];
+                if (card.dataset.sparklineTimeframes) {
+                    sparklineTfs = card.dataset.sparklineTimeframes.split(',');
+                }
+                const tfTitle = `Sparkline Charts (${sparklineTfs.join(', ')})`;
+
                 let body = card.querySelector('.card-body');
                 if (!body) {
                     console.warn("[VLI_UI_HEALING] SCAN_RES missing .card-body. Auto-injecting structure.");
@@ -4512,18 +5246,46 @@
                     card.appendChild(body);
                 }
                 
-                // Add Focus Highlight (Removed aggressive zIndex override that caused z-index popping against UX placement)
-                
                 let table = body.querySelector('table');
                 if (!table) {
                     body.innerHTML = `
                         <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
-                            <div style="display:flex; gap: 8px; align-items: center;">
-                                <select id="scan-filter-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="handleScannerTierChange(this)">
-                                    <option value="SNIPER" ${card.dataset.instanceGuid === 'scanner' ? 'selected' : ''}>Sortino Sniper</option>
-                                    <option value="SHIELD" ${card.dataset.instanceGuid === 'shield' ? 'selected' : ''}>Apex Core Scan</option>
-                                    <option value="SWORD">Apex Satellite Scan</option>
-                                </select>
+                            <div style="display:flex; gap: 12px; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="font-weight: 600; text-transform: uppercase;">Tier:</span>
+                                    <select id="scan-filter-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="handleScannerTierChange(this)">
+                                        <option value="SNIPER" ${card.dataset.instanceGuid === 'scanner' ? 'selected' : ''}>Sortino Sniper</option>
+                                        <option value="SHIELD" ${card.dataset.instanceGuid === 'shield' ? 'selected' : ''}>Apex Core Scan</option>
+                                        <option value="SWORD">Apex Satellite Scan</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="font-weight: 600; text-transform: uppercase;">Timeframe:</span>
+                                    <select id="timeframe-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="window.handleCardTimeframeChange(this)">
+                                        <option value="DAY" ${card.dataset.activeDuration === 'DAY' ? 'selected' : ''}>Day Trade</option>
+                                        <option value="SWING_LOW" ${card.dataset.activeDuration === 'SWING_LOW' ? 'selected' : ''}>Swing (Low)</option>
+                                        <option value="SWING_MED" ${card.dataset.activeDuration === 'SWING_MED' ? 'selected' : ''}>Swing (Med)</option>
+                                        <option value="HOLD" ${card.dataset.activeDuration === 'HOLD' ? 'selected' : ''}>Hold</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="font-weight: 600; text-transform: uppercase;">Side:</span>
+                                    <select id="side-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="window.handleCardSideChange(this)">
+                                        <option value="LONG" ${card.dataset.activeSide === 'LONG' ? 'selected' : ''}>Long</option>
+                                        <option value="SHORT" ${card.dataset.activeSide === 'SHORT' ? 'selected' : ''}>Short</option>
+                                        <option value="TREND" ${(!card.dataset.activeSide || card.dataset.activeSide === 'TREND') ? 'selected' : ''}>Trend</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="font-weight: 600; text-transform: uppercase;">Target RR:</span>
+                                    <select id="target-rr-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="window.handleCardTargetRrChange(this)">
+                                        <option value="1" ${card.dataset.activeTargetRr === '1' ? 'selected' : ''}>1:1</option>
+                                        <option value="2" ${card.dataset.activeTargetRr === '2' ? 'selected' : ''}>2:1</option>
+                                        <option value="3" ${(!card.dataset.activeTargetRr || card.dataset.activeTargetRr === '3') ? 'selected' : ''}>3:1</option>
+                                        <option value="4" ${card.dataset.activeTargetRr === '4' ? 'selected' : ''}>4:1</option>
+                                        <option value="10" ${card.dataset.activeTargetRr === '10' ? 'selected' : ''}>10:1</option>
+                                    </select>
+                                </div>
                             </div>
                             <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                         </div>
@@ -4535,12 +5297,14 @@
                                         <th style="padding: 4px 16px; text-align: center;" title="Specialist Structural Analysis Report"><div style="min-width: 24px; box-sizing: border-box;">DOC</div></th>
                                         <th style="padding: 4px 16px; text-align: center;" title="Latest Close Price"><div style="min-width: 48px; box-sizing: border-box;">PRICE</div></th>
                                         <th style="padding: 4px 16px; text-align: center;" title="Price Change from Open"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
-                                        <th style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Sparkline Charts (1m, 5m, 15m, 1h)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CHART</div></th>
-                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">Zone</div></th>
-                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
-                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
-                                        <th style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
-                                        <th style="padding: 4px 16px; text-align: center;" title="Overall Quantitative Grade (S, A+, A, B+, B, C)"><div style="min-width: 32px; box-sizing: border-box;">GRADE</div></th>
+                                        <th style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="${tfTitle}"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CHART</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Timeframe Trend Alignment (EQ Bar): Bearish/Red <= -0.50, Neutral/Gray = 0.0, Bullish/Green >= +0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">TREND</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">ZONE ENTRY</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Zone Entry, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -4574,6 +5338,20 @@
                     }
                 }
                 
+                let currentLookback = card.dataset.zoneLookback || '20';
+                card.dataset.zoneLookback = currentLookback;
+                const selectEl = body.querySelector('.zone-lookback-select');
+                if (selectEl) {
+                    selectEl.value = currentLookback;
+                }
+                
+                let currentTrendTimeframe = card.dataset.trendTimeframe || '1d';
+                card.dataset.trendTimeframe = currentTrendTimeframe;
+                const trendSelectEl = body.querySelector('.trend-timeframe-select');
+                if (trendSelectEl) {
+                    trendSelectEl.value = currentTrendTimeframe;
+                }
+                
                 const tbody = table.querySelector('tbody');
                 tbody.innerHTML = '';
                 
@@ -4599,7 +5377,7 @@
                     const styleMod = window._vliIsScanning ? "color: var(--cobalt-blue); font-weight: bold; letter-spacing: 1px;" : "color: var(--text-muted); font-style: italic;";
                     tbody.innerHTML = `
                         <tr style="border: none;">
-                            <td colspan="11" style="text-align: center; padding: 30px 10px; font-size: 12px; ${styleMod}">${statusText}</td>
+                            <td colspan="12" style="text-align: center; padding: 30px 10px; font-size: 12px; ${styleMod}">${statusText}</td>
                         </tr>
                     `;
                 }
@@ -4610,18 +5388,6 @@
                 filteredCandidates.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
 
                 filteredCandidates.forEach(c => {
-                    let gradeColor = 'var(--text-muted)';
-                    let gradeBg = 'rgba(255,255,255,0.05)';
-                    let gradeBorder = 'rgba(255,255,255,0.2)';
-
-                    if (c.grade === 'S') { gradeColor = '#ffaa00'; gradeBg = 'rgba(255, 170, 0, 0.1)'; gradeBorder = 'rgba(255, 170, 0, 0.3)'; }
-                    else if (c.grade === 'A+' || c.grade === 'A') { gradeColor = '#d866ff'; gradeBg = 'rgba(216, 102, 255, 0.1)'; gradeBorder = 'rgba(216, 102, 255, 0.3)'; }
-                    else if (c.grade === 'B+' || c.grade === 'B') { gradeColor = '#00aaff'; gradeBg = 'rgba(0, 170, 255, 0.1)'; gradeBorder = 'rgba(0, 170, 255, 0.3)'; }
-                    else if (c.grade === 'C+' || c.grade === 'C') { gradeColor = '#3fb950'; gradeBg = 'rgba(63, 185, 80, 0.1)'; gradeBorder = 'rgba(63, 185, 80, 0.3)'; }
-                    else { gradeColor = 'var(--ruby-red)'; gradeBg = 'rgba(248, 81, 73, 0.1)'; gradeBorder = 'rgba(248, 81, 73, 0.3)'; }
-                    
-
-                    
                     c.isNew = window.vliNewSymbols.has(c.symbol);
                     const tr = document.createElement('tr');
                     tr.style.cursor = 'pointer';
@@ -4649,7 +5415,8 @@
                         tr.style.pointerEvents = 'auto';
                     }
                     
-
+                    tr.style.opacity = '1.0';
+                    tr.style.filter = 'none';
                     
                     tr.onmouseenter = () => {
                         if (window.vliNewSymbols.has(c.symbol)) {
@@ -4662,77 +5429,7 @@
                     
                     tr.onclick = () => insertCardIdIntoChat(`analyze ${c.symbol}`);
                     
-                    const changeVal = parseFloat(c.change || c.gap || 0);
-                    const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
-                    
-
-
-
-                    
-                    tr.innerHTML = `
-                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
-                            <div style="min-width: 32px; display: inline-block; box-sizing: border-box; font-weight: 700; color: #fff;">${c.symbol}</div>
-                        </td>
-                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
-                            <div style="min-width: 24px; display: flex; justify-content: center; align-items: center; box-sizing: border-box;">
-                                ${isRefreshing ? 
-                                `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
-                                : 
-                                `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.handleReportIconClick(event, '${c.symbol}', ${c.has_report}, this.closest('tr'))" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
-                            </div>
-                        </td>
-                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
-                            <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</div>
-                        </td>
-                        <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
-                            <div style="min-width: 48px; display: inline-block; box-sizing: border-box; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</div>
-                        </td>
-                        <td style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                            <div style="display: flex; justify-content: center; align-items: center; width: 100%; box-sizing: border-box; gap: 8px;">
-                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">1m</span>
-                                    ${drawSparkline(c.sparkline_1m, c.symbol, '1m', c.trends)}
-                                </div>
-                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">5m</span>
-                                    ${drawSparkline(c.sparkline_5m, c.symbol, '5m', c.trends)}
-                                </div>
-                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">15m</span>
-                                    ${drawSparkline(c.sparkline_15m, c.symbol, '15m', c.trends)}
-                                </div>
-                                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                                    <span style="font-size: 8px; font-weight: 800; color: var(--text-muted); font-family: 'Inter', sans-serif; text-transform: uppercase;">1h</span>
-                                    ${drawSparkline(c.sparkline_1h, c.symbol, '1h', c.trends)}
-                                </div>
-                            </div>
-                        </td>
-                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                                ${drawDSCIndicator(c.pd_zone)}
-                            </div>
-                        </td>
-                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                                ${drawRVOLIndicator(c.rvol)}
-                            </div>
-                        </td>
-                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                                ${drawVWAPIndicator(c.vwap_state)}
-                            </div>
-                        </td>
-                        <td style="width: 76px; min-width: 76px; max-width: 76px; padding: 4px 0; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                                ${drawSortinoIndicator(c.sortino || c.score)}
-                            </div>
-                        </td>
-                        <td style="padding: 4px 16px; vertical-align: middle;">
-                            <div style="min-width: 32px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
-                                <span style="display: inline-block; width: 32px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; padding: 2px 0; border-radius: 4px; font-size: 10px; font-weight: 800; border: 1px solid ${gradeBorder};">${c.grade || 'F'}</span>
-                            </div>
-                        </td>
-                    `;
+                    tr.innerHTML = generateCandidateRowInnerHTML(c, card);
                     
                     if (isRefreshing) {
                         Array.from(tr.children).forEach((td, idx) => {
@@ -5582,6 +6279,7 @@
             // [HARDENING] Filter specifically for Core (SHIELD) tier
             const allCandidates = data.scanner_results.candidates;
             const shieldCandidates = allCandidates.filter(c => c.tier === 'SHIELD');
+            activeShieldCandidates = shieldCandidates;
 
             // [NEW CANDIDATE TRACKING] Determine differential highlights
             const currentShieldSymbols = new Set(shieldCandidates.map(c => c.symbol));
@@ -5621,7 +6319,7 @@
                                     <th style="padding: 8px 4px; text-align: right;">PRICE</th>
                                     <th style="padding: 8px 4px; text-align: right;">CHANGE</th>
                                     <th style="padding: 8px 4px; text-align: right;">SORTINO</th>
-                                    <th style="padding: 8px 4px; text-align: center;">GRADE</th>
+                                    <th style="padding: 8px 4px; text-align: center;" title="Setup Confidence">CONF %</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -5646,15 +6344,8 @@
                 res.candidates.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
 
                 res.candidates.forEach(c => {
-                    let gradeColor = 'var(--text-muted)';
-                    let gradeBg = 'rgba(255,255,255,0.05)';
-                    let gradeBorder = 'rgba(255,255,255,0.2)';
-
-                    if (c.grade === 'S') { gradeColor = '#ffaa00'; gradeBg = 'rgba(255, 170, 0, 0.1)'; gradeBorder = 'rgba(255, 170, 0, 0.3)'; }
-                    else if (c.grade === 'A+' || c.grade === 'A') { gradeColor = '#d866ff'; gradeBg = 'rgba(216, 102, 255, 0.1)'; gradeBorder = 'rgba(216, 102, 255, 0.3)'; }
-                    else if (c.grade === 'B+' || c.grade === 'B') { gradeColor = '#00aaff'; gradeBg = 'rgba(0, 170, 255, 0.1)'; gradeBorder = 'rgba(0, 170, 255, 0.3)'; }
-                    else if (c.grade === 'C+' || c.grade === 'C') { gradeColor = '#3fb950'; gradeBg = 'rgba(63, 185, 80, 0.1)'; gradeBorder = 'rgba(63, 185, 80, 0.3)'; }
-                    else { gradeColor = 'var(--ruby-red)'; gradeBg = 'rgba(248, 81, 73, 0.1)'; gradeBorder = 'rgba(248, 81, 73, 0.3)'; }
+                    const scoreObj = calculateConfidenceScore(c, card);
+                    const confidenceHtml = drawConfidenceEQBar(scoreObj);
                     
                     c.isNew = window.vliNewShieldSymbols.has(c.symbol);
                     const tr = document.createElement('tr');
@@ -5711,7 +6402,7 @@
                         <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
                         <td style="padding: 10px 4px;">
                             <div style="display: flex; align-items: center; justify-content: flex-end;">
-                                <span class="pulse-badge" style="display: inline-block; width: 32px; text-align: center; background: ${gradeBg}; color: ${gradeColor}; border: 1px solid ${gradeBorder}; font-size: 11px; padding: 2px 0;">${c.grade}</span>
+                                ${confidenceHtml}
                                 <div style="width: 24px; display: flex; justify-content: flex-end;">
                                     ${isRefreshing ? 
                                     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
@@ -7253,7 +7944,10 @@
                 if (!ticker || !timeframe) return;
 
                 const candidates = activeScannerCandidates || [];
-                const candidate = candidates.find(c => c.symbol === ticker);
+                let candidate = candidates.find(c => c.symbol === ticker);
+                if (!candidate && window.lastMacroWatchlistData && window.lastMacroWatchlistData.macro_watchlist_content && window.lastMacroWatchlistData.macro_watchlist_content.candidates) {
+                    candidate = window.lastMacroWatchlistData.macro_watchlist_content.candidates.find(c => c.symbol === ticker);
+                }
                 if (!candidate) return;
 
                 const sparklineKey = 'sparkline_' + timeframe;
