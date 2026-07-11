@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0204";
+        const VLI_CLIENT_VERSION = "00.000.0205";
     </script>
     
     <link
@@ -3970,18 +3970,37 @@
             
             let zoneHtml = drawZoneEntryEQBar(adjustedZoneVal);
             
+            // Sweep Status Flag
+            let sweepHtml = '';
+            if (card.sweepValues && card.sweepValues[c.symbol] !== undefined) {
+                const info = card.sweepValues[c.symbol];
+                if (info && info.sweep && info.sweep !== 'NONE') {
+                    const badgeColor = info.sweep === 'BULLISH' ? 'var(--emerald-green)' : 'var(--ruby-red)';
+                    const arrow = info.sweep === 'BULLISH' ? '↑' : '↓';
+                    const htfLabel = info.htf || 'HTF';
+                    const tooltipText = `${info.sweep} SWEEP of the previous ${htfLabel} candle range.\n\n• Previous Low: ${info.prev_low}\n• Previous High: ${info.prev_high}`;
+                    sweepHtml = `
+                        <div style="font-size: 8px; color: ${badgeColor}; font-weight: 800; text-transform: uppercase; margin-top: 2px;" title="${tooltipText}">
+                            ${arrow} SWEEP (${htfLabel})
+                        </div>
+                    `;
+                }
+            }
+            
             let symbolHtml = '';
             if (card.dataset.typeGuid === 'MACRO_WL') {
                 symbolHtml = `
                     <td style="padding: 4px 16px; text-align: left; vertical-align: middle; max-width: 140px;">
                         <div style="font-size: 10px; color: var(--text-muted); line-height: 1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.name || ''}</div>
                         <div style="font-weight: 700; color: #fff;">${c.symbol}</div>
+                        ${sweepHtml}
                     </td>
                 `;
             } else {
                 symbolHtml = `
                     <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
                         <div style="min-width: 32px; display: inline-block; box-sizing: border-box; font-weight: 700; color: #fff;">${c.symbol}</div>
+                        ${sweepHtml}
                     </td>
                 `;
             }
@@ -4924,6 +4943,7 @@
             card.dataset.zoneRecalculating = "true";
             card.dataset.sortinoRecalculating = "true";
             card.dataset.rrRecalculating = "true";
+            card.dataset.sweepRecalculating = "true";
             
             console.log(`[VLI_PROFILE] Profile change to ${duration} on card ${card.id}. recalculating trend (${trendTf}), zone (${zoneLb}) and RR.`);
             
@@ -5022,7 +5042,25 @@
                 p4 = Promise.resolve();
             }
 
-            Promise.all([p1, p2, p3, p4]).then(() => {
+            const p5 = fetch('/api/scanner/recalculate_sweep', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tickers: symbols, profile: duration })
+            })
+            .then(res => res.json())
+            .then(resData => {
+                card.dataset.sweepRecalculating = "false";
+                if (resData.status === 'success') {
+                    if (!card.sweepValues) card.sweepValues = {};
+                    Object.assign(card.sweepValues, resData.data);
+                }
+            })
+            .catch(err => {
+                console.error("[VLI_PROFILE] Recalculate Sweep error:", err);
+                card.dataset.sweepRecalculating = "false";
+            });
+
+            Promise.all([p1, p2, p3, p4, p5]).then(() => {
                 if (card.dataset.typeGuid === 'SCAN_RES') {
                     renderScannerResults({
                         scanner_results: {

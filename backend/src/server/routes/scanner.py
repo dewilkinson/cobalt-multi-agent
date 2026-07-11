@@ -1263,6 +1263,99 @@ async def recalculate_sortino(req: RecalculateSortinoRequest):
         logger.error(f"Recalculate Sortino API error: {e}")
         return {"status": "error", "message": str(e)}
 
+class RecalculateSweepRequest(BaseModel):
+    tickers: List[str]
+    profile: str = "SWING_MED"
+
+@router.post("/recalculate_sweep")
+async def recalculate_sweep(req: RecalculateSweepRequest):
+    """Recalculate the HTF Candle Sweep status for a list of symbols based on active timeframe profile."""
+    import yfinance as yf
+    try:
+        tickers = [t.strip().upper() for t in req.tickers if t and isinstance(t, str)]
+        profile = req.profile.strip().upper()
+        
+        # Profile -> HTF Interval & Lookback Mapping
+        if profile == "DAY":
+            period, interval = "5d", "1h"
+        elif profile == "SWING_LOW":
+            period, interval = "20d", "4h"
+        elif profile == "SWING_MED":
+            period, interval = "60d", "1d"
+        elif profile == "HOLD":
+            period, interval = "365d", "1wk"
+        else:
+            period, interval = "60d", "1d"
+            
+        yf_interval = "1h" if interval == "4h" else interval
+        
+        # Clean/normalize tickers
+        normalized_map = {t: _normalize_ticker(t) for t in tickers}
+        search_symbols = list(set(normalized_map.values()))
+        
+        async with YF_LOCK:
+            data = await asyncio.to_thread(yf.download, search_symbols, period=period, interval=yf_interval, group_by='ticker', progress=False)
+            
+        results = {}
+        from src.tools.macros import extract_single_ticker_df
+        for original in tickers:
+            norm = normalized_map.get(original)
+            df = extract_single_ticker_df(data, norm)
+            if df is None or df.empty or len(df) < 2:
+                results[original] = {"sweep": "NONE", "htf": interval}
+                continue
+                
+            # If interval is 4h, resample 1h to 4h
+            if interval == "4h":
+                try:
+                    col_map = {str(c).lower(): c for c in df.columns}
+                    agg_dict = {}
+                    if 'open' in col_map: agg_dict[col_map['open']] = 'first'
+                    if 'high' in col_map: agg_dict[col_map['high']] = 'max'
+                    if 'low' in col_map: agg_dict[col_map['low']] = 'min'
+                    if 'close' in col_map: agg_dict[col_map['close']] = 'last'
+                    if 'volume' in col_map: agg_dict[col_map['volume']] = 'sum'
+                    
+                    df = df.resample('4H').agg(agg_dict).dropna()
+                except Exception as ex:
+                    logger.error(f"Resampling failed for {original}: {ex}")
+                    
+            col_map = {str(c).lower(): c for c in df.columns}
+            high_col = col_map.get("high")
+            low_col = col_map.get("low")
+            close_col = col_map.get("close")
+            
+            if not high_col or not low_col or not close_col:
+                results[original] = {"sweep": "NONE", "htf": interval}
+                continue
+                
+            prev_row = df.iloc[-2]
+            curr_row = df.iloc[-1]
+            
+            prev_low = float(prev_row[low_col])
+            prev_high = float(prev_row[high_col])
+            curr_low = float(curr_row[low_col])
+            curr_high = float(curr_row[high_col])
+            curr_close = float(curr_row[close_col])
+            
+            sweep_state = "NONE"
+            if curr_low < prev_low and curr_close > prev_low:
+                sweep_state = "BULLISH"
+            elif curr_high > prev_high and curr_close < prev_high:
+                sweep_state = "BEARISH"
+                
+            results[original] = {
+                "sweep": sweep_state,
+                "htf": interval,
+                "prev_low": round(prev_low, 2),
+                "prev_high": round(prev_high, 2)
+            }
+            
+        return {"status": "success", "data": results}
+    except Exception as e:
+        logger.error(f"Recalculate Sweep API error: {e}")
+        return {"status": "error", "message": str(e)}
+
 @router.delete("/purge")
 async def purge_scanner_cache():
     """Purges the entire scanner combat list and transit state cache."""
