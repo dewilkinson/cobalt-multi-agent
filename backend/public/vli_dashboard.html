@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0203";
+        const VLI_CLIENT_VERSION = "00.000.0204";
     </script>
     
     <link
@@ -50,6 +50,13 @@
             --price-up: #3fb950;
             --price-down: #f85149;
             --amber-gold: #d29922;
+        }
+
+        .card[data-active-duration="DAY"] .sortino-column-header,
+        .card[data-active-duration="DAY"] .sortino-column-cell,
+        .card[data-active-duration="SWING_LOW"] .sortino-column-header,
+        .card[data-active-duration="SWING_LOW"] .sortino-column-cell {
+            display: none !important;
         }
 
         .col-resizer {
@@ -4556,7 +4563,7 @@
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">ZONE ENTRY</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
+                                        <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Zone Entry, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
                                     </tr>
@@ -5367,7 +5374,7 @@
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">ZONE ENTRY</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
+                                        <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Zone Entry, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
                                     </tr>
