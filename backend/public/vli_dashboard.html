@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0205";
+        const VLI_CLIENT_VERSION = "00.000.0206";
     </script>
     
     <link
@@ -3970,37 +3970,18 @@
             
             let zoneHtml = drawZoneEntryEQBar(adjustedZoneVal);
             
-            // Sweep Status Flag
-            let sweepHtml = '';
-            if (card.sweepValues && card.sweepValues[c.symbol] !== undefined) {
-                const info = card.sweepValues[c.symbol];
-                if (info && info.sweep && info.sweep !== 'NONE') {
-                    const badgeColor = info.sweep === 'BULLISH' ? 'var(--emerald-green)' : 'var(--ruby-red)';
-                    const arrow = info.sweep === 'BULLISH' ? '↑' : '↓';
-                    const htfLabel = info.htf || 'HTF';
-                    const tooltipText = `${info.sweep} SWEEP of the previous ${htfLabel} candle range.\n\n• Previous Low: ${info.prev_low}\n• Previous High: ${info.prev_high}`;
-                    sweepHtml = `
-                        <div style="font-size: 8px; color: ${badgeColor}; font-weight: 800; text-transform: uppercase; margin-top: 2px;" title="${tooltipText}">
-                            ${arrow} SWEEP (${htfLabel})
-                        </div>
-                    `;
-                }
-            }
-            
             let symbolHtml = '';
             if (card.dataset.typeGuid === 'MACRO_WL') {
                 symbolHtml = `
                     <td style="padding: 4px 16px; text-align: left; vertical-align: middle; max-width: 140px;">
                         <div style="font-size: 10px; color: var(--text-muted); line-height: 1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.name || ''}</div>
                         <div style="font-weight: 700; color: #fff;">${c.symbol}</div>
-                        ${sweepHtml}
                     </td>
                 `;
             } else {
                 symbolHtml = `
                     <td style="padding: 4px 16px; text-align: center; vertical-align: middle;">
                         <div style="min-width: 32px; display: inline-block; box-sizing: border-box; font-weight: 700; color: #fff;">${c.symbol}</div>
-                        ${sweepHtml}
                     </td>
                 `;
             }
@@ -4108,8 +4089,38 @@
                         ${confidenceHtml}
                     </div>
                 </td>
+                <td class="sweep-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.sweepRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
+                        ${(() => {
+                            const sweepInfo = (card.sweepValues && card.sweepValues[c.symbol] !== undefined)
+                                ? card.sweepValues[c.symbol]
+                                : { sweep: "NONE", htf: duration === 'DAY' ? '1h' : (duration === 'SWING_LOW' ? '4h' : (duration === 'SWING_MED' ? '1d' : '1w')) };
+                            return drawSweepIndicator(sweepInfo);
+                        })()}
+                    </div>
+                </td>
             `;
         };
+
+        function drawSweepIndicator(info) {
+            if (!info || !info.sweep || info.sweep === 'NONE') {
+                return `<div style="font-family: var(--font-mono); color: var(--text-muted); font-size: 11px;">-</div>`;
+            }
+            
+            const badgeColor = info.sweep === 'BULLISH' ? 'var(--emerald-green)' : 'var(--ruby-red)';
+            const bg = info.sweep === 'BULLISH' ? 'rgba(63, 185, 80, 0.1)' : 'rgba(248, 81, 73, 0.1)';
+            const border = info.sweep === 'BULLISH' ? 'rgba(63, 185, 80, 0.3)' : 'rgba(248, 81, 73, 0.3)';
+            const arrow = info.sweep === 'BULLISH' ? '↑' : '↓';
+            const sweepLabel = info.sweep === 'BULLISH' ? 'BULL' : 'BEAR';
+            const htfLabel = info.htf || 'HTF';
+            const tooltipText = `${info.sweep} SWEEP of the previous ${htfLabel} candle range.\n\n• Previous Low: $${info.prev_low}\n• Previous High: $${info.prev_high}`;
+            
+            return `
+                <div style="display: inline-block; background: ${bg}; border: 1px solid ${border}; color: ${badgeColor}; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; cursor: help;" title="${tooltipText}">
+                    ${arrow} ${sweepLabel} (${htfLabel})
+                </div>
+            `;
+        }
 
         function drawVWAPIndicator(val) {
             const vwapVal = val !== undefined && val !== null ? parseFloat(val) : 0.0;
@@ -4585,6 +4596,7 @@
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Zone Entry, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Candle Range Theory HTF Sweep status"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SWEEP</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -5415,6 +5427,7 @@
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Zone Entry, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Candle Range Theory HTF Sweep status"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SWEEP</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
