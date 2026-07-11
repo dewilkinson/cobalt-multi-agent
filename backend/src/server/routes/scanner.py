@@ -1181,6 +1181,88 @@ async def recalculate_rr(req: RecalculateRrRequest):
         logger.error(f"Recalculate RR API error: {e}")
         return {"status": "error", "message": str(e)}
 
+class RecalculateSortinoRequest(BaseModel):
+    tickers: List[str]
+    profile: str = "SWING_MED"
+
+@router.post("/recalculate_sortino")
+async def recalculate_sortino(req: RecalculateSortinoRequest):
+    """Recalculate Sortino Ratio for a list of symbols based on the selected timeframe profile."""
+    import yfinance as yf
+    from src.tools.scanner import calculate_sortino_ratio
+    try:
+        tickers = [t.strip().upper() for t in req.tickers if t and isinstance(t, str)]
+        profile = req.profile.strip().upper()
+        
+        # Institutional recommended configurations
+        # Profile -> (Period/Lookback, Interval/BarSize)
+        if profile == "DAY":
+            period, interval = "5d", "15m"
+        elif profile == "SWING_LOW":
+            period, interval = "30d", "1h"
+        elif profile == "SWING_MED":
+            period, interval = "60d", "4h"
+        elif profile == "HOLD":
+            period, interval = "2y", "1d"
+        else:
+            period, interval = "60d", "4h"
+            
+        # Determine the yfinance interval. For 4h, we download 1h and resample.
+        yf_interval = interval
+        if interval == "4h":
+            yf_interval = "1h"
+            
+        # Clean/normalize tickers
+        normalized_map = {t: _normalize_ticker(t) for t in tickers}
+        search_symbols = list(set(normalized_map.values()))
+        
+        trading_style = os.getenv("VLI_TRADING_STYLE", "day_trading")
+        dynamic_rf = 0.0428
+        if trading_style == "day_trading":
+            dynamic_rf = 0.0
+        else:
+            try:
+                tnx_data = await asyncio.to_thread(yf.download, "^TNX", period="5d", interval="1d", progress=False)
+                if not tnx_data.empty and 'Close' in tnx_data.columns:
+                    latest_tnx = float(tnx_data['Close'].dropna().iloc[-1])
+                    dynamic_rf = latest_tnx / 100.0
+            except Exception:
+                pass
+                
+        async with YF_LOCK:
+            data = await asyncio.to_thread(yf.download, search_symbols, period=period, interval=yf_interval, group_by='ticker', progress=False)
+            
+        results = {}
+        from src.tools.macros import extract_single_ticker_df
+        for original in tickers:
+            norm = normalized_map.get(original)
+            df = extract_single_ticker_df(data, norm)
+            if df is None or df.empty:
+                results[original] = 0.0
+                continue
+                
+            # If interval is 4h, resample 1h to 4h
+            if interval == "4h":
+                try:
+                    df = df.resample('4h').last().dropna()
+                except Exception:
+                    pass
+                    
+            col_map = {str(col).lower(): col for col in df.columns}
+            close_col = col_map.get("close")
+            if not close_col:
+                results[original] = 0.0
+                continue
+                
+            returns = df[close_col].pct_change().dropna()
+            val = calculate_sortino_ratio(returns, annual_rf=dynamic_rf, interval=interval)
+            results[original] = val
+            
+        return {"status": "success", "data": results}
+    except Exception as e:
+        logger.error(f"Recalculate Sortino API error: {e}")
+        return {"status": "error", "message": str(e)}
+
 @router.delete("/purge")
 async def purge_scanner_cache():
     """Purges the entire scanner combat list and transit state cache."""

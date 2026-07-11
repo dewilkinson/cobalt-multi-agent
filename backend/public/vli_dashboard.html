@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0201";
+        const VLI_CLIENT_VERSION = "00.000.0202";
     </script>
     
     <link
@@ -3787,7 +3787,9 @@
                 vwapScore = vwapVal / 0.1;
             }
 
-            let sortinoVal = c.sortino !== undefined && c.sortino !== null ? parseFloat(c.sortino) : 0.0;
+            let sortinoVal = (card.sortinoValues && card.sortinoValues[c.symbol] !== undefined) 
+                ? parseFloat(card.sortinoValues[c.symbol]) 
+                : (c.sortino !== undefined && c.sortino !== null ? parseFloat(c.sortino) : 0.0);
             let sortinoScore = Math.max(0.0, Math.min(1.0, sortinoVal / 1.5));
 
             let total = (trendScore * 0.30) + (zoneScore * 0.30) + (rvolScore * 0.15) + (vwapScore * 0.15) + (sortinoScore * 0.10);
@@ -3975,7 +3977,9 @@
             const scoreObj = calculateConfidenceScore(c, card);
             const confidenceHtml = drawConfidenceEQBar(scoreObj);
             
-            const sortinoVal = c.sortino !== undefined ? c.sortino : c.score;
+            const sortinoVal = (card.sortinoValues && card.sortinoValues[c.symbol] !== undefined)
+                ? parseFloat(card.sortinoValues[c.symbol])
+                : (c.sortino !== undefined ? parseFloat(c.sortino) : parseFloat(c.score || 0.0));
             
             let sparklineTfs = ['1m', '5m', '15m', '1h'];
             if (card.dataset.sparklineTimeframes) {
@@ -4035,8 +4039,8 @@
                         ${drawVWAPIndicator(c.vwap_state)}
                     </div>
                 </td>
-                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                <td class="sortino-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.sortinoRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
                         ${drawSortinoIndicator(sortinoVal)}
                     </div>
                 </td>
@@ -4868,6 +4872,10 @@
                 div.style.opacity = '0.3';
                 div.style.filter = 'blur(0.5px)';
             });
+            card.querySelectorAll('.sortino-column-cell div').forEach(div => {
+                div.style.opacity = '0.3';
+                div.style.filter = 'blur(0.5px)';
+            });
             card.querySelectorAll('.rr-column-cell div').forEach(div => {
                 div.style.opacity = '0.3';
                 div.style.filter = 'blur(0.5px)';
@@ -4875,6 +4883,7 @@
             
             card.dataset.trendRecalculating = "true";
             card.dataset.zoneRecalculating = "true";
+            card.dataset.sortinoRecalculating = "true";
             card.dataset.rrRecalculating = "true";
             
             console.log(`[VLI_PROFILE] Profile change to ${duration} on card ${card.id}. recalculating trend (${trendTf}), zone (${zoneLb}) and RR.`);
@@ -4950,7 +4959,25 @@
                 card.dataset.rrRecalculating = "false";
             });
 
-            Promise.all([p1, p2, p3]).then(() => {
+            const p4 = fetch('/api/scanner/recalculate_sortino', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tickers: symbols, profile: duration })
+            })
+            .then(res => res.json())
+            .then(resData => {
+                card.dataset.sortinoRecalculating = "false";
+                if (resData.status === 'success') {
+                    if (!card.sortinoValues) card.sortinoValues = {};
+                    Object.assign(card.sortinoValues, resData.data);
+                }
+            })
+            .catch(err => {
+                console.error("[VLI_PROFILE] Recalculate Sortino error:", err);
+                card.dataset.sortinoRecalculating = "false";
+            });
+
+            Promise.all([p1, p2, p3, p4]).then(() => {
                 if (card.dataset.typeGuid === 'SCAN_RES') {
                     renderScannerResults({
                         scanner_results: {

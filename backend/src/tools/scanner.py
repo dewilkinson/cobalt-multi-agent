@@ -107,6 +107,8 @@ def calculate_sortino_ratio(returns: pd.Series, annual_rf: float = 0.0428, inter
     annual_factor = 252.0
     if interval == "5m": annual_factor = 78.0 * 252.0
     elif interval == "15m": annual_factor = 26.0 * 252.0
+    elif interval == "1h": annual_factor = 7.0 * 252.0
+    elif interval == "4h": annual_factor = 2.0 * 252.0
     
     periodic_rf = annual_rf / annual_factor
     avg_return = returns.mean()
@@ -179,6 +181,54 @@ async def batch_fetch_sortino(tickers: List[str], period: str = "60d") -> Dict[s
         return results
     except Exception as e:
         logger.error(f"Batch Sortino fetch failed or timed out: {e}")
+        return {t: 0.0 for t in tickers}
+
+
+async def batch_fetch_pd_zone(tickers: List[str], lookback_days: int = 20) -> Dict[str, float]:
+    """Fetches history and calculates the dealing range position for a batch of tickers concurrently."""
+    if not tickers:
+        return {}
+    
+    interval = "1d"
+    period = f"{lookback_days}d"
+        
+    try:
+        # Download historical data for candidates
+        fetch_list = list(set(tickers))
+        @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+        def _do_yf_dl():
+            return yf.download(fetch_list, period=period, interval=interval, group_by='ticker', progress=False, prepost=False)
+        data = await asyncio.wait_for(
+            asyncio.to_thread(_do_yf_dl),
+            timeout=120.0
+        )
+        
+        results = {}
+        for ticker in tickers:
+            try:
+                if isinstance(data.columns, pd.MultiIndex):
+                    df = data[ticker]
+                else:
+                    df = data
+                
+                if df.empty or 'High' not in df.columns or 'Low' not in df.columns or 'Close' not in df.columns:
+                    results[ticker] = 0.0
+                    continue
+                
+                high_range = float(df['High'].dropna().max())
+                low_range = float(df['Low'].dropna().min())
+                close_latest = float(df['Close'].dropna().iloc[-1])
+                
+                if high_range > low_range:
+                    raw_pd = 2.0 * (close_latest - low_range) / (high_range - low_range) - 1.0
+                    results[ticker] = round(raw_pd, 1)
+                else:
+                    results[ticker] = 0.0
+            except Exception:
+                results[ticker] = 0.0
+        return results
+    except Exception as e:
+        logger.error(f"Batch PD Zone fetch failed or timed out: {e}")
         return {t: 0.0 for t in tickers}
 
 
