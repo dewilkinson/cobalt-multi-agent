@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0202";
+        const VLI_CLIENT_VERSION = "00.000.0203";
     </script>
     
     <link
@@ -3787,19 +3787,29 @@
                 vwapScore = vwapVal / 0.1;
             }
 
+            const duration = card.dataset.activeDuration || 'SWING_MED';
+            const isSortinoEnabled = (duration !== 'DAY' && duration !== 'SWING_LOW');
+
             let sortinoVal = (card.sortinoValues && card.sortinoValues[c.symbol] !== undefined) 
                 ? parseFloat(card.sortinoValues[c.symbol]) 
                 : (c.sortino !== undefined && c.sortino !== null ? parseFloat(c.sortino) : 0.0);
             let sortinoScore = Math.max(0.0, Math.min(1.0, sortinoVal / 1.5));
 
-            let total = (trendScore * 0.30) + (zoneScore * 0.30) + (rvolScore * 0.15) + (vwapScore * 0.15) + (sortinoScore * 0.10);
+            let total = 0.0;
+            if (isSortinoEnabled) {
+                total = (trendScore * 0.30) + (zoneScore * 0.30) + (rvolScore * 0.15) + (vwapScore * 0.15) + (sortinoScore * 0.10);
+            } else {
+                total = (trendScore * 0.35) + (zoneScore * 0.35) + (rvolScore * 0.15) + (vwapScore * 0.15);
+            }
+
             return {
                 total,
                 trendScore,
                 zoneScore,
                 rvolScore,
                 vwapScore,
-                sortinoScore
+                sortinoScore,
+                isSortinoEnabled
             };
         }
 
@@ -3836,12 +3846,19 @@
             else if (total >= 0.6) tier = "B-Tier (Moderate Setup)";
             else if (total >= 0.45) tier = "C-Tier (Fair Setup)";
             
-            const tooltipText = `Setup Confidence: ${Math.round(total * 100)}% (${tier})\n\n` +
-                                `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 30%)\n` +
-                                `• Zone Entry: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 30%)\n` +
-                                `• Relative Volume: ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 15%)\n` +
-                                `• VWAP Position: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 15%)\n` +
-                                `• Sortino Ratio: ${Math.round(scoreObj.sortinoScore * 100)}% (Weight: 10%)`;
+            let tooltipText = `Setup Confidence: ${Math.round(total * 100)}% (${tier})\n\n`;
+            if (scoreObj.isSortinoEnabled) {
+                tooltipText += `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 30%)\n` +
+                               `• Zone Entry: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 30%)\n` +
+                               `• Relative Volume: ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 15%)\n` +
+                               `• VWAP Position: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 15%)\n` +
+                               `• Sortino Ratio: ${Math.round(scoreObj.sortinoScore * 100)}% (Weight: 10%)`;
+            } else {
+                tooltipText += `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 35%)\n` +
+                               `• Zone Entry: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 35%)\n` +
+                               `• Relative Volume: ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 15%)\n` +
+                               `• VWAP Position: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 15%)`;
+            }
                                 
             return `
                 <div style="display: flex; gap: 2px; align-items: center; justify-content: center; height: 14px;" 
@@ -3934,6 +3951,8 @@
                 trendVal = 0.0;
             }
             const activeSide = card.dataset.activeSide || 'TREND';
+            const duration = card.dataset.activeDuration || 'SWING_MED';
+            const isSortinoEnabled = (duration !== 'DAY' && duration !== 'SWING_LOW');
             let isBullish = trendVal >= 0.0;
             if (activeSide === 'LONG') {
                 isBullish = true;
@@ -4041,7 +4060,7 @@
                 </td>
                 <td class="sortino-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
                     <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.sortinoRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
-                        ${drawSortinoIndicator(sortinoVal)}
+                        ${drawSortinoIndicator(sortinoVal, isSortinoEnabled)}
                     </div>
                 </td>
                 <td class="rr-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
@@ -4097,7 +4116,19 @@
             return drawEQBarIndicator(deviation, false, tooltipText);
         }
 
-        function drawSortinoIndicator(val) {
+        function drawSortinoIndicator(val, isEnabled = true) {
+            if (!isEnabled) {
+                const tooltipText = "Sortino Ratio: N/A\n(Sortino is disabled for DAY and SWING LOW profiles)";
+                let barsHtml = '';
+                for (let i = 0; i < 9; i++) {
+                    barsHtml += `<div style="width: 4px; height: 12px; background: var(--text-muted); opacity: 0.08; border-radius: 1px;"></div>`;
+                }
+                return `
+                    <div style="display: flex; gap: 2px; align-items: center; justify-content: center; height: 14px;" title="${tooltipText}">
+                        ${barsHtml}
+                    </div>
+                `;
+            }
             const sortinoVal = val !== undefined && val !== null ? parseFloat(val) : 0.0;
             const displayLabel = sortinoVal.toFixed(2);
             
@@ -4822,6 +4853,7 @@
             
             const duration = selectEl.value;
             card.dataset.activeDuration = duration;
+            const isSortinoEnabled = (duration !== 'DAY' && duration !== 'SWING_LOW');
             
             let trendTf = "4h";
             let zoneLb = "20";
@@ -4959,23 +4991,29 @@
                 card.dataset.rrRecalculating = "false";
             });
 
-            const p4 = fetch('/api/scanner/recalculate_sortino', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tickers: symbols, profile: duration })
-            })
-            .then(res => res.json())
-            .then(resData => {
+            let p4;
+            if (isSortinoEnabled) {
+                p4 = fetch('/api/scanner/recalculate_sortino', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tickers: symbols, profile: duration })
+                })
+                .then(res => res.json())
+                .then(resData => {
+                    card.dataset.sortinoRecalculating = "false";
+                    if (resData.status === 'success') {
+                        if (!card.sortinoValues) card.sortinoValues = {};
+                        Object.assign(card.sortinoValues, resData.data);
+                    }
+                })
+                .catch(err => {
+                    console.error("[VLI_PROFILE] Recalculate Sortino error:", err);
+                    card.dataset.sortinoRecalculating = "false";
+                });
+            } else {
                 card.dataset.sortinoRecalculating = "false";
-                if (resData.status === 'success') {
-                    if (!card.sortinoValues) card.sortinoValues = {};
-                    Object.assign(card.sortinoValues, resData.data);
-                }
-            })
-            .catch(err => {
-                console.error("[VLI_PROFILE] Recalculate Sortino error:", err);
-                card.dataset.sortinoRecalculating = "false";
-            });
+                p4 = Promise.resolve();
+            }
 
             Promise.all([p1, p2, p3, p4]).then(() => {
                 if (card.dataset.typeGuid === 'SCAN_RES') {
