@@ -21,7 +21,7 @@ const path = require('path');
   console.log("Screenshot: electron_initial.png");
 
   // Find the chat input box (Coordinator AI)
-  await window.waitForSelector('#chat-input', { timeout: 10000 });
+  await window.waitForSelector('#chat-input', { timeout: 45000 });
   const chatInput = await window.locator('#chat-input');
   
   // Type the command

@@ -528,15 +528,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"VLI_SYSTEM: Failed to run clear_stale_scanner_files at startup: {e}")
 
-    from datetime import datetime
-    now = datetime.now()
-    if now.hour >= 6:
-        if not os.path.exists(get_daily_briefing_path()):
-            logger.info("VLI_SYSTEM: Missed Morning Scan detected. Scheduling catch-up sequence in 5 seconds...")
-            async def catchup_with_delay():
-                await asyncio.sleep(5)
-                await run_daily_morning_analysis()
-            asyncio.create_task(catchup_with_delay())
+    # [NEW] Automatic Startup catch-up sequence disabled as per user instruction
+    # from datetime import datetime
+    # now = datetime.now()
+    # if now.hour >= 6:
+    #     if not os.path.exists(get_daily_briefing_path()):
+    #         logger.info("VLI_SYSTEM: Missed Morning Scan detected. Scheduling catch-up sequence in 5 seconds...")
+    #         async def catchup_with_delay():
+    #             await asyncio.sleep(5)
+    #             await run_daily_morning_analysis()
+    #         asyncio.create_task(catchup_with_delay())
             
     # [NEW] Dashboard Integrity Guard
     b_dir = os.path.dirname(os.path.abspath(__file__))  # src/server
@@ -641,7 +642,36 @@ async def lifespan(app: FastAPI):
         logger.info("[POSTMORTEM_AUTO] Initiating 5:00 PM Daily Trading Report sequence.")
         import os
         from datetime import datetime
-        
+        import json
+
+        # Check if any trades were made today in brokerage cache
+        has_trades = False
+        try:
+            b_dir = os.path.dirname(os.path.abspath(__file__))  # src/server
+            cache_path = os.path.abspath(os.path.join(b_dir, "..", "..", "data", "brokerage_cache.json"))
+            if os.path.exists(cache_path):
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    cache_data = json.load(f)
+                
+                today_str = datetime.now().strftime("%Y-%m-%d")
+                for account, details in cache_data.items():
+                    activities = details.get("activities", [])
+                    for act in activities:
+                        trade_date = act.get("trade_date", "")
+                        status = act.get("status", "").upper()
+                        if today_str in trade_date and status in ["EXECUTED", "FILLED"]:
+                            has_trades = True
+                            break
+                    if has_trades:
+                        break
+        except Exception as ce:
+            logger.warning(f"Failed to check brokerage cache for today's trades: {ce}")
+            has_trades = True # Fallback to True to be safe
+
+        if not has_trades:
+            logger.info("[POSTMORTEM_AUTO] No trades made today. Skipping daily post-mortem report generation.")
+            return
+
         # 1. Trigger the post-mortem analysis
         try:
             from src.services.historical_reports import PERFORMANCE_DIR
@@ -700,25 +730,25 @@ async def lifespan(app: FastAPI):
         callback=trigger_daily_postmortem
     )
     
-    # Register 8:30 AM Start of Day (SOD) Morning Analyst Prep
-    cobalt_scheduler.add_timer(
-        task_id="DAILY_ANALYST",
-        name="8:30 AM Start of Day Prep (SOD)",
-        type="CALENDAR",
-        schedule="30 8 * * *",
-        priority="HIGH",
-        callback=run_daily_morning_analysis
-    )
+    # Register 8:30 AM Start of Day (SOD) Morning Analyst Prep - DISABLED as per user instruction
+    # cobalt_scheduler.add_timer(
+    #     task_id="DAILY_ANALYST",
+    #     name="8:30 AM Start of Day Prep (SOD)",
+    #     type="CALENDAR",
+    #     schedule="30 8 * * *",
+    #     priority="HIGH",
+    #     callback=run_daily_morning_analysis
+    # )
 
-    # Register 8:30 AM Start of Day (SOD) Executive Morning Briefing
-    cobalt_scheduler.add_timer(
-        task_id="EXECUTIVE_BRIEFING",
-        name="Daily Executive Briefing (SOD)",
-        type="CALENDAR",
-        schedule="30 8 * * *",
-        priority="HIGH",
-        callback=run_meta_analysis
-    )
+    # Register 8:30 AM Start of Day (SOD) Executive Morning Briefing - DISABLED as per user instruction
+    # cobalt_scheduler.add_timer(
+    #     task_id="EXECUTIVE_BRIEFING",
+    #     name="Daily Executive Briefing (SOD)",
+    #     type="CALENDAR",
+    #     schedule="30 8 * * *",
+    #     priority="HIGH",
+    #     callback=run_meta_analysis
+    # )
 
     cobalt_scheduler.add_timer(
         task_id="SMC_5M_POLLER",
@@ -2253,6 +2283,32 @@ def get_scanner_settings():
     existing["engine"] = engine
     return existing
 
+@app.post("/api/settings/save_default_layout")
+def save_default_layout(req: dict):
+    import json, os
+    layout_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "default_layout.json"))
+    try:
+        # Create directories if they do not exist
+        os.makedirs(os.path.dirname(layout_path), exist_ok=True)
+        with open(layout_path, "w", encoding="utf-8") as f:
+            json.dump(req, f, indent=2)
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/settings/default_layout")
+def get_default_layout():
+    import json, os
+    layout_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "default_layout.json"))
+    if os.path.exists(layout_path):
+        try:
+            with open(layout_path, "r", encoding="utf-8") as f:
+                return {"status": "success", "layout": json.load(f)}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+    return {"status": "error", "message": "No default layout persisted."}
+
+
 class ScannerSettingsRequest(BaseModel):
     track_spy: bool | None = None
     active_tier: str | None = None
@@ -2342,7 +2398,45 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                 with open(target_bucket_path, encoding="utf-8") as f:
                     macro_watchlist_content = json.load(f)
                     
-                # Dynamically enrich the has_report status for macro rows
+                # Ensure candidates array is initialized
+                if "candidates" not in macro_watchlist_content:
+                    candidates = []
+                    for row in macro_watchlist_content.get("rows", []):
+                        if len(row) > 1:
+                            sym = row[1]
+                            price_str = row[2]
+                            price_num = 0.0
+                            try:
+                                price_num = float(price_str.replace('$', '').replace('%', '').replace(',', ''))
+                            except:
+                                pass
+                            
+                            change_val = 0.0
+                            if isinstance(row[3], dict):
+                                change_val = row[3].get("value", 0.0)
+                            else:
+                                try:
+                                    change_val = float(row[3])
+                                except:
+                                    pass
+                                    
+                            sortino = 0.0
+                            try:
+                                sortino = float(row[4])
+                            except:
+                                pass
+                            
+                            candidates.append({
+                                "symbol": sym,
+                                "name": row[0],
+                                "price": price_num,
+                                "change": change_val,
+                                "sortino": sortino,
+                                "tier": "Macro"
+                            })
+                    macro_watchlist_content["candidates"] = candidates
+
+                # Dynamically enrich the has_report status for macro rows and candidates
                 from datetime import datetime
                 for row in macro_watchlist_content.get("rows", []):
                     if len(row) > 1:
@@ -2365,9 +2459,52 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                             row.append(meta)
                         elif len(row) >= 7 and isinstance(row[-1], dict):
                             row[-1].update(meta)
+
+                for cand in macro_watchlist_content.get("candidates", []):
+                    sym = cand.get("symbol")
+                    if sym:
+                        sym_clean = sym.replace('^', '').replace('=', '').lower()
+                        r_path1 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
+                        r_path2 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym_clean}.md')
+                        r_path3 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym.lower()}.md')
+                        r_path4 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym_clean}.md')
+                        has_report = os.path.exists(r_path1) or os.path.exists(r_path2) or os.path.exists(r_path3) or os.path.exists(r_path4)
+                        
+                        cand["has_report"] = has_report
+                        if has_report:
+                            paths_to_check = [r_path1, r_path2, r_path3, r_path4]
+                            mtime = max(os.path.getmtime(p) if os.path.exists(p) else 0 for p in paths_to_check)
+                            cand["updated_at"] = datetime.fromtimestamp(mtime).isoformat()
+
+                # Call the unified enrich candidates function
+                from src.server.routes.scanner import enrich_candidates_with_trends
+                macro_watchlist_content["candidates"] = await enrich_candidates_with_trends(macro_watchlist_content["candidates"])
+
+                # Post-enrichment grade/heat-score calculations
+                for cand in macro_watchlist_content.get("candidates", []):
+                    sortino = cand.get("sortino", 0.0)
+                    rvol = cand.get("rvol", 1.0)
+                    change = cand.get("change", 0.0)
+                    
+                    if sortino >= 5.0: cand["grade"] = "S"
+                    elif sortino >= 2.5: cand["grade"] = "A"
+                    elif sortino >= 2.0: cand["grade"] = "B"
+                    elif sortino >= 1.0: cand["grade"] = "C"
+                    else: cand["grade"] = "F"
+                    
+                    base_score = 50.0
+                    if cand["grade"] == "A": base_score += 15.0
+                    elif cand["grade"] == "B": base_score += 5.0
+                    elif cand["grade"] == "C": base_score -= 10.0
+                    elif cand["grade"] == "F": base_score -= 25.0
+                    
+                    base_score += (sortino * 10.0)
+                    base_score += max(0.0, rvol - 1.0) * 5.0
+                    base_score += min(20.0, change * 0.8)
+                    cand["heat_score"] = int(max(0, min(100, base_score)))
                             
             except Exception as e:
-                logger.error(f"Failed to read MACRO_WATCHLIST_state.json: {e}")
+                logger.error(f"Failed to read/enrich MACRO_WATCHLIST_state.json: {e}")
                 
         # 6. Read SCANNER_RES state
         scanner_res_content = {"candidates": [], "pulse_mode": "Automated Pulse", "last_sync": None}
@@ -5672,6 +5809,17 @@ subprocess.Popen(cmd)
 backend_dir = os.path.dirname(os.path.abspath(__file__))  # src/server
 backend_root = os.path.abspath(os.path.join(backend_dir, "..", ".."))  # backend/
 public_dir = os.path.join(backend_root, "public")
+
+@app.middleware("http")
+async def add_no_cache_headers(request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.endswith(".html") or path.endswith(".js") or path.endswith(".css") or path == "/":
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
 app.mount("/", StaticFiles(directory=public_dir, html=True), name="static")
 
 # Trigger hot reload

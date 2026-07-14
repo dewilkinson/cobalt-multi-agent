@@ -48678,6 +48678,3009 @@
   "TradingView Paper Stocks": {
     "activities": [
       {
+        "id": "TV-ABX-2026-07-13T153000.000Z-400.0-Sell-CLOSE",
+        "type": "Sell",
+        "units": 400.0,
+        "price": 11.655,
+        "trade_date": "2026-07-13T15:30:00",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ABX"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-13T153000.000Z-50.0-Sell-CLOSE",
+        "type": "Sell",
+        "units": 50.0,
+        "price": 709.972,
+        "trade_date": "2026-07-13T15:30:00",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-GAIN-2026-07-13T153000.000Z-200.0-Sell-CLOSE",
+        "type": "Sell",
+        "units": 200.0,
+        "price": 16.175,
+        "trade_date": "2026-07-13T15:30:00",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GAIN"
+        }
+      },
+      {
+        "id": "TV-GAIN-2026-07-08T144706.000Z-100.0-Buy-3269154022",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.17,
+        "trade_date": "2026-07-08T14:47:06",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GAIN"
+        }
+      },
+      {
+        "id": "TV-GAIN-2026-07-08T144657.000Z-100.0-Buy-3269153565",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.18,
+        "trade_date": "2026-07-08T14:46:57",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GAIN"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T143947.000Z-5.0-Buy-3269130243",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.98,
+        "trade_date": "2026-07-08T14:39:47",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T143946.000Z-5.0-Buy-3269130177",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.93,
+        "trade_date": "2026-07-08T14:39:46",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T143937.000Z-5.0-Buy-3269129736",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.96,
+        "trade_date": "2026-07-08T14:39:37",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T143933.000Z-5.0-Buy-3269129556",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 710.03,
+        "trade_date": "2026-07-08T14:39:33",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T143927.000Z-5.0-Buy-3269129243",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.95,
+        "trade_date": "2026-07-08T14:39:27",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T143926.000Z-5.0-Buy-3269129182",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.98,
+        "trade_date": "2026-07-08T14:39:26",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T143925.000Z-5.0-Buy-3269129112",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 710.0,
+        "trade_date": "2026-07-08T14:39:25",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T143924.000Z-5.0-Buy-3269129043",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.99,
+        "trade_date": "2026-07-08T14:39:24",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T143919.000Z-5.0-Buy-3269128788",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.97,
+        "trade_date": "2026-07-08T14:39:19",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T143914.000Z-5.0-Buy-3269128512",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.93,
+        "trade_date": "2026-07-08T14:39:14",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T143102.000Z-55.0-Sell-3269017467",
+        "type": "Sell",
+        "units": 55.0,
+        "price": 708.51,
+        "trade_date": "2026-07-08T14:31:02",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T140553.000Z-5.0-Buy-3269019490",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.63,
+        "trade_date": "2026-07-08T14:05:53",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T140551.000Z-5.0-Buy-3269019390",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.53,
+        "trade_date": "2026-07-08T14:05:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T140550.000Z-5.0-Buy-3269019277",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.54,
+        "trade_date": "2026-07-08T14:05:50",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T140541.000Z-5.0-Buy-3269018560",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.44,
+        "trade_date": "2026-07-08T14:05:41",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T140540.000Z-5.0-Buy-3269018471",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.22,
+        "trade_date": "2026-07-08T14:05:40",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T140539.000Z-5.0-Buy-3269018367",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.22,
+        "trade_date": "2026-07-08T14:05:39",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T140537.000Z-5.0-Buy-3269018230",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.35,
+        "trade_date": "2026-07-08T14:05:37",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T140532.000Z-5.0-Buy-3269017749",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.45,
+        "trade_date": "2026-07-08T14:05:32",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T140531.000Z-5.0-Buy-3269017679",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.56,
+        "trade_date": "2026-07-08T14:05:31",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T140530.000Z-5.0-Buy-3269017605",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.5,
+        "trade_date": "2026-07-08T14:05:30",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T140523.000Z-5.0-Buy-3269017119",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.75,
+        "trade_date": "2026-07-08T14:05:23",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T134135.000Z-55.0-Sell-3268660457",
+        "type": "Sell",
+        "units": 55.0,
+        "price": 709.86,
+        "trade_date": "2026-07-08T13:41:35",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T132032.000Z-5.0-Buy-3268824280",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 709.07,
+        "trade_date": "2026-07-08T13:20:32",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T124102.000Z-25.0-Buy-3268659709",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 708.22,
+        "trade_date": "2026-07-08T12:41:02",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T124059.000Z-25.0-Buy-3268659349",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 708.09,
+        "trade_date": "2026-07-08T12:40:59",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T124045.000Z-50.0-Buy-3268644893",
+        "type": "Buy",
+        "units": 50.0,
+        "price": 708.04,
+        "trade_date": "2026-07-08T12:40:45",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T123826.000Z-25.0-Sell-3268646325",
+        "type": "Sell",
+        "units": 25.0,
+        "price": 706.22,
+        "trade_date": "2026-07-08T12:38:26",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T123755.000Z-25.0-Sell-3268643951",
+        "type": "Sell",
+        "units": 25.0,
+        "price": 706.28,
+        "trade_date": "2026-07-08T12:37:55",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T123751.000Z-25.0-Buy-3268643562",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 706.4,
+        "trade_date": "2026-07-08T12:37:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T123739.000Z-25.0-Sell-3268642647",
+        "type": "Sell",
+        "units": 25.0,
+        "price": 706.09,
+        "trade_date": "2026-07-08T12:37:39",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T123736.000Z-25.0-Buy-3268642380",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 706.13,
+        "trade_date": "2026-07-08T12:37:36",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-QQQ-2026-07-08T123725.000Z-25.0-Sell-3268641496",
+        "type": "Sell",
+        "units": 25.0,
+        "price": 706.17,
+        "trade_date": "2026-07-08T12:37:25",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "QQQ"
+        }
+      },
+      {
+        "id": "TV-IWM-2026-07-02T155456.000Z-75.0-Buy-3249783208",
+        "type": "Buy",
+        "units": 75.0,
+        "price": 296.7,
+        "trade_date": "2026-07-02T15:54:56",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IWM"
+        }
+      },
+      {
+        "id": "TV-AVTX-2026-07-02T141022.000Z-400.0-Buy-3249333494",
+        "type": "Buy",
+        "units": 400.0,
+        "price": 17.54,
+        "trade_date": "2026-07-02T14:10:22",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AVTX"
+        }
+      },
+      {
+        "id": "TV-VOR-2026-07-02T131853.000Z-400.0-Buy-3249414576",
+        "type": "Buy",
+        "units": 400.0,
+        "price": 20.66,
+        "trade_date": "2026-07-02T13:18:53",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "VOR"
+        }
+      },
+      {
+        "id": "TV-IWM-2026-07-02T131339.000Z-25.0-Sell-3249787240",
+        "type": "Sell",
+        "units": 25.0,
+        "price": 295.94,
+        "trade_date": "2026-07-02T13:13:39",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IWM"
+        }
+      },
+      {
+        "id": "TV-IWM-2026-07-02T131227.000Z-25.0-Sell-3249783382",
+        "type": "Sell",
+        "units": 25.0,
+        "price": 295.9,
+        "trade_date": "2026-07-02T13:12:27",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IWM"
+        }
+      },
+      {
+        "id": "TV-IWM-2026-07-02T131218.000Z-25.0-Sell-3249782885",
+        "type": "Sell",
+        "units": 25.0,
+        "price": 295.91,
+        "trade_date": "2026-07-02T13:12:18",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IWM"
+        }
+      },
+      {
+        "id": "TV-VOR-2026-07-02T130627.000Z-100.0-Sell-3249757385",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 20.2,
+        "trade_date": "2026-07-02T13:06:27",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "VOR"
+        }
+      },
+      {
+        "id": "TV-VOR-2026-07-02T130625.000Z-100.0-Sell-3249757170",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 20.2,
+        "trade_date": "2026-07-02T13:06:25",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "VOR"
+        }
+      },
+      {
+        "id": "TV-VOR-2026-07-02T130614.000Z-100.0-Sell-3249756224",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 20.28,
+        "trade_date": "2026-07-02T13:06:14",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "VOR"
+        }
+      },
+      {
+        "id": "TV-LMRI-2026-07-02T121728.000Z-500.0-Sell-3249470416",
+        "type": "Sell",
+        "units": 500.0,
+        "price": 12.38,
+        "trade_date": "2026-07-02T12:17:28",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "LMRI"
+        }
+      },
+      {
+        "id": "TV-UMAC-2026-07-02T121242.000Z-200.0-Buy-3249448871",
+        "type": "Buy",
+        "units": 200.0,
+        "price": 22.83,
+        "trade_date": "2026-07-02T12:12:42",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UMAC"
+        }
+      },
+      {
+        "id": "TV-FIZZ-2026-07-02T120904.000Z-200.0-Buy-3249392166",
+        "type": "Buy",
+        "units": 200.0,
+        "price": 35.33,
+        "trade_date": "2026-07-02T12:09:04",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FIZZ"
+        }
+      },
+      {
+        "id": "TV-LMRI-2026-07-02T120609.000Z-100.0-Buy-3249474250",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 12.52,
+        "trade_date": "2026-07-02T12:06:09",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "LMRI"
+        }
+      },
+      {
+        "id": "TV-LMRI-2026-07-02T120608.000Z-100.0-Buy-3249474182",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 12.52,
+        "trade_date": "2026-07-02T12:06:08",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "LMRI"
+        }
+      },
+      {
+        "id": "TV-LMRI-2026-07-02T120606.000Z-100.0-Buy-3249474049",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 12.52,
+        "trade_date": "2026-07-02T12:06:06",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "LMRI"
+        }
+      },
+      {
+        "id": "TV-LMRI-2026-07-02T120526.000Z-100.0-Buy-3249471249",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 12.54,
+        "trade_date": "2026-07-02T12:05:26",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "LMRI"
+        }
+      },
+      {
+        "id": "TV-LMRI-2026-07-02T120512.000Z-100.0-Buy-3249470120",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 12.54,
+        "trade_date": "2026-07-02T12:05:12",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "LMRI"
+        }
+      },
+      {
+        "id": "TV-UMAC-2026-07-02T120104.000Z-100.0-Sell-3249450280",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 22.45,
+        "trade_date": "2026-07-02T12:01:04",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UMAC"
+        }
+      },
+      {
+        "id": "TV-UMAC-2026-07-02T120024.000Z-100.0-Sell-3249447016",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 22.61,
+        "trade_date": "2026-07-02T12:00:24",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UMAC"
+        }
+      },
+      {
+        "id": "TV-VOR-2026-07-02T115250.000Z-100.0-Sell-3249414260",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 20.89,
+        "trade_date": "2026-07-02T11:52:50",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "VOR"
+        }
+      },
+      {
+        "id": "TV-FIZZ-2026-07-02T114821.000Z-100.0-Sell-3249392799",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 34.71,
+        "trade_date": "2026-07-02T11:48:21",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FIZZ"
+        }
+      },
+      {
+        "id": "TV-FIZZ-2026-07-02T114809.000Z-100.0-Sell-3249391911",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 34.71,
+        "trade_date": "2026-07-02T11:48:09",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FIZZ"
+        }
+      },
+      {
+        "id": "TV-FIZZ-2026-07-02T114020.000Z-200.0-Sell-3248867600",
+        "type": "Sell",
+        "units": 200.0,
+        "price": 34.71,
+        "trade_date": "2026-07-02T11:40:20",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FIZZ"
+        }
+      },
+      {
+        "id": "TV-AVTX-2026-07-02T113843.000Z-100.0-Sell-3249347597",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 17.53,
+        "trade_date": "2026-07-02T11:38:43",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AVTX"
+        }
+      },
+      {
+        "id": "TV-AVTX-2026-07-02T113841.000Z-100.0-Sell-3249347450",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 17.53,
+        "trade_date": "2026-07-02T11:38:41",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AVTX"
+        }
+      },
+      {
+        "id": "TV-AVTX-2026-07-02T113755.000Z-100.0-Sell-3249343637",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 17.53,
+        "trade_date": "2026-07-02T11:37:55",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AVTX"
+        }
+      },
+      {
+        "id": "TV-AVTX-2026-07-02T113602.000Z-100.0-Sell-3249332874",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 17.52,
+        "trade_date": "2026-07-02T11:36:02",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AVTX"
+        }
+      },
+      {
+        "id": "TV-DNA-2026-07-02T113019.000Z-400.0-Buy-3249051256",
+        "type": "Buy",
+        "units": 400.0,
+        "price": 10.43,
+        "trade_date": "2026-07-02T11:30:19",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "DNA"
+        }
+      },
+      {
+        "id": "TV-IWM-2026-07-02T112424.000Z-100.0-Buy-3249024498",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 297.44,
+        "trade_date": "2026-07-02T11:24:24",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IWM"
+        }
+      },
+      {
+        "id": "TV-DNA-2026-07-02T104936.000Z-100.0-Sell-3249058846",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 10.23,
+        "trade_date": "2026-07-02T10:49:36",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "DNA"
+        }
+      },
+      {
+        "id": "TV-DNA-2026-07-02T104858.000Z-100.0-Sell-3249054314",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 10.17,
+        "trade_date": "2026-07-02T10:48:58",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "DNA"
+        }
+      },
+      {
+        "id": "TV-DNA-2026-07-02T104837.000Z-100.0-Sell-3249051597",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 10.21,
+        "trade_date": "2026-07-02T10:48:37",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "DNA"
+        }
+      },
+      {
+        "id": "TV-DNA-2026-07-02T104830.000Z-100.0-Sell-3249050758",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 10.21,
+        "trade_date": "2026-07-02T10:48:30",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "DNA"
+        }
+      },
+      {
+        "id": "TV-IWM-2026-07-02T104620.000Z-25.0-Sell-3249035251",
+        "type": "Sell",
+        "units": 25.0,
+        "price": 298.73,
+        "trade_date": "2026-07-02T10:46:20",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IWM"
+        }
+      },
+      {
+        "id": "TV-IWM-2026-07-02T104521.000Z-25.0-Sell-3249027811",
+        "type": "Sell",
+        "units": 25.0,
+        "price": 298.74,
+        "trade_date": "2026-07-02T10:45:21",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IWM"
+        }
+      },
+      {
+        "id": "TV-IWM-2026-07-02T104518.000Z-25.0-Sell-3249027474",
+        "type": "Sell",
+        "units": 25.0,
+        "price": 298.81,
+        "trade_date": "2026-07-02T10:45:18",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IWM"
+        }
+      },
+      {
+        "id": "TV-IWM-2026-07-02T104448.000Z-25.0-Sell-3249024043",
+        "type": "Sell",
+        "units": 25.0,
+        "price": 298.59,
+        "trade_date": "2026-07-02T10:44:48",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IWM"
+        }
+      },
+      {
+        "id": "TV-UMAC-2026-07-02T104045.000Z-600.0-Buy-3248876906",
+        "type": "Buy",
+        "units": 600.0,
+        "price": 24.01,
+        "trade_date": "2026-07-02T10:40:45",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UMAC"
+        }
+      },
+      {
+        "id": "TV-UMAC-2026-07-02T103025.000Z-100.0-Sell-3248908580",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 24.38,
+        "trade_date": "2026-07-02T10:30:25",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UMAC"
+        }
+      },
+      {
+        "id": "TV-UMAC-2026-07-02T103016.000Z-100.0-Sell-3248907045",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 24.38,
+        "trade_date": "2026-07-02T10:30:16",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UMAC"
+        }
+      },
+      {
+        "id": "TV-UMAC-2026-07-02T102943.000Z-100.0-Sell-3248902253",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 24.44,
+        "trade_date": "2026-07-02T10:29:43",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UMAC"
+        }
+      },
+      {
+        "id": "TV-UMAC-2026-07-02T102914.000Z-100.0-Sell-3248898228",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 24.52,
+        "trade_date": "2026-07-02T10:29:14",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UMAC"
+        }
+      },
+      {
+        "id": "TV-UMAC-2026-07-02T102657.000Z-100.0-Sell-3248876237",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 24.53,
+        "trade_date": "2026-07-02T10:26:57",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UMAC"
+        }
+      },
+      {
+        "id": "TV-UMAC-2026-07-02T102650.000Z-100.0-Sell-3248875206",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 24.53,
+        "trade_date": "2026-07-02T10:26:50",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UMAC"
+        }
+      },
+      {
+        "id": "TV-FIZZ-2026-07-02T102630.000Z-100.0-Buy-3248872805",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 35.18,
+        "trade_date": "2026-07-02T10:26:30",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FIZZ"
+        }
+      },
+      {
+        "id": "TV-FIZZ-2026-07-02T102547.000Z-100.0-Buy-3248866907",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 35.18,
+        "trade_date": "2026-07-02T10:25:47",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FIZZ"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T155508.000Z-1200.0-Sell-3245821391",
+        "type": "Sell",
+        "units": 1200.0,
+        "price": 16.06,
+        "trade_date": "2026-07-01T15:55:08",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T155026.000Z-100.0-Buy-3245820837",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.11,
+        "trade_date": "2026-07-01T15:50:26",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T155025.000Z-100.0-Buy-3245820774",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.13,
+        "trade_date": "2026-07-01T15:50:25",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T155023.000Z-100.0-Buy-3245820686",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.13,
+        "trade_date": "2026-07-01T15:50:23",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T154258.000Z-100.0-Sell-3245800031",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 74.86,
+        "trade_date": "2026-07-01T15:42:58",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T154248.000Z-50.0-Buy-3245800469",
+        "type": "Buy",
+        "units": 50.0,
+        "price": 76.0,
+        "trade_date": "2026-07-01T15:42:48",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T154233.000Z-50.0-Buy-3245799825",
+        "type": "Buy",
+        "units": 50.0,
+        "price": 75.73,
+        "trade_date": "2026-07-01T15:42:33",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T154136.000Z-100.0-Sell-3245783149",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 74.94,
+        "trade_date": "2026-07-01T15:41:36",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T154036.000Z-50.0-Buy-3245794115",
+        "type": "Buy",
+        "units": 50.0,
+        "price": 74.07,
+        "trade_date": "2026-07-01T15:40:36",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T153604.000Z-50.0-Buy-3245782449",
+        "type": "Buy",
+        "units": 50.0,
+        "price": 72.8,
+        "trade_date": "2026-07-01T15:36:04",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T153523.000Z-50.0-Sell-3245779695",
+        "type": "Sell",
+        "units": 50.0,
+        "price": 71.6,
+        "trade_date": "2026-07-01T15:35:23",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T153457.000Z-50.0-Buy-3245779412",
+        "type": "Buy",
+        "units": 50.0,
+        "price": 73.0,
+        "trade_date": "2026-07-01T15:34:57",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T152842.000Z-700.0-Sell-3245687866",
+        "type": "Sell",
+        "units": 700.0,
+        "price": 10.68,
+        "trade_date": "2026-07-01T15:28:42",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T152045.000Z-100.0-Buy-3245741026",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.05,
+        "trade_date": "2026-07-01T15:20:45",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T152044.000Z-100.0-Buy-3245740960",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.05,
+        "trade_date": "2026-07-01T15:20:44",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T152043.000Z-100.0-Buy-3245740865",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.05,
+        "trade_date": "2026-07-01T15:20:43",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T152015.000Z-100.0-Buy-3245739370",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.05,
+        "trade_date": "2026-07-01T15:20:15",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T151925.000Z-100.0-Buy-3245736732",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.03,
+        "trade_date": "2026-07-01T15:19:25",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T151913.000Z-100.0-Buy-3245736175",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.03,
+        "trade_date": "2026-07-01T15:19:13",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T151912.000Z-100.0-Buy-3245736120",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.03,
+        "trade_date": "2026-07-01T15:19:12",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T151911.000Z-100.0-Buy-3245736037",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.03,
+        "trade_date": "2026-07-01T15:19:11",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T151859.000Z-100.0-Buy-3245735432",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 16.03,
+        "trade_date": "2026-07-01T15:18:59",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T151628.000Z-100.0-Buy-3245728169",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.64,
+        "trade_date": "2026-07-01T15:16:28",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T151013.000Z-100.0-Buy-3245710944",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.63,
+        "trade_date": "2026-07-01T15:10:13",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T150301.000Z-100.0-Buy-3245687311",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.62,
+        "trade_date": "2026-07-01T15:03:01",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T150300.000Z-100.0-Buy-3245687248",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.62,
+        "trade_date": "2026-07-01T15:03:00",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T150258.000Z-100.0-Buy-3245687188",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.62,
+        "trade_date": "2026-07-01T15:02:58",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T150250.000Z-100.0-Buy-3245686667",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.59,
+        "trade_date": "2026-07-01T15:02:50",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T150247.000Z-100.0-Buy-3245686489",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.59,
+        "trade_date": "2026-07-01T15:02:47",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T150143.000Z-1500.0-Sell-3245598453",
+        "type": "Sell",
+        "units": 1500.0,
+        "price": 10.53,
+        "trade_date": "2026-07-01T15:01:43",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-PRCH-2026-07-01T145645.000Z-600.0-Sell-3245546822",
+        "type": "Sell",
+        "units": 600.0,
+        "price": 15.71,
+        "trade_date": "2026-07-01T14:56:45",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRCH"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T142216.000Z-100.0-Buy-3245568035",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.49,
+        "trade_date": "2026-07-01T14:22:16",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T142215.000Z-100.0-Buy-3245567957",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.49,
+        "trade_date": "2026-07-01T14:22:15",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T142214.000Z-100.0-Buy-3245567890",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.49,
+        "trade_date": "2026-07-01T14:22:14",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T142213.000Z-100.0-Buy-3245567847",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.49,
+        "trade_date": "2026-07-01T14:22:13",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T142212.000Z-100.0-Buy-3245567778",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.49,
+        "trade_date": "2026-07-01T14:22:12",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T142211.000Z-100.0-Buy-3245567723",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.49,
+        "trade_date": "2026-07-01T14:22:11",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T142209.000Z-100.0-Buy-3245567656",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.49,
+        "trade_date": "2026-07-01T14:22:09",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T142204.000Z-100.0-Buy-3245567387",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.49,
+        "trade_date": "2026-07-01T14:22:04",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T142137.000Z-100.0-Buy-3245565718",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.48,
+        "trade_date": "2026-07-01T14:21:37",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T142136.000Z-100.0-Buy-3245565637",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.48,
+        "trade_date": "2026-07-01T14:21:36",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T142015.000Z-100.0-Buy-3245560677",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.48,
+        "trade_date": "2026-07-01T14:20:15",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T142010.000Z-100.0-Buy-3245560324",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.48,
+        "trade_date": "2026-07-01T14:20:10",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T141940.000Z-100.0-Buy-3245558377",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.48,
+        "trade_date": "2026-07-01T14:19:40",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T141939.000Z-100.0-Buy-3245558269",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.48,
+        "trade_date": "2026-07-01T14:19:39",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-MNTN-2026-07-01T141933.000Z-100.0-Buy-3245557939",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.48,
+        "trade_date": "2026-07-01T14:19:33",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "MNTN"
+        }
+      },
+      {
+        "id": "TV-PRCH-2026-07-01T141730.000Z-100.0-Buy-3245551456",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 15.88,
+        "trade_date": "2026-07-01T14:17:30",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRCH"
+        }
+      },
+      {
+        "id": "TV-PRCH-2026-07-01T141728.000Z-100.0-Buy-3245551382",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 15.88,
+        "trade_date": "2026-07-01T14:17:28",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRCH"
+        }
+      },
+      {
+        "id": "TV-PRCH-2026-07-01T141640.000Z-100.0-Buy-3245548904",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 15.83,
+        "trade_date": "2026-07-01T14:16:40",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRCH"
+        }
+      },
+      {
+        "id": "TV-PRCH-2026-07-01T141631.000Z-100.0-Buy-3245548420",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 15.83,
+        "trade_date": "2026-07-01T14:16:31",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRCH"
+        }
+      },
+      {
+        "id": "TV-PRCH-2026-07-01T141607.000Z-100.0-Buy-3245547041",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 15.84,
+        "trade_date": "2026-07-01T14:16:07",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRCH"
+        }
+      },
+      {
+        "id": "TV-PRCH-2026-07-01T141558.000Z-100.0-Buy-3245546471",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 15.81,
+        "trade_date": "2026-07-01T14:15:58",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRCH"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T130033.000Z-100.0-Sell-3245284974",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 15.61,
+        "trade_date": "2026-07-01T13:00:33",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-PRGS-2026-07-01T113703.000Z-100.0-Sell-3244706817",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 39.73,
+        "trade_date": "2026-07-01T11:37:03",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRGS"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T113609.000Z-50.0-Sell-3244912154",
+        "type": "Sell",
+        "units": 50.0,
+        "price": 83.55,
+        "trade_date": "2026-07-01T11:36:09",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-HPP-2026-07-01T113256.000Z-100.0-Buy-3244895268",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 15.89,
+        "trade_date": "2026-07-01T11:32:56",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HPP"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T112935.000Z-50.0-Buy-3244877399",
+        "type": "Buy",
+        "units": 50.0,
+        "price": 76.32,
+        "trade_date": "2026-07-01T11:29:35",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T112716.000Z-100.0-Sell-3244856667",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 73.1,
+        "trade_date": "2026-07-01T11:27:16",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T112649.000Z-50.0-Buy-3244861993",
+        "type": "Buy",
+        "units": 50.0,
+        "price": 77.79,
+        "trade_date": "2026-07-01T11:26:49",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T112551.000Z-50.0-Buy-3244856242",
+        "type": "Buy",
+        "units": 50.0,
+        "price": 76.5,
+        "trade_date": "2026-07-01T11:25:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-PD-2026-07-01T112425.000Z-600.0-Sell-3244846791",
+        "type": "Sell",
+        "units": 600.0,
+        "price": 10.24,
+        "trade_date": "2026-07-01T11:24:25",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PD"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T112057.000Z-100.0-Sell-3244811323",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 73.62,
+        "trade_date": "2026-07-01T11:20:57",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T111903.000Z-50.0-Buy-3244810613",
+        "type": "Buy",
+        "units": 50.0,
+        "price": 72.98,
+        "trade_date": "2026-07-01T11:19:03",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T111901.000Z-50.0-Buy-3244810470",
+        "type": "Buy",
+        "units": 50.0,
+        "price": 72.98,
+        "trade_date": "2026-07-01T11:19:01",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T110658.000Z-50.0-Sell-3244700866",
+        "type": "Sell",
+        "units": 50.0,
+        "price": 65.06,
+        "trade_date": "2026-07-01T11:06:58",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-PRGS-2026-07-01T110248.000Z-100.0-Buy-3244706368",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 39.76,
+        "trade_date": "2026-07-01T11:02:48",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRGS"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T110151.000Z-50.0-Buy-3244700228",
+        "type": "Buy",
+        "units": 50.0,
+        "price": 70.0,
+        "trade_date": "2026-07-01T11:01:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T105931.000Z-50.0-Sell-3244681889",
+        "type": "Sell",
+        "units": 50.0,
+        "price": 66.2,
+        "trade_date": "2026-07-01T10:59:31",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T105851.000Z-50.0-Buy-3244681108",
+        "type": "Buy",
+        "units": 50.0,
+        "price": 68.0,
+        "trade_date": "2026-07-01T10:58:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T105811.000Z-100.0-Sell-3244671162",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 68.13,
+        "trade_date": "2026-07-01T10:58:11",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T105710.000Z-100.0-Buy-3244670782",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 67.0,
+        "trade_date": "2026-07-01T10:57:10",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T105635.000Z-100.0-Sell-3244664672",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 65.17,
+        "trade_date": "2026-07-01T10:56:35",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T105611.000Z-100.0-Buy-3244664048",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 66.89,
+        "trade_date": "2026-07-01T10:56:11",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T105545.000Z-100.0-Sell-3244653884",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 64.59,
+        "trade_date": "2026-07-01T10:55:45",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T105437.000Z-100.0-Buy-3244653452",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 62.47,
+        "trade_date": "2026-07-01T10:54:37",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T104209.000Z-100.0-Sell-3244440379",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 58.5,
+        "trade_date": "2026-07-01T10:42:09",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-EYPT-2026-07-01T104205.000Z-200.0-Sell-3244559864",
+        "type": "Sell",
+        "units": 200.0,
+        "price": 14.8,
+        "trade_date": "2026-07-01T10:42:05",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "EYPT"
+        }
+      },
+      {
+        "id": "TV-SDOT-2026-07-01T102532.000Z-100.0-Buy-3244434876",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 51.74,
+        "trade_date": "2026-07-01T10:25:32",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SDOT"
+        }
+      },
+      {
+        "id": "TV-PD-2026-07-01T102502.000Z-100.0-Buy-3244431802",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.27,
+        "trade_date": "2026-07-01T10:25:02",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PD"
+        }
+      },
+      {
+        "id": "TV-ABX-2026-07-01T102432.000Z-100.0-Buy-3244428515",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 11.82,
+        "trade_date": "2026-07-01T10:24:32",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ABX"
+        }
+      },
+      {
+        "id": "TV-ABX-2026-07-01T102428.000Z-100.0-Buy-3244428189",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 11.82,
+        "trade_date": "2026-07-01T10:24:28",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ABX"
+        }
+      },
+      {
+        "id": "TV-EYPT-2026-07-01T101717.000Z-100.0-Buy-3244375552",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 15.45,
+        "trade_date": "2026-07-01T10:17:17",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "EYPT"
+        }
+      },
+      {
+        "id": "TV-EYPT-2026-07-01T101633.000Z-100.0-Buy-3244368666",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 15.45,
+        "trade_date": "2026-07-01T10:16:33",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "EYPT"
+        }
+      },
+      {
+        "id": "TV-PRGS-2026-07-01T101615.000Z-200.0-Sell-3244185935",
+        "type": "Sell",
+        "units": 200.0,
+        "price": 37.94,
+        "trade_date": "2026-07-01T10:16:15",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRGS"
+        }
+      },
+      {
+        "id": "TV-EYPT-2026-07-01T101518.000Z-300.0-Sell-3244301223",
+        "type": "Sell",
+        "units": 300.0,
+        "price": 15.5,
+        "trade_date": "2026-07-01T10:15:18",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "EYPT"
+        }
+      },
+      {
+        "id": "TV-ABX-2026-07-01T101455.000Z-100.0-Buy-3244353141",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 11.49,
+        "trade_date": "2026-07-01T10:14:55",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ABX"
+        }
+      },
+      {
+        "id": "TV-ABX-2026-07-01T101448.000Z-100.0-Buy-3244352170",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 11.49,
+        "trade_date": "2026-07-01T10:14:48",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "ABX"
+        }
+      },
+      {
+        "id": "TV-EYPT-2026-07-01T100859.000Z-100.0-Buy-3244304280",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 15.74,
+        "trade_date": "2026-07-01T10:08:59",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "EYPT"
+        }
+      },
+      {
+        "id": "TV-EYPT-2026-07-01T100858.000Z-100.0-Buy-3244304117",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 15.74,
+        "trade_date": "2026-07-01T10:08:58",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "EYPT"
+        }
+      },
+      {
+        "id": "TV-EYPT-2026-07-01T100830.000Z-100.0-Buy-3244300655",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 15.79,
+        "trade_date": "2026-07-01T10:08:30",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "EYPT"
+        }
+      },
+      {
+        "id": "TV-PD-2026-07-01T100545.000Z-100.0-Buy-3244277445",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.28,
+        "trade_date": "2026-07-01T10:05:45",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PD"
+        }
+      },
+      {
+        "id": "TV-PD-2026-07-01T100518.000Z-100.0-Buy-3244273643",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.28,
+        "trade_date": "2026-07-01T10:05:18",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PD"
+        }
+      },
+      {
+        "id": "TV-PD-2026-07-01T100511.000Z-100.0-Buy-3244272777",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.28,
+        "trade_date": "2026-07-01T10:05:11",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PD"
+        }
+      },
+      {
+        "id": "TV-PD-2026-07-01T100458.000Z-100.0-Buy-3244270924",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.29,
+        "trade_date": "2026-07-01T10:04:58",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PD"
+        }
+      },
+      {
+        "id": "TV-PD-2026-07-01T100448.000Z-100.0-Buy-3244269585",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.28,
+        "trade_date": "2026-07-01T10:04:48",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PD"
+        }
+      },
+      {
+        "id": "TV-PRGS-2026-07-01T095811.000Z-100.0-Buy-3244201174",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 38.77,
+        "trade_date": "2026-07-01T09:58:11",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRGS"
+        }
+      },
+      {
+        "id": "TV-PRGS-2026-07-01T095604.000Z-100.0-Buy-3244184839",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 38.77,
+        "trade_date": "2026-07-01T09:56:04",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRGS"
+        }
+      },
+      {
+        "id": "TV-AVEX-2026-06-30T133706.000Z-600.0-Sell-3241157251",
+        "type": "Sell",
+        "units": 600.0,
+        "price": 21.86,
+        "trade_date": "2026-06-30T13:37:06",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AVEX"
+        }
+      },
+      {
+        "id": "TV-SPY-2026-06-30T131539.000Z-100.0-Sell-3240811797",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 746.56,
+        "trade_date": "2026-06-30T13:15:39",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SPY"
+        }
+      },
+      {
+        "id": "TV-AVEX-2026-06-30T130709.000Z-200.0-Buy-3241050892",
+        "type": "Buy",
+        "units": 200.0,
+        "price": 21.5,
+        "trade_date": "2026-06-30T13:07:09",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AVEX"
+        }
+      },
+      {
+        "id": "TV-AVEX-2026-06-30T130651.000Z-200.0-Buy-3241049968",
+        "type": "Buy",
+        "units": 200.0,
+        "price": 21.5,
+        "trade_date": "2026-06-30T13:06:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AVEX"
+        }
+      },
+      {
+        "id": "TV-PGY-2026-06-30T125840.000Z-707.0-Sell-3241016198",
+        "type": "Sell",
+        "units": 707.0,
+        "price": 18.41,
+        "trade_date": "2026-06-30T12:58:40",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PGY"
+        }
+      },
+      {
+        "id": "TV-SPY-2026-06-30T125434.000Z-10.0-Buy-3240999861",
+        "type": "Buy",
+        "units": 10.0,
+        "price": 747.0,
+        "trade_date": "2026-06-30T12:54:34",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SPY"
+        }
+      },
+      {
+        "id": "TV-SPY-2026-06-30T125431.000Z-10.0-Buy-3240999671",
+        "type": "Buy",
+        "units": 10.0,
+        "price": 746.99,
+        "trade_date": "2026-06-30T12:54:31",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SPY"
+        }
+      },
+      {
+        "id": "TV-SPY-2026-06-30T125430.000Z-10.0-Buy-3240999578",
+        "type": "Buy",
+        "units": 10.0,
+        "price": 746.99,
+        "trade_date": "2026-06-30T12:54:30",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SPY"
+        }
+      },
+      {
+        "id": "TV-FCEL-2026-06-30T124820.000Z-200.0-Sell-3240948663",
+        "type": "Sell",
+        "units": 200.0,
+        "price": 37.16,
+        "trade_date": "2026-06-30T12:48:20",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FCEL"
+        }
+      },
+      {
+        "id": "TV-FCEL-2026-06-30T124444.000Z-100.0-Buy-3240960354",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 37.58,
+        "trade_date": "2026-06-30T12:44:44",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FCEL"
+        }
+      },
+      {
+        "id": "TV-FCEL-2026-06-30T124134.000Z-100.0-Buy-3240948228",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 37.67,
+        "trade_date": "2026-06-30T12:41:34",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FCEL"
+        }
+      },
+      {
+        "id": "TV-AVEX-2026-06-30T124037.000Z-200.0-Buy-3240944890",
+        "type": "Buy",
+        "units": 200.0,
+        "price": 20.94,
+        "trade_date": "2026-06-30T12:40:37",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "AVEX"
+        }
+      },
+      {
+        "id": "TV-PGY-2026-06-30T123551.000Z-101.0-Buy-3240927194",
+        "type": "Buy",
+        "units": 101.0,
+        "price": 18.58,
+        "trade_date": "2026-06-30T12:35:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PGY"
+        }
+      },
+      {
+        "id": "TV-PGY-2026-06-30T123549.000Z-101.0-Buy-3240927035",
+        "type": "Buy",
+        "units": 101.0,
+        "price": 18.58,
+        "trade_date": "2026-06-30T12:35:49",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PGY"
+        }
+      },
+      {
+        "id": "TV-PGY-2026-06-30T123435.000Z-101.0-Buy-3240921369",
+        "type": "Buy",
+        "units": 101.0,
+        "price": 18.46,
+        "trade_date": "2026-06-30T12:34:35",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PGY"
+        }
+      },
+      {
+        "id": "TV-PGY-2026-06-30T123433.000Z-101.0-Buy-3240921222",
+        "type": "Buy",
+        "units": 101.0,
+        "price": 18.46,
+        "trade_date": "2026-06-30T12:34:33",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PGY"
+        }
+      },
+      {
+        "id": "TV-PGY-2026-06-30T123423.000Z-101.0-Buy-3240920303",
+        "type": "Buy",
+        "units": 101.0,
+        "price": 18.43,
+        "trade_date": "2026-06-30T12:34:23",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PGY"
+        }
+      },
+      {
+        "id": "TV-PGY-2026-06-30T123418.000Z-101.0-Buy-3240919859",
+        "type": "Buy",
+        "units": 101.0,
+        "price": 18.45,
+        "trade_date": "2026-06-30T12:34:18",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PGY"
+        }
+      },
+      {
+        "id": "TV-PGY-2026-06-30T123405.000Z-101.0-Buy-3240918813",
+        "type": "Buy",
+        "units": 101.0,
+        "price": 18.46,
+        "trade_date": "2026-06-30T12:34:05",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PGY"
+        }
+      },
+      {
+        "id": "TV-CADL-2026-06-30T122827.000Z-200.0-Sell-3240897536",
+        "type": "Sell",
+        "units": 200.0,
+        "price": 11.03,
+        "trade_date": "2026-06-30T12:28:27",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CADL"
+        }
+      },
+      {
+        "id": "TV-CADL-2026-06-30T122336.000Z-100.0-Buy-3240879372",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 11.13,
+        "trade_date": "2026-06-30T12:23:36",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CADL"
+        }
+      },
+      {
+        "id": "TV-CADL-2026-06-30T122310.000Z-100.0-Buy-3240877739",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 11.13,
+        "trade_date": "2026-06-30T12:23:10",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CADL"
+        }
+      },
+      {
+        "id": "TV-SPY-2026-06-30T122157.000Z-10.0-Buy-3240873335",
+        "type": "Buy",
+        "units": 10.0,
+        "price": 746.31,
+        "trade_date": "2026-06-30T12:21:57",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SPY"
+        }
+      },
+      {
+        "id": "TV-CADL-2026-06-30T122007.000Z-600.0-Sell-3240745668",
+        "type": "Sell",
+        "units": 600.0,
+        "price": 11.14,
+        "trade_date": "2026-06-30T12:20:07",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CADL"
+        }
+      },
+      {
+        "id": "TV-SPY-2026-06-30T120718.000Z-10.0-Buy-3240814279",
+        "type": "Buy",
+        "units": 10.0,
+        "price": 746.36,
+        "trade_date": "2026-06-30T12:07:18",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SPY"
+        }
+      },
+      {
+        "id": "TV-SPY-2026-06-30T120653.000Z-10.0-Buy-3240812247",
+        "type": "Buy",
+        "units": 10.0,
+        "price": 746.3,
+        "trade_date": "2026-06-30T12:06:53",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SPY"
+        }
+      },
+      {
+        "id": "TV-SPY-2026-06-30T120652.000Z-10.0-Buy-3240812192",
+        "type": "Buy",
+        "units": 10.0,
+        "price": 746.3,
+        "trade_date": "2026-06-30T12:06:52",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SPY"
+        }
+      },
+      {
+        "id": "TV-SPY-2026-06-30T120651.000Z-10.0-Buy-3240812119",
+        "type": "Buy",
+        "units": 10.0,
+        "price": 746.29,
+        "trade_date": "2026-06-30T12:06:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SPY"
+        }
+      },
+      {
+        "id": "TV-SPY-2026-06-30T120649.000Z-10.0-Buy-3240811981",
+        "type": "Buy",
+        "units": 10.0,
+        "price": 746.27,
+        "trade_date": "2026-06-30T12:06:49",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SPY"
+        }
+      },
+      {
+        "id": "TV-SPY-2026-06-30T120633.000Z-10.0-Buy-3240810674",
+        "type": "Buy",
+        "units": 10.0,
+        "price": 746.22,
+        "trade_date": "2026-06-30T12:06:33",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "SPY"
+        }
+      },
+      {
+        "id": "TV-CADL-2026-06-30T120400.000Z-100.0-Buy-3240799345",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 11.34,
+        "trade_date": "2026-06-30T12:04:00",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CADL"
+        }
+      },
+      {
+        "id": "TV-CADL-2026-06-30T115909.000Z-100.0-Buy-3240775487",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 11.33,
+        "trade_date": "2026-06-30T11:59:09",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CADL"
+        }
+      },
+      {
+        "id": "TV-CADL-2026-06-30T115305.000Z-100.0-Buy-3240748067",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 11.23,
+        "trade_date": "2026-06-30T11:53:05",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CADL"
+        }
+      },
+      {
+        "id": "TV-CADL-2026-06-30T115303.000Z-100.0-Buy-3240747939",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 11.23,
+        "trade_date": "2026-06-30T11:53:03",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CADL"
+        }
+      },
+      {
+        "id": "TV-CADL-2026-06-30T115247.000Z-100.0-Buy-3240746895",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 11.23,
+        "trade_date": "2026-06-30T11:52:47",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CADL"
+        }
+      },
+      {
+        "id": "TV-CADL-2026-06-30T115226.000Z-100.0-Buy-3240745257",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 11.23,
+        "trade_date": "2026-06-30T11:52:26",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CADL"
+        }
+      },
+      {
+        "id": "TV-HSAI-2026-06-30T114917.000Z-600.0-Sell-3240731215",
+        "type": "Sell",
+        "units": 600.0,
+        "price": 18.27,
+        "trade_date": "2026-06-30T11:49:17",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HSAI"
+        }
+      },
+      {
+        "id": "TV-UMAC-2026-06-30T103531.000Z-200.0-Sell-3240098925",
+        "type": "Sell",
+        "units": 200.0,
+        "price": 22.08,
+        "trade_date": "2026-06-30T10:35:31",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UMAC"
+        }
+      },
+      {
+        "id": "TV-HSAI-2026-06-30T102229.000Z-100.0-Buy-3240182768",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 17.95,
+        "trade_date": "2026-06-30T10:22:29",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HSAI"
+        }
+      },
+      {
+        "id": "TV-HSAI-2026-06-30T102224.000Z-100.0-Buy-3240182037",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 17.95,
+        "trade_date": "2026-06-30T10:22:24",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HSAI"
+        }
+      },
+      {
+        "id": "TV-HSAI-2026-06-30T102210.000Z-100.0-Buy-3240180228",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 17.97,
+        "trade_date": "2026-06-30T10:22:10",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HSAI"
+        }
+      },
+      {
+        "id": "TV-HSAI-2026-06-30T101935.000Z-100.0-Buy-3240162623",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 17.85,
+        "trade_date": "2026-06-30T10:19:35",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HSAI"
+        }
+      },
+      {
+        "id": "TV-FCEL-2026-06-30T101844.000Z-200.0-Sell-3239949812",
+        "type": "Sell",
+        "units": 200.0,
+        "price": 36.7,
+        "trade_date": "2026-06-30T10:18:44",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FCEL"
+        }
+      },
+      {
+        "id": "TV-HSAI-2026-06-30T101239.000Z-100.0-Buy-3240110802",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 17.59,
+        "trade_date": "2026-06-30T10:12:39",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HSAI"
+        }
+      },
+      {
+        "id": "TV-HSAI-2026-06-30T101232.000Z-100.0-Buy-3240109796",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 17.61,
+        "trade_date": "2026-06-30T10:12:32",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "HSAI"
+        }
+      },
+      {
+        "id": "TV-UMAC-2026-06-30T101205.000Z-100.0-Buy-3240105564",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 22.45,
+        "trade_date": "2026-06-30T10:12:05",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UMAC"
+        }
+      },
+      {
+        "id": "TV-UMAC-2026-06-30T101114.000Z-100.0-Buy-3240096771",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 22.34,
+        "trade_date": "2026-06-30T10:11:14",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UMAC"
+        }
+      },
+      {
+        "id": "TV-FCEL-2026-06-30T095548.000Z-100.0-Buy-3239952034",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 34.98,
+        "trade_date": "2026-06-30T09:55:48",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FCEL"
+        }
+      },
+      {
+        "id": "TV-FCEL-2026-06-30T095528.000Z-100.0-Buy-3239949069",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 35.02,
+        "trade_date": "2026-06-30T09:55:28",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FCEL"
+        }
+      },
+      {
+        "id": "TV-IRDM-2026-06-29T151131.000Z-200.0-Sell-3237203394",
+        "type": "Sell",
+        "units": 200.0,
+        "price": 54.69,
+        "trade_date": "2026-06-29T15:11:31",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IRDM"
+        }
+      },
+      {
+        "id": "TV-FBIN-2026-06-29T151124.000Z-300.0-Sell-3237203075",
+        "type": "Sell",
+        "units": 300.0,
+        "price": 50.71,
+        "trade_date": "2026-06-29T15:11:24",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FBIN"
+        }
+      },
+      {
+        "id": "TV-IRDM-2026-06-29T145504.000Z-100.0-Buy-3237155169",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 54.7,
+        "trade_date": "2026-06-29T14:55:04",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IRDM"
+        }
+      },
+      {
+        "id": "TV-IRDM-2026-06-29T145443.000Z-100.0-Buy-3237154257",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 54.72,
+        "trade_date": "2026-06-29T14:54:43",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IRDM"
+        }
+      },
+      {
+        "id": "TV-IRDM-2026-06-29T144157.000Z-500.0-Sell-3236901881",
+        "type": "Sell",
+        "units": 500.0,
+        "price": 54.39,
+        "trade_date": "2026-06-29T14:41:57",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IRDM"
+        }
+      },
+      {
+        "id": "TV-WSHP-2026-06-29T142142.000Z-200.0-Sell-3236930988",
+        "type": "Sell",
+        "units": 200.0,
+        "price": 9.05,
+        "trade_date": "2026-06-29T14:21:42",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "WSHP"
+        }
+      },
+      {
+        "id": "TV-FBIN-2026-06-29T140151.000Z-100.0-Buy-3237005421",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 50.84,
+        "trade_date": "2026-06-29T14:01:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FBIN"
+        }
+      },
+      {
+        "id": "TV-FBIN-2026-06-29T135634.000Z-100.0-Buy-3236986534",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 50.61,
+        "trade_date": "2026-06-29T13:56:34",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FBIN"
+        }
+      },
+      {
+        "id": "TV-WSHP-2026-06-29T134308.000Z-100.0-Buy-3236943089",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.55,
+        "trade_date": "2026-06-29T13:43:08",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "WSHP"
+        }
+      },
+      {
+        "id": "TV-WSHP-2026-06-29T133912.000Z-100.0-Buy-3236930186",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 10.6,
+        "trade_date": "2026-06-29T13:39:12",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "WSHP"
+        }
+      },
+      {
+        "id": "TV-FBIN-2026-06-29T133838.000Z-100.0-Buy-3236928262",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 50.67,
+        "trade_date": "2026-06-29T13:38:38",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "FBIN"
+        }
+      },
+      {
+        "id": "TV-IRDM-2026-06-29T133542.000Z-100.0-Buy-3236917476",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 54.08,
+        "trade_date": "2026-06-29T13:35:42",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IRDM"
+        }
+      },
+      {
+        "id": "TV-IRDM-2026-06-29T133538.000Z-100.0-Buy-3236917189",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 54.1,
+        "trade_date": "2026-06-29T13:35:38",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IRDM"
+        }
+      },
+      {
+        "id": "TV-IRDM-2026-06-29T133332.000Z-100.0-Buy-3236908286",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 53.94,
+        "trade_date": "2026-06-29T13:33:32",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IRDM"
+        }
+      },
+      {
+        "id": "TV-IRDM-2026-06-29T133223.000Z-100.0-Buy-3236902923",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 53.91,
+        "trade_date": "2026-06-29T13:32:23",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IRDM"
+        }
+      },
+      {
+        "id": "TV-IRDM-2026-06-29T133158.000Z-100.0-Buy-3236900987",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 53.92,
+        "trade_date": "2026-06-29T13:31:58",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "IRDM"
+        }
+      },
+      {
+        "id": "TV-PRG-2026-06-26T151005.000Z-400.0-Sell-3228613889",
+        "type": "Sell",
+        "units": 400.0,
+        "price": 44.62,
+        "trade_date": "2026-06-26T15:10:05",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRG"
+        }
+      },
+      {
+        "id": "TV-PRG-2026-06-26T150202.000Z-100.0-Buy-3229161936",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 44.89,
+        "trade_date": "2026-06-26T15:02:02",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRG"
+        }
+      },
+      {
+        "id": "TV-PRG-2026-06-26T150122.000Z-100.0-Buy-3229159973",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 44.82,
+        "trade_date": "2026-06-26T15:01:22",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRG"
+        }
+      },
+      {
+        "id": "TV-PRG-2026-06-26T150120.000Z-100.0-Buy-3229159889",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 44.82,
+        "trade_date": "2026-06-26T15:01:20",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRG"
+        }
+      },
+      {
+        "id": "TV-GLBE-2026-06-26T144327.000Z-200.0-Sell-3229081644",
+        "type": "Sell",
+        "units": 200.0,
+        "price": 36.35,
+        "trade_date": "2026-06-26T14:43:27",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GLBE"
+        }
+      },
+      {
+        "id": "TV-GLBE-2026-06-26T143505.000Z-200.0-Buy-3229081173",
+        "type": "Buy",
+        "units": 200.0,
+        "price": 36.64,
+        "trade_date": "2026-06-26T14:35:05",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GLBE"
+        }
+      },
+      {
+        "id": "TV-UAL-2026-06-26T132530.000Z-100.0-Sell-3228839528",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 136.77,
+        "trade_date": "2026-06-26T13:25:30",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-2026-06-26T131624.000Z-25.0-Buy-3228805694",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.4,
+        "trade_date": "2026-06-26T13:16:24",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-2026-06-26T131622.000Z-25.0-Buy-3228805618",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.4,
+        "trade_date": "2026-06-26T13:16:22",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-2026-06-26T131621.000Z-25.0-Buy-3228805505",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.4,
+        "trade_date": "2026-06-26T13:16:21",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-2026-06-26T131547.000Z-25.0-Buy-3228803065",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.27,
+        "trade_date": "2026-06-26T13:15:47",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-2026-06-26T130700.000Z-100.0-Sell-3228771118",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 137.42,
+        "trade_date": "2026-06-26T13:07:00",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-CCXI-2026-06-26T130423.000Z-700.0-Sell-3228708196",
+        "type": "Sell",
+        "units": 700.0,
+        "price": 13.33,
+        "trade_date": "2026-06-26T13:04:23",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-CCXI-2026-06-26T130039.000Z-100.0-Buy-3228747651",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.14,
+        "trade_date": "2026-06-26T13:00:39",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-CCXI-2026-06-26T125227.000Z-100.0-Buy-3228718440",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.01,
+        "trade_date": "2026-06-26T12:52:27",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-CCXI-2026-06-26T125226.000Z-100.0-Buy-3228718370",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.01,
+        "trade_date": "2026-06-26T12:52:26",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-CCXI-2026-06-26T125224.000Z-100.0-Buy-3228718267",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.01,
+        "trade_date": "2026-06-26T12:52:24",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-UAL-2026-06-26T125111.000Z-25.0-Buy-3228713414",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.66,
+        "trade_date": "2026-06-26T12:51:11",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-CCXI-2026-06-26T125025.000Z-100.0-Buy-3228709935",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.04,
+        "trade_date": "2026-06-26T12:50:25",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-CCXI-2026-06-26T125009.000Z-100.0-Buy-3228708775",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.04,
+        "trade_date": "2026-06-26T12:50:09",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-CCXI-2026-06-26T124949.000Z-100.0-Buy-3228707674",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.04,
+        "trade_date": "2026-06-26T12:49:49",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-UAL-2026-06-26T124830.000Z-25.0-Buy-3228703241",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.83,
+        "trade_date": "2026-06-26T12:48:30",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-2026-06-26T124825.000Z-25.0-Buy-3228702997",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.83,
+        "trade_date": "2026-06-26T12:48:25",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-2026-06-26T124758.000Z-25.0-Buy-3228701428",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.83,
+        "trade_date": "2026-06-26T12:47:58",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-2026-06-26T124745.000Z-25.0-Sell-3228700726",
+        "type": "Sell",
+        "units": 25.0,
+        "price": 137.74,
+        "trade_date": "2026-06-26T12:47:45",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-2026-06-26T124734.000Z-25.0-Buy-3228700099",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.83,
+        "trade_date": "2026-06-26T12:47:34",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-PRG-2026-06-26T122813.000Z-100.0-Buy-3228613571",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 44.73,
+        "trade_date": "2026-06-26T12:28:13",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRG"
+        }
+      },
+      {
         "id": "TV-PSNL-2026-06-25T152858.000Z-600.0-Sell-3224652629",
         "type": "Sell",
         "units": 600.0,
@@ -48885,6 +51888,303 @@
         "symbol": {
           "symbol": "GH"
         }
+      },
+      {
+        "id": "TV-PRG-6/26/2026-1228-100.0-Buy-3228613571",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 44.73,
+        "trade_date": "6/26/2026 12:28",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRG"
+        }
+      },
+      {
+        "id": "TV-UAL-6/26/2026-1247-25.0-Buy-3228701428",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.83,
+        "trade_date": "6/26/2026 12:47",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-6/26/2026-1247-25.0-Sell-3228700726",
+        "type": "Sell",
+        "units": 25.0,
+        "price": 137.74,
+        "trade_date": "6/26/2026 12:47",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-6/26/2026-1247-25.0-Buy-3228700099",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.83,
+        "trade_date": "6/26/2026 12:47",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-6/26/2026-1248-25.0-Buy-3228703241",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.83,
+        "trade_date": "6/26/2026 12:48",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-6/26/2026-1248-25.0-Buy-3228702997",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.83,
+        "trade_date": "6/26/2026 12:48",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-CCXI-6/26/2026-1249-100.0-Buy-3228707674",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.04,
+        "trade_date": "6/26/2026 12:49",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-CCXI-6/26/2026-1250-100.0-Buy-3228709935",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.04,
+        "trade_date": "6/26/2026 12:50",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-CCXI-6/26/2026-1250-100.0-Buy-3228708775",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.04,
+        "trade_date": "6/26/2026 12:50",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-UAL-6/26/2026-1251-25.0-Buy-3228713414",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.66,
+        "trade_date": "6/26/2026 12:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-CCXI-6/26/2026-1252-100.0-Buy-3228718440",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.01,
+        "trade_date": "6/26/2026 12:52",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-CCXI-6/26/2026-1252-100.0-Buy-3228718370",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.01,
+        "trade_date": "6/26/2026 12:52",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-CCXI-6/26/2026-1252-100.0-Buy-3228718267",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.01,
+        "trade_date": "6/26/2026 12:52",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-CCXI-6/26/2026-1300-100.0-Buy-3228747651",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 13.14,
+        "trade_date": "6/26/2026 13:00",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-CCXI-6/26/2026-1304-700.0-Sell-3228708196",
+        "type": "Sell",
+        "units": 700.0,
+        "price": 13.33,
+        "trade_date": "6/26/2026 13:04",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CCXI"
+        }
+      },
+      {
+        "id": "TV-UAL-6/26/2026-1307-100.0-Sell-3228771118",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 137.42,
+        "trade_date": "6/26/2026 13:07",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-6/26/2026-1315-25.0-Buy-3228803065",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.27,
+        "trade_date": "6/26/2026 13:15",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-6/26/2026-1316-25.0-Buy-3228805694",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.4,
+        "trade_date": "6/26/2026 13:16",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-6/26/2026-1316-25.0-Buy-3228805618",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.4,
+        "trade_date": "6/26/2026 13:16",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-6/26/2026-1316-25.0-Buy-3228805505",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 137.4,
+        "trade_date": "6/26/2026 13:16",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-UAL-6/26/2026-1325-100.0-Sell-3228839528",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 136.77,
+        "trade_date": "6/26/2026 13:25",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "UAL"
+        }
+      },
+      {
+        "id": "TV-GLBE-6/26/2026-1435-200.0-Buy-3229081173",
+        "type": "Buy",
+        "units": 200.0,
+        "price": 36.64,
+        "trade_date": "6/26/2026 14:35",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GLBE"
+        }
+      },
+      {
+        "id": "TV-GLBE-6/26/2026-1443-200.0-Sell-3229081644",
+        "type": "Sell",
+        "units": 200.0,
+        "price": 36.35,
+        "trade_date": "6/26/2026 14:43",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "GLBE"
+        }
+      },
+      {
+        "id": "TV-PRG-6/26/2026-1501-100.0-Buy-3229159973",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 44.82,
+        "trade_date": "6/26/2026 15:01",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRG"
+        }
+      },
+      {
+        "id": "TV-PRG-6/26/2026-1501-100.0-Buy-3229159889",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 44.82,
+        "trade_date": "6/26/2026 15:01",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRG"
+        }
+      },
+      {
+        "id": "TV-PRG-6/26/2026-1502-100.0-Buy-3229161936",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 44.89,
+        "trade_date": "6/26/2026 15:02",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRG"
+        }
+      },
+      {
+        "id": "TV-PRG-6/26/2026-1510-400.0-Sell-3228613889",
+        "type": "Sell",
+        "units": 400.0,
+        "price": 44.62,
+        "trade_date": "6/26/2026 15:10",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PRG"
+        }
       }
     ],
     "positions": [],
@@ -48892,6 +52192,1216 @@
   },
   "TradingView Paper Futures": {
     "activities": [
+      {
+        "id": "TV-KLAC-2026-07-14T143332.000Z-50.0-Sell-3289644646",
+        "type": "Sell",
+        "units": 50.0,
+        "price": 232.88,
+        "trade_date": "2026-07-14T14:33:32",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "KLAC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-14T132315.000Z-5.0-Buy-3289269184",
+        "type": "Buy",
+        "units": 5.0,
+        "price": 4066.7,
+        "trade_date": "2026-07-14T13:23:15",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-KLAC-2026-07-14T132202.000Z-25.0-Buy-3289428005",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 233.39,
+        "trade_date": "2026-07-14T13:22:02",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "KLAC"
+        }
+      },
+      {
+        "id": "TV-KLAC-2026-07-14T132149.000Z-25.0-Buy-3289426963",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 233.4,
+        "trade_date": "2026-07-14T13:21:49",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "KLAC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-14T124255.000Z-5.0-Sell-3289268859",
+        "type": "Sell",
+        "units": 5.0,
+        "price": 4068.2,
+        "trade_date": "2026-07-14T12:42:55",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-14T123952.000Z-4.0-Buy-3289062845",
+        "type": "Buy",
+        "units": 4.0,
+        "price": 4067.3,
+        "trade_date": "2026-07-14T12:39:52",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-14T120530.000Z-1.0-Sell-3289096941",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 4067.0,
+        "trade_date": "2026-07-14T12:05:30",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-14T115929.000Z-1.0-Sell-3289063929",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 4072.6,
+        "trade_date": "2026-07-14T11:59:29",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-14T115911.000Z-1.0-Sell-3289062527",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 4071.8,
+        "trade_date": "2026-07-14T11:59:11",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-14T115909.000Z-1.0-Sell-3289062390",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 4072.0,
+        "trade_date": "2026-07-14T11:59:09",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-14T114739.000Z-2.0-Buy-3288966245",
+        "type": "Buy",
+        "units": 2.0,
+        "price": 4082.9,
+        "trade_date": "2026-07-14T11:47:39",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-PANW-2026-07-14T114339.000Z-75.0-Sell-3288942337",
+        "type": "Sell",
+        "units": 75.0,
+        "price": 351.7,
+        "trade_date": "2026-07-14T11:43:39",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PANW"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-14T114218.000Z-1.0-Sell-3288966792",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 4073.8,
+        "trade_date": "2026-07-14T11:42:18",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-14T114209.000Z-1.0-Sell-3288965740",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 4076.7,
+        "trade_date": "2026-07-14T11:42:09",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-PANW-2026-07-14T113806.000Z-25.0-Buy-3288942976",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 353.66,
+        "trade_date": "2026-07-14T11:38:06",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PANW"
+        }
+      },
+      {
+        "id": "TV-PANW-2026-07-14T113802.000Z-25.0-Buy-3288942569",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 353.65,
+        "trade_date": "2026-07-14T11:38:02",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PANW"
+        }
+      },
+      {
+        "id": "TV-PANW-2026-07-14T113752.000Z-25.0-Buy-3288941809",
+        "type": "Buy",
+        "units": 25.0,
+        "price": 353.48,
+        "trade_date": "2026-07-14T11:37:52",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "PANW"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T210010.000Z-2.0-Sell-3285998611",
+        "type": "Sell",
+        "units": 2.0,
+        "price": 79.55,
+        "trade_date": "2026-07-13T21:00:10",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-13T202835.000Z-4.0-Buy-3285915870",
+        "type": "Buy",
+        "units": 4.0,
+        "price": 4002.2,
+        "trade_date": "2026-07-13T20:28:35",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T201646.000Z-1.0-Buy-3285998773",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 79.84,
+        "trade_date": "2026-07-13T20:16:46",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T201638.000Z-1.0-Buy-3285998219",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 79.75,
+        "trade_date": "2026-07-13T20:16:38",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-13T200521.000Z-1.0-Sell-3285959107",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 3999.9,
+        "trade_date": "2026-07-13T20:05:21",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-13T200520.000Z-1.0-Sell-3285959039",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 3999.8,
+        "trade_date": "2026-07-13T20:05:20",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-13T200516.000Z-1.0-Sell-3285958776",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 4001.2,
+        "trade_date": "2026-07-13T20:05:16",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-13T194656.000Z-1.0-Sell-3285915696",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 4000.3,
+        "trade_date": "2026-07-13T19:46:56",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T194545.000Z-4.0-Sell-3285823789",
+        "type": "Sell",
+        "units": 4.0,
+        "price": 79.45,
+        "trade_date": "2026-07-13T19:45:45",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-13T194207.000Z-4.0-Buy-3285804017",
+        "type": "Buy",
+        "units": 4.0,
+        "price": 4003.8,
+        "trade_date": "2026-07-13T19:42:07",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T185714.000Z-1.0-Sell-3285833111",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 78.77,
+        "trade_date": "2026-07-13T18:57:14",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T185033.000Z-1.0-Buy-3285822030",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 78.38,
+        "trade_date": "2026-07-13T18:50:33",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T185031.000Z-1.0-Buy-3285821993",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 78.38,
+        "trade_date": "2026-07-13T18:50:31",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T185018.000Z-1.0-Buy-3285821749",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 78.38,
+        "trade_date": "2026-07-13T18:50:18",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-13T183752.000Z-1.0-Sell-3285805072",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 4010.1,
+        "trade_date": "2026-07-13T18:37:52",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-13T183750.000Z-1.0-Sell-3285805039",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 4010.2,
+        "trade_date": "2026-07-13T18:37:50",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-13T183704.000Z-1.0-Sell-3285804079",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 4010.1,
+        "trade_date": "2026-07-13T18:37:04",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MGC-2026-07-13T183656.000Z-1.0-Sell-3285803886",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 4010.2,
+        "trade_date": "2026-07-13T18:36:56",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MGC"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T183121.000Z-1.0-Buy-3285796628",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 78.15,
+        "trade_date": "2026-07-13T18:31:21",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T183109.000Z-1.0-Buy-3285796366",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 78.13,
+        "trade_date": "2026-07-13T18:31:09",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T150040.000Z-699.97-Sell-3285427005",
+        "type": "Sell",
+        "units": 699.97,
+        "price": 36.93,
+        "trade_date": "2026-07-13T15:00:40",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T145254.000Z-0.01-Sell-3285407657",
+        "type": "Sell",
+        "units": 0.01,
+        "price": 37.0,
+        "trade_date": "2026-07-13T14:52:54",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T145209.000Z-0.01-Sell-3285405406",
+        "type": "Sell",
+        "units": 0.01,
+        "price": 36.99,
+        "trade_date": "2026-07-13T14:52:09",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T145138.000Z-0.01-Sell-3285403900",
+        "type": "Sell",
+        "units": 0.01,
+        "price": 36.99,
+        "trade_date": "2026-07-13T14:51:38",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T144851.000Z-600.0-Buy-3285396290",
+        "type": "Buy",
+        "units": 600.0,
+        "price": 36.94,
+        "trade_date": "2026-07-13T14:48:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T144842.000Z-100.0-Buy-3285395972",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.94,
+        "trade_date": "2026-07-13T14:48:42",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T144430.000Z-1200.0-Buy-3285343193",
+        "type": "Buy",
+        "units": 1200.0,
+        "price": 36.96,
+        "trade_date": "2026-07-13T14:44:30",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T143836.000Z-100.0-Sell-3285368110",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 36.89,
+        "trade_date": "2026-07-13T14:38:36",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T143829.000Z-100.0-Sell-3285367741",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 36.89,
+        "trade_date": "2026-07-13T14:38:29",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T143413.000Z-100.0-Sell-3285354919",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 36.81,
+        "trade_date": "2026-07-13T14:34:13",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T143412.000Z-100.0-Sell-3285354875",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 36.81,
+        "trade_date": "2026-07-13T14:34:12",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T143411.000Z-100.0-Sell-3285354828",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 36.81,
+        "trade_date": "2026-07-13T14:34:11",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T143126.000Z-100.0-Sell-3285345424",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 36.83,
+        "trade_date": "2026-07-13T14:31:26",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T143124.000Z-100.0-Sell-3285345306",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 36.83,
+        "trade_date": "2026-07-13T14:31:24",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T143058.000Z-100.0-Sell-3285343614",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 36.86,
+        "trade_date": "2026-07-13T14:30:58",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T143057.000Z-100.0-Sell-3285343549",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 36.86,
+        "trade_date": "2026-07-13T14:30:57",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T143056.000Z-100.0-Sell-3285343487",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 36.86,
+        "trade_date": "2026-07-13T14:30:56",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T143055.000Z-100.0-Sell-3285343401",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 36.86,
+        "trade_date": "2026-07-13T14:30:55",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T143044.000Z-100.0-Sell-3285342560",
+        "type": "Sell",
+        "units": 100.0,
+        "price": 36.86,
+        "trade_date": "2026-07-13T14:30:44",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T141037.000Z-1000.0-Buy-3285238815",
+        "type": "Buy",
+        "units": 1000.0,
+        "price": 36.9,
+        "trade_date": "2026-07-13T14:10:37",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T140923.000Z-500.0-Sell-3285257813",
+        "type": "Sell",
+        "units": 500.0,
+        "price": 36.8,
+        "trade_date": "2026-07-13T14:09:23",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T140458.000Z-500.0-Sell-3285238540",
+        "type": "Sell",
+        "units": 500.0,
+        "price": 36.81,
+        "trade_date": "2026-07-13T14:04:58",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T140446.000Z-700.0-Sell-3285237713",
+        "type": "Sell",
+        "units": 700.0,
+        "price": 36.81,
+        "trade_date": "2026-07-13T14:04:46",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T140432.000Z-500.0-Sell-3285172180",
+        "type": "Sell",
+        "units": 500.0,
+        "price": 36.82,
+        "trade_date": "2026-07-13T14:04:32",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T140329.000Z-3.0-Sell-3285205388",
+        "type": "Sell",
+        "units": 3.0,
+        "price": 77.77,
+        "trade_date": "2026-07-13T14:03:29",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T135815.000Z-1.0-Buy-3285207715",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 77.52,
+        "trade_date": "2026-07-13T13:58:15",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T135751.000Z-1.0-Buy-3285205824",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 77.51,
+        "trade_date": "2026-07-13T13:57:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T135741.000Z-1.0-Buy-3285204963",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 77.41,
+        "trade_date": "2026-07-13T13:57:41",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T135724.000Z-3.0-Sell-3284965860",
+        "type": "Sell",
+        "units": 3.0,
+        "price": 77.3,
+        "trade_date": "2026-07-13T13:57:24",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T135234.000Z-500.0-Buy-3285185239",
+        "type": "Buy",
+        "units": 500.0,
+        "price": 36.9,
+        "trade_date": "2026-07-13T13:52:34",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T135222.000Z-100.0-Buy-3285184336",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.91,
+        "trade_date": "2026-07-13T13:52:22",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T135220.000Z-100.0-Buy-3285184166",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.91,
+        "trade_date": "2026-07-13T13:52:20",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-TCBK-2026-07-13T134903.000Z-600.0-Sell-3285171645",
+        "type": "Sell",
+        "units": 600.0,
+        "price": 59.65,
+        "trade_date": "2026-07-13T13:49:03",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TCBK"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T131930.000Z-100.0-Buy-3285067192",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.88,
+        "trade_date": "2026-07-13T13:19:30",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T131929.000Z-100.0-Buy-3285067133",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.88,
+        "trade_date": "2026-07-13T13:19:29",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T131927.000Z-100.0-Buy-3285067075",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.88,
+        "trade_date": "2026-07-13T13:19:27",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T131926.000Z-100.0-Buy-3285066991",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.88,
+        "trade_date": "2026-07-13T13:19:26",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T131921.000Z-100.0-Buy-3285066730",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.89,
+        "trade_date": "2026-07-13T13:19:21",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-TCBK-2026-07-13T131342.000Z-100.0-Buy-3285045016",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 59.88,
+        "trade_date": "2026-07-13T13:13:42",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TCBK"
+        }
+      },
+      {
+        "id": "TV-TCBK-2026-07-13T131339.000Z-100.0-Buy-3285044876",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 59.88,
+        "trade_date": "2026-07-13T13:13:39",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TCBK"
+        }
+      },
+      {
+        "id": "TV-TCBK-2026-07-13T125719.000Z-100.0-Buy-3284977737",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 59.68,
+        "trade_date": "2026-07-13T12:57:19",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TCBK"
+        }
+      },
+      {
+        "id": "TV-TCBK-2026-07-13T125659.000Z-100.0-Buy-3284976345",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 59.68,
+        "trade_date": "2026-07-13T12:56:59",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TCBK"
+        }
+      },
+      {
+        "id": "TV-TCBK-2026-07-13T125656.000Z-100.0-Buy-3284976172",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 59.68,
+        "trade_date": "2026-07-13T12:56:56",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TCBK"
+        }
+      },
+      {
+        "id": "TV-TCBK-2026-07-13T125647.000Z-100.0-Buy-3284975557",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 59.64,
+        "trade_date": "2026-07-13T12:56:47",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TCBK"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T125550.000Z-1.0-Buy-3284971009",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 75.88,
+        "trade_date": "2026-07-13T12:55:50",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T125507.000Z-1.0-Buy-3284967166",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 75.86,
+        "trade_date": "2026-07-13T12:55:07",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-/MCL-2026-07-13T125441.000Z-1.0-Buy-3284965118",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 75.74,
+        "trade_date": "2026-07-13T12:54:41",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MCL"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T124739.000Z-1100.0-Sell-3284123229",
+        "type": "Sell",
+        "units": 1100.0,
+        "price": 36.7,
+        "trade_date": "2026-07-13T12:47:39",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T113350.000Z-100.0-Buy-3284574576",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.6,
+        "trade_date": "2026-07-13T11:33:50",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T113342.000Z-100.0-Buy-3284573954",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.59,
+        "trade_date": "2026-07-13T11:33:42",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-TCBK-2026-07-13T110906.000Z-400.0-Sell-3284304989",
+        "type": "Sell",
+        "units": 400.0,
+        "price": 59.51,
+        "trade_date": "2026-07-13T11:09:06",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TCBK"
+        }
+      },
+      {
+        "id": "TV-TCBK-2026-07-13T104703.000Z-100.0-Buy-3284306562",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 59.93,
+        "trade_date": "2026-07-13T10:47:03",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TCBK"
+        }
+      },
+      {
+        "id": "TV-TCBK-2026-07-13T104700.000Z-100.0-Buy-3284306024",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 59.93,
+        "trade_date": "2026-07-13T10:47:00",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TCBK"
+        }
+      },
+      {
+        "id": "TV-TCBK-2026-07-13T104656.000Z-100.0-Buy-3284305422",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 59.96,
+        "trade_date": "2026-07-13T10:46:56",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TCBK"
+        }
+      },
+      {
+        "id": "TV-TCBK-2026-07-13T104648.000Z-100.0-Buy-3284304361",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 59.96,
+        "trade_date": "2026-07-13T10:46:48",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "TCBK"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T102451.000Z-100.0-Buy-3284133273",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.42,
+        "trade_date": "2026-07-13T10:24:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T102450.000Z-100.0-Buy-3284133099",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.42,
+        "trade_date": "2026-07-13T10:24:50",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T102448.000Z-100.0-Buy-3284132896",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.42,
+        "trade_date": "2026-07-13T10:24:48",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T102446.000Z-100.0-Buy-3284132588",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.42,
+        "trade_date": "2026-07-13T10:24:46",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T102434.000Z-100.0-Buy-3284130461",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.39,
+        "trade_date": "2026-07-13T10:24:34",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T102352.000Z-100.0-Buy-3284123713",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.44,
+        "trade_date": "2026-07-13T10:23:52",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T102351.000Z-100.0-Buy-3284123560",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.44,
+        "trade_date": "2026-07-13T10:23:51",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T102338.000Z-100.0-Buy-3284121898",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.44,
+        "trade_date": "2026-07-13T10:23:38",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-CMG-2026-07-13T102335.000Z-100.0-Buy-3284121457",
+        "type": "Buy",
+        "units": 100.0,
+        "price": 36.44,
+        "trade_date": "2026-07-13T10:23:35",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "CMG"
+        }
+      },
+      {
+        "id": "TV-/MNK-2026-06-26T025620.000Z-1.0-Buy-3225640795",
+        "type": "Buy",
+        "units": 1.0,
+        "price": 69950.0,
+        "trade_date": "2026-06-26T02:56:20",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MNK"
+        }
+      },
+      {
+        "id": "TV-/MNK-2026-06-25T233842.000Z-1.0-Sell-3225640551",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 68885.0,
+        "trade_date": "2026-06-25T23:38:42",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MNK"
+        }
+      },
+      {
+        "id": "TV-/MBT-2026-06-25T233224.000Z-3.0-Buy-3225591643",
+        "type": "Buy",
+        "units": 3.0,
+        "price": 59355.0,
+        "trade_date": "2026-06-25T23:32:24",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MBT"
+        }
+      },
+      {
+        "id": "TV-/MBT-2026-06-25T231900.000Z-1.0-Sell-3225595588",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 58960.0,
+        "trade_date": "2026-06-25T23:19:00",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MBT"
+        }
+      },
+      {
+        "id": "TV-/MBT-2026-06-25T231844.000Z-1.0-Sell-3225595065",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 58980.0,
+        "trade_date": "2026-06-25T23:18:44",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MBT"
+        }
+      },
+      {
+        "id": "TV-/MBT-2026-06-25T231705.000Z-1.0-Sell-3225591466",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 59010.0,
+        "trade_date": "2026-06-25T23:17:05",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MBT"
+        }
+      },
+      {
+        "id": "TV-/MNK-2026-06-25T231004.000Z-2.0-Buy-3225446355",
+        "type": "Buy",
+        "units": 2.0,
+        "price": 69345.0,
+        "trade_date": "2026-06-25T23:10:04",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MNK"
+        }
+      },
+      {
+        "id": "TV-/MNK-2026-06-25T222812.000Z-1.0-Sell-3225447410",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 69755.0,
+        "trade_date": "2026-06-25T22:28:12",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MNK"
+        }
+      },
+      {
+        "id": "TV-/MNK-2026-06-25T222732.000Z-1.0-Sell-3225445597",
+        "type": "Sell",
+        "units": 1.0,
+        "price": 69720.0,
+        "trade_date": "2026-06-25T22:27:32",
+        "status": "Executed",
+        "symbol": {
+          "symbol": "/MNK"
+        }
+      },
       {
         "id": "TV-/MBT-2026-06-25T094853.000Z-2.0-Buy-3222549983",
         "type": "Buy",

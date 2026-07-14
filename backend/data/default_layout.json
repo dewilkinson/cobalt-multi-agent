@@ -2,11 +2,11 @@
   "win-order_history": {
     "instanceGuid": "order_history",
     "typeGuid": "ORDER_HIST",
-    "top": "763px",
-    "left": "40px",
+    "top": "650px",
+    "left": "90px",
     "right": "",
     "width": "1459px",
-    "height": "297px",
+    "height": "406px",
     "zIndex": "1001",
     "display": "",
     "collapsed": false
@@ -31,7 +31,7 @@
     "right": "",
     "width": "33%",
     "height": "200px",
-    "zIndex": "1003",
+    "zIndex": "1032",
     "display": "none",
     "collapsed": false
   },
@@ -43,32 +43,44 @@
     "right": "",
     "width": "1476px",
     "height": "388px",
-    "zIndex": "1004",
+    "zIndex": "1033",
     "display": "none",
     "collapsed": false
   },
   "win-watchlist": {
     "instanceGuid": "watchlist",
     "typeGuid": "MACRO_WL",
-    "top": "419px",
-    "left": "40px",
-    "right": "",
-    "width": "1440px",
-    "height": "344px",
-    "zIndex": "1005",
+    "top": "62px",
+    "left": "95px",
+    "right": "auto",
+    "width": "1520px",
+    "height": "1020px",
+    "zIndex": "1059",
     "display": "",
-    "collapsed": false
+    "collapsed": true
   },
   "win-shield": {
     "instanceGuid": "shield",
     "typeGuid": "SCAN_RES",
-    "top": "67px",
-    "left": "40px",
-    "right": "auto",
-    "width": "1479px",
-    "height": "390px",
-    "zIndex": "1534",
+    "top": "95px",
+    "left": "90px",
+    "right": "",
+    "width": "1400px",
+    "height": "987px",
+    "zIndex": "1065",
     "display": "",
     "collapsed": false
+  },
+  "win-futures_watchlist": {
+    "instanceGuid": "futures_watchlist",
+    "typeGuid": "MACRO_WL",
+    "top": "133px",
+    "left": "180px",
+    "right": "auto",
+    "width": "1280px",
+    "height": "688px",
+    "zIndex": "1057",
+    "display": "",
+    "collapsed": true
   }
 }

@@ -300,7 +300,11 @@ def main():
     all_symbols = sorted(list(set(list(recent_executions_by_symbol.keys()) + list(recent_closed_by_symbol.keys()))))
     
     for sym in all_symbols:
-        pine_script.append(f'if barstate.islast and current_sym == "{sym}"')
+        clean_sym = sym.lstrip('/')
+        cond = f'current_sym == "{sym}" or current_sym == "{clean_sym}"'
+        if sym.startswith('/'):
+            cond += f' or str.contains(current_sym, "{clean_sym}")'
+        pine_script.append(f'if barstate.islast and ({cond})')
         
         # Plot trade lines first
         lines = recent_closed_by_symbol.get(sym, [])

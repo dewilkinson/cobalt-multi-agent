@@ -1,106 +1,104 @@
-Account Name,Date&Time,Date,Time,Symbol,Buy/Sell,Quantity,Price,Spread,Expiration,Strike,Call/Put,Commission,Fees
-Rollover IRA *5513,,06/22/2026,11:38:04,SWKS,Buy,100.0,78.515,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,11:43:06,ENTG,Buy,50.0,186.105,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,11:44:56,SWKS,Buy,50.0,78.86,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,11:46:40,SWKS,Buy,50.0,79.11,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,11:46:58,SWKS,Sell,200.0,77.91,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,11:55:43,ENTG,Sell,50.0,183.85,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,12:26:23,VIAV,Buy,100.0,50.51,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,12:28:08,CAT,Buy,10.0,1020.63,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,12:29:15,CAT,Buy,10.0,1021.5801,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,12:30:11,VIAV,Buy,100.0,50.64,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,12:38:41,CAT,Buy,10.0,1022.68,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,12:50:07,BHVN,Buy,100.0,15.6,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,12:51:43,BHVN,Buy,250.0,15.6002,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,13:03:01,VIAV,Sell,150.0,51.55,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,13:03:42,VIAV,Sell,50.0,51.4,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,13:05:19,BHVN,Sell,350.0,15.5329,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,13:17:45,RLAY,Buy,100.0,17.23,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,13:18:29,RLAY,Buy,200.0,17.235,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,13:19:16,VIAV,Buy,75.0,51.805,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,13:27:33,CAT,Sell,20.0,1019.35,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,13:34:53,CAT,Sell,10.0,1018.88,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,13:37:52,RLAY,Sell,300.0,17.09,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,14:33:46,GLW,Buy,4.0,210.16,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,14:47:06,GLW,Sell,4.0,209.8,Stock,,,,0,0
-Rollover IRA *5513,,06/22/2026,15:10:43,VIAV,Sell,75.0,52.6,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,10:10:45,DYN,Buy,100.0,21.485,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,10:11:39,DYN,Buy,50.0,21.455,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,10:11:57,DYN,Sell,150.0,21.11,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,10:24:11,JBIO,Buy,100.0,20.575,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,10:31:22,VKTX,Buy,100.0,35.635,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,10:33:11,VKTX,Sell,50.0,35.325,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,10:35:37,QNT,Buy,50.0,79.465,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,10:36:18,VKTX,Buy,50.0,35.17,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,10:36:44,QNT,Buy,50.0,80.79,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,10:37:35,QNT,Sell,100.0,78.8,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,10:39:51,VKTX,Sell,100.0,34.9951,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,10:59:32,JBIO,Buy,100.0,20.725,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,11:03:47,JBIO,Buy,100.0,20.68,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,11:14:43,T,Buy,100.0,22.685,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,11:15:33,T,Buy,100.0,22.695,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,11:16:43,T,Buy,50.0,22.695,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,11:17:57,T,Buy,250.0,22.705,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,11:18:10,T,Sell,500.0,22.6,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,11:19:22,JBIO,Sell,300.0,20.51,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,11:38:34,T,Buy,100.0,22.715,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,11:40:29,T,Buy,200.0,22.7499,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,11:50:04,T,Buy,200.0,22.865,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,12:48:46,T,Buy,100.0,22.935,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,12:49:48,T,Buy,150.0,22.925,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,13:21:34,T,Sell,550.0,22.805,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,13:57:01,BLZE,Buy,100.0,11.5173,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,13:57:43,BLZE,Buy,50.0,11.58,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,13:59:51,BLZE,Buy,100.0,11.7177,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,14:42:57,BLZE,Sell,50.0,11.49,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,14:46:13,BLZE,Sell,200.0,11.52,Stock,,,,0,0
-Rollover IRA *5513,,06/23/2026,15:40:18,T,Sell,200.0,22.9,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,10:57:02,EBAY,Buy,200.0,111.44,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,10:58:15,EBAY,Sell,200.0,111.15,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,11:01:43,AMZN,Buy,25.0,241.1,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,11:02:30,AMZN,Buy,25.0,241.13,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,11:02:41,AMZN,Sell,50.0,239.8108,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,11:07:44,ALL,Buy,25.0,234.59,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,11:08:29,ALL,Buy,50.0,234.6,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,11:15:57,UMC,Buy,100.0,28.325,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,11:16:52,UMC,Buy,100.0,28.365,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,11:27:19,INDV,Buy,100.0,41.52,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,11:28:16,INDV,Buy,100.0,41.5699,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,11:28:30,INDV,Sell,200.0,41.21,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,11:49:51,RBRK,Buy,50.0,75.89,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,11:55:25,RBRK,Buy,25.0,76.0799,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,11:59:58,WCN,Buy,25.0,166.27,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,12:00:46,WCN,Buy,25.0,166.2199,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,12:03:37,WCN,Buy,25.0,166.31,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,12:03:59,WCN,Sell,75.0,165.92,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,12:22:46,ALL,Sell,50.0,235.47,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,12:42:10,UMC,Sell,200.0,28.2511,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,12:42:44,RBRK,Sell,75.0,75.46,Stock,,,,0,0
-Rollover IRA *5513,,06/24/2026,12:44:30,ALL,Sell,25.0,234.52,Stock,,,,0,0
-TradingView Paper Futures,,06/25/2026,01:10:36,/MNK,Buy,1.0,72445.0,Stock,,,,0,0
-TradingView Paper Futures,,06/25/2026,01:13:45,/MGC,Buy,1.0,4014.3,Stock,,,,0,0
-TradingView Paper Futures,,06/25/2026,01:13:56,/MGC,Buy,1.0,4014.2,Stock,,,,0,0
-TradingView Paper Futures,,06/25/2026,01:16:08,/MGC,Sell,2.0,4010.3,Stock,,,,0,0
-TradingView Paper Futures,,06/25/2026,08:52:36,/MNK,Sell,1.0,72790.0,Stock,,,,0,0
-TradingView Paper Futures,,06/25/2026,09:08:44,/MBT,Sell,1.0,61270.0,Stock,,,,0,0
-TradingView Paper Futures,,06/25/2026,09:09:00,/MBT,Sell,1.0,61280.0,Stock,,,,0,0
-TradingView Paper Futures,,06/25/2026,09:48:53,/MBT,Buy,2.0,59460.0,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:08:41,GH,Buy,100.0,144.38,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:15:25,SNDA,Buy,100.0,40.13,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:15:30,SNDA,Buy,100.0,40.13,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:20:30,ABNB,Buy,25.0,145.49,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:20:47,ABNB,Buy,25.0,145.49,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:21:10,ABNB,Buy,25.0,145.22,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:21:13,ABNB,Buy,25.0,145.27,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:23:43,PSNL,Buy,200.0,12.56,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:23:58,PSNL,Buy,200.0,12.51,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:24:18,PSNL,Buy,200.0,12.47,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:25:48,SNDA,Sell,200.0,39.41,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:30:00,A,Buy,25.0,138.21,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:30:09,A,Buy,25.0,138.2,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:30:17,A,Buy,50.0,138.2,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:30:28,A,Buy,50.0,138.2,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,10:45:30,ABNB,Sell,100.0,143.9,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,11:03:58,A,Sell,150.0,137.11,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,11:42:31,GH,Sell,100.0,141.48,Stock,,,,0,0
-TradingView Paper Stocks,,06/25/2026,15:28:58,PSNL,Sell,600.0,12.69,Stock,,,,0,0
+Account Name,Date / Time,Symbol,Side,Quantity,Price,Spread,Expiration,Strike,Call/Put,Commission,Fees
+TradingView Paper Stocks,07/01/2026 10:14:48,ABX,Buy,100.0,11.49,Stock,,,,0,0
+TradingView Paper Stocks,07/01/2026 10:14:55,ABX,Buy,100.0,11.49,Stock,,,,0,0
+TradingView Paper Stocks,07/01/2026 10:24:28,ABX,Buy,100.0,11.82,Stock,,,,0,0
+TradingView Paper Stocks,07/01/2026 10:24:32,ABX,Buy,100.0,11.82,Stock,,,,0,0
+TradingView Paper Stocks,07/08/2026 14:39:14,QQQ,Buy,5.0,709.93,Stock,,,,0,0
+TradingView Paper Stocks,07/08/2026 14:39:19,QQQ,Buy,5.0,709.97,Stock,,,,0,0
+TradingView Paper Stocks,07/08/2026 14:39:24,QQQ,Buy,5.0,709.99,Stock,,,,0,0
+TradingView Paper Stocks,07/08/2026 14:39:25,QQQ,Buy,5.0,710.0,Stock,,,,0,0
+TradingView Paper Stocks,07/08/2026 14:39:26,QQQ,Buy,5.0,709.98,Stock,,,,0,0
+TradingView Paper Stocks,07/08/2026 14:39:27,QQQ,Buy,5.0,709.95,Stock,,,,0,0
+TradingView Paper Stocks,07/08/2026 14:39:33,QQQ,Buy,5.0,710.03,Stock,,,,0,0
+TradingView Paper Stocks,07/08/2026 14:39:37,QQQ,Buy,5.0,709.96,Stock,,,,0,0
+TradingView Paper Stocks,07/08/2026 14:39:46,QQQ,Buy,5.0,709.93,Stock,,,,0,0
+TradingView Paper Stocks,07/08/2026 14:39:47,QQQ,Buy,5.0,709.98,Stock,,,,0,0
+TradingView Paper Stocks,07/08/2026 14:46:57,GAIN,Buy,100.0,16.18,Stock,,,,0,0
+TradingView Paper Stocks,07/08/2026 14:47:06,GAIN,Buy,100.0,16.17,Stock,,,,0,0
+TradingView Paper Futures,07/13/2026 10:23:35,CMG,Buy,100.0,36.44,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 10:23:38,CMG,Buy,100.0,36.44,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 10:23:51,CMG,Buy,100.0,36.44,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 10:23:52,CMG,Buy,100.0,36.44,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 10:24:34,CMG,Buy,100.0,36.39,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 10:24:46,CMG,Buy,100.0,36.42,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 10:24:48,CMG,Buy,100.0,36.42,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 10:24:50,CMG,Buy,100.0,36.42,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 10:24:51,CMG,Buy,100.0,36.42,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 10:46:48,TCBK,Buy,100.0,59.96,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 10:46:56,TCBK,Buy,100.0,59.96,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 10:47:00,TCBK,Buy,100.0,59.93,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 10:47:03,TCBK,Buy,100.0,59.93,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 11:09:06,TCBK,Sell,400.0,59.51,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 11:33:42,CMG,Buy,100.0,36.59,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 11:33:50,CMG,Buy,100.0,36.6,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 12:47:39,CMG,Sell,1100.0,36.7,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 12:54:41,/MCL,Buy,100.0,75.74,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 12:55:07,/MCL,Buy,100.0,75.86,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 12:55:50,/MCL,Buy,100.0,75.88,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 12:56:47,TCBK,Buy,100.0,59.64,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 12:56:56,TCBK,Buy,100.0,59.68,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 12:56:59,TCBK,Buy,100.0,59.68,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 12:57:19,TCBK,Buy,100.0,59.68,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:13:39,TCBK,Buy,100.0,59.88,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:13:42,TCBK,Buy,100.0,59.88,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:19:21,CMG,Buy,100.0,36.89,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:19:26,CMG,Buy,100.0,36.88,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:19:27,CMG,Buy,100.0,36.88,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:19:29,CMG,Buy,100.0,36.88,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:19:30,CMG,Buy,100.0,36.88,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:49:03,TCBK,Sell,600.0,59.65,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:52:20,CMG,Buy,100.0,36.91,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:52:22,CMG,Buy,100.0,36.91,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:52:34,CMG,Buy,500.0,36.9,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:57:24,/MCL,Sell,300.0,77.3,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:57:41,/MCL,Buy,100.0,77.41,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:57:51,/MCL,Buy,100.0,77.51,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 13:58:15,/MCL,Buy,100.0,77.52,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:03:29,/MCL,Sell,300.0,77.77,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:04:32,CMG,Sell,500.0,36.82,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:04:46,CMG,Sell,700.0,36.81,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:04:58,CMG,Sell,500.0,36.81,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:09:23,CMG,Sell,500.0,36.8,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:10:37,CMG,Buy,1000.0,36.9,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:30:44,CMG,Sell,100.0,36.86,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:30:55,CMG,Sell,100.0,36.86,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:30:56,CMG,Sell,100.0,36.86,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:30:57,CMG,Sell,100.0,36.86,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:30:58,CMG,Sell,100.0,36.86,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:31:24,CMG,Sell,100.0,36.83,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:31:26,CMG,Sell,100.0,36.83,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:34:11,CMG,Sell,100.0,36.81,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:34:12,CMG,Sell,100.0,36.81,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:34:13,CMG,Sell,100.0,36.81,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:38:29,CMG,Sell,100.0,36.89,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:38:36,CMG,Sell,100.0,36.89,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:44:30,CMG,Buy,1200.0,36.96,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:48:42,CMG,Buy,99.99999999999999,36.94,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:48:51,CMG,Buy,600.0,36.94,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:51:38,CMG,Sell,0.01,36.99,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:52:09,CMG,Sell,0.01,36.99,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 14:52:54,CMG,Sell,0.01,37.0,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 15:00:40,CMG,Sell,699.97,36.93,Future,,,,0,0
+TradingView Paper Stocks,07/13/2026 15:30:00,ABX,Sell,400.0,11.655,Stock,,,,0,0
+TradingView Paper Stocks,07/13/2026 15:30:00,GAIN,Sell,200.0,16.175,Stock,,,,0,0
+TradingView Paper Stocks,07/13/2026 15:30:00,QQQ,Sell,50.0,709.972,Stock,,,,0,0
+TradingView Paper Futures,07/13/2026 18:31:09,/MCL,Buy,100.0,78.13,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 18:31:21,/MCL,Buy,100.0,78.15,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 18:36:56,/MGC,Sell,10.0,4010.2,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 18:37:04,/MGC,Sell,10.0,4010.1,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 18:37:50,/MGC,Sell,10.0,4010.2,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 18:37:52,/MGC,Sell,10.0,4010.1,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 18:50:18,/MCL,Buy,100.0,78.38,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 18:50:31,/MCL,Buy,100.0,78.38,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 18:50:33,/MCL,Buy,100.0,78.38,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 18:57:14,/MCL,Sell,100.0,78.77,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 19:42:07,/MGC,Buy,40.0,4003.8,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 19:45:45,/MCL,Sell,400.0,79.45,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 19:46:56,/MGC,Sell,10.0,4000.3,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 20:05:16,/MGC,Sell,10.0,4001.2,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 20:05:20,/MGC,Sell,10.0,3999.8,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 20:05:21,/MGC,Sell,10.0,3999.9,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 20:16:38,/MCL,Buy,100.0,79.75,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 20:16:46,/MCL,Buy,100.0,79.84,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 20:28:35,/MGC,Buy,40.0,4002.2,Future,,,,0,0
+TradingView Paper Futures,07/13/2026 21:00:10,/MCL,Sell,200.0,79.55,Future,,,,0,0

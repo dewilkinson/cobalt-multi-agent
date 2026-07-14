@@ -25,7 +25,21 @@ class MacroRegistry:
         "VIX": "^VIX",
         "TNX": "^TNX",
         "WTI": "CL=F",
-        "BTC": "BTC-USD"
+        "BTC": "BTC-USD",
+        "ES": "ES=F",
+        "MES": "MES=F",
+        "NQ": "NQ=F",
+        "MNQ": "MNQ=F",
+        "YM": "YM=F",
+        "MYM": "MYM=F",
+        "RTY": "RTY=F",
+        "M2K": "M2K=F",
+        "CL": "CL=F",
+        "MCL": "MCL=F",
+        "GC": "GC=F",
+        "MGC": "MGC=F",
+        "NKD": "NKD=F",
+        "MNK": "MNK=F"
     }
 
     def __init__(self):

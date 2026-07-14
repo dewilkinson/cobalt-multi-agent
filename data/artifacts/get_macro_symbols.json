@@ -12,141 +12,141 @@
         [
             "S&P 500 Trust ETF",
             "SPY",
-            "$734.30",
+            "$749.17",
             {
-                "value": 0.14,
+                "value": -0.77,
                 "type": "text"
             },
-            0.28,
+            0.27,
             {
                 "type": "sparkline",
                 "value": [
                     {
-                        "v": 735.13,
+                        "v": 755.04,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 755.0992,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 754.89,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 754.89,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 754.89,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 754.89,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 754.89,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 754.89,
                         "is_prev": false
                     },
                     {
-                        "v": 735.08,
+                        "v": 754.89,
                         "is_prev": false
                     },
                     {
-                        "v": 735.0592,
+                        "v": 754.89,
                         "is_prev": false
                     },
                     {
-                        "v": 734.9752,
+                        "v": 754.89,
                         "is_prev": false
                     },
                     {
-                        "v": 734.57,
+                        "v": 754.89,
                         "is_prev": false
                     },
                     {
-                        "v": 734.49,
+                        "v": 752.7064,
                         "is_prev": false
                     },
                     {
-                        "v": 734.28,
+                        "v": 752.5086,
                         "is_prev": false
                     },
                     {
-                        "v": 734.02,
+                        "v": 752.95,
                         "is_prev": false
                     },
                     {
-                        "v": 733.74,
+                        "v": 752.75,
                         "is_prev": false
                     },
                     {
-                        "v": 733.83,
+                        "v": 752.64,
                         "is_prev": false
                     },
                     {
-                        "v": 733.93,
+                        "v": 752.33,
                         "is_prev": false
                     },
                     {
-                        "v": 733.89,
+                        "v": 752.49,
                         "is_prev": false
                     },
                     {
-                        "v": 733.82,
+                        "v": 752.88,
                         "is_prev": false
                     },
                     {
-                        "v": 733.8,
+                        "v": 753.09,
                         "is_prev": false
                     },
                     {
-                        "v": 733.96,
+                        "v": 751.92,
                         "is_prev": false
                     },
                     {
-                        "v": 733.965,
+                        "v": 751.21,
                         "is_prev": false
                     },
                     {
-                        "v": 733.95,
+                        "v": 750.12,
                         "is_prev": false
                     },
                     {
-                        "v": 733.65,
+                        "v": 749.95,
                         "is_prev": false
                     },
                     {
-                        "v": 733.4999,
+                        "v": 749.29,
                         "is_prev": false
                     },
                     {
-                        "v": 733.45,
+                        "v": 749.6,
                         "is_prev": false
                     },
                     {
-                        "v": 733.445,
+                        "v": 749.03,
                         "is_prev": false
                     },
                     {
-                        "v": 733.1025,
+                        "v": 748.24,
                         "is_prev": false
                     },
                     {
-                        "v": 732.475,
+                        "v": 748.25,
                         "is_prev": false
                     },
                     {
-                        "v": 732.735,
+                        "v": 748.595,
                         "is_prev": false
                     },
                     {
-                        "v": 732.45,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 732.57,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 732.35,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 732.55,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 732.605,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 732.71,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 732.655,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 734.3,
+                        "v": 749.17,
                         "is_prev": false
                     }
                 ]
@@ -155,141 +155,141 @@
         [
             "Nasdaq 100 ETF",
             "QQQ",
-            "$716.38",
+            "$711.74",
             {
-                "value": 0.81,
+                "value": -1.9,
                 "type": "text"
             },
-            0.3,
+            0.29,
             {
                 "type": "sparkline",
                 "value": [
                     {
-                        "v": 718.255,
+                        "v": 725.96,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 726.002,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 726.41,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 726.41,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 726.41,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 726.41,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 726.41,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 726.41,
                         "is_prev": false
                     },
                     {
-                        "v": 718.0452,
+                        "v": 726.41,
                         "is_prev": false
                     },
                     {
-                        "v": 717.6095,
+                        "v": 726.41,
                         "is_prev": false
                     },
                     {
-                        "v": 717.43,
+                        "v": 726.41,
                         "is_prev": false
                     },
                     {
-                        "v": 716.8774,
+                        "v": 726.41,
                         "is_prev": false
                     },
                     {
-                        "v": 716.82,
+                        "v": 718.02,
                         "is_prev": false
                     },
                     {
-                        "v": 716.6448,
+                        "v": 718.05,
                         "is_prev": false
                     },
                     {
-                        "v": 716.57,
+                        "v": 718.8,
                         "is_prev": false
                     },
                     {
-                        "v": 716.46,
+                        "v": 718.56,
                         "is_prev": false
                     },
                     {
-                        "v": 716.55,
+                        "v": 718.93,
                         "is_prev": false
                     },
                     {
-                        "v": 716.37,
+                        "v": 718.19,
                         "is_prev": false
                     },
                     {
-                        "v": 716.465,
+                        "v": 717.93,
                         "is_prev": false
                     },
                     {
-                        "v": 716.487,
+                        "v": 714.4,
                         "is_prev": false
                     },
                     {
-                        "v": 716.24,
+                        "v": 717.5,
                         "is_prev": false
                     },
                     {
-                        "v": 716.12,
+                        "v": 716.6005,
                         "is_prev": false
                     },
                     {
-                        "v": 716.22,
+                        "v": 715.3,
                         "is_prev": false
                     },
                     {
-                        "v": 716.13,
+                        "v": 713.24,
                         "is_prev": false
                     },
                     {
-                        "v": 716.03,
+                        "v": 713.165,
                         "is_prev": false
                     },
                     {
-                        "v": 715.81,
+                        "v": 712.22,
                         "is_prev": false
                     },
                     {
-                        "v": 715.625,
+                        "v": 712.28,
                         "is_prev": false
                     },
                     {
-                        "v": 715.634,
+                        "v": 711.805,
                         "is_prev": false
                     },
                     {
-                        "v": 714.76,
+                        "v": 710.98,
                         "is_prev": false
                     },
                     {
-                        "v": 713.68,
+                        "v": 711.0,
                         "is_prev": false
                     },
                     {
-                        "v": 714.0293,
+                        "v": 711.6212,
                         "is_prev": false
                     },
                     {
-                        "v": 713.42,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 713.67,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 713.32,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 713.87,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 713.813,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 714.16,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 713.985,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 716.38,
+                        "v": 711.74,
                         "is_prev": false
                     }
                 ]
@@ -298,141 +298,141 @@
         [
             "Russell 2000 ETF",
             "IWM",
-            "$298.91",
+            "$293.48",
             {
-                "value": 0.75,
+                "value": -0.85,
                 "type": "text"
             },
-            0.19,
+            0.18,
             {
                 "type": "sparkline",
                 "value": [
                     {
-                        "v": 299.34,
+                        "v": 295.92,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 296.0,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 296.0,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 296.0,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 296.0,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 296.0,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 296.0,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 296.0,
                         "is_prev": false
                     },
                     {
-                        "v": 299.52,
+                        "v": 296.0,
                         "is_prev": false
                     },
                     {
-                        "v": 299.54,
+                        "v": 296.0,
                         "is_prev": false
                     },
                     {
-                        "v": 299.55,
+                        "v": 296.0,
                         "is_prev": false
                     },
                     {
-                        "v": 299.4,
+                        "v": 296.0,
                         "is_prev": false
                     },
                     {
-                        "v": 299.43,
+                        "v": 295.74,
                         "is_prev": false
                     },
                     {
-                        "v": 299.258,
+                        "v": 295.79,
                         "is_prev": false
                     },
                     {
-                        "v": 299.07,
+                        "v": 295.85,
                         "is_prev": false
                     },
                     {
-                        "v": 299.1,
+                        "v": 295.5,
                         "is_prev": false
                     },
                     {
-                        "v": 299.25,
+                        "v": 295.27,
                         "is_prev": false
                     },
                     {
-                        "v": 298.87,
+                        "v": 295.1,
                         "is_prev": false
                     },
                     {
-                        "v": 299.12,
+                        "v": 295.07,
                         "is_prev": false
                     },
                     {
-                        "v": 299.0017,
+                        "v": 294.62,
                         "is_prev": false
                     },
                     {
-                        "v": 299.0,
+                        "v": 294.88,
                         "is_prev": false
                     },
                     {
-                        "v": 298.9467,
+                        "v": 294.4,
                         "is_prev": false
                     },
                     {
-                        "v": 299.08,
+                        "v": 294.0201,
                         "is_prev": false
                     },
                     {
-                        "v": 299.1,
+                        "v": 293.56,
                         "is_prev": false
                     },
                     {
-                        "v": 298.7,
+                        "v": 293.3,
                         "is_prev": false
                     },
                     {
-                        "v": 298.7322,
+                        "v": 292.85,
                         "is_prev": false
                     },
                     {
-                        "v": 298.73,
+                        "v": 293.265,
                         "is_prev": false
                     },
                     {
-                        "v": 298.87,
+                        "v": 293.3904,
                         "is_prev": false
                     },
                     {
-                        "v": 298.64,
+                        "v": 292.82,
                         "is_prev": false
                     },
                     {
-                        "v": 298.51,
+                        "v": 292.95,
                         "is_prev": false
                     },
                     {
-                        "v": 298.6,
+                        "v": 293.07,
                         "is_prev": false
                     },
                     {
-                        "v": 298.6204,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 298.73,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 298.44,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 298.545,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 298.68,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 298.69,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 298.61,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 298.91,
+                        "v": 293.48,
                         "is_prev": false
                     }
                 ]
@@ -441,141 +441,117 @@
         [
             "US Dollar Index",
             "DX-Y.NYB",
-            "$101.50",
+            "$101.28",
             {
-                "value": -0.11,
+                "value": 0.3,
                 "type": "text"
             },
-            -0.09,
+            -0.29,
             {
                 "type": "sparkline",
                 "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     {
-                        "v": 101.435,
+                        "v": 101.121,
                         "is_prev": false
                     },
                     {
-                        "v": 101.436,
+                        "v": 101.062,
                         "is_prev": false
                     },
                     {
-                        "v": 101.43,
+                        "v": 101.097,
                         "is_prev": false
                     },
                     {
-                        "v": 101.429,
+                        "v": 101.094,
                         "is_prev": false
                     },
                     {
-                        "v": 101.44,
+                        "v": 101.052,
                         "is_prev": false
                     },
                     {
-                        "v": 101.441,
+                        "v": 100.918,
                         "is_prev": false
                     },
                     {
-                        "v": 101.438,
+                        "v": 100.851,
                         "is_prev": false
                     },
                     {
-                        "v": 101.451,
+                        "v": 100.918,
                         "is_prev": false
                     },
                     {
-                        "v": 101.445,
+                        "v": 100.924,
                         "is_prev": false
                     },
                     {
-                        "v": 101.43,
+                        "v": 100.908,
                         "is_prev": false
                     },
                     {
-                        "v": 101.452,
+                        "v": 100.908,
                         "is_prev": false
                     },
                     {
-                        "v": 101.427,
+                        "v": 100.938,
                         "is_prev": false
                     },
                     {
-                        "v": 101.425,
+                        "v": 100.943,
                         "is_prev": false
                     },
                     {
-                        "v": 101.418,
+                        "v": 101.109,
                         "is_prev": false
                     },
                     {
-                        "v": 101.454,
+                        "v": 101.118,
                         "is_prev": false
                     },
                     {
-                        "v": 101.458,
+                        "v": 101.144,
                         "is_prev": false
                     },
                     {
-                        "v": 101.45,
+                        "v": 101.255,
                         "is_prev": false
                     },
                     {
-                        "v": 101.433,
+                        "v": 101.241,
                         "is_prev": false
                     },
                     {
-                        "v": 101.419,
+                        "v": 101.25,
                         "is_prev": false
                     },
                     {
-                        "v": 101.42,
+                        "v": 101.243,
                         "is_prev": false
                     },
                     {
-                        "v": 101.435,
+                        "v": 101.278,
                         "is_prev": false
                     },
                     {
-                        "v": 101.441,
+                        "v": 101.317,
                         "is_prev": false
                     },
                     {
-                        "v": 101.441,
+                        "v": 101.275,
                         "is_prev": false
                     },
                     {
-                        "v": 101.441,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 101.441,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 101.441,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 101.441,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 101.441,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 101.441,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 101.441,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 101.441,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 101.498,
+                        "v": 101.277,
                         "is_prev": false
                     }
                 ]
@@ -584,141 +560,141 @@
         [
             "CBOE Volatility Index",
             "^VIX",
-            "$18.89",
+            "$17.16",
             {
-                "value": 1.4,
+                "value": 14.17,
                 "type": "text"
             },
-            20.11,
+            0.92,
             {
                 "type": "sparkline",
                 "value": [
                     {
-                        "v": 18.97,
+                        "v": 15.04,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 15.04,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 15.04,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 15.04,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 15.04,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 15.04,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 15.04,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 15.04,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 15.04,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 15.04,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 15.04,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 15.04,
                         "is_prev": false
                     },
                     {
-                        "v": 19.04,
+                        "v": 15.04,
                         "is_prev": false
                     },
                     {
-                        "v": 19.23,
+                        "v": 15.04,
                         "is_prev": false
                     },
                     {
-                        "v": 18.92,
+                        "v": 15.04,
                         "is_prev": false
                     },
                     {
-                        "v": 18.95,
+                        "v": 16.43,
                         "is_prev": false
                     },
                     {
-                        "v": 19.22,
+                        "v": 16.31,
                         "is_prev": false
                     },
                     {
-                        "v": 18.94,
+                        "v": 16.17,
                         "is_prev": false
                     },
                     {
-                        "v": 19.02,
+                        "v": 16.26,
                         "is_prev": false
                     },
                     {
-                        "v": 18.67,
+                        "v": 16.3,
                         "is_prev": false
                     },
                     {
-                        "v": 18.69,
+                        "v": 16.33,
                         "is_prev": false
                     },
                     {
-                        "v": 18.55,
+                        "v": 16.48,
                         "is_prev": false
                     },
                     {
-                        "v": 18.82,
+                        "v": 16.38,
                         "is_prev": false
                     },
                     {
-                        "v": 18.77,
+                        "v": 16.14,
                         "is_prev": false
                     },
                     {
-                        "v": 18.86,
+                        "v": 16.39,
                         "is_prev": false
                     },
                     {
-                        "v": 18.97,
+                        "v": 16.2,
                         "is_prev": false
                     },
                     {
-                        "v": 18.94,
+                        "v": 16.39,
                         "is_prev": false
                     },
                     {
-                        "v": 18.89,
+                        "v": 16.62,
                         "is_prev": false
                     },
                     {
-                        "v": 19.04,
+                        "v": 16.85,
                         "is_prev": false
                     },
                     {
-                        "v": 19.01,
+                        "v": 16.96,
                         "is_prev": false
                     },
                     {
-                        "v": 19.08,
+                        "v": 17.22,
                         "is_prev": false
                     },
                     {
-                        "v": 19.14,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 19.07,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 19.1,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 19.15,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 19.16,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 19.1,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 19.22,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 19.11,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 19.06,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 18.9,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 18.91,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 18.89,
+                        "v": 17.16,
                         "is_prev": false
                     }
                 ]
@@ -727,141 +703,141 @@
         [
             "10-Year Treasury Yield",
             "^TNX",
-            "4.39%",
+            "4.61%",
             {
-                "value": -1.33,
+                "value": 0.88,
                 "type": "text"
             },
-            0.0,
+            0.05,
             {
                 "type": "sparkline",
                 "value": [
                     {
-                        "v": 4.376,
+                        "v": 4.569,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 4.569,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 4.569,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 4.569,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 4.569,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 4.569,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 4.569,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 4.569,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 4.569,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 4.569,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 4.569,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 4.569,
+                        "is_prev": true
+                    },
+                    {
+                        "v": 4.569,
                         "is_prev": false
                     },
                     {
-                        "v": 4.378,
+                        "v": 4.569,
                         "is_prev": false
                     },
                     {
-                        "v": 4.378,
+                        "v": 4.569,
                         "is_prev": false
                     },
                     {
-                        "v": 4.378,
+                        "v": 4.569,
                         "is_prev": false
                     },
                     {
-                        "v": 4.38,
+                        "v": 4.569,
                         "is_prev": false
                     },
                     {
-                        "v": 4.382,
+                        "v": 4.569,
                         "is_prev": false
                     },
                     {
-                        "v": 4.384,
+                        "v": 4.569,
                         "is_prev": false
                     },
                     {
-                        "v": 4.386,
+                        "v": 4.569,
                         "is_prev": false
                     },
                     {
-                        "v": 4.382,
+                        "v": 4.569,
                         "is_prev": false
                     },
                     {
-                        "v": 4.384,
+                        "v": 4.569,
                         "is_prev": false
                     },
                     {
-                        "v": 4.384,
+                        "v": 4.569,
                         "is_prev": false
                     },
                     {
-                        "v": 4.386,
+                        "v": 4.587,
                         "is_prev": false
                     },
                     {
-                        "v": 4.386,
+                        "v": 4.583,
                         "is_prev": false
                     },
                     {
-                        "v": 4.384,
+                        "v": 4.601,
                         "is_prev": false
                     },
                     {
-                        "v": 4.386,
+                        "v": 4.598,
                         "is_prev": false
                     },
                     {
-                        "v": 4.386,
+                        "v": 4.6,
                         "is_prev": false
                     },
                     {
-                        "v": 4.384,
+                        "v": 4.612,
                         "is_prev": false
                     },
                     {
-                        "v": 4.384,
+                        "v": 4.609,
                         "is_prev": false
                     },
                     {
-                        "v": 4.384,
+                        "v": 4.616,
                         "is_prev": false
                     },
                     {
-                        "v": 4.388,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.398,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.398,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.394,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.394,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.394,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.392,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.394,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.396,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.396,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.396,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.394,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 4.392,
+                        "v": 4.609,
                         "is_prev": false
                     }
                 ]
@@ -869,142 +845,121 @@
         ],
         [
             "WTI Crude Oil",
-            "CL=F",
-            "$70.69",
+            "/CL",
+            "$78.37",
             {
-                "value": 0.5,
+                "value": 9.75,
                 "type": "text"
             },
-            0.46,
+            0.67,
             {
                 "type": "sparkline",
                 "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     {
-                        "v": 71.91,
+                        "v": 74.33,
                         "is_prev": false
                     },
                     {
-                        "v": 71.92,
+                        "v": 74.5,
                         "is_prev": false
                     },
                     {
-                        "v": 71.8,
+                        "v": 75.05,
                         "is_prev": false
                     },
                     {
-                        "v": 71.68,
+                        "v": 74.37,
                         "is_prev": false
                     },
                     {
-                        "v": 71.7,
+                        "v": 74.07,
                         "is_prev": false
                     },
                     {
-                        "v": 71.57,
+                        "v": 73.6,
                         "is_prev": false
                     },
                     {
-                        "v": 71.47,
+                        "v": 72.92,
                         "is_prev": false
                     },
                     {
-                        "v": 71.38,
+                        "v": 72.71,
                         "is_prev": false
                     },
                     {
-                        "v": 71.47,
+                        "v": 73.66,
                         "is_prev": false
                     },
                     {
-                        "v": 71.47,
+                        "v": 73.82,
                         "is_prev": false
                     },
                     {
-                        "v": 71.47,
+                        "v": 73.8,
                         "is_prev": false
                     },
                     {
-                        "v": 71.47,
+                        "v": 74.29,
                         "is_prev": false
                     },
                     {
-                        "v": 71.47,
+                        "v": 73.68,
                         "is_prev": false
                     },
                     {
-                        "v": 71.47,
+                        "v": 74.83,
                         "is_prev": false
                     },
                     {
-                        "v": 71.47,
+                        "v": 74.66,
                         "is_prev": false
                     },
                     {
-                        "v": 71.47,
+                        "v": 74.81,
                         "is_prev": false
                     },
                     {
-                        "v": 71.47,
+                        "v": 75.17,
                         "is_prev": false
                     },
                     {
-                        "v": 71.47,
+                        "v": 75.93,
                         "is_prev": false
                     },
                     {
-                        "v": 71.47,
+                        "v": 77.89,
                         "is_prev": false
                     },
                     {
-                        "v": 71.47,
+                        "v": 77.57,
                         "is_prev": false
                     },
                     {
-                        "v": 71.54,
+                        "v": 77.93,
                         "is_prev": false
                     },
                     {
-                        "v": 71.43,
+                        "v": 78.26,
                         "is_prev": false
                     },
                     {
-                        "v": 71.5,
+                        "v": 78.0,
                         "is_prev": false
                     },
                     {
-                        "v": 71.43,
+                        "v": 78.0,
                         "is_prev": false
                     },
                     {
-                        "v": 71.45,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 71.42,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 71.38,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 71.46,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 71.43,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 71.49,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 71.45,
-                        "is_prev": false
-                    },
-                    {
-                        "v": 70.69,
+                        "v": 78.37,
                         "is_prev": false
                     }
                 ]
@@ -1013,149 +968,2058 @@
         [
             "Bitcoin (USD)",
             "BTC-USD",
-            "$58,720.00",
+            "$61,833.20",
             {
-                "value": -3.73,
+                "value": -3.02,
                 "type": "text"
             },
-            -15.39,
+            -1.6,
             {
                 "type": "sparkline",
                 "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     {
-                        "v": 59493.8203,
+                        "v": 62808.0391,
                         "is_prev": false
                     },
                     {
-                        "v": 59541.9102,
+                        "v": 62818.8086,
                         "is_prev": false
                     },
                     {
-                        "v": 59501.3203,
+                        "v": 62726.4219,
                         "is_prev": false
                     },
                     {
-                        "v": 59461.9102,
+                        "v": 62789.4414,
                         "is_prev": false
                     },
                     {
-                        "v": 59346.4102,
+                        "v": 62888.0,
                         "is_prev": false
                     },
                     {
-                        "v": 59413.1484,
+                        "v": 62978.6211,
                         "is_prev": false
                     },
                     {
-                        "v": 59302.8008,
+                        "v": 63105.8906,
                         "is_prev": false
                     },
                     {
-                        "v": 59272.1797,
+                        "v": 63042.0117,
                         "is_prev": false
                     },
                     {
-                        "v": 59376.6992,
+                        "v": 63046.5,
                         "is_prev": false
                     },
                     {
-                        "v": 59396.0781,
+                        "v": 62965.0,
                         "is_prev": false
                     },
                     {
-                        "v": 59482.1484,
+                        "v": 62796.9883,
                         "is_prev": false
                     },
                     {
-                        "v": 59507.9883,
+                        "v": 62534.5,
                         "is_prev": false
                     },
                     {
-                        "v": 59485.3711,
+                        "v": 62235.2383,
                         "is_prev": false
                     },
                     {
-                        "v": 59575.1406,
+                        "v": 62480.8086,
                         "is_prev": false
                     },
                     {
-                        "v": 59613.9805,
+                        "v": 62722.8281,
                         "is_prev": false
                     },
                     {
-                        "v": 59853.7891,
+                        "v": 62492.9805,
                         "is_prev": false
                     },
                     {
-                        "v": 59765.6602,
+                        "v": 62296.3789,
                         "is_prev": false
                     },
                     {
-                        "v": 59856.6992,
+                        "v": 62101.6992,
                         "is_prev": false
                     },
                     {
-                        "v": 59884.1992,
+                        "v": 61820.0,
                         "is_prev": false
                     },
                     {
-                        "v": 59943.1211,
+                        "v": 61940.1484,
                         "is_prev": false
                     },
                     {
-                        "v": 60027.1289,
+                        "v": 62138.0117,
                         "is_prev": false
                     },
                     {
-                        "v": 60022.6406,
+                        "v": 62183.8203,
                         "is_prev": false
                     },
                     {
-                        "v": 59816.8789,
+                        "v": 61960.5,
                         "is_prev": false
                     },
                     {
-                        "v": 59829.1211,
+                        "v": 62114.0898,
                         "is_prev": false
                     },
                     {
-                        "v": 59712.8398,
+                        "v": 61833.1992,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "E-mini S&P 500",
+            "/ES",
+            "$7,557.25",
+            {
+                "value": -0.83,
+                "type": "text"
+            },
+            1.65,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 7580.5,
                         "is_prev": false
                     },
                     {
-                        "v": 59727.1406,
+                        "v": 7576.25,
                         "is_prev": false
                     },
                     {
-                        "v": 59699.9883,
+                        "v": 7571.5,
                         "is_prev": false
                     },
                     {
-                        "v": 59709.6484,
+                        "v": 7580.75,
                         "is_prev": false
                     },
                     {
-                        "v": 59706.6406,
+                        "v": 7586.5,
                         "is_prev": false
                     },
                     {
-                        "v": 59759.0195,
+                        "v": 7592.5,
                         "is_prev": false
                     },
                     {
-                        "v": 59711.3516,
+                        "v": 7599.0,
                         "is_prev": false
                     },
                     {
-                        "v": 58720.0,
+                        "v": 7602.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7598.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7598.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7594.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7592.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7605.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7590.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7594.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7583.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7569.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7568.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7565.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7569.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7561.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7553.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7554.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7559.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7557.25,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "Micro E-mini S&P 500",
+            "/MES",
+            "$7,557.25",
+            {
+                "value": -0.83,
+                "type": "text"
+            },
+            1.65,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 7580.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7576.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7571.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7580.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7586.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7592.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7599.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7602.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7597.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7599.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7594.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7592.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7605.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7589.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7594.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7583.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7569.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7568.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7564.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7569.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7561.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7553.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7553.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7559.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 7557.25,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "E-mini Nasdaq 100",
+            "/NQ",
+            "$29,445.25",
+            {
+                "value": -1.95,
+                "type": "text"
+            },
+            1.69,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 29664.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29625.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29615.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29619.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29651.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29678.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29751.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29768.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29739.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29771.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29741.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29693.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29712.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29585.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29714.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29604.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29502.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29513.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29489.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29504.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29451.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29427.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29428.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29455.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29445.25,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "Micro E-mini Nasdaq 100",
+            "/MNQ",
+            "$29,446.50",
+            {
+                "value": -1.95,
+                "type": "text"
+            },
+            1.69,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 29666.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29625.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29614.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29619.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29653.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29679.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29752.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29767.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29739.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29770.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29740.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29693.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29711.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29585.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29715.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29604.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29503.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29513.25,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29489.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29504.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29450.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29427.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29430.75,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29456.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 29446.5,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "E-mini Dow Jones",
+            "/YM",
+            "$52,722.00",
+            {
+                "value": -0.35,
+                "type": "text"
+            },
+            1.56,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 52683.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52683.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52671.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52795.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52842.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52921.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52941.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52951.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52904.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52884.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52839.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52845.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 53033.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52869.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52795.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52776.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52644.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52765.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52738.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52756.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52732.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52718.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52720.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52745.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52722.0,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "Micro E-mini Dow Jones",
+            "/MYM",
+            "$52,721.00",
+            {
+                "value": -0.35,
+                "type": "text"
+            },
+            1.55,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 52684.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52686.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52667.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52780.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52842.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52917.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52937.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52941.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52899.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52882.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52844.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52851.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 53012.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52902.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52786.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52761.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52682.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52740.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52738.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52756.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52732.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52708.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52719.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52728.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 52721.0,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "E-mini Russell 2000",
+            "/RTY",
+            "$2,965.70",
+            {
+                "value": -0.95,
+                "type": "text"
+            },
+            1.94,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 2971.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2970.3999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2970.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2977.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2984.3999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2992.2,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2994.3,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2995.3,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2990.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2990.3,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2984.2,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2983.1001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2990.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2973.7,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2978.1001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2976.8999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2966.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2972.2,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2965.8,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2968.8999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2966.7,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2965.7,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2965.3,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2968.7,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2965.7,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "Micro E-mini Russell 2000",
+            "/M2K",
+            "$2,965.50",
+            {
+                "value": -0.95,
+                "type": "text"
+            },
+            1.94,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 2971.8999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2970.3999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2970.6001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2977.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2984.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2991.8,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2994.3,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2995.2,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2990.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2990.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2984.2,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2983.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2990.1001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2973.8,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2978.1001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2977.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2966.6001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2972.1001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2965.7,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2968.8999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2966.6001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2965.8,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2965.3,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2968.2,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 2965.5,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "Crude Oil Futures",
+            "/CL",
+            "$78.37",
+            {
+                "value": 9.75,
+                "type": "text"
+            },
+            0.67,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 74.33,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 75.05,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.37,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.07,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 73.6,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 72.92,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 72.71,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 73.66,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 73.82,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 73.8,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.29,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 73.68,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.83,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.66,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.81,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 75.17,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 75.93,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 77.89,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 77.57,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 77.93,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 78.26,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 78.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 78.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 78.37,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "Micro Crude Oil Futures",
+            "/MCL",
+            "$78.37",
+            {
+                "value": 0.0,
+                "type": "text"
+            },
+            0.0,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 74.32,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.47,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 75.05,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.35,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.07,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 73.6,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 72.94,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 72.71,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 73.66,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 73.82,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 73.81,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.3,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 73.7,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.84,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.66,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 74.82,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 75.15,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 75.92,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 77.89,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 77.55,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 77.93,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 78.27,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 78.01,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 78.01,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 78.37,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "Gold Futures",
+            "/GC",
+            "$4,010.70",
+            {
+                "value": -2.28,
+                "type": "text"
+            },
+            0.82,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 4059.1001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4064.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4066.8999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4067.3999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4064.3,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4077.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4086.3999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4079.3999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4073.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4072.3999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4064.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4071.2,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4069.3999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4028.8,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4018.1001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4017.6001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4002.6001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4005.8999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 3997.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4007.3999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4006.7,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4006.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4008.7,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4009.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4010.7,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "Micro Gold Futures",
+            "/MGC",
+            "$4,010.60",
+            {
+                "value": -2.51,
+                "type": "text"
+            },
+            0.81,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 4059.1001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4064.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4066.8999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4067.3,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4064.3999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4077.6001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4086.3999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4080.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4072.8999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4072.2,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4064.3,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4071.2,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4069.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4028.8999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4018.3999,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4017.3,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4002.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4005.8,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 3998.1001,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4007.3,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4006.3,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4006.5,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4008.7,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4009.7,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 4010.6001,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "Nikkei 225 USD Futures",
+            "/NKD",
+            "$67,170.00",
+            {
+                "value": -3.1,
+                "type": "text"
+            },
+            3.02,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 67175.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67105.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67250.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67390.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67450.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67615.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67805.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67860.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67785.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67745.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67725.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67770.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67900.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67565.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 68020.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67890.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67515.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67685.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67500.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67510.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67350.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67230.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67160.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67190.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67170.0,
+                        "is_prev": false
+                    }
+                ]
+            }
+        ],
+        [
+            "Micro Nikkei 225 Futures",
+            "/MNK",
+            "$67,120.00",
+            {
+                "value": 0.0,
+                "type": "text"
+            },
+            0.0,
+            {
+                "type": "sparkline",
+                "value": [
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    {
+                        "v": 67210.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67090.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67280.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67370.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67470.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67475.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67760.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67855.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67820.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67820.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67830.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67700.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67825.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67825.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67890.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67960.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67655.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67740.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67500.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67470.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67260.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67240.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67145.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67145.0,
+                        "is_prev": false
+                    },
+                    {
+                        "v": 67120.0,
                         "is_prev": false
                     }
                 ]
             }
         ]
     ],
+    "candidates": [
+        {
+            "symbol": "SPY",
+            "name": "S&P 500 Trust ETF",
+            "price": 749.17,
+            "change": -0.7656136167958238,
+            "sortino": 0.27,
+            "grade": "F",
+            "heat_score": 27,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "QQQ",
+            "name": "Nasdaq 100 ETF",
+            "price": 711.74,
+            "change": -1.8979752174332565,
+            "sortino": 0.29,
+            "grade": "F",
+            "heat_score": 26,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "IWM",
+            "name": "Russell 2000 ETF",
+            "price": 293.48,
+            "change": -0.8480016216764086,
+            "sortino": 0.18,
+            "grade": "F",
+            "heat_score": 26,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "DX-Y.NYB",
+            "name": "US Dollar Index",
+            "price": 101.2770004272461,
+            "change": 0.3040499186208079,
+            "sortino": -0.29,
+            "grade": "F",
+            "heat_score": 22,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "^VIX",
+            "name": "CBOE Volatility Index",
+            "price": 17.15999984741211,
+            "change": 14.171657699822537,
+            "sortino": 0.92,
+            "grade": "F",
+            "heat_score": 45,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "^TNX",
+            "name": "10-Year Treasury Yield",
+            "price": 4.609000205993652,
+            "change": 0.8754747368655114,
+            "sortino": 0.05,
+            "grade": "F",
+            "heat_score": 26,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/CL",
+            "name": "WTI Crude Oil",
+            "price": 78.37000274658203,
+            "change": 9.746532316963986,
+            "sortino": 0.67,
+            "grade": "F",
+            "heat_score": 39,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "BTC-USD",
+            "name": "Bitcoin (USD)",
+            "price": 61833.19921875,
+            "change": -3.0192492340448296,
+            "sortino": -1.6,
+            "grade": "F",
+            "heat_score": 6,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/ES",
+            "name": "E-mini S&P 500",
+            "price": 7557.25,
+            "change": -0.8267445293789533,
+            "sortino": 1.65,
+            "grade": "C",
+            "heat_score": 55,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/MES",
+            "name": "Micro E-mini S&P 500",
+            "price": 7557.25,
+            "change": -0.8267445293789533,
+            "sortino": 1.65,
+            "grade": "C",
+            "heat_score": 55,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/NQ",
+            "name": "E-mini Nasdaq 100",
+            "price": 29445.25,
+            "change": -1.9545655087447655,
+            "sortino": 1.69,
+            "grade": "C",
+            "heat_score": 55,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/MNQ",
+            "name": "Micro E-mini Nasdaq 100",
+            "price": 29446.5,
+            "change": -1.9504033164348344,
+            "sortino": 1.69,
+            "grade": "C",
+            "heat_score": 55,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/YM",
+            "name": "E-mini Dow Jones",
+            "price": 52722.0,
+            "change": -0.34778664045665986,
+            "sortino": 1.56,
+            "grade": "C",
+            "heat_score": 55,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/MYM",
+            "name": "Micro E-mini Dow Jones",
+            "price": 52721.0,
+            "change": -0.34967678524174817,
+            "sortino": 1.55,
+            "grade": "C",
+            "heat_score": 55,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/RTY",
+            "name": "E-mini Russell 2000",
+            "price": 2965.699951171875,
+            "change": -0.9452254117610193,
+            "sortino": 1.94,
+            "grade": "C",
+            "heat_score": 58,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/M2K",
+            "name": "Micro E-mini Russell 2000",
+            "price": 2965.5,
+            "change": -0.9519038076152286,
+            "sortino": 1.94,
+            "grade": "C",
+            "heat_score": 58,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/CL",
+            "name": "Crude Oil Futures",
+            "price": 78.37000274658203,
+            "change": 9.746532316963986,
+            "sortino": 0.67,
+            "grade": "F",
+            "heat_score": 39,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/MCL",
+            "name": "Micro Crude Oil Futures",
+            "price": 78.37000274658203,
+            "change": 0.0,
+            "sortino": 0.0,
+            "grade": "F",
+            "heat_score": 25,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/GC",
+            "name": "Gold Futures",
+            "price": 4010.699951171875,
+            "change": -2.275776522549089,
+            "sortino": 0.82,
+            "grade": "F",
+            "heat_score": 31,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/MGC",
+            "name": "Micro Gold Futures",
+            "price": 4010.60009765625,
+            "change": -2.5062618266088244,
+            "sortino": 0.81,
+            "grade": "F",
+            "heat_score": 31,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/NKD",
+            "name": "Nikkei 225 USD Futures",
+            "price": 67170.0,
+            "change": -3.101557991921522,
+            "sortino": 3.02,
+            "grade": "A",
+            "heat_score": 92,
+            "tier": "Macro"
+        },
+        {
+            "symbol": "/MNK",
+            "name": "Micro Nikkei 225 Futures",
+            "price": 67120.0,
+            "change": 0.0,
+            "sortino": 0.0,
+            "grade": "F",
+            "heat_score": 25,
+            "tier": "Macro"
+        }
+    ],
     "metadata": {
-        "origin": "2026-06-25 23:23:42.622906",
+        "origin": "2026-07-13 19:00:10.786688",
         "is_replay": false,
         "is_fast_pulsar": false,
         "source": "VLI_DATA_ENGINE_V2"

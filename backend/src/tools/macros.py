@@ -67,6 +67,20 @@ MACRO_NAMES = {
     "BTC": "Bitcoin (USD)",
     "USO": "United States Oil Fund",
     "WTI": "WTI Crude Oil",
+    "ES": "E-mini S&P 500",
+    "MES": "Micro E-mini S&P 500",
+    "NQ": "E-mini Nasdaq 100",
+    "MNQ": "Micro E-mini Nasdaq 100",
+    "YM": "E-mini Dow Jones",
+    "MYM": "Micro E-mini Dow Jones",
+    "RTY": "E-mini Russell 2000",
+    "M2K": "Micro E-mini Russell 2000",
+    "CL": "Crude Oil Futures",
+    "MCL": "Micro Crude Oil Futures",
+    "GC": "Gold Futures",
+    "MGC": "Micro Gold Futures",
+    "NKD": "Nikkei 225 USD Futures",
+    "MNK": "Micro Nikkei 225 Futures"
 }
 
 TIMEFRAMES = ["1h", "1d"]

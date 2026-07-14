@@ -7,7 +7,7 @@ import yfinance as yf
 from tradingview_screener import Query, col
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'backend')))
-from src.tools.scanner import batch_fetch_sortino, load_strategy_constraints
+from src.tools.scanner import batch_fetch_sortino, load_strategy_constraints, batch_fetch_pd_zone
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -114,6 +114,23 @@ def sync_vli_scanners():
         sniper_vol_base = sniper_config.get("volume_hurdle", 1_000_000)
         vol_sniper = sniper_vol_base if is_market_open else (sniper_vol_base // 10)
 
+        # Resolve any zero/empty values for cap/float max boundaries (where 0 means no limit)
+        def resolve_limits(config, key_prefix, default_max=999999999999.0):
+            min_val = config.get(f"{key_prefix}_min", 0.0)
+            max_val = config.get(f"{key_prefix}_max", default_max)
+            if max_val is None or max_val <= 0:
+                max_val = default_max
+            return min_val, max_val
+
+        shield_mc_min, shield_mc_max = resolve_limits(shield_config, "market_cap")
+        shield_float_min, shield_float_max = resolve_limits(shield_config, "float")
+
+        sword_mc_min, sword_mc_max = resolve_limits(sword_config, "market_cap", default_max=2_000_000_000.0)
+        sword_float_min, sword_float_max = resolve_limits(sword_config, "float", default_max=100_000_000.0)
+
+        sniper_mc_min, sniper_mc_max = resolve_limits(sniper_config, "market_cap", default_max=2_000_000_000.0)
+        sniper_float_min, sniper_float_max = resolve_limits(sniper_config, "float", default_max=300_000_000.0)
+
         # --- 1. APEX SHIELD SCAN (Core / Institutional Leaders) ---
         shield_query = (Query()
             .set_markets('america')
@@ -122,9 +139,9 @@ def sync_vli_scanners():
                 col('exchange').isin(['NASDAQ', 'NYSE', 'AMEX']),
                 col('close').between(shield_config.get("price_min", 15.0), shield_config.get("price_max", 999999.0)),
                 col('change') >= 3,
-                col('market_cap_basic').between(shield_config.get("market_cap_min", 300_000_000), shield_config.get("market_cap_max", 999999999999.0)),
+                col('market_cap_basic').between(shield_mc_min, shield_mc_max),
                 col('volume') > vol_shield_sniper,
-                col('float_shares_outstanding').between(shield_config.get("float_min", 100_000_000), shield_config.get("float_max", 999999999999.0)),
+                col('float_shares_outstanding').between(shield_float_min, shield_float_max),
                 col('ATR') > 1,
                 col('close') > col('SMA200'),
                 col('Volatility.M') > 2
@@ -139,9 +156,9 @@ def sync_vli_scanners():
                 col('exchange').isin(['NASDAQ', 'NYSE', 'AMEX']),
                 col('type').isin(['stock', 'fund']),
                 col('close').between(sword_config.get("price_min", 1.0), sword_config.get("price_max", 20.0)),
-                col('market_cap_basic').between(sword_config.get("market_cap_min", 100_000_000), sword_config.get("market_cap_max", 2_000_000_000)),
+                col('market_cap_basic').between(sword_mc_min, sword_mc_max),
                 col('volume') > vol_sword,
-                col('float_shares_outstanding').between(sword_config.get("float_min", 0), sword_config.get("float_max", 100_000_000)),
+                col('float_shares_outstanding').between(sword_float_min, sword_float_max),
                 col('ATR') > 0.75,
                 col('close') > col('SMA50'),
                 col('Volatility.M') > 5,
@@ -161,8 +178,8 @@ def sync_vli_scanners():
                 col('close').between(sniper_config.get("price_min", 5.0), sniper_config.get("price_max", 100.0)),
                 col('change') >= 3,
                 col('volume') > vol_sniper,
-                col('market_cap_basic').between(sniper_config.get("market_cap_min", 300_000_000), sniper_config.get("market_cap_max", 2_000_000_000)),
-                col('float_shares_outstanding').between(sniper_config.get("float_min", 20_000_000), sniper_config.get("float_max", 300_000_000)),
+                col('market_cap_basic').between(sniper_mc_min, sniper_mc_max),
+                col('float_shares_outstanding').between(sniper_float_min, sniper_float_max),
                 col('relative_volume_intraday|5') >= 1.2
             )
             .order_by('relative_volume_intraday|5', ascending=False))
@@ -230,11 +247,12 @@ def sync_vli_scanners():
         # [MINIMIZED] Sortino calculation telemetry suppressed
         pass
             
-        print(f"Fetching localized Sortino ratios for {len(all_symbols)} candidates...")
+        print(f"Fetching localized Sortino ratios and dealing ranges for {len(all_symbols)} candidates...")
         sortino_map = asyncio.run(batch_fetch_sortino(all_symbols, period="20d"))
         sentiment_map = asyncio.run(batch_fetch_news_sentiment(all_symbols))
+        pd_zone_map = asyncio.run(batch_fetch_pd_zone(all_symbols))
 
-        def finalize_candidate(row, tier, sortino_map, sentiment_map):
+        def finalize_candidate(row, tier, sortino_map, sentiment_map, pd_zone_map):
             symbol = row['name']
             report_path = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{symbol.lower()}.md')
             
@@ -248,6 +266,7 @@ def sync_vli_scanners():
 
             sortino = sortino_map.get(symbol, 0.0)
             sentiment_score = sentiment_map.get(symbol, 0.0)
+            pd_val = pd_zone_map.get(symbol, 0.0)
             
             # --- ADVANCED QUANTITATIVE GRADING ---
             # Default passing candidates start at a C grade (40 points)
@@ -336,13 +355,14 @@ def sync_vli_scanners():
                 "grade": grade,
                 "heat_score": heat,
                 "sortino": sortino,
+                "pd_zone": pd_val,
                 "has_report": has_report,
                 "updated_at": updated_at
             }
 
-        raw_shield = [finalize_candidate(r, "SHIELD", sortino_map, sentiment_map) for r in clean_shield]
-        raw_sword = [finalize_candidate(r, "SWORD", sortino_map, sentiment_map) for r in clean_sword]
-        raw_sniper = [finalize_candidate(r, "SNIPER", sortino_map, sentiment_map) for r in clean_sniper]
+        raw_shield = [finalize_candidate(r, "SHIELD", sortino_map, sentiment_map, pd_zone_map) for r in clean_shield]
+        raw_sword = [finalize_candidate(r, "SWORD", sortino_map, sentiment_map, pd_zone_map) for r in clean_sword]
+        raw_sniper = [finalize_candidate(r, "SNIPER", sortino_map, sentiment_map, pd_zone_map) for r in clean_sniper]
         
         shield_candidates = [c for c in raw_shield if c is not None]
         sword_candidates = [c for c in raw_sword if c is not None]

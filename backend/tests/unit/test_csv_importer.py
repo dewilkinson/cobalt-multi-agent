@@ -110,7 +110,7 @@ def test_process_dropzone_regex_routing(monkeypatch):
         "DROPZONE_ACCOUNTS": {
             "Rollover IRA *5513": ".*Rollover_IRA__5513.*\\.csv",
             "Health Savings Account *6937": ".*Health_Savings.*\\.csv",
-            "TradingView Paper Stocks": ".*(?:stocks.*paper-trading-order-history|paper-trading-order-history.*stocks).*\\.csv",
+            "TradingView Paper Stocks": ".*paper-trading-order-history.*\\.csv",
             "TradingView Paper Futures": ".*(?:futures.*paper-trading-order-history|paper-trading-order-history.*futures).*\\.csv"
         }
     }
@@ -248,7 +248,7 @@ def test_tradingview_paper_trading_prefixes(monkeypatch):
     
     mock_config = {
         "DROPZONE_ACCOUNTS": {
-            "TradingView Paper Trading": ".*paper-trading-order-history.*\\.csv"
+            "TradingView Paper Stocks": ".*paper-trading-order-history.*\\.csv"
         }
     }
     monkeypatch.setattr(src.services.csv_importer, "get_config", lambda: mock_config)
@@ -286,7 +286,6 @@ COMEX_MINI:MGC1!,Buy,Market,1,,,4014.2,Filled,,2026-06-25 01:13:56,2026-06-25 01
             cache = json.load(f)
         assert len(cache.get("TradingView Paper Stocks", {}).get("activities", [])) == 2
         assert len(cache.get("TradingView Paper Futures", {}).get("activities", [])) == 1
-        assert len(cache.get("TradingView Paper Trading", {}).get("activities", [])) == 0
     finally:
         shutil.rmtree(temp_dropzone)
         shutil.rmtree(temp_backup)

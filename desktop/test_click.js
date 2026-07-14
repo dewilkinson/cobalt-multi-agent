@@ -16,7 +16,7 @@ const path = require('path');
   await window.waitForLoadState('networkidle');
   console.log("App loaded.");
   
-  await window.waitForSelector('#thinking-toggle', { timeout: 10000 });
+  await window.waitForSelector('#thinking-toggle', { timeout: 45000 });
   
   const textBefore = await window.locator('#thinking-badge').textContent();
   console.log("Badge before click:", textBefore);

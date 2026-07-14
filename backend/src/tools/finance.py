@@ -104,8 +104,8 @@ def _get_session():
 
 def _normalize_ticker(ticker: str) -> str:
     """Consistently maps common tickers to their Yahoo Finance equivalents."""
-    # Strip any existing index markers to prevent double-normalization (^VIX -> ^^VIX)
-    t = ticker.upper().strip().lstrip("^")
+    # Strip any existing index markers or futures slashes to prevent double-normalization
+    t = ticker.upper().strip().lstrip("^/")
     
     if t == "VIX":
         return "^VIX"
@@ -143,6 +143,9 @@ def _normalize_ticker(ticker: str) -> str:
     # EXCLUSION: DX-Y.NYB requires the dot to be preserved
     if "." in t and t != "DX-Y.NYB":
         return t.replace(".", "-")
+
+    if t in ["ES", "MES", "NQ", "MNQ", "YM", "MYM", "RTY", "M2K", "CL", "MCL", "GC", "MGC", "NKD", "MNK"]:
+        return t + "=F"
 
     return t
 
@@ -217,7 +220,16 @@ def _bucket_sparkline_data(df: pd.DataFrame, ref_time: datetime, current_price: 
                 # Last slot is always the current real-time price
                 output_values.append({"v": round(float(current_price), 4), "is_prev": is_prev})
             else:
-                val = target_data.asof(dt)
+                try:
+                    if hasattr(target_data.index, "unit"):
+                        val = target_data.asof(pd.Timestamp(dt).as_unit(target_data.index.unit))
+                    else:
+                        val = target_data.asof(pd.Timestamp(dt))
+                except Exception:
+                    try:
+                        val = target_data.asof(pd.Timestamp(dt))
+                    except Exception:
+                        val = target_data.asof(dt)
                 if pd.isna(val):
                     output_values.append(None)
                 else:
@@ -1405,6 +1417,24 @@ async def get_macro_symbols(fast_update: bool = False) -> str:
     macros = macro_registry.get_macros()
     results = {}
     rows = []
+    candidates = []
+    
+    existing_rows = {}
+    existing_candidates = {}
+    try:
+        from src.config.vli import get_vli_path
+        transit_path = get_vli_path(os.path.join("01_Transit", "Buckets", "MACRO_WATCHLIST_state.json"))
+        if os.path.exists(transit_path):
+            with open(transit_path, encoding="utf-8") as f:
+                old_state = json.load(f)
+                for r in old_state.get("rows", []):
+                    if len(r) > 1:
+                        existing_rows[r[1].upper()] = r
+                for c in old_state.get("candidates", []):
+                    if c.get("symbol"):
+                        existing_candidates[c["symbol"].upper()] = c
+    except Exception as ex_err:
+        logger.warning(f"VLI: Failed to load previous macro state for fallback: {ex_err}")
 
     # Batch fetch using the datastore infrastructure
     ticker_list = list(macros.values())
@@ -1495,6 +1525,37 @@ async def get_macro_symbols(fast_update: bool = False) -> str:
 
             if ticker_df.empty:
                 results[label] = {"symbol": ticker, "status": "Error (No Data)"}
+                display_ticker = '/' + ticker.replace('=F', '') if ticker.endswith('=F') else ticker
+                display_ticker_upper = display_ticker.upper()
+                if display_ticker_upper in existing_rows and display_ticker_upper in existing_candidates:
+                    rows.append(existing_rows[display_ticker_upper])
+                    candidates.append(existing_candidates[display_ticker_upper])
+                    logger.info(f"VLI: Fetch failed for {ticker}. Reusing last known macro state data.")
+                else:
+                    is_yield = any(y in ticker.upper() for y in ["TNX", "TYX", "FVX", "BX", "IRX"])
+                    price_display = "0.00%" if is_yield else "$0.00"
+                    from src.tools.macros import MACRO_NAMES
+                    display_name = MACRO_NAMES.get(label, label)
+                    if display_name == label and label.upper() == "CL":
+                        display_name = "WTI Crude Oil"
+                    rows.append([
+                        display_name,
+                        display_ticker,
+                        price_display,
+                        {"value": 0.0, "type": "text"},
+                        0.0,
+                        {"type": "sparkline", "value": [{"v": 0.0, "is_prev": False}] * 32}
+                    ])
+                    candidates.append({
+                        "symbol": display_ticker,
+                        "name": display_name,
+                        "price": 0.0,
+                        "change": 0.0,
+                        "sortino": 0.0,
+                        "grade": "F",
+                        "heat_score": 0,
+                        "tier": "Macro"
+                    })
                 continue
 
             last_row = ticker_df.iloc[-1]
@@ -1572,20 +1633,49 @@ async def get_macro_symbols(fast_update: bool = False) -> str:
             if display_name == label and label.upper() == "CL":
                 display_name = "WTI Crude Oil"
 
+            display_ticker = '/' + ticker.replace('=F', '') if ticker.endswith('=F') else ticker
+
             rows.append([
                 display_name,
-                ticker,
+                display_ticker,
                 price_display,
                 {"value": round(change, 2), "type": "text"},
                 round(sortino, 2),
                 {"type": "sparkline", "value": sparkline_values}
             ])
 
+            if sortino >= 5.0: letter_grade = "S"
+            elif sortino >= 2.5: letter_grade = "A"
+            elif sortino >= 2.0: letter_grade = "B"
+            elif sortino >= 1.0: letter_grade = "C"
+            else: letter_grade = "F"
+            
+            base_score = 50.0
+            if letter_grade == "A": base_score += 15.0
+            elif letter_grade == "B": base_score += 5.0
+            elif letter_grade == "C": base_score -= 10.0
+            elif letter_grade == "F": base_score -= 25.0
+            base_score += (sortino * 10.0)
+            base_score += min(20.0, change * 0.8)
+            heat_score = int(max(0, min(100, base_score)))
+            
+            candidates.append({
+                "symbol": display_ticker,
+                "name": display_name,
+                "price": price,
+                "change": change,
+                "sortino": sortino,
+                "grade": letter_grade,
+                "heat_score": heat_score,
+                "tier": "Macro"
+            })
+
         # Create Structural Response Object
         response_obj = {
             "type": "table",
             "headers": ["Asset", "Ticker", "Price", "Change %", "Sortino", "Trend (5m)"],
             "rows": rows,
+            "candidates": candidates,
             "metadata": {
                 "origin": str(ref_time),
                 "is_replay": is_replay,

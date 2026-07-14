@@ -483,11 +483,14 @@ def main():
     
     # Allow passing date as --date YYYY-MM-DD
     date_str = None
+    mode = "light"
     for arg in sys.argv:
         if arg.startswith("--date="):
             date_str = arg.split("=")[1]
         elif arg == "--date" and len(sys.argv) > sys.argv.index(arg) + 1:
             date_str = sys.argv[sys.argv.index(arg) + 1]
+        elif arg.startswith("--mode="):
+            mode = arg.split("=")[1].lower()
             
     if not date_str:
         eastern = ZoneInfo("America/New_York")
@@ -588,22 +591,25 @@ def main():
     post_mortem_path = os.path.join(base_dir, "data", "reports", "performance", f"Daily_PostMortem_{date_str}.md")
     
     if not os.path.exists(post_mortem_path):
-        print(f"Post-mortem report not found at {post_mortem_path}. Triggering real-time post-mortem synthesis...")
-        try:
-            import asyncio
-            from src.server.app import _background_synthesis_task
-            asyncio.run(_background_synthesis_task(
-                text="Analyze today's executed trades and generate a detailed Daily Trading Report post-mortem.",
-                image=None,
-                direct_mode=False,
-                reporter_llm_type="reasoning",
-                vli_llm_type="core",
-                thread_id=f"POSTMORTEM_{date_str}",
-                silent=True,
-                thinking_mode=True
-            ))
-        except Exception as e:
-            print(f"Failed to generate post-mortem report in real-time: {e}")
+        if mode == "full":
+            print(f"Post-mortem report not found at {post_mortem_path}. Triggering real-time post-mortem synthesis...")
+            try:
+                import asyncio
+                from src.server.app import _background_synthesis_task
+                asyncio.run(_background_synthesis_task(
+                    text="Analyze today's executed trades and generate a detailed Daily Trading Report post-mortem.",
+                    image=None,
+                    direct_mode=False,
+                    reporter_llm_type="reasoning",
+                    vli_llm_type="core",
+                    thread_id=f"POSTMORTEM_{date_str}",
+                    silent=True,
+                    thinking_mode=True
+                ))
+            except Exception as e:
+                print(f"Failed to generate post-mortem report in real-time: {e}")
+        else:
+            print(f"Post-mortem report not found at {post_mortem_path}. Skipping real-time post-mortem synthesis in LIGHT mode.")
 
     if os.path.exists(post_mortem_path):
         try:

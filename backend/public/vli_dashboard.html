@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0206";
+        const VLI_CLIENT_VERSION = "00.000.0212";
     </script>
     
     <link
@@ -1205,6 +1205,13 @@
             border-radius: 50%;
             background: var(--emerald-green);
         }
+        
+        .vli-row-highlighted {
+            background-color: rgba(255, 255, 255, 0.18) !important;
+        }
+        .vli-row-highlighted:hover {
+            background-color: rgba(255, 255, 255, 0.28) !important;
+        }
     </style>
 </head>
 
@@ -2001,7 +2008,7 @@
                     <div class="card-header">
                         <div style="display:flex; align-items:center; gap:8px;">
                             <div class="descriptor" style="cursor: pointer; transition: transform 0.1s;" onclick="insertCardIdIntoChat('${badgeLabel}')" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Insert ${badgeLabel} to Chat">${badgeLabel}</div>
-                            <div>${typeDef.title} ${liveBadgeHTML}${typeGuid === 'SCAN_RES' ? '<span id="scanner-warning-badge" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 800; margin-left: 8px; letter-spacing: 0.5px; display: none;">⚠️ Using Sample Values</span>' : ''}</div>
+                            <div>${instanceGuid.includes('futures') ? 'Futures Watchlist' : typeDef.title} ${liveBadgeHTML}${typeGuid === 'SCAN_RES' ? '<span id="scanner-warning-badge" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 800; margin-left: 8px; letter-spacing: 0.5px; display: none;">⚠️ Using Sample Values</span>' : ''}</div>
                         </div>
                         <div class="card-controls">
                             <div class="win-btn win-dock" onclick="dockWindow('win-${instanceGuid}')" title="Dock to Main Workspace"></div>
@@ -2374,6 +2381,27 @@
 
         function applyLayout(layout) {
             try {
+                // Auto-inject futures watchlist if missing from loaded layout
+                if (layout && !layout['win-futures_watchlist'] && !layout['futures_watchlist']) {
+                    console.log("[VLI_UI_HEALING] Auto-injecting futures watchlist card into active layout.");
+                    layout['win-futures_watchlist'] = {
+                        instanceGuid: "futures_watchlist",
+                        typeGuid: "MACRO_WL",
+                        top: "419px",
+                        left: "770px",
+                        right: "",
+                        width: "710px",
+                        height: "344px",
+                        zIndex: "1006",
+                        display: "",
+                        collapsed: false
+                    };
+                    const wlKey = Object.keys(layout).find(k => k.includes('watchlist'));
+                    if (wlKey && layout[wlKey]) {
+                        layout[wlKey].width = "710px";
+                        layout[wlKey].left = "40px";
+                    }
+                }
                 // Clear existing
                 Object.keys(UXManager.instances).forEach(id => {
                     const card = UXManager.instances[id];
@@ -2468,6 +2496,7 @@
         function loadHardcodedDefaultLayout() {
             // Optimized High-Fidelity Workspace Layout
             UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '19%', height: '55%'}, 'watchlist');
+            UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '19%', height: '55%'}, 'futures_watchlist');
             UXManager.createCard('SCAN_RES', {top: '2%', left: '21%', width: '21%', height: '55%'}, 'scanner');
             UXManager.createCard('SCAN_RES', {top: '2%', left: '43%', width: '22%', height: '55%'}, 'shield');
             
@@ -2589,8 +2618,11 @@
             if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'scanner')) {
                  viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES', {}, 'scanner')" style="color:var(--emerald-green);">[+] Spawn Sortino Sniper</div>`;
             }
-            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'MACRO_WL')) {
+            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'watchlist')) {
                  viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('MACRO_WL', {}, 'watchlist')" style="color:var(--emerald-green);">[+] Spawn Macro Watchlist</div>`;
+            }
+            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'futures_watchlist')) {
+                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('MACRO_WL', {}, 'futures_watchlist')" style="color:var(--emerald-green);">[+] Spawn Futures Watchlist</div>`;
             }
             if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'shield')) {
                  viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES', {}, 'shield')" style="color:var(--emerald-green);">[+] Spawn Apex Core Scan</div>`;
@@ -3856,13 +3888,13 @@
             let tooltipText = `Setup Confidence: ${Math.round(total * 100)}% (${tier})\n\n`;
             if (scoreObj.isSortinoEnabled) {
                 tooltipText += `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 30%)\n` +
-                               `• Zone Entry: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 30%)\n` +
+                               `• Discount: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 30%)\n` +
                                `• Relative Volume: ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 15%)\n` +
                                `• VWAP Position: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 15%)\n` +
                                `• Sortino Ratio: ${Math.round(scoreObj.sortinoScore * 100)}% (Weight: 10%)`;
             } else {
                 tooltipText += `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 35%)\n` +
-                               `• Zone Entry: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 35%)\n` +
+                               `• Discount: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 35%)\n` +
                                `• Relative Volume: ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 15%)\n` +
                                `• VWAP Position: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 15%)`;
             }
@@ -3946,6 +3978,19 @@
             return 0.0;
         }
 
+        function getSparklineTimeframesForDuration(duration, typeGuid) {
+            if (duration === 'DAY') {
+                return ['1m', '5m', '15m', '1h'];
+            } else if (duration === 'SWING_LOW') {
+                return ['5m', '15m', '1h', '4h'];
+            } else if (duration === 'SWING_MED') {
+                return ['15m', '1h', '4h', '1d'];
+            } else if (duration === 'HOLD') {
+                return ['1h', '4h', '1d'];
+            }
+            return typeGuid === 'MACRO_WL' ? ['15m', '1h', '4h', '1d'] : ['1m', '5m', '15m', '1h'];
+        }
+
         window.generateCandidateRowInnerHTML = function(c, card) {
             const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
             const changeVal = parseFloat(c.change || c.gap || 0);
@@ -4007,11 +4052,9 @@
                 ? parseFloat(card.sortinoValues[c.symbol])
                 : (c.sortino !== undefined ? parseFloat(c.sortino) : parseFloat(c.score || 0.0));
             
-            let sparklineTfs = ['1m', '5m', '15m', '1h'];
+            let sparklineTfs = getSparklineTimeframesForDuration(duration, card.dataset.typeGuid);
             if (card.dataset.sparklineTimeframes) {
                 sparklineTfs = card.dataset.sparklineTimeframes.split(',');
-            } else if (card.dataset.typeGuid === 'MACRO_WL') {
-                sparklineTfs = ['15m', '1h', '4h', '1d'];
             }
 
             let sparklinesHtml = '';
@@ -4514,8 +4557,12 @@
                 if (!card.dataset.activeTargetRr) card.dataset.activeTargetRr = '3';
                 if (!card.dataset.trendTimeframe) card.dataset.trendTimeframe = '4h';
                 if (!card.dataset.zoneLookback) card.dataset.zoneLookback = '20';
+                if (!card.dataset.activeFilter) {
+                    card.dataset.activeFilter = card.dataset.instanceGuid.includes('futures') ? 'FUTURES' : 'ALL';
+                }
 
-                let sparklineTfs = ['15m', '1h', '4h', '1d'];
+                const duration = card.dataset.activeDuration || 'SWING_MED';
+                let sparklineTfs = getSparklineTimeframesForDuration(duration, card.dataset.typeGuid);
                 if (card.dataset.sparklineTimeframes) {
                     sparklineTfs = card.dataset.sparklineTimeframes.split(',');
                 }
@@ -4542,12 +4589,13 @@
                                 <div style="display: flex; align-items: center; gap: 4px;">
                                     <span style="font-weight: 600; text-transform: uppercase;">Filter:</span>
                                     <select id="macro-filter-${card.dataset.instanceGuid}" class="vli-input" style="padding: 2px 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: #fff; outline: none; border-radius: 3px;" onchange="handleMacroFilterChange(this)">
-                                        <option value="ALL">All Macro Assets</option>
-                                        <option value="EQUITY">Equity Indices</option>
-                                        <option value="RATES">Rates & Yields</option>
-                                        <option value="COMMODITIES">Commodities</option>
-                                        <option value="CURRENCIES">Currencies & Volatility</option>
-                                        <option value="CRYPTO">Cryptocurrencies</option>
+                                        <option value="ALL" ${card.dataset.activeFilter === 'ALL' ? 'selected' : ''}>All Macro Assets</option>
+                                        <option value="EQUITY" ${card.dataset.activeFilter === 'EQUITY' ? 'selected' : ''}>Equity Indices</option>
+                                        <option value="RATES" ${card.dataset.activeFilter === 'RATES' ? 'selected' : ''}>Rates & Yields</option>
+                                        <option value="COMMODITIES" ${card.dataset.activeFilter === 'COMMODITIES' ? 'selected' : ''}>Commodities</option>
+                                        <option value="CURRENCIES" ${card.dataset.activeFilter === 'CURRENCIES' ? 'selected' : ''}>Currencies & Volatility</option>
+                                        <option value="CRYPTO" ${card.dataset.activeFilter === 'CRYPTO' ? 'selected' : ''}>Cryptocurrencies</option>
+                                        <option value="FUTURES" ${card.dataset.activeFilter === 'FUTURES' ? 'selected' : ''}>Futures & Micros</option>
                                     </select>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 4px;">
@@ -4590,12 +4638,12 @@
                                         <th style="padding: 4px 16px; text-align: center;" title="Price Change from Open"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
                                         <th style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="${tfTitle}"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CHART</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Timeframe Trend Alignment (EQ Bar): Bearish/Red <= -0.50, Neutral/Gray = 0.0, Bullish/Green >= +0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">TREND</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">ZONE ENTRY</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">DISCOUNT</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Zone Entry, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Discount, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Candle Range Theory HTF Sweep status"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SWEEP</div></th>
                                     </tr>
                                 </thead>
@@ -4652,7 +4700,21 @@
                 
                 let filteredCandidates = mw.candidates || [];
                 
-                if (activeFilter !== 'ALL') {
+                const isFutureSymbol = (s) => {
+                    if (!s) return false;
+                    const clean = s.toUpperCase().replace('/F', '').replace('=F', '').replace('/', '').trim();
+                    return ['ES', 'MES', 'NQ', 'MNQ', 'YM', 'MYM', 'RTY', 'M2K', 'CL', 'MCL', 'GC', 'MGC', 'NKD', 'MNK'].includes(clean);
+                };
+
+                if (activeFilter === 'ALL') {
+                    if (!card.dataset.instanceGuid.includes('futures')) {
+                        // Exclude futures and micros from the general macro list to keep it clean
+                        filteredCandidates = filteredCandidates.filter(c => !isFutureSymbol(c.symbol));
+                    } else {
+                        // Futures watchlist with ALL filter shows all futures/micros
+                        filteredCandidates = filteredCandidates.filter(c => isFutureSymbol(c.symbol));
+                    }
+                } else {
                     filteredCandidates = filteredCandidates.filter(c => {
                         const sym = c.symbol.toUpperCase();
                         if (activeFilter === 'EQUITY') {
@@ -4662,13 +4724,16 @@
                             return ['TNX', 'TYX', 'FVX', 'BX', 'IRX', 'SHY', 'TLT', 'IEF'].some(s => sym.includes(s));
                         }
                         if (activeFilter === 'COMMODITIES') {
-                            return ['CL=F', 'WTI', 'GC=F', 'GOLD', 'SI=F', 'SILVER', 'HG=F', 'COPPER'].some(s => sym.includes(s));
+                            return ['CL=F', 'WTI', 'GC=F', 'GOLD', 'SI=F', 'SILVER', 'HG=F', 'COPPER', 'CL', 'GC', 'SI', 'HG'].some(s => sym.includes(s));
                         }
                         if (activeFilter === 'CURRENCIES') {
                             return ['DX-Y.NYB', 'DXY', '^VIX', 'VIX'].some(s => sym.includes(s));
                         }
                         if (activeFilter === 'CRYPTO') {
                             return ['BTC', 'ETH', 'SOL'].some(s => sym.includes(s));
+                        }
+                        if (activeFilter === 'FUTURES') {
+                            return isFutureSymbol(c.symbol);
                         }
                         return true;
                     });
@@ -4689,22 +4754,42 @@
                     `;
                 }
                 
-                // Sort candidates by heat score
-                filteredCandidates.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
+                // Calculate confidence scores first for sorting
+                filteredCandidates.forEach(c => {
+                    c.confScore = calculateConfidenceScore(c, card).total;
+                });
+
+                // Sort candidates by decreasing confidence score, falling back to heat score
+                filteredCandidates.sort((a, b) => (b.confScore - a.confScore) || ((b.heat_score || 0) - (a.heat_score || 0)));
                 
                 filteredCandidates.forEach(c => {
                     const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
                     
                     const tr = document.createElement('tr');
                     tr.style.cursor = 'pointer';
-                    tr.className = 'scanner-res-row';
+                    
+                    window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
+                    const symKey = `${card.dataset.instanceGuid}_${c.symbol}`;
+                    const isHighlighted = window.vliHighlightedSymbols.has(symKey);
+                    
+                    tr.className = isHighlighted ? 'scanner-res-row vli-row-highlighted' : 'scanner-res-row';
                     tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
                     
                     if (isRefreshing) {
                         tr.style.pointerEvents = 'none';
                     }
                     
-                    tr.onclick = () => insertCardIdIntoChat(`analyze ${c.symbol}`);
+                    tr.onclick = (e) => {
+                        window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
+                        if (window.vliHighlightedSymbols.has(symKey)) {
+                            window.vliHighlightedSymbols.delete(symKey);
+                            tr.classList.remove('vli-row-highlighted');
+                        } else {
+                            window.vliHighlightedSymbols.add(symKey);
+                            tr.classList.add('vli-row-highlighted');
+                        }
+                        insertCardIdIntoChat(`analyze ${c.symbol}`);
+                    };
                     
                     // Track watchlist price state (stored uniquely for macro list blinking)
                     if (window.lastMacroWatchlistState[c.symbol]) {
@@ -5348,7 +5433,8 @@
                 if (!card.dataset.trendTimeframe) card.dataset.trendTimeframe = '4h';
                 if (!card.dataset.zoneLookback) card.dataset.zoneLookback = '20';
 
-                let sparklineTfs = ['1m', '5m', '15m', '1h'];
+                const duration = card.dataset.activeDuration || 'SWING_MED';
+                let sparklineTfs = getSparklineTimeframesForDuration(duration, card.dataset.typeGuid);
                 if (card.dataset.sparklineTimeframes) {
                     sparklineTfs = card.dataset.sparklineTimeframes.split(',');
                 }
@@ -5421,12 +5507,12 @@
                                         <th style="padding: 4px 16px; text-align: center;" title="Price Change from Open"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
                                         <th style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="${tfTitle}"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CHART</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Timeframe Trend Alignment (EQ Bar): Bearish/Red <= -0.50, Neutral/Gray = 0.0, Bullish/Green >= +0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">TREND</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">ZONE ENTRY</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">DISCOUNT</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Zone Entry, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Discount, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Candle Range Theory HTF Sweep status"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SWEEP</div></th>
                                     </tr>
                                 </thead>
@@ -5507,14 +5593,27 @@
 
                 // Preserve strict backend-calculated heat_scores and grades. Do not mutate on the frontend.
 
-                // Autonomously sort candidates from strongest to weakest using the internal heat score
-                filteredCandidates.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
+                // Calculate confidence scores first for sorting
+                filteredCandidates.forEach(c => {
+                    c.confScore = calculateConfidenceScore(c, card).total;
+                });
+
+                // Autonomously sort candidates by decreasing confidence score, falling back to heat score
+                filteredCandidates.sort((a, b) => (b.confScore - a.confScore) || ((b.heat_score || 0) - (a.heat_score || 0)));
 
                 filteredCandidates.forEach(c => {
                     c.isNew = window.vliNewSymbols.has(c.symbol);
                     const tr = document.createElement('tr');
                     tr.style.cursor = 'pointer';
-                    tr.className = c.isNew ? 'scanner-res-row new-candidate-highlight' : 'scanner-res-row';
+                    
+                    window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
+                    const symKey = `${card.dataset.instanceGuid}_${c.symbol}`;
+                    const isHighlighted = window.vliHighlightedSymbols.has(symKey);
+                    
+                    let classes = ['scanner-res-row'];
+                    if (c.isNew) classes.push('new-candidate-highlight');
+                    if (isHighlighted) classes.push('vli-row-highlighted');
+                    tr.className = classes.join(' ');
                     tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
                     
                     // [UX: TEMPORAL VERIFICATION] 
@@ -5550,7 +5649,17 @@
                     };
                     tr.onmouseleave = () => {};
                     
-                    tr.onclick = () => insertCardIdIntoChat(`analyze ${c.symbol}`);
+                    tr.onclick = (e) => {
+                        window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
+                        if (window.vliHighlightedSymbols.has(symKey)) {
+                            window.vliHighlightedSymbols.delete(symKey);
+                            tr.classList.remove('vli-row-highlighted');
+                        } else {
+                            window.vliHighlightedSymbols.add(symKey);
+                            tr.classList.add('vli-row-highlighted');
+                        }
+                        insertCardIdIntoChat(`analyze ${c.symbol}`);
+                    };
                     
                     tr.innerHTML = generateCandidateRowInnerHTML(c, card);
                     

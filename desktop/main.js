@@ -1,6 +1,10 @@
-const { app, BrowserWindow, globalShortcut } = require('electron');
+const { app, BrowserWindow, globalShortcut, session } = require('electron');
 const { spawn, execSync } = require('child_process');
 const path = require('path');
+
+// Disable sandboxing to prevent renderer crashes in virtualized/service environments
+app.commandLine.appendSwitch('no-sandbox');
+app.commandLine.appendSwitch('disable-gpu-sandbox');
 
 let mainWindow;
 let backendProcess;
@@ -164,7 +168,6 @@ function createWindow() {
             contextIsolation: true
         }
     });
-
     // We start loading the URL only after the Python server confirms it is alive
     mainWindow.loadFile('boot.html');
 }
@@ -187,9 +190,11 @@ app.whenReady().then(async () => {
     
     if (isOnline) {
         console.log(`[VLI-Electron] Navigating to VLI Dashboard`);
-        mainWindow.loadURL(`http://127.0.0.1:8000/vli_dashboard.html`)
-            .then(() => console.log('[VLI-Electron] Successfully navigated to VLI Dashboard!'))
-            .catch(err => console.log('[VLI-Electron] Failed to navigate:', err));
+        session.defaultSession.clearCache().then(() => {
+            mainWindow.loadURL(`http://127.0.0.1:8000/vli_dashboard.html`)
+                .then(() => console.log('[VLI-Electron] Successfully navigated to VLI Dashboard!'))
+                .catch(err => console.log('[VLI-Electron] Failed to navigate:', err));
+        });
     } else {
         mainWindow.loadFile('error.html');
     }

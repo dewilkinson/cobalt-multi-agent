@@ -1419,6 +1419,7 @@
   "tests/unit/test_csv_importer.py::test_parse_tradingview_paper_trading_futures",
   "tests/unit/test_csv_importer.py::test_process_dropzone_regex_routing",
   "tests/unit/test_csv_importer.py::test_process_dropzone_unrecognized_file_ignored",
+  "tests/unit/test_csv_importer.py::test_tradingview_paper_trading_prefixes",
   "tests/unit/test_csv_importer.py::test_watch_dropzone_and_process",
   "tests/unit/test_daily_journal_sync.py::test_save_daily_journal_note",
   "tests/unit/test_daily_journal_sync.py::test_sync_combined_report_files",

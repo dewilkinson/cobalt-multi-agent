@@ -1,5 +1,4 @@
 {
-    "python.defaultInterpreterPath": "C:\\Users\\rende\\.gemini\\antigravity\\worktrees\\cobalt-multi-agent\\backend\\.venv\\Scripts\\python.exe",
     "python.analysis.extraPaths": [
         "backend",
         "backend/src"
@@ -10,5 +9,6 @@
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "files.autoSave": "afterDelay"
+    "files.autoSave": "afterDelay",
+    "python.defaultInterpreterPath": "\"C:\\Users\\rende\\.gemini\\antigravity\\worktrees\\cobalt-multi-agent\\backend\\.venv\\Scripts\\python.exe\""
 }

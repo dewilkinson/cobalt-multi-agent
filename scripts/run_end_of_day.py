@@ -20,8 +20,47 @@ def main():
     tomorrow_dt = today_dt + timedelta(days=1)
     tomorrow_str = tomorrow_dt.strftime("%Y-%m-%d")
     
-    print(f"Current Date (ET): {today_str}")
+    # Resolve execution mode (default to light, require 'FULL' for LLM stages)
+    mode = "light"
+    for arg in sys.argv[1:]:
+        if arg.upper() == "FULL" or "--full" in arg.lower() or "mode=full" in arg.lower():
+            mode = "full"
+            break
+            
+    print(f"Current Date (ET): {today_str} (Mode: {mode.upper()})")
     
+    # Check if any trades were made today in brokerage cache
+    import json
+    cache_path = os.path.join("backend", "data", "brokerage_cache.json")
+    has_trades = False
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                cache_data = json.load(f)
+            
+            for account, details in cache_data.items():
+                activities = details.get("activities", [])
+                for act in activities:
+                    trade_date = act.get("trade_date", "")
+                    status = act.get("status", "").upper()
+                    if today_str in trade_date and status in ["EXECUTED", "FILLED"]:
+                        has_trades = True
+                        break
+                if has_trades:
+                    break
+        except Exception as ce:
+            print(f"Warning: Failed to check brokerage cache for today's trades: {ce}")
+            # Fallback to True to be safe
+            has_trades = True
+    else:
+        print(f"Warning: Brokerage cache not found at {cache_path}")
+        has_trades = True
+        
+    if not has_trades:
+        print("\n[INFO] No trades were recorded today. Skipping End-of-Day report and scanner review generation.")
+        print("=" * 60)
+        return
+
     # 1. Run TradeZella Export for today
     print("\n[1/3] Running TradeZella Exporter (Daily View)...")
     today_output = os.path.join("data", "exports", "tradezella-import-today.csv")
@@ -74,7 +113,8 @@ def main():
     print("\n[4/4] Generating Daily Scanner Review (AlphaVantage + Scanner Sweep)...")
     cmd_market = [
         sys.executable,
-        "scripts/generate_daily_scanner_review.py"
+        "scripts/generate_daily_scanner_review.py",
+        f"--mode={mode}"
     ]
     try:
         res = subprocess.run(cmd_market, capture_output=True, text=True, check=True)
