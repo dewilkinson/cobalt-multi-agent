@@ -498,15 +498,57 @@ async def bulk_fetch_trends_and_sparklines(symbols):
             
             # Map input symbols to yfinance-compatible symbols
             normalized_chunk_map = {sym: _normalize_ticker(sym) for sym in chunk}
-            search_symbols = list(set(normalized_chunk_map.values()))
+            
+            # Partition search symbols into futures and stocks
+            futures_search = []
+            stocks_search = []
+            for sym in chunk:
+                norm_sym = normalized_chunk_map[sym]
+                clean_sym = sym.lstrip("/^").upper()
+                is_fut = clean_sym in ["ES", "MES", "NQ", "MNQ", "YM", "MYM", "RTY", "M2K", "CL", "MCL", "GC", "MGC", "NKD", "MNK"] or clean_sym.endswith("=F")
+                if is_fut:
+                    futures_search.append(norm_sym)
+                else:
+                    stocks_search.append(norm_sym)
+            
+            futures_search = list(set(futures_search))
+            stocks_search = list(set(stocks_search))
+            all_search = list(set(futures_search + stocks_search))
             
             async with YF_LOCK:
-                c_batch_1m = await asyncio.to_thread(yf.download, search_symbols, period="5d", interval="1m", prepost=True, progress=False)
-                c_batch_5m = await asyncio.to_thread(yf.download, search_symbols, period="5d", interval="5m", prepost=True, progress=False)
-                c_batch_15m = await asyncio.to_thread(yf.download, search_symbols, period="1mo", interval="15m", prepost=True, progress=False)
-                c_batch_1h = await asyncio.to_thread(yf.download, search_symbols, period="3mo", interval="1h", prepost=True, progress=False)
-                c_batch_1d = await asyncio.to_thread(yf.download, search_symbols, period="2y", interval="1d", progress=False)
-                c_batch_1w = await asyncio.to_thread(yf.download, search_symbols, period="5y", interval="1wk", progress=False)
+                # 1m
+                f_1m = await asyncio.to_thread(yf.download, futures_search, period="5d", interval="1m", prepost=True, progress=False) if futures_search else None
+                s_1m = await asyncio.to_thread(yf.download, stocks_search, period="5d", interval="1m", prepost=False, progress=False) if stocks_search else None
+                
+                # 5m
+                f_5m = await asyncio.to_thread(yf.download, futures_search, period="5d", interval="5m", prepost=True, progress=False) if futures_search else None
+                s_5m = await asyncio.to_thread(yf.download, stocks_search, period="5d", interval="5m", prepost=False, progress=False) if stocks_search else None
+                
+                # 15m
+                f_15m = await asyncio.to_thread(yf.download, futures_search, period="1mo", interval="15m", prepost=True, progress=False) if futures_search else None
+                s_15m = await asyncio.to_thread(yf.download, stocks_search, period="1mo", interval="15m", prepost=False, progress=False) if stocks_search else None
+                
+                # 1h
+                f_1h = await asyncio.to_thread(yf.download, futures_search, period="3mo", interval="1h", prepost=True, progress=False) if futures_search else None
+                s_1h = await asyncio.to_thread(yf.download, stocks_search, period="3mo", interval="1h", prepost=False, progress=False) if stocks_search else None
+                
+                # 1d & 1w (prepost not applicable)
+                c_batch_1d = await asyncio.to_thread(yf.download, all_search, period="2y", interval="1d", progress=False) if all_search else None
+                c_batch_1w = await asyncio.to_thread(yf.download, all_search, period="5y", interval="1wk", progress=False) if all_search else None
+            
+            # Helper to merge dfs
+            def safe_merge(f_df, s_df):
+                if f_df is not None and not f_df.empty and s_df is not None and not s_df.empty:
+                    return pd.concat([f_df, s_df], axis=1)
+                elif f_df is not None and not f_df.empty:
+                    return f_df
+                else:
+                    return s_df
+                    
+            c_batch_1m = safe_merge(f_1m, s_1m)
+            c_batch_5m = safe_merge(f_5m, s_5m)
+            c_batch_15m = safe_merge(f_15m, s_15m)
+            c_batch_1h = safe_merge(f_1h, s_1h)
             
             now = time.time()
             for sym in chunk:
