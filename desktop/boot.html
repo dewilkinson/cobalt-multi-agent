@@ -160,7 +160,7 @@
             <div class="progress-bar"></div>
         </div>
         <div id="continue-prompt" style="display: none; margin-top: 15px; font-family: var(--font-mono); font-size: 11px; text-align: center; color: var(--text-muted); cursor: pointer; letter-spacing: 1px; text-transform: uppercase;">
-            Press any key or click here to continue <span id="countdown" style="color: var(--text-cyan); font-weight: bold;">(15s)</span>
+            Press any key or click here to continue
         </div>
     </div>
 
@@ -250,20 +250,18 @@
                 }
             }
 
-            // Display interactive press any key prompt and start countdown
+            // Display interactive press any key prompt
             setTimeout(() => {
                 const promptEl = document.getElementById("continue-prompt");
                 if (promptEl) {
                     promptEl.style.display = "block";
                 }
                 
-                let timeLeft = 15;
                 let navigated = false;
                 
                 function navigate() {
                     if (navigated) return;
                     navigated = true;
-                    clearInterval(countdownInterval);
                     window.location.href = "http://127.0.0.1:8000/vli_dashboard.html";
                 }
                 
@@ -271,17 +269,6 @@
                 if (promptEl) {
                     promptEl.addEventListener("click", navigate);
                 }
-                
-                const countdownInterval = setInterval(() => {
-                    timeLeft--;
-                    const countdownEl = document.getElementById("countdown");
-                    if (countdownEl) {
-                        countdownEl.innerText = `(${timeLeft}s)`;
-                    }
-                    if (timeLeft <= 0) {
-                        navigate();
-                    }
-                }, 1000);
             }, 300);
         }
 
