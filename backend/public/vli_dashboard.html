@@ -4363,21 +4363,21 @@
                         if (!isNaN(rLow) && !isNaN(rHigh) && !isNaN(currentClose)) {
                             const mid = (rLow + rHigh) / 2;
                             if (currentClose >= mid) {
-                                bgStyle = 'rgba(248, 81, 73, 0.12)'; // Premium Red (Soft)
-                                borderStyle = 'rgba(248, 81, 73, 0.4)';
+                                bgStyle = 'rgba(248, 81, 73, 0.22)'; // Premium Red (Lighter/Brighter)
+                                borderStyle = 'rgba(248, 81, 73, 0.6)';
                                 zoneName = 'Premium Zone';
                             } else {
-                                bgStyle = 'rgba(63, 185, 80, 0.12)'; // Discount Green (Soft)
-                                borderStyle = 'rgba(63, 185, 80, 0.4)';
+                                bgStyle = 'rgba(63, 185, 80, 0.22)'; // Discount Green (Lighter/Brighter)
+                                borderStyle = 'rgba(63, 185, 80, 0.6)';
                                 zoneName = 'Discount Zone';
                             }
                         }
                     }
                     
-                    const left = minIdx * 10 - 2;
-                    const width = (maxIdx - minIdx) * 10 + 8 + 4;
+                    const left = minIdx * 10 - 4;
+                    const width = (maxIdx - minIdx) * 10 + 16;
                     
-                    shadingBoxHtml = `<div class="crt-setup-box" style="position: absolute; left: ${left}px; width: ${width}px; height: 18px; top: -2px; border-radius: 3px; z-index: 1; pointer-events: none; background: ${bgStyle}; border: 1px solid ${borderStyle};" title="CRT Active Range: ${zoneName}"></div>`;
+                    shadingBoxHtml = `<div class="crt-setup-box" style="position: absolute; left: ${left}px; width: ${width}px; height: 22px; top: -4px; border-radius: 4px; z-index: 1; pointer-events: none; background: ${bgStyle}; border: 1px solid ${borderStyle};" title="CRT Active Range: ${zoneName}"></div>`;
                 }
             }
 
