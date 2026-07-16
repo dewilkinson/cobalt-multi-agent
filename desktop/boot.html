@@ -105,6 +105,20 @@
             font-weight: bold;
         }
 
+        .status-error {
+            color: var(--ruby-red);
+            font-weight: bold;
+        }
+
+        .status-info {
+            color: var(--text-cyan);
+        }
+
+        .status-highlight {
+            color: #bc8cff;
+            font-weight: bold;
+        }
+
         /* Premium progress bar loader */
         .progress-container {
             width: 100%;
@@ -193,9 +207,9 @@
         }
 
         async function bootSequence() {
-            await addLog("Loading configuration profiles...", 400);
-            await addLog("Connecting to local Python core backend...", 400);
-            await addLog("Starting 3rd party connection diagnostics...", 400);
+            await addLog("<span class='status-info'>Loading configuration profiles...</span>", 400);
+            await addLog("<span class='status-info'>Connecting to local Python core backend...</span>", 400);
+            await addLog("<span class='status-info'>Starting 3rd party connection diagnostics...</span>", 400);
 
             // Poll the backend until it is alive and gives us the status payload
             let data = null;
@@ -206,15 +220,15 @@
             }
 
             if (!data) {
-                await addLog("<span class='status-warn'>[ ERROR ] Failed to contact VLI service backend.</span>", 200);
+                await addLog("<span class='status-error'>[ ERROR ] Failed to contact VLI service backend.</span>", 200);
                 return;
             }
 
-            await addLog("Core backend online! Running subscription API diagnostics...", 300);
+            await addLog("<span class='status-highlight'>Core backend online! Running subscription API diagnostics...</span>", 300);
 
             // Sequentially print the status of each service from the JSON response
             for (const svc of data.services) {
-                await addLog(`[ CHECKING ] ${svc.service}...`, 400);
+                await addLog(`[ <span class='status-info'>CHECKING</span> ] ${svc.service}...`, 400);
                 if (svc.connected) {
                     await addLog(`[ <span class='status-ok'>OK</span> ] Connected: ${svc.details}`, 150);
                 } else {
@@ -225,7 +239,7 @@
 
             await addLog("--------------------------------------------------", 300);
             await addLog("API verification complete. Core initialization finalized.", 200);
-            await addLog("<span class='status-ok'>BOOT COMPLETED. REDIRECTING TO WORKSPACE...</span>", 200);
+            await addLog("<span class='status-highlight'>BOOT COMPLETED. REDIRECTING TO WORKSPACE...</span>", 200);
             
             await addLog("<br><span class='status-ok'>[ CORE LOAD REPORT ]</span>", 300);
             await addLog(" * Configuration Profile Subsystem .................. [ LOADED ]", 100);
@@ -258,12 +272,12 @@
             for (const svc of data.services) {
                 if (!svc.connected) {
                     if (!hasWarnings) {
-                        await addLog("<br><span class='status-warn'>[ DIAGNOSTIC WARNINGS & LOGS ]</span>", 150);
+                        await addLog("<br><span class='status-error'>[ DIAGNOSTIC WARNINGS & LOGS ]</span>", 150);
                         hasWarnings = true;
                     }
-                    await addLog(` * ${svc.service}: KEY MISSING`, 100);
+                    await addLog(` * <span class='status-warn'>${svc.service}</span>: <span class='status-error'>KEY MISSING</span>`, 100);
                     const affected = affectedFuncs[svc.service] || "None";
-                    await addLog(`   <span class='status-warn'>- AFFECTED:</span> ${affected}`, 100);
+                    await addLog(`   <span class='status-error'>- AFFECTED:</span> <span class='status-warn'>${affected}</span>`, 100);
                 }
             }
 
