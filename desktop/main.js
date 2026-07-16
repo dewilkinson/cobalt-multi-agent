@@ -189,15 +189,17 @@ app.whenReady().then(async () => {
     waitForWeb().catch(err => console.error('[VLI-Electron] Web check error:', err));
     
     if (isOnline) {
-        console.log(`[VLI-Electron] Python backend is online. Waiting 7.5s for user to read bootscreen...`);
-        await new Promise(resolve => setTimeout(resolve, 7500));
+        console.log(`[VLI-Electron] Python backend is online. Delegating navigation to boot.html. (Safety timeout: 35s)`);
+        await new Promise(resolve => setTimeout(resolve, 35000));
         
-        console.log(`[VLI-Electron] Navigating to VLI Dashboard`);
-        session.defaultSession.clearCache().then(() => {
-            mainWindow.loadURL(`http://127.0.0.1:8000/vli_dashboard.html`)
-                .then(() => console.log('[VLI-Electron] Successfully navigated to VLI Dashboard!'))
-                .catch(err => console.log('[VLI-Electron] Failed to navigate:', err));
-        });
+        if (mainWindow && !mainWindow.webContents.getURL().includes('vli_dashboard.html')) {
+            console.log(`[VLI-Electron] Safety timeout triggered. Navigating to VLI Dashboard...`);
+            session.defaultSession.clearCache().then(() => {
+                mainWindow.loadURL(`http://127.0.0.1:8000/vli_dashboard.html`)
+                    .then(() => console.log('[VLI-Electron] Successfully navigated to VLI Dashboard!'))
+                    .catch(err => console.log('[VLI-Electron] Failed to navigate:', err));
+            });
+        }
     } else {
         mainWindow.loadFile('error.html');
     }
