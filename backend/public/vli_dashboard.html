@@ -112,6 +112,10 @@
             border: 1.5px solid #ffffff !important;
             animation: crt-slow-flash 1s infinite ease-in-out;
         }
+        .crt-segment.crt-in-progress {
+            outline: 1.5px solid #ffeb3b !important;
+            outline-offset: 1px;
+        }
         @keyframes crt-slow-flash {
             0%, 100% {
                 opacity: 0.3;
@@ -4270,9 +4274,62 @@
                 return `<div class="crt-bar">${emptyHtml}</div>`;
             }
 
+            // Check for CRT in-progress: search for a closed initiating setup or potential setup forming
+            const activeCrtIndices = new Set();
+            if (segments.length > 0) {
+                const lastIdx = segments.length - 1;
+                const lastSeg = segments[lastIdx];
+
+                // Case 1: Forming candle has a pending setup (potential_setup !== 'NONE')
+                if (lastSeg.is_forming && lastSeg.potential_setup && lastSeg.potential_setup !== 'NONE') {
+                    activeCrtIndices.add(lastIdx);
+                    if (lastIdx - 1 >= 0) {
+                        activeCrtIndices.add(lastIdx - 1);
+                    }
+                } else {
+                    // Case 2: Scan for the most recent closed sweep/outside setup
+                    let sweepIdx = -1;
+                    for (let i = lastIdx - 1; i >= 0; i--) {
+                        const state = segments[i].state || 'NONE';
+                        if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'BULL_OUTSIDE' || state === 'BEAR_OUTSIDE') {
+                            sweepIdx = i;
+                            break;
+                        }
+                    }
+
+                    if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
+                        const rangeCandle = segments[sweepIdx - 1];
+                        const rangeLow = parseFloat(rangeCandle.low);
+                        const rangeHigh = parseFloat(rangeCandle.high);
+
+                        if (!isNaN(rangeLow) && !isNaN(rangeHigh)) {
+                            let breached = false;
+                            for (let i = sweepIdx; i <= lastIdx; i++) {
+                                const closeVal = parseFloat(segments[i].close);
+                                if (!isNaN(closeVal)) {
+                                    if (closeVal < rangeLow || closeVal > rangeHigh) {
+                                        breached = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (!breached) {
+                                for (let i = sweepIdx - 1; i <= lastIdx; i++) {
+                                    activeCrtIndices.add(i);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             let html = '';
             segments.forEach((seg, idx) => {
                 let cssClass = 'crt-segment';
+                if (activeCrtIndices.has(idx)) {
+                    cssClass += ' crt-in-progress';
+                }
                 const openVal = parseFloat(seg.open);
                 const closeVal = parseFloat(seg.close);
                 if (!isNaN(openVal) && !isNaN(closeVal)) {
@@ -4320,6 +4377,10 @@
                     } else {
                         colorMeaning = `${colorBase}: Normal candle color`;
                     }
+                }
+                
+                if (activeCrtIndices.has(idx)) {
+                    colorMeaning += " [Yellow Outline: Active CRT in-progress]";
                 }
 
                 tooltip = `Timeframe: ${timeframe}\nCandle ${idx + 1}/5 ${seg.is_forming ? '(Forming)' : '(Closed)'}\nState: ${stateName}\n\n• Color Meaning: ${colorMeaning}\n\n• Open: $${seg.open}\n• High: $${seg.high}\n• Low: $${seg.low}\n• Close: $${seg.close}\n• Prev High: $${seg.prev_high}\n• Prev Low: $${seg.prev_low}`;
