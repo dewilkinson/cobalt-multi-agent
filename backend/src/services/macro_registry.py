@@ -24,7 +24,6 @@ class MacroRegistry:
         "DXY": "DX-Y.NYB",
         "VIX": "^VIX",
         "TNX": "^TNX",
-        "WTI": "CL=F",
         "BTC": "BTC-USD",
         "ES": "ES=F",
         "MES": "MES=F",

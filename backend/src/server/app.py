@@ -520,6 +520,92 @@ def clear_stale_scanner_files(force: bool = False):
 
 from contextlib import asynccontextmanager
 
+def start_ngrok_tunnel():
+    import subprocess
+    import urllib.request
+    import json
+    import os
+    
+    domain = os.environ.get("NGROK_DOMAIN", "")
+    authtoken = os.environ.get("NGROK_AUTHTOKEN", "")
+    
+    # Fallback to conf.yaml
+    if not domain or not authtoken:
+        try:
+            b_dir = os.path.dirname(os.path.abspath(__file__))
+            conf_path = os.path.abspath(os.path.join(b_dir, "..", "..", "conf.yaml"))
+            if os.path.exists(conf_path):
+                import yaml
+                with open(conf_path, "r", encoding="utf-8") as f:
+                    conf = yaml.safe_load(f)
+                if conf and isinstance(conf, dict) and "NGROK" in conf:
+                    ngrok_cfg = conf["NGROK"]
+                    if isinstance(ngrok_cfg, dict):
+                        domain = domain or ngrok_cfg.get("domain", "")
+                        authtoken = authtoken or ngrok_cfg.get("authtoken", "")
+        except Exception as ex:
+            logger.debug(f"Failed to read conf.yaml for ngrok settings: {ex}")
+            
+    clean_domain = domain.replace("https://", "").replace("http://", "").strip()
+    if not clean_domain:
+        logger.info("VLI_SYSTEM: NGROK_DOMAIN is empty. Skipping auto-tunnel startup.")
+        return
+        
+    if authtoken:
+        try:
+            subprocess.run(["ngrok", "config", "add-authtoken", authtoken], 
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            logger.info("VLI_SYSTEM: Configured ngrok authtoken.")
+        except Exception as ex:
+            logger.warning(f"VLI_SYSTEM: Failed to set ngrok authtoken: {ex}")
+            
+    needs_restart = False
+    try:
+        req = urllib.request.Request("http://127.0.0.1:4040/api/tunnels")
+        with urllib.request.urlopen(req, timeout=1.0) as response:
+            tunnels = json.loads(response.read().decode('utf-8'))
+        active_tunnels = tunnels.get("tunnels", [])
+        
+        has_correct_tunnel = False
+        for t in active_tunnels:
+            public_url = t.get("public_url", "")
+            addr = t.get("config", {}).get("addr", "")
+            if clean_domain in public_url:
+                if "8000" in addr:
+                    has_correct_tunnel = True
+                else:
+                    needs_restart = True
+                    
+        if has_correct_tunnel:
+            logger.info(f"VLI_SYSTEM: Ngrok tunnel already active for {clean_domain} on port 8000")
+            return
+    except Exception:
+        pass
+        
+    if needs_restart:
+        logger.info("VLI_SYSTEM: Ngrok running on wrong port. Killing existing process...")
+        try:
+            import time
+            if os.name == 'nt':
+                subprocess.run(["taskkill", "/F", "/IM", "ngrok.exe"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                subprocess.run(["killall", "ngrok"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            time.sleep(1.0)
+        except Exception as ex:
+            logger.warning(f"VLI_SYSTEM: Failed to kill ngrok process: {ex}")
+        
+    logger.info(f"VLI_SYSTEM: Spawning Ngrok tunnel for domain: {clean_domain}")
+    try:
+        cmd = ["ngrok", "http", "8000", "--domain", clean_domain]
+        creationflags = 0
+        if os.name == 'nt':
+            creationflags = subprocess.CREATE_NO_WINDOW
+        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, 
+                         creationflags=creationflags)
+        logger.info(f"VLI_SYSTEM: Ngrok tunnel spawned successfully in background.")
+    except Exception as e:
+        logger.error(f"VLI_SYSTEM: Failed to spawn ngrok tunnel: {e}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup - Clear stale scanner lists from previous days
@@ -527,6 +613,12 @@ async def lifespan(app: FastAPI):
         clear_stale_scanner_files()
     except Exception as e:
         logger.error(f"VLI_SYSTEM: Failed to run clear_stale_scanner_files at startup: {e}")
+
+    # Startup Ngrok Tunnel if configured
+    try:
+        start_ngrok_tunnel()
+    except Exception as e:
+        logger.error(f"VLI_SYSTEM: Failed to start ngrok tunnel at startup: {e}")
 
     # [NEW] Automatic Startup catch-up sequence disabled as per user instruction
     # from datetime import datetime

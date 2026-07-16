@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0213";
+        const VLI_CLIENT_VERSION = "00.000.0216";
     </script>
     
     <link
@@ -68,9 +68,9 @@
             height: 14px;
         }
         .crt-segment {
-            width: 8px;
-            height: 14px;
-            border-radius: 1.5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
             box-sizing: border-box;
             background: rgba(255, 255, 255, 0.05);
             transition: all 0.2s ease;
@@ -80,20 +80,32 @@
         .crt-segment.default-bull {
             background: rgba(63, 185, 80, 0.45);
             border: 1px solid rgba(63, 185, 80, 0.75);
+            color: rgba(63, 185, 80, 0.75);
         }
         .crt-segment.default-bear {
             background: rgba(248, 81, 73, 0.45);
             border: 1px solid rgba(248, 81, 73, 0.75);
+            color: rgba(248, 81, 73, 0.75);
         }
         .crt-segment.inside {
-            border: 1px dashed rgba(255, 255, 255, 0.6);
+            background: transparent !important;
+        }
+        .crt-segment.inside::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: currentColor;
+            z-index: 3;
         }
         .crt-segment.bull-sweep {
-            background: var(--emerald-green);
             box-shadow: 0 0 6px rgba(63, 185, 80, 0.4);
         }
         .crt-segment.bear-sweep {
-            background: var(--ruby-red);
             box-shadow: 0 0 6px rgba(248, 81, 73, 0.4);
         }
         .crt-segment.bull-outside {
@@ -125,26 +137,22 @@
         }
         @keyframes pulse-crt-bullish {
             0% {
-                background: rgba(63, 185, 80, 0.2);
                 box-shadow: 0 0 2px rgba(63, 185, 80, 0.2);
                 border: 1px solid rgba(63, 185, 80, 0.4);
             }
             100% {
-                background: var(--emerald-green);
                 box-shadow: 0 0 8px rgba(63, 185, 80, 0.8);
-                border: 1px solid var(--emerald-green);
+                border: 1px solid rgba(63, 185, 80, 0.95);
             }
         }
         @keyframes pulse-crt-bearish {
             0% {
-                background: rgba(248, 81, 73, 0.2);
                 box-shadow: 0 0 2px rgba(248, 81, 73, 0.2);
                 border: 1px solid rgba(248, 81, 73, 0.4);
             }
             100% {
-                background: var(--ruby-red);
                 box-shadow: 0 0 8px rgba(248, 81, 73, 0.8);
-                border: 1px solid var(--ruby-red);
+                border: 1px solid rgba(248, 81, 73, 0.95);
             }
         }
 
@@ -4346,10 +4354,10 @@
                         }
                     }
                     
-                    const left = minIdx * 10 - 4;
-                    const width = (maxIdx - minIdx) * 10 + 16;
+                    const left = minIdx * 12 - 4;
+                    const width = (maxIdx - minIdx) * 12 + 18;
                     
-                    shadingBoxHtml = `<div class="crt-setup-box" style="position: absolute; left: ${left}px; width: ${width}px; height: 22px; top: -4px; border-radius: 4px; z-index: 1; pointer-events: none; background: ${bgStyle}; border: 1px solid ${borderStyle};" title="CRT Active Range: ${zoneName}"></div>`;
+                    shadingBoxHtml = `<div class="crt-setup-box" style="position: absolute; left: ${left}px; width: ${width}px; height: 18px; top: -2px; border-radius: 4px; z-index: 1; pointer-events: none; background: ${bgStyle}; border: 1px solid ${borderStyle};" title="CRT Active Range: ${zoneName}"></div>`;
                 }
             }
 
@@ -4364,9 +4372,9 @@
                 let stateName = seg.state || 'NONE';
                 let tooltip = '';
 
-                if (stateName === 'BULL_SWEEP') {
+                if (stateName === 'BULL_SWEEP' || (stateName === 'DOUBLE_SWEEP' && closeVal >= openVal)) {
                     cssClass += seg.is_forming ? ' potential-bullish' : ' bull-sweep';
-                } else if (stateName === 'BEAR_SWEEP') {
+                } else if (stateName === 'BEAR_SWEEP' || (stateName === 'DOUBLE_SWEEP' && closeVal < openVal)) {
                     cssClass += seg.is_forming ? ' potential-bearish' : ' bear-sweep';
                 } else if (stateName === 'BULL_OUTSIDE') {
                     cssClass += ' bull-outside';
@@ -4381,39 +4389,62 @@
                     cssClass += ' pending-setup';
                 }
 
-                let colorMeaning = '';
+                let appearance = '';
+                let indication = '';
                 if (isNaN(openVal) || isNaN(closeVal)) {
-                    colorMeaning = 'Gray: No Data / Loading';
+                    appearance = 'Gray Circle';
+                    indication = 'No Data / Loading';
                 } else {
                     const isBull = closeVal >= openVal;
                     let colorBase = isBull ? 'Green (Bullish)' : 'Red (Bearish)';
                     
                     if (seg.is_forming && seg.potential_setup && seg.potential_setup !== 'NONE') {
-                        colorMeaning = `Pulsing ${colorBase} with White Border: Pending CRT setup forming`;
+                        appearance = `Pulsing ${isBull ? 'Green' : 'Red'} circle with a white border`;
+                        indication = `Pending CRT ${seg.potential_setup} setup forming`;
                     } else if (stateName === 'BULL_SWEEP') {
-                        colorMeaning = 'Solid Glowing Green: Closed Bullish Sweep';
+                        appearance = 'Solid green circle with a green dot at the bottom';
+                        indication = 'Bullish Sweep (swept previous low, recovered to close inside)';
                     } else if (stateName === 'BEAR_SWEEP') {
-                        colorMeaning = 'Solid Glowing Red: Closed Bearish Sweep';
+                        appearance = 'Solid red circle with a red dot at the top';
+                        indication = 'Bearish Sweep (swept previous high, rejected to close inside)';
+                    } else if (stateName === 'DOUBLE_SWEEP') {
+                        appearance = `Solid ${isBull ? 'green' : 'red'} circle with dots at both the top and bottom`;
+                        indication = 'Double Sweep (price swept both previous high and low, closed inside)';
                     } else if (stateName === 'BULL_OUTSIDE') {
-                        colorMeaning = 'Muted Green with solid border: Bullish Outside Bar';
+                        appearance = 'Green circle outline with semi-transparent fill';
+                        indication = 'Bullish Expansion / Outside Bar (broke and closed above previous high)';
                     } else if (stateName === 'BEAR_OUTSIDE') {
-                        colorMeaning = 'Muted Red with solid border: Bearish Outside Bar';
+                        appearance = 'Red circle outline with semi-transparent fill';
+                        indication = 'Bearish Expansion / Outside Bar (broke and closed below previous low)';
                     } else if (stateName === 'INSIDE') {
-                        colorMeaning = `${colorBase} with Dashed White Border: Inside Bar`;
+                        appearance = `Concentric Bullseye: solid ${isBull ? 'green' : 'red'} outline with a center dot of the same color`;
+                        indication = 'Inside Bar / Range Contraction (consolidated within previous range, no sweep)';
                     } else {
-                        colorMeaning = `${colorBase}: Normal candle color`;
+                        appearance = `${isBull ? 'Green' : 'Red'} circle outline with semi-transparent fill`;
+                        indication = `${isBull ? 'Bullish' : 'Bearish'} candle (no sweep or expansion)`;
                     }
                 }
                 
                 if (activeCrtIndices.has(idx)) {
-                    colorMeaning += ` [CRT Range: ${zoneName}]`;
+                    indication += ` [CRT Active Range: ${zoneName}]`;
                 }
 
-                tooltip = `Timeframe: ${timeframe}\nCandle ${idx + 1}/5 ${seg.is_forming ? '(Forming)' : '(Closed)'}\nState: ${stateName}\n\n• Color Meaning: ${colorMeaning}\n\n• Open: $${seg.open}\n• High: $${seg.high}\n• Low: $${seg.low}\n• Close: $${seg.close}\n• Prev High: $${seg.prev_high}\n• Prev Low: $${seg.prev_low}`;
-                html += `<div class="${cssClass}" title="${tooltip}"></div>`;
+                let sweepDotHTML = '';
+                if (stateName === 'BULL_SWEEP' || stateName === 'DOUBLE_SWEEP') {
+                    sweepDotHTML += `<div class="sweep-dot bull-sweep-dot" style="position: absolute; width: 4px; height: 4px; background: #3fb950; border-radius: 50%; bottom: -6px; left: 2px; z-index: 10;"></div>`;
+                }
+                if (stateName === 'BEAR_SWEEP' || stateName === 'DOUBLE_SWEEP') {
+                    sweepDotHTML += `<div class="sweep-dot bear-sweep-dot" style="position: absolute; width: 4px; height: 4px; background: var(--ruby-red); border-radius: 50%; top: -6px; left: 2px; z-index: 10;"></div>`;
+                }
+                
+                const openTime = seg.open_time || 'N/A';
+                const closeTime = seg.close_time || 'N/A';
+                
+                tooltip = `Segment Type: ${stateName.replace('_', ' ')}\nDescription: ${indication}\nStart Time: ${openTime}`;
+                html += `<div class="${cssClass}" title="${tooltip}">${sweepDotHTML}</div>`;
             });
 
-            return `<div class="crt-bar"><div style="position: relative; display: flex; gap: 2px; width: 48px; height: 14px; align-items: center; justify-content: center;">${shadingBoxHtml}${html}</div></div>`;
+            return `<div class="crt-bar"><div style="position: relative; display: flex; gap: 2px; width: 58px; height: 14px; align-items: center; justify-content: center;">${shadingBoxHtml}${html}</div></div>`;
         }
 
         function drawVWAPIndicator(val) {

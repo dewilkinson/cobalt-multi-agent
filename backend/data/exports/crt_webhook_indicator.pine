@@ -1,0 +1,52 @@
+//@version=6
+indicator("Candle Range Theory Webhook (Cobalt)", overlay=true)
+
+// Calculate states
+prev_high = high[1]
+prev_low = low[1]
+
+is_bull_sweep = low < prev_low and close > prev_low
+is_bear_sweep = high > prev_high and close < prev_high
+
+state = "NONE"
+if (is_bull_sweep and is_bear_sweep)
+    state := "DOUBLE_SWEEP"
+else if (is_bull_sweep)
+    state := "BULL_SWEEP"
+else if (is_bear_sweep)
+    state := "BEAR_SWEEP"
+else if (close > prev_high)
+    state := "BULL_OUTSIDE"
+else if (close < prev_low)
+    state := "BEAR_OUTSIDE"
+else if (high <= prev_high and low >= prev_low)
+    state := "INSIDE"
+
+// Construct JSON segments using constant indices (0 to 4)
+open_time_4 = str.format("{0,date,yyyy-MM-dd HH:mm}", time[4])
+seg4 = '{"state": "' + state[4] + '", "is_forming": false, "open": ' + str.tostring(open[4]) + ', "high": ' + str.tostring(high[4]) + ', "low": ' + str.tostring(low[4]) + ', "close": ' + str.tostring(close[4]) + ', "prev_high": ' + str.tostring(high[5]) + ', "prev_low": ' + str.tostring(low[5]) + ', "open_time": "' + open_time_4 + '"}'
+
+open_time_3 = str.format("{0,date,yyyy-MM-dd HH:mm}", time[3])
+seg3 = '{"state": "' + state[3] + '", "is_forming": false, "open": ' + str.tostring(open[3]) + ', "high": ' + str.tostring(high[3]) + ', "low": ' + str.tostring(low[3]) + ', "close": ' + str.tostring(close[3]) + ', "prev_high": ' + str.tostring(high[4]) + ', "prev_low": ' + str.tostring(low[4]) + ', "open_time": "' + open_time_3 + '"}'
+
+open_time_2 = str.format("{0,date,yyyy-MM-dd HH:mm}", time[2])
+seg2 = '{"state": "' + state[2] + '", "is_forming": false, "open": ' + str.tostring(open[2]) + ', "high": ' + str.tostring(high[2]) + ', "low": ' + str.tostring(low[2]) + ', "close": ' + str.tostring(close[2]) + ', "prev_high": ' + str.tostring(high[3]) + ', "prev_low": ' + str.tostring(low[3]) + ', "open_time": "' + open_time_2 + '"}'
+
+open_time_1 = str.format("{0,date,yyyy-MM-dd HH:mm}", time[1])
+seg1 = '{"state": "' + state[1] + '", "is_forming": false, "open": ' + str.tostring(open[1]) + ', "high": ' + str.tostring(high[1]) + ', "low": ' + str.tostring(low[1]) + ', "close": ' + str.tostring(close[1]) + ', "prev_high": ' + str.tostring(high[2]) + ', "prev_low": ' + str.tostring(low[2]) + ', "open_time": "' + open_time_1 + '"}'
+
+open_time_0 = str.format("{0,date,yyyy-MM-dd HH:mm}", time[0])
+is_forming_0 = barstate.isconfirmed ? "false" : "true"
+seg0 = '{"state": "' + state[0] + '", "is_forming": ' + is_forming_0 + ', "open": ' + str.tostring(open[0]) + ', "high": ' + str.tostring(high[0]) + ', "low": ' + str.tostring(low[0]) + ', "close": ' + str.tostring(close[0]) + ', "prev_high": ' + str.tostring(high[1]) + ', "prev_low": ' + str.tostring(low[1]) + ', "open_time": "' + open_time_0 + '"}'
+
+payload = '{"symbol": "' + syminfo.ticker + '", "timeframe": "' + timeframe.period + '", "segments": [' + seg4 + ', ' + seg3 + ', ' + seg2 + ', ' + seg1 + ', ' + seg0 + ']}'
+
+// Trigger alert on every tick for real-time forming updates, or on confirmed bar closes
+if barstate.isnew or barstate.isconfirmed or (ta.change(close) != 0 and not barstate.isconfirmed)
+    alert(payload, alert.freq_all)
+
+// Visual markers on TradingView chart for confirmation
+plotshape(state == "BULL_SWEEP", title="Bull Sweep", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small)
+plotshape(state == "BEAR_SWEEP", title="Bear Sweep", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
+plotshape(state == "DOUBLE_SWEEP", title="Double Sweep", style=shape.diamond, location=location.belowbar, color=color.orange, size=size.small)
+plotshape(state == "INSIDE", title="Inside Bar", style=shape.circle, location=location.belowbar, color=color.yellow, size=size.small)

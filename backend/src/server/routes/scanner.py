@@ -11,7 +11,7 @@ import pandas as pd
 import traceback
 import sys
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from zoneinfo import ZoneInfo
 from src.tools.finance import _fetch_batch_history, _extract_ticker_data, _normalize_ticker
 
@@ -149,6 +149,83 @@ def load_trends_cache():
 
 load_trends_cache()
 
+def fill_futures_gaps(df, freq):
+    """
+    Ensures futures dataframes are gapless by generating a complete index
+    matching CME futures trading hours (excluding weekend and daily maintenance hour)
+    and forward-filling price values.
+    """
+    if df is None or df.empty:
+        return df
+        
+    import pandas as pd
+    orig_tz = df.index.tz
+    
+    # Convert index to America/New_York (Eastern Time) for session filtering
+    if orig_tz is not None:
+        df_ny = df.tz_convert('America/New_York')
+    else:
+        df_ny = df.tz_localize('UTC').tz_convert('America/New_York')
+        
+    start_time = df_ny.index.min()
+    end_time = df_ny.index.max()
+    
+    # Generate all timestamps with the target frequency
+    all_times = pd.date_range(start=start_time, end=end_time, freq=freq)
+    
+    # Filter CME trading hours:
+    # - Closed on Friday 5:00 PM ET to Sunday 6:00 PM ET
+    # - Daily maintenance close: 5:00 PM ET to 6:00 PM ET (17:00 ET hour)
+    valid_times = []
+    for dt in all_times:
+        day_of_week = dt.dayofweek  # 0=Monday, ..., 6=Sunday
+        hour = dt.hour
+        minute = dt.minute
+        
+        is_weekend = False
+        if day_of_week == 5:  # Saturday
+            is_weekend = True
+        elif day_of_week == 4 and (hour > 17 or (hour == 17 and minute > 0)):  # Friday after 5 PM
+            is_weekend = True
+        elif day_of_week == 6 and hour < 18:  # Sunday before 6 PM
+            is_weekend = True
+            
+        # Daily maintenance hour
+        is_maintenance = (hour == 17)
+        
+        if not is_weekend and not is_maintenance:
+            valid_times.append(dt)
+            
+    # Reindex to the valid trading session range
+    df_filled = df_ny.reindex(valid_times)
+    
+    # Forward-fill the Close column
+    close_col = next((c for c in df_filled.columns if str(c).lower() == 'close'), 'Close')
+    df_filled[close_col] = df_filled[close_col].ffill()
+    
+    # Fill missing Open/High/Low with Close (carrying over flat price if no trades occurred)
+    open_col = next((c for c in df_filled.columns if str(c).lower() == 'open'), 'Open')
+    high_col = next((c for c in df_filled.columns if str(c).lower() == 'high'), 'High')
+    low_col = next((c for c in df_filled.columns if str(c).lower() == 'low'), 'Low')
+    
+    df_filled[open_col] = df_filled[open_col].fillna(df_filled[close_col])
+    df_filled[high_col] = df_filled[high_col].fillna(df_filled[close_col])
+    df_filled[low_col] = df_filled[low_col].fillna(df_filled[close_col])
+    
+    # Fill missing Volume with 0.0
+    vol_col = next((c for c in df_filled.columns if str(c).lower() == 'volume'), 'Volume')
+    if vol_col in df_filled.columns:
+        df_filled[vol_col] = df_filled[vol_col].fillna(0.0)
+        
+    # Convert index back to original timezone representation
+    if orig_tz is not None:
+        df_filled = df_filled.tz_convert(orig_tz)
+    else:
+        df_filled = df_filled.tz_localize(None)
+        
+    return df_filled
+
+
 def calculate_atr_14(df_1d):
     """Calculates 14-period daily ATR from 1d history."""
     if df_1d is None or df_1d.empty or len(df_1d) < 2:
@@ -246,7 +323,7 @@ def calculate_vwap_state(df_5m, atr=1.0):
 
 def calculate_crt_segments(df):
     if df is None or len(df) < 6:
-        return [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE"} for i in range(5)]
+        return [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open_time": "", "close_time": ""} for i in range(5)]
     
     sub = df.tail(6)
     segments = []
@@ -258,7 +335,17 @@ def calculate_crt_segments(df):
     open_col = col_map.get("open")
     
     if not (high_col and low_col and close_col and open_col):
-        return [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE"} for i in range(5)]
+        return [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open_time": "", "close_time": ""} for i in range(5)]
+
+    # Infer candle duration from index difference to calculate close time
+    candle_duration = pd.Timedelta(minutes=15) # default fallback
+    try:
+        if len(sub) > 1:
+            diffs = [sub.index[k] - sub.index[k-1] for k in range(1, len(sub))]
+            if diffs:
+                candle_duration = min(diffs)
+    except Exception as e:
+        logger.warning(f"Error calculating candle duration: {e}")
 
     for i in range(1, 6):
         prev = sub.iloc[i-1]
@@ -275,11 +362,18 @@ def calculate_crt_segments(df):
         state = "NONE"
         potential_setup = "NONE"
         
-        if curr_low < prev_low and curr_close > prev_low:
+        is_bull_sweep = curr_low < prev_low and curr_close > prev_low
+        is_bear_sweep = curr_high > prev_high and curr_close < prev_high
+
+        if is_bull_sweep and is_bear_sweep:
+            state = "DOUBLE_SWEEP"
+            if is_forming:
+                potential_setup = "BULLISH" if curr_close >= curr_open else "BEARISH"
+        elif is_bull_sweep:
             state = "BULL_SWEEP"
             if is_forming:
                 potential_setup = "BULLISH"
-        elif curr_high > prev_high and curr_close < prev_high:
+        elif is_bear_sweep:
             state = "BEAR_SWEEP"
             if is_forming:
                 potential_setup = "BEARISH"
@@ -290,6 +384,20 @@ def calculate_crt_segments(df):
         elif curr_high <= prev_high and curr_low >= prev_low:
             state = "INSIDE"
             
+        open_time_str = ""
+        close_time_str = ""
+        try:
+            if hasattr(curr, "name") and isinstance(curr.name, (pd.Timestamp, datetime)):
+                open_time_str = curr.name.strftime("%Y-%m-%d %H:%M")
+                close_time_str = (curr.name + candle_duration).strftime("%Y-%m-%d %H:%M")
+                if curr.name.tzinfo is not None:
+                    tz_name = curr.name.strftime("%Z")
+                    if tz_name:
+                        open_time_str += f" {tz_name}"
+                        close_time_str += f" {tz_name}"
+        except Exception as e:
+            logger.warning(f"Error formatting candle times in segments: {e}")
+
         segments.append({
             "state": state,
             "is_forming": is_forming,
@@ -299,9 +407,72 @@ def calculate_crt_segments(df):
             "close": round(curr_close, 2),
             "open": round(curr_open, 2),
             "prev_high": round(prev_high, 2),
-            "prev_low": round(prev_low, 2)
+            "prev_low": round(prev_low, 2),
+            "open_time": open_time_str,
+            "close_time": close_time_str
         })
     return segments
+
+def align_forming_candle(df, tf_name, live_price, now_time, is_future=False):
+    if df is None or df.empty or live_price is None:
+        return df
+        
+    try:
+        import pandas as pd
+        import pytz
+        from datetime import datetime, timedelta
+        
+        # Get current time localized to the dataframe index timezone
+        tz = df.index.tz
+        if tz is None:
+            tz = pytz.utc
+            
+        now_dt = datetime.fromtimestamp(now_time, pytz.utc).astimezone(tz)
+        
+        # Calculate current forming candle timestamp
+        tf_clean = tf_name.lower().strip()
+        if tf_clean in ["15m", "15min"]:
+            minute = (now_dt.minute // 15) * 15
+            current_forming_ts = now_dt.replace(minute=minute, second=0, microsecond=0)
+        elif tf_clean in ["1h", "1min"]:
+            current_forming_ts = now_dt.replace(minute=0, second=0, microsecond=0)
+        elif tf_clean in ["4h"]:
+            if is_future:
+                shifted_dt = now_dt - timedelta(hours=2)
+                hour = (shifted_dt.hour // 4) * 4
+                current_forming_ts = shifted_dt.replace(hour=hour, minute=0, second=0, microsecond=0) + timedelta(hours=2)
+            else:
+                hour = (now_dt.hour // 4) * 4
+                current_forming_ts = now_dt.replace(hour=hour, minute=0, second=0, microsecond=0)
+        elif tf_clean in ["1d"]:
+            current_forming_ts = now_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        else:
+            return df
+
+        if df.index[-1] < current_forming_ts:
+            col_map = {str(c).lower(): c for c in df.columns}
+            open_col = col_map.get("open", "Open")
+            high_col = col_map.get("high", "High")
+            low_col = col_map.get("low", "Low")
+            close_col = col_map.get("close", "Close")
+            volume_col = col_map.get("volume", "Volume")
+            
+            prev_close = float(df[close_col].iloc[-1])
+            new_row_data = {
+                open_col: prev_close,
+                high_col: max(prev_close, live_price),
+                low_col: min(prev_close, live_price),
+                close_col: live_price
+            }
+            if volume_col in col_map:
+                new_row_data[volume_col] = 0.0
+                
+            new_row = pd.DataFrame([new_row_data], index=[current_forming_ts])
+            df = pd.concat([df, new_row])
+    except Exception as align_e:
+        logger.error(f"Error in align_forming_candle: {align_e}")
+        
+    return df
 
 PENDING_FETCH = set()
 
@@ -350,25 +521,39 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                 clean_sym = sym.lstrip("/^").upper()
                 is_future = clean_sym in ["ES", "MES", "NQ", "MNQ", "YM", "MYM", "RTY", "M2K", "CL", "MCL", "GC", "MGC", "NKD", "MNK"] or clean_sym.endswith("=F")
                 
-                if is_future and df_1m is not None and not df_1m.empty:
+                # Fallback for individual missing data due to batch merging quirks
+                if (df_1m is None or df_1m.empty) and is_future:
                     try:
-                        col_map = {str(c).lower(): c for c in df_1m.columns}
-                        agg_dict = {}
-                        if 'open' in col_map: agg_dict[col_map['open']] = 'first'
-                        if 'high' in col_map: agg_dict[col_map['high']] = 'max'
-                        if 'low' in col_map: agg_dict[col_map['low']] = 'min'
-                        if 'close' in col_map: agg_dict[col_map['close']] = 'last'
-                        if 'volume' in col_map: agg_dict[col_map['volume']] = 'sum'
-                        
-                        df_15m_res = df_1m.resample('15Min').agg(agg_dict).dropna()
-                        df_15m_res.columns = [col_map[str(c).lower()] for c in df_15m_res.columns]
-                        df_15m = df_15m_res
-                        
-                        df_1h_res = df_1m.resample('1H').agg(agg_dict).dropna()
-                        df_1h_res.columns = [col_map[str(c).lower()] for c in df_1h_res.columns]
-                        df_1h = df_1h_res
-                    except Exception as resample_e:
-                        logger.error(f"Failed to resample futures timeframes from 1m for {sym}: {resample_e}")
+                        logger.info(f"VLI: Batch 1m empty for futures ticker {sym}, downloading individually.")
+                        sdf = await asyncio.to_thread(yf.download, norm_sym, period="5d", interval="1m", prepost=True, progress=False)
+                        df_1m = extract_single_ticker_df(sdf, norm_sym)
+                    except Exception as ef:
+                        logger.warning(f"VLI: Fallback 1m fetch failed for {sym}: {ef}")
+                
+                if is_future:
+                    if df_1m is not None and not df_1m.empty:
+                        try:
+                            col_map = {str(c).lower(): c for c in df_1m.columns}
+                            agg_dict = {}
+                            if 'open' in col_map: agg_dict[col_map['open']] = 'first'
+                            if 'high' in col_map: agg_dict[col_map['high']] = 'max'
+                            if 'low' in col_map: agg_dict[col_map['low']] = 'min'
+                            if 'close' in col_map: agg_dict[col_map['close']] = 'last'
+                            if 'volume' in col_map: agg_dict[col_map['volume']] = 'sum'
+                            
+                            df_15m_res = df_1m.resample('15Min').agg(agg_dict).dropna()
+                            df_15m_res.columns = [col_map[str(c).lower()] for c in df_15m_res.columns]
+                            df_15m = df_15m_res
+                            
+                            df_1h_res = df_1m.resample('1H').agg(agg_dict).dropna()
+                            df_1h_res.columns = [col_map[str(c).lower()] for c in df_1h_res.columns]
+                            df_1h = df_1h_res
+                        except Exception as resample_e:
+                            logger.error(f"Failed to resample futures timeframes from 1m for {sym}: {resample_e}")
+                            
+                    # Apply futures gap-filling to ensure alignment with TradingView
+                    df_15m = fill_futures_gaps(df_15m, '15Min')
+                    df_1h = fill_futures_gaps(df_1h, '1h')
                 
                 c_timeframes = {
                     "1m": df_1m,
@@ -390,7 +575,11 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                         if 'low' in col_map: agg_dict[col_map['low']] = 'min'
                         if 'close' in col_map: agg_dict[col_map['close']] = 'last'
                         if 'volume' in col_map: agg_dict[col_map['volume']] = 'sum'
-                        c_timeframes["4h"] = df_1h.resample('4h').agg(agg_dict).dropna()
+                        if is_future:
+                            c_timeframes["4h"] = df_1h.resample('4h', offset='2h').agg(agg_dict).dropna()
+                            c_timeframes["4h"] = fill_futures_gaps(c_timeframes["4h"], '4h')
+                        else:
+                            c_timeframes["4h"] = df_1h.resample('4h').agg(agg_dict).dropna()
                     except Exception as resample_e:
                         logger.error(f"Failed to resample 4h for {sym}: {resample_e}")
                         
@@ -537,11 +726,24 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                 existing_spark_1d = cached.get("sparkline_1d") if cached else None
                 atr_val = calculate_atr_14(c_timeframes["1d"])
                 vwap_val = calculate_vwap_state(c_timeframes["5m"], atr=atr_val)
+                # Align the forming candle to clock time to handle yfinance data delay
+                df_15m = align_forming_candle(c_timeframes["15m"], "15m", live_price, now, is_future=is_future)
+                df_1h = align_forming_candle(c_timeframes["1h"], "1h", live_price, now, is_future=is_future)
+                df_4h = align_forming_candle(c_timeframes["4h"], "4h", live_price, now, is_future=is_future)
                 
-                # Calculate CRT segments for 15m, 1h, and 4h timeframes
-                crt_15m = calculate_crt_segments(c_timeframes["15m"])
-                crt_1h = calculate_crt_segments(c_timeframes["1h"])
-                crt_4h = calculate_crt_segments(c_timeframes["4h"])
+                c_timeframes["15m"] = df_15m
+                c_timeframes["1h"] = df_1h
+                c_timeframes["4h"] = df_4h
+                
+                # Calculate CRT segments for 15m, 1h, and 4h timeframes (preserving webhook values if managed)
+                if cached and cached.get("webhook_managed"):
+                    crt_15m = cached.get("crt_15m", calculate_crt_segments(df_15m))
+                    crt_1h = cached.get("crt_1h", calculate_crt_segments(df_1h))
+                    crt_4h = cached.get("crt_4h", calculate_crt_segments(df_4h))
+                else:
+                    crt_15m = calculate_crt_segments(df_15m)
+                    crt_1h = calculate_crt_segments(df_1h)
+                    crt_4h = calculate_crt_segments(df_4h)
                 
                 TRENDS_CACHE[sym] = {
                     "trends": trends if (trends and any(v != "No Data" for v in trends.values())) else (existing_trends or {}),
@@ -1549,4 +1751,164 @@ async def purge_scanner_cache():
         return {"status": "success", "message": res}
     except Exception as e:
         logger.error(f"Failed to purge scanner cache: {e}")
+        return {"status": "error", "message": str(e)}
+
+class TradingViewSegment(BaseModel):
+    state: str
+    is_forming: bool
+    open: float
+    high: float
+    low: float
+    close: float
+    prev_high: float
+    prev_low: float
+    open_time: str
+    close_time: str = ""
+
+class TradingViewAlertPayload(BaseModel):
+    symbol: str
+    timeframe: str
+    state: Optional[str] = None
+    is_forming: Optional[bool] = None
+    open: Optional[float] = None
+    high: Optional[float] = None
+    low: Optional[float] = None
+    close: Optional[float] = None
+    prev_high: Optional[float] = None
+    prev_low: Optional[float] = None
+    open_time: Optional[str] = None
+    close_time: str = ""
+    segments: Optional[List[TradingViewSegment]] = None
+
+@router.post("/webhook")
+async def webhook_tradingview(payload: TradingViewAlertPayload):
+    """
+    Receives alerts from TradingView, maps the symbol, and updates TRENDS_CACHE
+    realtime with zero-latency.
+    """
+    try:
+        # Normalize symbol
+        sym_clean = payload.symbol.upper().replace("1!", "").replace("=F", "").replace("/", "").strip()
+        # Handle futures prefixing
+        futures = ["ES", "NQ", "YM", "RTY", "CL", "GC", "NKD", "MES", "MNQ", "MYM", "M2K", "MCL", "MGC", "MNK"]
+        sym_key = f"/{sym_clean}" if sym_clean in futures else payload.symbol
+        
+        # Normalize timeframe key
+        tf = payload.timeframe.lower().strip()
+        if tf in ["15", "15m", "15min", "15minut", "15_min"]:
+            tf_key = "crt_15m"
+        elif tf in ["1h", "1hour", "60", "60m", "1_hour"]:
+            tf_key = "crt_1h"
+        elif tf in ["4h", "4hour", "240", "240m", "4_hour"]:
+            tf_key = "crt_4h"
+        else:
+            tf_key = f"crt_{tf}"
+
+        global TRENDS_CACHE
+        if sym_key not in TRENDS_CACHE:
+            TRENDS_CACHE[sym_key] = {
+                "trends": {},
+                "timestamp": time.time(),
+                "price": payload.close,
+                "change": 0.0,
+                "rvol": 1.0,
+                "pd_zone": 0.0
+            }
+        TRENDS_CACHE[sym_key]["webhook_managed"] = True
+        
+        # Ensure target crt list exists
+        if tf_key not in TRENDS_CACHE[sym_key]:
+            # Initialize with 5 blank elements
+            TRENDS_CACHE[sym_key][tf_key] = [
+                {"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", 
+                 "open": 0.0, "close": 0.0, "high": 0.0, "low": 0.0, 
+                 "prev_high": 0.0, "prev_low": 0.0, "open_time": "", "close_time": ""}
+                for i in range(5)
+            ]
+        
+        if payload.segments:
+            # Overwrite the entire 5 segments with the list from TradingView!
+            new_segments = []
+            for s in payload.segments[-5:]: # Keep last 5
+                pot_setup = "NONE"
+                if s.is_forming:
+                    if s.state in ["BULL_SWEEP", "DOUBLE_SWEEP"]:
+                        pot_setup = "BULLISH"
+                    elif s.state == "BEAR_SWEEP":
+                        pot_setup = "BEARISH"
+                new_segments.append({
+                    "state": s.state,
+                    "is_forming": s.is_forming,
+                    "potential_setup": pot_setup,
+                    "open": s.open,
+                    "high": s.high,
+                    "low": s.low,
+                    "close": s.close,
+                    "prev_high": s.prev_high,
+                    "prev_low": s.prev_low,
+                    "open_time": s.open_time,
+                    "close_time": s.close_time or s.open_time
+                })
+            while len(new_segments) < 5:
+                new_segments.insert(0, {
+                    "state": "NONE", "is_forming": False, "potential_setup": "NONE",
+                    "open": 0.0, "close": 0.0, "high": 0.0, "low": 0.0,
+                    "prev_high": 0.0, "prev_low": 0.0, "open_time": "", "close_time": ""
+                })
+            TRENDS_CACHE[sym_key][tf_key] = new_segments
+            latest_close = payload.segments[-1].close if payload.segments else 0.0
+        else:
+            segments = TRENDS_CACHE[sym_key][tf_key]
+            
+            # Build the segment dictionary
+            pot_setup = "NONE"
+            if payload.is_forming:
+                if payload.state in ["BULL_SWEEP", "DOUBLE_SWEEP"]:
+                    pot_setup = "BULLISH"
+                elif payload.state == "BEAR_SWEEP":
+                    pot_setup = "BEARISH"
+                    
+            new_seg = {
+                "state": payload.state,
+                "is_forming": payload.is_forming,
+                "potential_setup": pot_setup,
+                "open": payload.open,
+                "close": payload.close,
+                "high": payload.high,
+                "low": payload.low,
+                "prev_high": payload.prev_high,
+                "prev_low": payload.prev_low,
+                "open_time": payload.open_time,
+                "close_time": payload.close_time or payload.open_time
+            }
+            
+            # Check if we should update an existing segment or slide in a new one
+            matched_idx = -1
+            for idx, seg in enumerate(segments):
+                if seg.get("open_time") == payload.open_time:
+                    matched_idx = idx
+                    break
+                    
+            if matched_idx != -1:
+                # Update existing
+                segments[matched_idx] = new_seg
+            else:
+                # If not matched, we append to the end and keep only the last 5
+                segments.append(new_seg)
+                if len(segments) > 5:
+                    segments.pop(0)
+            
+            latest_close = payload.close
+        
+        # Update symbol price and timestamp in cache
+        TRENDS_CACHE[sym_key]["price"] = latest_close
+        TRENDS_CACHE[sym_key]["timestamp"] = time.time()
+        
+        # Save cache to disk
+        save_trends_cache()
+        logger.info(f"Successfully updated webhook trends cache for {sym_key} ({tf_key})")
+        
+        return {"status": "success", "message": f"Updated {sym_key} ({tf_key})"}
+    except Exception as e:
+        logger.error(f"Error in webhook endpoint: {e}")
         return {"status": "error", "message": str(e)}
