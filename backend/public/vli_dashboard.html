@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0220";
+        const VLI_CLIENT_VERSION = "00.000.0221";
     </script>
     
     <link
@@ -37,19 +37,19 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <style>
         :root {
-            --cobalt-deep: #050505;
-            --cobalt-blue: #58a6ff;
-            --emerald-green: #3fb950;
-            --ruby-red: #f85149;
-            --glass-bg: #111111;
-            --card-border: #333333;
-            --text-primary: #e6edf3;
-            --text-muted: #8b949e;
+            --cobalt-deep: #05070c;
+            --cobalt-blue: #7ea3cc; /* Soft steel blue */
+            --emerald-green: #66a076; /* Muted sage green */
+            --ruby-red: #9a91a8; /* Muted heather purple */
+            --glass-bg: rgba(13, 17, 24, 0.75);
+            --card-border: rgba(88, 166, 255, 0.12);
+            --text-primary: #c9d1d9;
+            --text-muted: #768390;
             --font-main: 'Segoe UI', Tahoma, 'Inter', sans-serif;
             --font-mono: 'Consolas', 'JetBrains Mono', monospace;
-            --price-up: #3fb950;
-            --price-down: #f85149;
-            --amber-gold: #d29922;
+            --price-up: #66a076;
+            --price-down: #9a91a8;
+            --amber-gold: #6ea4a6; /* Muted teal-cyan */
         }
 
         .card[data-active-duration="DAY"] .sortino-column-header,
@@ -78,14 +78,14 @@
             z-index: 2;
         }
         .crt-segment.default-bull {
-            background: rgba(63, 185, 80, 0.45);
-            border: 1px solid rgba(63, 185, 80, 0.75);
-            color: rgba(63, 185, 80, 0.75);
+            background: rgba(102, 160, 118, 0.3);
+            border: 1px solid var(--emerald-green);
+            color: var(--emerald-green);
         }
         .crt-segment.default-bear {
-            background: rgba(248, 81, 73, 0.45);
-            border: 1px solid rgba(248, 81, 73, 0.75);
-            color: rgba(248, 81, 73, 0.75);
+            background: rgba(154, 145, 168, 0.3);
+            border: 1px solid var(--ruby-red);
+            color: var(--ruby-red);
         }
         .crt-segment.inside {
             background: transparent !important;
@@ -103,18 +103,18 @@
             z-index: 3;
         }
         .crt-segment.bull-sweep {
-            box-shadow: 0 0 6px rgba(63, 185, 80, 0.4);
+            box-shadow: 0 0 6px rgba(102, 160, 118, 0.3);
         }
         .crt-segment.bear-sweep {
-            box-shadow: 0 0 6px rgba(248, 81, 73, 0.4);
+            box-shadow: 0 0 6px rgba(154, 145, 168, 0.3);
         }
         .crt-segment.bull-outside {
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(63, 185, 80, 0.6);
+            background: rgba(102, 160, 118, 0.12);
+            border: 1px solid rgba(102, 160, 118, 0.5);
         }
         .crt-segment.bear-outside {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(248, 81, 73, 0.6);
+            background: rgba(154, 145, 168, 0.12);
+            border: 1px solid rgba(154, 145, 168, 0.5);
         }
         .crt-segment.potential-bullish {
             animation: pulse-crt-bullish 1s infinite alternate;
@@ -3633,11 +3633,11 @@
             const trendVal = (trends && timeframe) ? trends[timeframe] : null;
             let color = '#9ca3af';
             if (trendVal === 'Bullish' || trendVal === 'Uptrend' || trendVal === 'UP') {
-                color = '#3fb950';
+                color = 'var(--emerald-green)';
             } else if (trendVal === 'Weak Bullish') {
-                color = '#ffdd00';
+                color = 'var(--cobalt-blue)';
             } else if (trendVal === 'Weak Bearish') {
-                color = '#ff8800';
+                color = 'var(--amber-gold)';
             } else if (trendVal === 'Bearish' || trendVal === 'Downtrend' || trendVal === 'DOWN') {
                 color = 'var(--ruby-red)';
             } else if (trendVal === 'Accumulation') {
@@ -4620,7 +4620,7 @@
 
                 let sweepDotHTML = '';
                 if (stateName === 'BULL_SWEEP' || stateName === 'DOUBLE_SWEEP') {
-                    sweepDotHTML += `<div class="sweep-dot bull-sweep-dot" style="position: absolute; width: 4px; height: 4px; background: #3fb950; border-radius: 50%; bottom: -6px; left: 2px; z-index: 10;"></div>`;
+                    sweepDotHTML += `<div class="sweep-dot bull-sweep-dot" style="position: absolute; width: 4px; height: 4px; background: var(--emerald-green); border-radius: 50%; bottom: -6px; left: 2px; z-index: 10;"></div>`;
                 }
                 if (stateName === 'BEAR_SWEEP' || stateName === 'DOUBLE_SWEEP') {
                     sweepDotHTML += `<div class="sweep-dot bear-sweep-dot" style="position: absolute; width: 4px; height: 4px; background: var(--ruby-red); border-radius: 50%; top: -6px; left: 2px; z-index: 10;"></div>`;
@@ -8056,11 +8056,11 @@
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
                             <!-- Stop Button -->
-                            <div id="stop-btn" style="display:none; cursor:pointer; background:rgba(248,81,73,0.1); border:1px solid rgba(248,81,73,0.3); color:#f85149; padding:6px 12px; border-radius:4px; font-size:12px; align-items:center; gap:5px;" onclick="handleSendStop()">
+                            <div id="stop-btn" style="display:none; cursor:pointer; background:rgba(154,145,168,0.1); border:1px solid rgba(154,145,168,0.3); color:var(--ruby-red); padding:6px 12px; border-radius:4px; font-size:12px; align-items:center; gap:5px;" onclick="handleSendStop()">
                                 ■ STOP
                             </div>
                             <!-- Play/Submit Button -->
-                            <div id="send-btn-visual" style="cursor:pointer; background:var(--accent-blue); color:#fff; padding:6px 16px; border-radius:4px; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:5px; box-shadow:0 0 10px rgba(88,166,255,0.3);" onclick="handleSendStop()">
+                            <div id="send-btn-visual" style="cursor:pointer; background:var(--cobalt-blue); color:#fff; padding:6px 16px; border-radius:4px; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:5px; box-shadow:0 0 10px rgba(88,166,255,0.15);" onclick="handleSendStop()">
                                 ➤ SUBMIT
                             </div>
                             <div class="send-btn" id="send-stop-btn" style="display:none;"></div> <!-- hidden trigger for compat -->
@@ -8377,7 +8377,7 @@
                 }
                 buttonsHtml += `<div class="tree-local-btn" title="Edit File Locally" style="cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px;"></div>`;
                 if (node.canDelete) {
-                    buttonsHtml += `<div class="tree-delete-btn" title="Delete Report" style="cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px; color: #f85149;"></div>`;
+                    buttonsHtml += `<div class="tree-delete-btn" title="Delete Report" style="cursor: pointer; opacity: 0.6; font-size: 12px; padding-right: 8px; color: var(--ruby-red);"></div>`;
                 }
                 buttonsHtml += '</div>';
 
