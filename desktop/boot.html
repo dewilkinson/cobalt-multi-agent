@@ -159,8 +159,8 @@
         <div class="progress-container">
             <div class="progress-bar"></div>
         </div>
-        <div id="continue-prompt" style="display: none; margin-top: 20px; font-family: var(--font-sans); font-size: 13px; text-align: center; color: var(--emerald-green); cursor: pointer; text-transform: uppercase; font-weight: bold; border: 1px dashed var(--emerald-green); padding: 12px; border-radius: 6px; animation: pulse 1.5s infinite; background: rgba(57, 211, 83, 0.05); text-shadow: 0 0 4px var(--emerald-green);">
-            Press any key or click here to continue <span id="countdown">(15s)</span>
+        <div id="continue-prompt" style="display: none; margin-top: 15px; font-family: var(--font-mono); font-size: 11px; text-align: center; color: var(--text-muted); cursor: pointer; letter-spacing: 1px; text-transform: uppercase;">
+            Press any key or click here to continue <span id="countdown" style="color: var(--text-cyan); font-weight: bold;">(15s)</span>
         </div>
     </div>
 
@@ -232,6 +232,13 @@
             await addLog(" * Watchlist Analyzer & Scanner Module .............. [ LOADED ]", 100);
             await addLog(" * FIFO Trades Plotter Script Generator ............. [ LOADED ]", 100);
             
+            // Dynamically list each third-party subscription API service status
+            for (const svc of data.services) {
+                const paddedName = svc.service.padEnd(48, '.');
+                const statusStr = svc.connected ? "<span class='status-ok'>[ LOADED ]</span>" : "<span class='status-warn'>[ OFFLINE ]</span>";
+                await addLog(` * ${paddedName} ${statusStr}`, 100);
+            }
+            
             let hasWarnings = false;
             for (const svc of data.services) {
                 if (!svc.connected) {
@@ -239,7 +246,7 @@
                         await addLog("<br><span class='status-warn'>[ DIAGNOSTIC WARNINGS & LOGS ]</span>", 150);
                         hasWarnings = true;
                     }
-                    await addLog(` * ${svc.service}: KEY MISSING (Fallback: ${svc.fallback})`, 100);
+                    await addLog(` * ${svc.service}: KEY MISSING (Using Fallback: ${svc.fallback})`, 100);
                 }
             }
 
