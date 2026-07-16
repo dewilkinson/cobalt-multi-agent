@@ -32,9 +32,71 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(56, 139, 253, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(139, 0, 139, 0.05) 0%, transparent 40%);
+        }
+
+        /* PlayStation style swirling cloud background */
+        .ps-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background-color: #05070c;
+            overflow: hidden;
+        }
+
+        .ps-cloud {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.12;
+            mix-blend-mode: screen;
+            animation: swirl 25s infinite alternate ease-in-out;
+        }
+
+        .cloud-1 {
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(56, 139, 253, 0.4) 0%, transparent 70%);
+            top: -200px;
+            left: -200px;
+            animation-duration: 35s;
+        }
+
+        .cloud-2 {
+            width: 900px;
+            height: 900px;
+            background: radial-gradient(circle, rgba(188, 140, 255, 0.25) 0%, transparent 70%);
+            bottom: -300px;
+            right: -200px;
+            animation-duration: 45s;
+            animation-delay: -5s;
+        }
+
+        .cloud-3 {
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(0, 240, 255, 0.2) 0%, transparent 70%);
+            top: 40%;
+            left: 30%;
+            animation-duration: 28s;
+            animation-delay: -10s;
+        }
+
+        @keyframes swirl {
+            0% {
+                transform: translate(0, 0) rotate(0deg) scale(1);
+            }
+            33% {
+                transform: translate(100px, 80px) rotate(120deg) scale(1.15);
+            }
+            66% {
+                transform: translate(-50px, 120px) rotate(240deg) scale(0.9);
+            }
+            100% {
+                transform: translate(0, 0) rotate(360deg) scale(1);
+            }
         }
 
         .boot-card {
@@ -190,6 +252,11 @@
     </style>
 </head>
 <body>
+    <div class="ps-background">
+        <div class="ps-cloud cloud-1"></div>
+        <div class="ps-cloud cloud-2"></div>
+        <div class="ps-cloud cloud-3"></div>
+    </div>
     <div class="boot-card">
         <div class="loader-glow"></div>
         <h2>VLI DESKTOP</h2>
