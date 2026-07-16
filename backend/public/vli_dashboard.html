@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0219";
+        const VLI_CLIENT_VERSION = "00.000.0220";
     </script>
     
     <link
@@ -4001,12 +4001,7 @@
             return `
                 <div style="display: flex; gap: 2px; align-items: center; justify-content: center; height: 14px;" 
                      title="${tooltipText}">
-                    ${barsHtml}
-                </div>
-            `;
-        }
-
-        function calculateCrtConfidence(c, card) {
+                          function calculateCrtConfidence(c, card) {
             let trendVal = getTrendValueForCandidate(card, c);
             if (trendVal === undefined || trendVal === null) trendVal = 0.0;
             const isBullTrend = trendVal > 0.0;
@@ -4020,6 +4015,8 @@
             
             let totalScore = 0.0;
             let activeCount = 0;
+            let totalSuccess = 0;
+            let totalFail = 0;
             
             timeframes.forEach(tf => {
                 const segs = tf.segments;
@@ -4120,23 +4117,33 @@
                             
                             const tfScore = alignment * (multiplier + nestedBonus);
                             totalScore += tfScore * tf.weight;
+                            
+                            const statsKey = 'crt_' + tf.name + '_stats';
+                            if (c[statsKey]) {
+                                totalSuccess += c[statsKey].success || 0;
+                                totalFail += c[statsKey].fail || 0;
+                            }
                         }
                     }
                 }
             });
             
-            if (activeCount === 0) return 0.0;
+            if (activeCount === 0) return { score: 0.0, success: 0, fail: 0 };
             if (activeCount > 1) {
                 totalScore += 0.10 * (activeCount - 1);
             }
-            return Math.min(1.0, totalScore);
+            return {
+                score: Math.min(1.0, totalScore),
+                success: totalSuccess,
+                fail: totalFail
+            };
         }
-
-        function drawCrtConfidenceCell(score) {
-            if (score <= 0.0) {
+ 
+        function drawCrtConfidenceCell(res) {
+            if (!res || res.score <= 0.0) {
                 return `<div style="font-family: var(--font-mono); color: var(--text-muted); font-size: 11px; font-weight: 700; text-align: center;">-</div>`;
             }
-            const pct = Math.round(score * 100);
+            const pct = Math.round(res.score * 100);
             let color = 'var(--text-muted)';
             if (pct >= 70) {
                 color = 'var(--emerald-green)';
@@ -4145,7 +4152,10 @@
             } else {
                 color = 'var(--ruby-red)';
             }
-            return `<div style="font-family: var(--font-mono); color: ${color}; font-size: 11px; font-weight: 800; text-align: center; text-shadow: 0 0 4px ${color}33;">${pct}%</div>`;
+            return `<div style="font-family: var(--font-mono); color: ${color}; font-size: 11px; font-weight: 800; text-align: center; text-shadow: 0 0 4px ${color}33;">
+                ${pct}%
+                <div style="font-size: 9px; font-weight: 600; opacity: 0.7; margin-top: 1px; color: var(--text-muted);">${res.success}/${res.fail}</div>
+            </div>`;
         }
 
         function drawRrEQBar(maxRrVal, targetRrVal) {

@@ -413,6 +413,102 @@ def calculate_crt_segments(df):
         })
     return segments
 
+def backtest_timeframe_setups(df):
+    if df is None or len(df) < 10:
+        return {"success": 0, "fail": 0}
+    
+    col_map = {str(c).lower(): c for c in df.columns}
+    high_col = col_map.get("high", "High")
+    low_col = col_map.get("low", "Low")
+    close_col = col_map.get("close", "Close")
+    open_col = col_map.get("open", "Open")
+    
+    success_count = 0
+    fail_count = 0
+    
+    states = ["NONE"] * len(df)
+    for t in range(1, len(df)):
+        prev = df.iloc[t-1]
+        curr = df.iloc[t]
+        
+        try:
+            prev_low = float(prev[low_col].iloc[0]) if isinstance(prev[low_col], pd.Series) else float(prev[low_col])
+            prev_high = float(prev[high_col].iloc[0]) if isinstance(prev[high_col], pd.Series) else float(prev[high_col])
+            curr_low = float(curr[low_col].iloc[0]) if isinstance(curr[low_col], pd.Series) else float(curr[low_col])
+            curr_high = float(curr[high_col].iloc[0]) if isinstance(curr[high_col], pd.Series) else float(curr[high_col])
+            curr_close = float(curr[close_col].iloc[0]) if isinstance(curr[close_col], pd.Series) else float(curr[close_col])
+            curr_open = float(curr[open_col].iloc[0]) if isinstance(curr[open_col], pd.Series) else float(curr[open_col])
+        except Exception:
+            continue
+            
+        is_bull_sweep = curr_low < prev_low and curr_close > prev_low
+        is_bear_sweep = curr_high > prev_high and curr_close < prev_high
+        
+        if is_bull_sweep and is_bear_sweep:
+            states[t] = "DOUBLE_SWEEP"
+        elif is_bull_sweep:
+            states[t] = "BULL_SWEEP"
+        elif is_bear_sweep:
+            states[t] = "BEAR_SWEEP"
+        elif curr_close > prev_high:
+            states[t] = "BULL_OUTSIDE"
+        elif curr_close < prev_low:
+            states[t] = "BEAR_OUTSIDE"
+        elif curr_high <= prev_high and curr_low >= prev_low:
+            states[t] = "INSIDE"
+            
+    for t in range(1, len(df)):
+        sweep_state = states[t]
+        if sweep_state in ["BULL_SWEEP", "BEAR_SWEEP", "BULL_OUTSIDE", "BEAR_OUTSIDE", "DOUBLE_SWEEP"]:
+            range_candle_idx = t - 1
+            try:
+                range_low = float(df.iloc[range_candle_idx][low_col].iloc[0]) if isinstance(df.iloc[range_candle_idx][low_col], pd.Series) else float(df.iloc[range_candle_idx][low_col])
+                range_high = float(df.iloc[range_candle_idx][high_col].iloc[0]) if isinstance(df.iloc[range_candle_idx][high_col], pd.Series) else float(df.iloc[range_candle_idx][high_col])
+            except Exception:
+                continue
+                
+            is_outside_setup = sweep_state in ["BULL_OUTSIDE", "BEAR_OUTSIDE"]
+            
+            end_window = min(len(df) - 1, t + 4)
+            breached = False
+            
+            for k in range(t, end_window + 1):
+                if states[k] == "INSIDE":
+                    try:
+                        range_low = float(df.iloc[k][low_col].iloc[0]) if isinstance(df.iloc[k][low_col], pd.Series) else float(df.iloc[k][low_col])
+                        range_high = float(df.iloc[k][high_col].iloc[0]) if isinstance(df.iloc[k][high_col], pd.Series) else float(df.iloc[k][high_col])
+                    except Exception:
+                        pass
+                
+                try:
+                    close_val = float(df.iloc[k][close_col].iloc[0]) if isinstance(df.iloc[k][close_col], pd.Series) else float(df.iloc[k][close_col])
+                except Exception:
+                    continue
+                    
+                if is_outside_setup:
+                    if close_val >= range_low and close_val <= range_high:
+                        breached = True
+                        break
+                else:
+                    if sweep_state == "BULL_SWEEP" and close_val < range_low:
+                        breached = True
+                        break
+                    elif sweep_state == "BEAR_SWEEP" and close_val > range_high:
+                        breached = True
+                        break
+                    elif sweep_state == "DOUBLE_SWEEP":
+                        if close_val < range_low or close_val > range_high:
+                            breached = True
+                            break
+                            
+            if breached:
+                fail_count += 1
+            else:
+                if end_window - t == 4:
+                    success_count += 1
+                    
+    return {"success": success_count, "fail": fail_count}
+
 def align_forming_candle(df, tf_name, live_price, now_time, is_future=False):
     if df is None or df.empty or live_price is None:
         return df
@@ -803,6 +899,9 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     "crt_15m": crt_15m,
                     "crt_1h": crt_1h,
                     "crt_4h": crt_4h,
+                    "crt_15m_stats": backtest_timeframe_setups(df_15m),
+                    "crt_1h_stats": backtest_timeframe_setups(df_1h),
+                    "crt_4h_stats": backtest_timeframe_setups(df_4h),
                     "timestamp": now
                 }
             
@@ -901,6 +1000,9 @@ async def enrich_candidates_with_trends(candidates):
                     "crt_15m": c.get("crt_15m", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)]),
                     "crt_1h": c.get("crt_1h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)]),
                     "crt_4h": c.get("crt_4h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)]),
+                    "crt_15m_stats": c.get("crt_15m_stats", {"success": 0, "fail": 0}),
+                    "crt_1h_stats": c.get("crt_1h_stats", {"success": 0, "fail": 0}),
+                    "crt_4h_stats": c.get("crt_4h_stats", {"success": 0, "fail": 0}),
                     "timestamp": now
                 }
             
@@ -934,6 +1036,9 @@ async def enrich_candidates_with_trends(candidates):
             c["crt_15m"] = TRENDS_CACHE[sym].get("crt_15m", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
             c["crt_1h"] = TRENDS_CACHE[sym].get("crt_1h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
             c["crt_4h"] = TRENDS_CACHE[sym].get("crt_4h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
+            c["crt_15m_stats"] = TRENDS_CACHE[sym].get("crt_15m_stats", {"success": 0, "fail": 0})
+            c["crt_1h_stats"] = TRENDS_CACHE[sym].get("crt_1h_stats", {"success": 0, "fail": 0})
+            c["crt_4h_stats"] = TRENDS_CACHE[sym].get("crt_4h_stats", {"success": 0, "fail": 0})
             
              # Update live stats dynamically
             cached_price = TRENDS_CACHE[sym].get("price")
@@ -964,6 +1069,12 @@ async def enrich_candidates_with_trends(candidates):
             c["vwap_state"] = c.get("vwap_state", 0.0)
             c["rvol"] = c.get("rvol", 1.0)
             c["pd_zone"] = c.get("pd_zone", 0.0)
+            c["crt_15m"] = c.get("crt_15m", [])
+            c["crt_1h"] = c.get("crt_1h", [])
+            c["crt_4h"] = c.get("crt_4h", [])
+            c["crt_15m_stats"] = c.get("crt_15m_stats", {"success": 0, "fail": 0})
+            c["crt_1h_stats"] = c.get("crt_1h_stats", {"success": 0, "fail": 0})
+            c["crt_4h_stats"] = c.get("crt_4h_stats", {"success": 0, "fail": 0})
     # Enforce Rule: If a setup formation is detected on multiple timeframes, only the lowest timeframe must indicate it.
     for c in candidates:
         crt_15m = c.get("crt_15m", [])
