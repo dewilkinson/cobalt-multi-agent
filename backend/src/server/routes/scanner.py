@@ -518,19 +518,19 @@ async def bulk_fetch_trends_and_sparklines(symbols):
             async with YF_LOCK:
                 # 1m
                 f_1m = await asyncio.to_thread(yf.download, futures_search, period="5d", interval="1m", prepost=True, progress=False) if futures_search else None
-                s_1m = await asyncio.to_thread(yf.download, stocks_search, period="5d", interval="1m", prepost=False, progress=False) if stocks_search else None
+                s_1m = await asyncio.to_thread(yf.download, stocks_search, period="5d", interval="1m", prepost=True, progress=False) if stocks_search else None
                 
                 # 5m
                 f_5m = await asyncio.to_thread(yf.download, futures_search, period="5d", interval="5m", prepost=True, progress=False) if futures_search else None
-                s_5m = await asyncio.to_thread(yf.download, stocks_search, period="5d", interval="5m", prepost=False, progress=False) if stocks_search else None
+                s_5m = await asyncio.to_thread(yf.download, stocks_search, period="5d", interval="5m", prepost=True, progress=False) if stocks_search else None
                 
                 # 15m
                 f_15m = await asyncio.to_thread(yf.download, futures_search, period="1mo", interval="15m", prepost=True, progress=False) if futures_search else None
-                s_15m = await asyncio.to_thread(yf.download, stocks_search, period="1mo", interval="15m", prepost=False, progress=False) if stocks_search else None
+                s_15m = await asyncio.to_thread(yf.download, stocks_search, period="1mo", interval="15m", prepost=True, progress=False) if stocks_search else None
                 
                 # 1h
                 f_1h = await asyncio.to_thread(yf.download, futures_search, period="3mo", interval="1h", prepost=True, progress=False) if futures_search else None
-                s_1h = await asyncio.to_thread(yf.download, stocks_search, period="3mo", interval="1h", prepost=False, progress=False) if stocks_search else None
+                s_1h = await asyncio.to_thread(yf.download, stocks_search, period="3mo", interval="1h", prepost=True, progress=False) if stocks_search else None
                 
                 # 1d & 1w (prepost not applicable)
                 c_batch_1d = await asyncio.to_thread(yf.download, all_search, period="2y", interval="1d", progress=False) if all_search else None
