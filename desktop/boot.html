@@ -16,8 +16,8 @@
             --text-cyan: #7ea3cc; /* Soft steel blue */
             --text-muted: #768390; /* Muted slate gray */
             --emerald-green: #66a076; /* Muted sage green */
-            --amber-gold: #c69752; /* Muted warm gold */
-            --ruby-red: #c96864; /* Muted soft rose red */
+            --amber-gold: #6ea4a6; /* Cool desaturated teal */
+            --ruby-red: #9a91a8; /* Cool desaturated heather/mauve purple */
             --font-mono: 'Share Tech Mono', monospace;
             --font-sans: 'Inter', sans-serif;
         }
@@ -188,7 +188,7 @@
         }
 
         .status-effected {
-            color: #bf8052; /* Muted rust copper */
+            color: #7da5c4; /* Cool desaturated steel blue */
             font-weight: bold;
         }
 
@@ -275,7 +275,7 @@
         </h2>
         
         <div class="terminal" id="terminal">
-            <div class="log-line">Initializing VLI Boot Sequence...</div>
+            <div class="log-line"><span class="status-info">Initializing VLI Boot Sequence...</span></div>
         </div>
         
         <div class="progress-container">
@@ -337,16 +337,16 @@
             // Sequentially print the status of each service from the JSON response
             for (const svc of data.services) {
                 await addLog(`[ <span class='status-info'>CHECKING</span> ] ${svc.service}...`, 400);
-                if (svc.connected) {
-                    await addLog(`[ <span class='status-ok'>OK</span> ] Connected: ${svc.details}`, 150);
+                 if (svc.connected) {
+                    await addLog(`[ <span class='status-ok'>OK</span> ] <span class='status-info'>Connected:</span> <span class='status-ok'>${svc.details}</span>`, 150);
                 } else {
-                    await addLog(`[ <span class='status-warn'>WARN</span> ] Preferred key missing: Using fallback`, 150);
-                    await addLog(`           Fallback path: <span class='status-warn'>${svc.fallback}</span>`, 100);
+                    await addLog(`[ <span class='status-warn'>WARN</span> ] <span class='status-info'>Preferred key missing: Using fallback</span>`, 150);
+                    await addLog(`           <span class='status-info'>Fallback path:</span> <span class='status-warn'>${svc.fallback}</span>`, 100);
                 }
             }
 
             await addLog("--------------------------------------------------", 300);
-            await addLog("API verification complete. Core initialization finalized.", 200);
+            await addLog("<span class='status-highlight'>API verification complete. Core initialization finalized.</span>", 200);
             await addLog("<span class='status-highlight'>BOOT COMPLETED. REDIRECTING TO WORKSPACE...</span>", 200);
             
             await addLog("<br><span class='status-ok'>[ CORE LOAD REPORT ]</span>", 300);
@@ -364,8 +364,8 @@
                     const shortFallback = svc.fallback.split(" (")[0].split(" / ")[0];
                     statusStr = `<span class='status-warn'>[ OFFLINE -> ${shortFallback} ]</span>`;
                 }
-                const paddedName = svc.service.padEnd(42, '.');
-                await addLog(` * ${paddedName} ${statusStr}`, 100);
+                 const paddedName = svc.service.padEnd(42, '.');
+                await addLog(` * <span class='status-info'>${paddedName}</span> ${statusStr}`, 100);
             }
             
             const affectedFuncs = {
@@ -379,8 +379,8 @@
             let hasWarnings = false;
             for (const svc of data.services) {
                 if (!svc.connected) {
-                    if (!hasWarnings) {
-                        await addLog("<br><span class='status-error'>[ DIAGNOSTIC WARNINGS & LOGS ]</span>", 150);
+                     if (!hasWarnings) {
+                        await addLog("<br><span class='status-warn'>[ DIAGNOSTIC WARNINGS & LOGS ]</span>", 150);
                         hasWarnings = true;
                     }
                     await addLog(` * <span class='status-warn'>${svc.service}</span>: <span class='status-error'>KEY MISSING</span>`, 100);
