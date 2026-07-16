@@ -5897,6 +5897,57 @@ subprocess.Popen(cmd)
     threading.Thread(target=restart_process, daemon=True).start()
     return {"status": "restarting"}
 
+
+@app.post("/")
+async def root_webhook(request: Request):
+    """
+    Fallback endpoint to catch any POST requests sent to the root URL (/) 
+    instead of the dedicated webhook endpoint (/api/scanner/webhook).
+    Supports both JSON payloads (upgraded indicators) and raw text alerts.
+    """
+    import json
+    import re
+    
+    body_bytes = await request.body()
+    body_str = body_bytes.decode('utf-8', errors='ignore').strip()
+    logger.info(f"Received root POST webhook. Content-Type: {request.headers.get('content-type')}, body: {body_str}")
+    
+    # Try to parse as JSON first (upgraded indicator webhooks)
+    try:
+        data = json.loads(body_str)
+        from src.server.routes.scanner import webhook_tradingview, TradingViewAlertPayload
+        payload = TradingViewAlertPayload(**data)
+        return await webhook_tradingview(payload)
+    except Exception as json_e:
+        # If not JSON, it could be a manual text alert (e.g. "MCL1!, 5 Crossing horizontal line")
+        logger.info(f"Root POST payload is not valid JSON, parsing as raw text alert: {json_e}")
+        
+        try:
+            parts = [p.strip() for p in body_str.split(",")]
+            if len(parts) >= 2:
+                symbol = parts[0]
+                tf_part = parts[1].split()[0] # e.g. "5"
+                
+                tf_match = re.match(r'^(\d+)', tf_part)
+                if tf_match:
+                    timeframe = tf_match.group(1)
+                    from src.server.routes.scanner import webhook_tradingview, TradingViewAlertPayload
+                    payload = TradingViewAlertPayload(
+                        symbol=symbol,
+                        timeframe=timeframe,
+                        state="NONE",
+                        is_forming=False,
+                        open=0.0, high=0.0, low=0.0, close=0.0,
+                        prev_high=0.0, prev_low=0.0,
+                        open_time=""
+                    )
+                    return await webhook_tradingview(payload)
+        except Exception as parse_e:
+            logger.error(f"Failed to parse raw text root alert: {parse_e}")
+            
+    return {"status": "success", "message": "Root webhook processed"}
+
+
 # Mount the backend directory to serve the dashboard HTML
 backend_dir = os.path.dirname(os.path.abspath(__file__))  # src/server
 backend_root = os.path.abspath(os.path.join(backend_dir, "..", ".."))  # backend/
