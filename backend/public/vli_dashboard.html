@@ -4290,7 +4290,6 @@
                 const lastIdx = segments.length - 1;
                 const lastSeg = segments[lastIdx];
 
-                // Scan for the most recent closed sweep/outside setup (the second sweep candle must be complete)
                 let sweepIdx = -1;
                 for (let i = lastIdx - 1; i >= 0; i--) {
                     const state = segments[i].state || 'NONE';
@@ -4301,13 +4300,22 @@
                 }
 
                 if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
-                    const rangeCandle = segments[sweepIdx - 1];
-                    const rangeLow = parseFloat(rangeCandle.low);
-                    const rangeHigh = parseFloat(rangeCandle.high);
+                    let rangeCandleIdx = sweepIdx - 1;
+                    let rangeLow = parseFloat(segments[rangeCandleIdx].low);
+                    let rangeHigh = parseFloat(segments[rangeCandleIdx].high);
+
+                    for (let i = sweepIdx; i <= lastIdx; i++) {
+                        const state = segments[i].state || 'NONE';
+                        if (state === 'INSIDE') {
+                            rangeCandleIdx = i;
+                            rangeLow = parseFloat(segments[i].low);
+                            rangeHigh = parseFloat(segments[i].high);
+                        }
+                    }
 
                     if (!isNaN(rangeLow) && !isNaN(rangeHigh)) {
                         let breached = false;
-                        for (let i = sweepIdx; i <= lastIdx; i++) {
+                        for (let i = rangeCandleIdx + 1; i <= lastIdx; i++) {
                             const closeVal = parseFloat(segments[i].close);
                             if (!isNaN(closeVal)) {
                                 if (closeVal < rangeLow || closeVal > rangeHigh) {
@@ -4318,47 +4326,54 @@
                         }
 
                         if (!breached) {
-                            for (let i = sweepIdx - 1; i <= lastIdx; i++) {
+                            for (let i = rangeCandleIdx; i <= lastIdx; i++) {
                                 activeCrtIndices.add(i);
                             }
                         }
                     }
                 }
+            }
 
-                if (activeCrtIndices.size > 0 && sweepIdx !== -1 && sweepIdx - 1 >= 0) {
-                    const idxArray = Array.from(activeCrtIndices);
-                    const minIdx = Math.min(...idxArray);
-                    const maxIdx = Math.max(...idxArray);
-                    
-                    const rangeCandle = segments[sweepIdx - 1];
-                    const currentClose = parseFloat(lastSeg.close);
-                    
-                    let bgStyle = 'rgba(255, 255, 255, 0.08)';
-                    let borderStyle = 'rgba(255, 255, 255, 0.2)';
-                    zoneName = 'Equilibrium';
-                    
-                    if (rangeCandle) {
-                        const rLow = parseFloat(rangeCandle.low);
-                        const rHigh = parseFloat(rangeCandle.high);
-                        if (!isNaN(rLow) && !isNaN(rHigh) && !isNaN(currentClose)) {
-                            const mid = (rLow + rHigh) / 2;
-                            if (currentClose >= mid) {
-                                bgStyle = 'rgba(248, 81, 73, 0.22)'; // Premium Red (Lighter/Brighter)
-                                borderStyle = 'rgba(248, 81, 73, 0.6)';
-                                zoneName = 'Premium Zone';
-                            } else {
-                                bgStyle = 'rgba(63, 185, 80, 0.22)'; // Discount Green (Lighter/Brighter)
-                                borderStyle = 'rgba(63, 185, 80, 0.6)';
-                                zoneName = 'Discount Zone';
-                            }
+            if (activeCrtIndices.size > 0 && sweepIdx !== -1 && sweepIdx - 1 >= 0) {
+                const idxArray = Array.from(activeCrtIndices);
+                const minIdx = Math.min(...idxArray);
+                const maxIdx = Math.max(...idxArray);
+                
+                let rangeCandleIdx = sweepIdx - 1;
+                for (let i = sweepIdx; i <= lastIdx; i++) {
+                    const state = segments[i].state || 'NONE';
+                    if (state === 'INSIDE' && idxArray.includes(i)) {
+                        rangeCandleIdx = i;
+                    }
+                }
+                const rangeCandle = segments[rangeCandleIdx];
+                const currentClose = parseFloat(lastSeg.close);
+                
+                let bgStyle = 'rgba(255, 255, 255, 0.08)';
+                let borderStyle = 'rgba(255, 255, 255, 0.2)';
+                zoneName = 'Equilibrium';
+                
+                if (rangeCandle) {
+                    const rLow = parseFloat(rangeCandle.low);
+                    const rHigh = parseFloat(rangeCandle.high);
+                    if (!isNaN(rLow) && !isNaN(rHigh) && !isNaN(currentClose)) {
+                        const mid = (rLow + rHigh) / 2;
+                        if (currentClose >= mid) {
+                            bgStyle = 'rgba(248, 81, 73, 0.22)';
+                            borderStyle = 'rgba(248, 81, 73, 0.6)';
+                            zoneName = 'Premium Zone';
+                        } else {
+                            bgStyle = 'rgba(63, 185, 80, 0.22)';
+                            borderStyle = 'rgba(63, 185, 80, 0.6)';
+                            zoneName = 'Discount Zone';
                         }
                     }
-                    
-                    const left = minIdx * 12 - 4;
-                    const width = (maxIdx - minIdx) * 12 + 18;
-                    
-                    shadingBoxHtml = `<div class="crt-setup-box" style="position: absolute; left: ${left}px; width: ${width}px; height: 18px; top: -2px; border-radius: 4px; z-index: 1; pointer-events: none; background: ${bgStyle}; border: 1px solid ${borderStyle};" title="CRT Active Range: ${zoneName}"></div>`;
                 }
+                
+                const left = minIdx * 12 - 4;
+                const width = (maxIdx - minIdx) * 12 + 18;
+                
+                shadingBoxHtml = `<div class="crt-setup-box" style="position: absolute; left: ${left}px; width: ${width}px; height: 18px; top: -2px; border-radius: 4px; z-index: 1; pointer-events: none; background: ${bgStyle}; border: 1px solid ${borderStyle};" title="CRT Active Range: ${zoneName}"></div>`;
             }
 
             let html = '';
