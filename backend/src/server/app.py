@@ -596,7 +596,7 @@ def start_ngrok_tunnel():
         
     logger.info(f"VLI_SYSTEM: Spawning Ngrok tunnel for domain: {clean_domain}")
     try:
-        cmd = ["ngrok", "http", "8000", "--domain", clean_domain]
+        cmd = ["ngrok", "http", "127.0.0.1:8000", "--domain", clean_domain]
         creationflags = 0
         if os.name == 'nt':
             creationflags = subprocess.CREATE_NO_WINDOW

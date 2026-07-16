@@ -41,9 +41,24 @@ seg0 = '{"state": "' + state[0] + '", "is_forming": ' + is_forming_0 + ', "open"
 
 payload = '{"symbol": "' + syminfo.ticker + '", "timeframe": "' + timeframe.period + '", "segments": [' + seg4 + ', ' + seg3 + ', ' + seg2 + ', ' + seg1 + ', ' + seg0 + ']}'
 
-// Trigger alert on every tick for real-time forming updates, or on confirmed bar closes
-if barstate.isnew or barstate.isconfirmed or (ta.change(close) != 0 and not barstate.isconfirmed)
+// Rate-limit alerts during the forming candle to prevent TradingView from pausing it
+var string last_sent_state = "NONE"
+var int last_sent_time = 0
+
+state_changed = (state != last_sent_state)
+// Coalesce updates to at most once every 10 seconds during the forming bar, or when state changes
+time_elapsed = timenow - last_sent_time
+should_alert = false
+
+if barstate.isconfirmed or barstate.isnew
+    should_alert := true
+else if (state_changed or (time_elapsed >= 10000 and ta.change(close) != 0))
+    should_alert := true
+
+if should_alert
     alert(payload, alert.freq_all)
+    last_sent_state := state
+    last_sent_time := timenow
 
 // Visual markers on TradingView chart for confirmation
 plotshape(state == "BULL_SWEEP", title="Bull Sweep", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small)

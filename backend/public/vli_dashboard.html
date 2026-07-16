@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cobalt | QDESK Command Center</title>
+    <title>Cobalt | Quantdesk Command Center</title>
     
     <script>
         // VLI Dynamic Tab Session Tracker (Window Isolation)
@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0221";
+        const VLI_CLIENT_VERSION = "00.000.0231";
     </script>
     
     <link
@@ -78,39 +78,32 @@
             z-index: 2;
         }
         .crt-segment.default-bull {
-            background: rgba(102, 160, 118, 0.3);
-            border: 1px solid var(--emerald-green);
-            color: var(--emerald-green);
+            background: rgba(126, 163, 204, 0.3);
+            border: 1px solid var(--cobalt-blue);
+            color: var(--cobalt-blue);
         }
         .crt-segment.default-bear {
             background: rgba(154, 145, 168, 0.3);
             border: 1px solid var(--ruby-red);
             color: var(--ruby-red);
         }
-        .crt-segment.inside {
-            background: transparent !important;
+        .crt-segment.inside.default-bull {
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="%237ea3cc" stroke-width="1"/><circle cx="5" cy="5" r="2" fill="%237ea3cc"/></svg>') no-repeat center !important;
+            border: none !important;
         }
-        .crt-segment.inside::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: currentColor;
-            z-index: 3;
+        .crt-segment.inside.default-bear {
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="none" stroke="%239a91a8" stroke-width="1"/><circle cx="5" cy="5" r="2" fill="%239a91a8"/></svg>') no-repeat center !important;
+            border: none !important;
         }
         .crt-segment.bull-sweep {
-            box-shadow: 0 0 6px rgba(102, 160, 118, 0.3);
+            box-shadow: 0 0 6px rgba(126, 163, 204, 0.3);
         }
         .crt-segment.bear-sweep {
             box-shadow: 0 0 6px rgba(154, 145, 168, 0.3);
         }
         .crt-segment.bull-outside {
-            background: rgba(102, 160, 118, 0.12);
-            border: 1px solid rgba(102, 160, 118, 0.5);
+            background: rgba(126, 163, 204, 0.12);
+            border: 1px solid rgba(126, 163, 204, 0.5);
         }
         .crt-segment.bear-outside {
             background: rgba(154, 145, 168, 0.12);
@@ -154,6 +147,21 @@
                 box-shadow: 0 0 8px rgba(248, 81, 73, 0.8);
                 border: 1px solid rgba(248, 81, 73, 0.95);
             }
+        }
+        .loading-spin {
+            animation: vli-spin-anim 1.2s linear infinite;
+            transform-origin: center;
+        }
+        @keyframes vli-spin-anim {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .pulse-anim {
+            animation: vli-pulse-anim 1.5s ease-in-out infinite;
+        }
+        @keyframes vli-pulse-anim {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
         }
 
 
@@ -848,21 +856,6 @@
             line-height: 1.5;
             border-left: 2px solid rgba(88, 166, 255, 0.3);
             overflow-y: auto !important;
-            scrollbar-width: thin !important;
-            scrollbar-color: var(--cobalt-blue) #05070a !important;
-        }
-
-        .terminal::-webkit-scrollbar {
-            width: 6px !important;
-        }
-
-        .terminal::-webkit-scrollbar-track {
-            background: #05070a !important;
-        }
-
-        .terminal::-webkit-scrollbar-thumb {
-            background: var(--cobalt-blue) !important;
-            border-radius: 3px !important;
         }
 
         .terminal h1,
@@ -1170,25 +1163,27 @@
             margin: 30px 0;
         }
 
-        /* Custom Dark Scrollbar */
-        .terminal::-webkit-scrollbar,
-        .analysis-report-body::-webkit-scrollbar {
-            width: 6px;
+        /* Custom Dark Scrollbar (Global & Main Workspace) */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
         }
 
-        .terminal::-webkit-scrollbar-track,
-        .analysis-report-body::-webkit-scrollbar-track {
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
             background: transparent;
         }
 
-        .terminal::-webkit-scrollbar-thumb,
-        .analysis-report-body::-webkit-scrollbar-thumb {
+        ::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.08);
             border-radius: 10px;
         }
 
-        .terminal::-webkit-scrollbar-thumb:hover,
-        .analysis-report-body::-webkit-scrollbar-thumb:hover {
+        ::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.15);
         }
 
@@ -1310,6 +1305,45 @@
         }
         .vli-row-highlighted:hover {
             background-color: rgba(255, 255, 255, 0.28) !important;
+        }
+
+        /* VLI High-Fidelity Processing Indicators */
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+            40% { transform: translateY(-5px); opacity: 1; }
+        }
+        .vli-typing-dots {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            height: 14px;
+        }
+        .vli-typing-dots span {
+            width: 6px;
+            height: 6px;
+            background-color: var(--text-muted);
+            border-radius: 50%;
+            display: inline-block;
+            animation: typingBounce 1.4s infinite ease-in-out both;
+        }
+        .vli-typing-dots span:nth-child(1) {
+            animation-delay: -0.32s;
+            background-color: var(--cobalt-blue);
+        }
+        .vli-typing-dots span:nth-child(2) {
+            animation-delay: -0.16s;
+            background-color: var(--emerald-green);
+        }
+        .vli-typing-dots span:nth-child(3) {
+            background-color: var(--text-muted);
+        }
+        @keyframes vliPulsePlaceholder {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.85; }
+        }
+        .vli-pulse-placeholder {
+            animation: vliPulsePlaceholder 2.0s infinite ease-in-out;
         }
     </style>
 </head>
@@ -1591,7 +1625,7 @@
             <div class="menu-item" style="font-weight: 800; font-size: 11px; padding-right: 15px; width: 145px; justify-content: center; display: flex; align-items: center; border-right: 1px solid rgba(255,255,255,0.05); margin-right: 5px;">
                 <span style="color: #fff; letter-spacing: 1.5px; line-height: 1; display: inline-block;">COBALT</span>
                 <span style="color: var(--cobalt-blue); margin: 0 6px; font-weight: 300; line-height: 1; display: inline-block; transform: translateY(-2px);">|</span>
-                <span style="color: var(--cobalt-blue); letter-spacing: 1.5px; font-family: 'JetBrains Mono', monospace; font-weight: 700; line-height: 1; display: inline-block; transform: translateY(1.5px);">QDESK</span>
+                <span style="color: var(--cobalt-blue); letter-spacing: 1.5px; font-family: 'JetBrains Mono', monospace; font-weight: 700; line-height: 1; display: inline-block; transform: translateY(1.5px);">Quantdesk</span>
                 <div class="menu-dropdown" style="left: 0; right: auto;">
                     <div class="dropdown-item" onclick="alert('VLI Integrated Engine \nVersion: 4.8.2-INSTITUTIONAL\nStatus: Operational')">System Architecture</div>
                     <div class="dropdown-divider"></div>
@@ -1672,6 +1706,19 @@
 
     <script>
         window.VLI_DEBUG = true;
+        window.vliHighlightedSymbols = (function() {
+            try {
+                const saved = localStorage.getItem('vli_highlighted_symbols');
+                return saved ? new Set(JSON.parse(saved)) : new Set();
+            } catch (e) {
+                return new Set();
+            }
+        })();
+        window.saveHighlightedSymbols = function() {
+            try {
+                localStorage.setItem('vli_highlighted_symbols', JSON.stringify(Array.from(window.vliHighlightedSymbols)));
+            } catch (e) {}
+        };
         let refreshCountdown = 60;
         window.isThinkingMode = localStorage.getItem('vli_thinking_mode') === 'true';
 
@@ -1956,10 +2003,26 @@
                             </div>
                         </div>`;
                 } else if (typeGuid === 'VLI_TELEMETRY') {
-                    bodyContent = `<div class="card-body terminal telemetry-body-instance" id="telemetry-body-${instanceGuid}" data-guid="${instanceGuid}"></div>`;
+                    bodyContent = `
+                        <div class="card-body terminal telemetry-body-instance" id="telemetry-body-${instanceGuid}" data-guid="${instanceGuid}" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <div class="card-initializing-loader" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-muted); user-select: none;">
+                                <svg class="loading-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--cobalt-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10" style="opacity: 0.15;"></circle>
+                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                                </svg>
+                                <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; animation: vli-pulse-anim 1.5s infinite ease-in-out;" class="pulse-anim">Initializing Telemetry...</div>
+                            </div>
+                        </div>`;
                 } else if (typeGuid === 'MACRO_WL') {
                     bodyContent = `
-                        <div class="card-body" style="overflow-y: auto; padding: 10px;">
+                        <div class="card-body" style="overflow-y: auto; padding: 10px; display: flex; flex-direction: column;">
+                            <div class="card-initializing-loader" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; min-height: 180px; margin: auto; gap: 12px; color: var(--text-muted); user-select: none;">
+                                <svg class="loading-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--cobalt-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10" style="opacity: 0.15;"></circle>
+                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                                </svg>
+                                <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; animation: vli-pulse-anim 1.5s infinite ease-in-out;" class="pulse-anim">Initializing Watchlist...</div>
+                            </div>
                         </div>`;
                 } else if (typeGuid === 'STRUCTURAL_ANALY') {
                     bodyContent = `
@@ -1968,7 +2031,14 @@
                         </div>`;
                 } else if (typeGuid === 'SCAN_RES') {
                     bodyContent = `
-                        <div class="card-body" style="overflow-y: auto; padding: 10px;">
+                        <div class="card-body" style="overflow-y: auto; padding: 10px; display: flex; flex-direction: column;">
+                            <div class="card-initializing-loader" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; min-height: 180px; margin: auto; gap: 12px; color: var(--text-muted); user-select: none;">
+                                <svg class="loading-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--cobalt-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10" style="opacity: 0.15;"></circle>
+                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                                </svg>
+                                <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; animation: vli-pulse-anim 1.5s infinite ease-in-out;" class="pulse-anim">Initializing Scanner...</div>
+                            </div>
                         </div>`;
                 } else if (typeGuid === 'ORDER_HIST') {
                     // Inject global tab switcher if not defined
@@ -1995,7 +2065,12 @@
                                 <div style="display:flex; gap: 10px; align-items:center; position: relative;">
                                     <div class="custom-dropdown" id="order-hist-account-dropdown-${instanceGuid}" style="position: relative; flex: 1; user-select: none;">
                                         <button type="button" class="vli-input" id="order-hist-account-btn-${instanceGuid}" onclick="window.toggleAccDropdown('${instanceGuid}', event)" style="width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #1a1a1a; border: 1px solid var(--card-border); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 11px; outline: none; transition: border-color 0.2s;">
-                                            <span id="order-hist-account-selected-label-${instanceGuid}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 15px);">Loading Accounts...</span>
+                                            <span id="order-hist-account-selected-label-${instanceGuid}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100% - 15px); display: inline-flex; align-items: center; gap: 6px;">
+                                                Loading Accounts
+                                                <span class="vli-typing-dots" style="transform: scale(0.85); vertical-align: middle;">
+                                                    <span></span><span></span><span></span>
+                                                </span>
+                                            </span>
                                             <span style="font-size: 8px; opacity: 0.7;">▼</span>
                                         </button>
                                         <div class="custom-dropdown-menu" id="order-hist-account-menu-${instanceGuid}" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: #161b22; border: 1px solid var(--border-color); border-radius: 4px; z-index: 1000; max-height: 200px; overflow-y: auto; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); flex-direction: column; gap: 6px;">
@@ -2051,7 +2126,17 @@
                                         </tr>
                                     </thead>
                                     <tbody id="positions-body-${instanceGuid}" style="font-family: var(--font-mono);">
-                                        <tr><td colspan="10" style="text-align:center; padding:20px; color:var(--text-muted);">Select filters...</td></tr>
+                                        <tr>
+                                            <td colspan="10" style="text-align:center; padding:30px 20px; border:none;">
+                                                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+                                                    <svg class="loading-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cobalt-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                        <circle cx="12" cy="12" r="10" style="opacity: 0.15;"></circle>
+                                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                                                    </svg>
+                                                    <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase;" class="pulse-anim">Initializing Portfolio...</div>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -2068,7 +2153,17 @@
                                         </tr>
                                     </thead>
                                     <tbody id="order-history-body-${instanceGuid}" style="font-family: var(--font-mono);">
-                                        <tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Select filters...</td></tr>
+                                        <tr>
+                                            <td colspan="5" style="text-align:center; padding:30px 20px; border:none;">
+                                                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+                                                    <svg class="loading-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cobalt-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                        <circle cx="12" cy="12" r="10" style="opacity: 0.15;"></circle>
+                                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                                                    </svg>
+                                                    <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase;" class="pulse-anim">Initializing Order History...</div>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -2087,7 +2182,17 @@
                                         </tr>
                                     </thead>
                                     <tbody id="closed-positions-body-${instanceGuid}" style="font-family: var(--font-mono);">
-                                        <tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">Select filters...</td></tr>
+                                        <tr>
+                                            <td colspan="7" style="text-align:center; padding:30px 20px; border:none;">
+                                                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+                                                    <svg class="loading-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cobalt-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                        <circle cx="12" cy="12" r="10" style="opacity: 0.15;"></circle>
+                                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                                                    </svg>
+                                                    <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase;" class="pulse-anim">Initializing Closed Positions...</div>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -2095,8 +2200,14 @@
                 } else if (typeGuid === 'SCHEDULER_LOG') {
                     bodyContent = `
                         <div class="card-body" style="padding:0; overflow:hidden; display:flex; flex-direction:column;">
-                            <div class="chat-messages terminal" id="scheduler-log-messages-${instanceGuid}" style="padding-bottom: 20px; overflow-y: auto;">
-                                <div style="color: var(--text-muted); padding: 10px;">Initializing Scheduler Telemetry...</div>
+                            <div class="chat-messages terminal" id="scheduler-log-messages-${instanceGuid}" style="padding-bottom: 20px; overflow-y: auto; display: flex; flex-direction: column;">
+                                <div class="card-initializing-loader" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; min-height: 180px; margin: auto; gap: 12px; color: var(--text-muted); user-select: none;">
+                                    <svg class="loading-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--cobalt-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10" style="opacity: 0.15;"></circle>
+                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                                    </svg>
+                                    <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; animation: vli-pulse-anim 1.5s infinite ease-in-out;" class="pulse-anim">Initializing Scheduler...</div>
+                                </div>
                             </div>
                         </div>`;
                 } else if (typeDef.initContent) {
@@ -2109,7 +2220,11 @@
                             <div class="descriptor" style="cursor: pointer; transition: transform 0.1s;" onclick="insertCardIdIntoChat('${badgeLabel}')" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Insert ${badgeLabel} to Chat">${badgeLabel}</div>
                             <div>${instanceGuid.includes('futures') ? 'Futures Watchlist' : typeDef.title} ${liveBadgeHTML}${typeGuid === 'SCAN_RES' ? '<span id="scanner-warning-badge" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 800; margin-left: 8px; letter-spacing: 0.5px; display: none;">⚠️ Using Sample Values</span>' : ''}</div>
                         </div>
-                        <div class="card-controls">
+                            ${(typeGuid === 'SCAN_RES' || typeGuid === 'MACRO_WL') ? `
+                                <div class="win-btn" onclick="${typeGuid === 'SCAN_RES' ? 'exportScannerWatchlist' : 'exportMacroWatchlist'}('${instanceGuid}'); event.stopPropagation();" title="Export Watchlist" style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-right: 6px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--emerald-green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                </div>
+                            ` : ''}
                             <div class="win-btn win-dock" onclick="dockWindow('win-${instanceGuid}')" title="Dock to Main Workspace"></div>
                             <div class="win-btn win-min" onclick="toggleCollapse('win-${instanceGuid}')" title="Collapse"></div>
                             ${typeGuid === 'VLI_CHAT' ? '' : `<div class="win-btn win-pop" onclick="popoutWindow('win-${instanceGuid}')" title="Pop-out"></div>`}
@@ -2594,10 +2709,10 @@
 
         function loadHardcodedDefaultLayout() {
             // Optimized High-Fidelity Workspace Layout
-            UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '19%', height: '55%'}, 'watchlist');
-            UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '19%', height: '55%'}, 'futures_watchlist');
-            UXManager.createCard('SCAN_RES', {top: '2%', left: '21%', width: '21%', height: '55%'}, 'scanner');
-            UXManager.createCard('SCAN_RES', {top: '2%', left: '43%', width: '22%', height: '55%'}, 'shield');
+            UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '82%', height: '22%'}, 'watchlist');
+            UXManager.createCard('MACRO_WL', {top: '25%', left: '1%', width: '82%', height: '22%'}, 'futures_watchlist');
+            UXManager.createCard('SCAN_RES', {top: '48%', left: '1%', width: '82%', height: '32%'}, 'scanner');
+            UXManager.createCard('SCAN_RES', {top: '48%', left: '42.5%', width: '40.5%', height: '32%', display: 'none'}, 'shield');
             
             // Add RUN button to Scanner Results header for backup
             setTimeout(() => {
@@ -2620,8 +2735,8 @@
                     scHeader.insertBefore(btnContainer, scHeader.querySelector('.card-controls'));
                 }
             }, 500);
-            UXManager.createCard('ORDER_HIST', {top: '59%', left: '1%', width: '41%', height: '39%'}, 'order_history');
-            UXManager.createCard('VLI_TELEMETRY', {top: '59%', left: '43%', width: '22%', height: '39%'}, 'telemetry');
+            UXManager.createCard('ORDER_HIST', {top: '81%', left: '1%', width: '55%', height: '17%'}, 'order_history');
+            UXManager.createCard('VLI_TELEMETRY', {top: '81%', left: '56%', width: '27%', height: '17%'}, 'telemetry');
         }
 
         function loadWorkspace(customKey = null) {
@@ -2667,6 +2782,10 @@
         function loadLayout() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('popout')) return;
+            if (!localStorage.getItem('vli_layout_touching_telemetry_reset')) {
+                localStorage.removeItem('vli_wm_layout');
+                localStorage.setItem('vli_layout_touching_telemetry_reset', 'true');
+            }
             loadWorkspace('vli_wm_layout');
         }
 
@@ -4001,7 +4120,12 @@
             return `
                 <div style="display: flex; gap: 2px; align-items: center; justify-content: center; height: 14px;" 
                      title="${tooltipText}">
-                          function calculateCrtConfidence(c, card) {
+                    ${barsHtml}
+                </div>
+            `;
+        }
+
+        function calculateCrtConfidence(c, card) {
             let trendVal = getTrendValueForCandidate(card, c);
             if (trendVal === undefined || trendVal === null) trendVal = 0.0;
             const isBullTrend = trendVal > 0.0;
@@ -4383,17 +4507,17 @@
                         ${confidenceHtml}
                     </div>
                 </td>
-                <td class="crt-15m-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                <td class="crt-15m-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
                     <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
                         ${drawCrtBarIndicator(c.crt_15m, c.symbol, '15m')}
                     </div>
                 </td>
-                <td class="crt-1h-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                <td class="crt-1h-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
                     <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
                         ${drawCrtBarIndicator(c.crt_1h, c.symbol, '1h')}
                     </div>
                 </td>
-                <td class="crt-4h-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                <td class="crt-4h-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
                     <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
                         ${drawCrtBarIndicator(c.crt_4h, c.symbol, '4h')}
                     </div>
@@ -4532,12 +4656,12 @@
                         if (!isNaN(rLow) && !isNaN(rHigh) && !isNaN(currentClose)) {
                             const mid = (rLow + rHigh) / 2;
                             if (currentClose >= mid) {
-                                bgStyle = 'rgba(248, 81, 73, 0.22)';
-                                borderStyle = 'rgba(248, 81, 73, 0.6)';
+                                bgStyle = 'rgba(154, 145, 168, 0.22)';
+                                borderStyle = 'rgba(154, 145, 168, 0.6)';
                                 zoneName = 'Premium Zone';
                             } else {
-                                bgStyle = 'rgba(63, 185, 80, 0.22)';
-                                borderStyle = 'rgba(63, 185, 80, 0.6)';
+                                bgStyle = 'rgba(126, 163, 204, 0.22)';
+                                borderStyle = 'rgba(126, 163, 204, 0.6)';
                                 zoneName = 'Discount Zone';
                             }
                         }
@@ -4585,31 +4709,31 @@
                     indication = 'No Data / Loading';
                 } else {
                     const isBull = closeVal >= openVal;
-                    let colorBase = isBull ? 'Green (Bullish)' : 'Red (Bearish)';
+                    let colorBase = isBull ? 'Blue (Bullish)' : 'Gray (Bearish)';
                     
                     if (seg.is_forming && seg.potential_setup && seg.potential_setup !== 'NONE') {
-                        appearance = `Pulsing ${isBull ? 'Green' : 'Red'} circle with a white border`;
+                        appearance = `Pulsing ${isBull ? 'Blue' : 'Gray'} circle with a white border`;
                         indication = `Pending CRT ${seg.potential_setup} setup forming`;
                     } else if (stateName === 'BULL_SWEEP') {
-                        appearance = 'Solid green circle with a green dot at the bottom';
+                        appearance = 'Solid blue circle with a blue dot at the bottom';
                         indication = 'Bullish Sweep (swept previous low, recovered to close inside)';
                     } else if (stateName === 'BEAR_SWEEP') {
-                        appearance = 'Solid red circle with a red dot at the top';
+                        appearance = 'Solid gray circle with a gray dot at the top';
                         indication = 'Bearish Sweep (swept previous high, rejected to close inside)';
                     } else if (stateName === 'DOUBLE_SWEEP') {
-                        appearance = `Solid ${isBull ? 'green' : 'red'} circle with dots at both the top and bottom`;
+                        appearance = `Solid ${isBull ? 'blue' : 'gray'} circle with dots at both the top and bottom`;
                         indication = 'Double Sweep (price swept both previous high and low, closed inside)';
                     } else if (stateName === 'BULL_OUTSIDE') {
-                        appearance = 'Green circle outline with semi-transparent fill';
+                        appearance = 'Blue circle outline with semi-transparent fill';
                         indication = 'Bullish Expansion / Outside Bar (broke and closed above previous high)';
                     } else if (stateName === 'BEAR_OUTSIDE') {
-                        appearance = 'Red circle outline with semi-transparent fill';
+                        appearance = 'Gray circle outline with semi-transparent fill';
                         indication = 'Bearish Expansion / Outside Bar (broke and closed below previous low)';
                     } else if (stateName === 'INSIDE') {
-                        appearance = `Concentric Bullseye: solid ${isBull ? 'green' : 'red'} outline with a center dot of the same color`;
+                        appearance = `Concentric Bullseye: solid ${isBull ? 'blue' : 'gray'} outline with a center dot of the same color`;
                         indication = 'Inside Bar / Range Contraction (consolidated within previous range, no sweep)';
                     } else {
-                        appearance = `${isBull ? 'Green' : 'Red'} circle outline with semi-transparent fill`;
+                        appearance = `${isBull ? 'Blue' : 'Gray'} circle outline with semi-transparent fill`;
                         indication = `${isBull ? 'Bullish' : 'Bearish'} candle (no sweep or expansion)`;
                     }
                 }
@@ -4620,10 +4744,10 @@
 
                 let sweepDotHTML = '';
                 if (stateName === 'BULL_SWEEP' || stateName === 'DOUBLE_SWEEP') {
-                    sweepDotHTML += `<div class="sweep-dot bull-sweep-dot" style="position: absolute; width: 4px; height: 4px; background: var(--emerald-green); border-radius: 50%; bottom: -6px; left: 2px; z-index: 10;"></div>`;
+                    sweepDotHTML += `<div class="sweep-dot bull-sweep-dot" style="position: absolute; width: 4px; height: 4px; background: var(--cobalt-blue); border-radius: 50%; bottom: -6px; left: 3px; z-index: 10;"></div>`;
                 }
                 if (stateName === 'BEAR_SWEEP' || stateName === 'DOUBLE_SWEEP') {
-                    sweepDotHTML += `<div class="sweep-dot bear-sweep-dot" style="position: absolute; width: 4px; height: 4px; background: var(--ruby-red); border-radius: 50%; top: -6px; left: 2px; z-index: 10;"></div>`;
+                    sweepDotHTML += `<div class="sweep-dot bear-sweep-dot" style="position: absolute; width: 4px; height: 4px; background: var(--ruby-red); border-radius: 50%; top: -6px; left: 3px; z-index: 10;"></div>`;
                 }
                 
                 const openTime = seg.open_time || 'N/A';
@@ -5008,7 +5132,19 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `macro_watchlist.txt`;
+            
+            const isFutures = instanceGuid.includes('futures');
+            const prefix = isFutures ? 'futures_watchlist' : 'macro_watchlist';
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const uniqueTag = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+            link.download = `${prefix}_${uniqueTag}.txt`;
+            
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -5120,9 +5256,9 @@
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Discount, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="CRT Expected Reversal/Breakout Confidence in the Trend Direction"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT CONF</div></th>
                                     </tr>
                                 </thead>
@@ -5133,16 +5269,6 @@
                             <label style="display: flex; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 600; text-transform: uppercase;" title="Filter by Relative Strength against S&P">
                                 <input type="checkbox" class="track-spy-cb" onchange="toggleTrackSpy(this)" style="accent-color: var(--emerald-green); cursor: pointer;" ${window.vliScannerTrackSpy && window.vliScannerTrackSpy[card.dataset.instanceGuid] ? 'checked' : ''}> RS Filter
                             </label>
-                            <div style="display: flex; gap: 8px;">
-                                <button id="macro-export-btn-${card.dataset.instanceGuid}" class="scanner-export-btn" onclick="exportMacroWatchlist('${card.dataset.instanceGuid}')" style="background: rgba(88, 166, 255, 0.1); border: 1px solid rgba(88, 166, 255, 0.3); color: var(--cobalt-blue); padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Export Watchlist">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                    macro_watchlist.txt
-                                </button>
-                                <button class="scanner-refresh-btn" onclick="let b=this.closest('.card-body'); b.querySelectorAll('tbody tr').forEach(r => r.style.opacity = '0.3'); fetch('/api/vli/force-scanner-sync').then(r=>r.json()).then(d=>{if(d.status==='success'){console.log('macro sync forced');}});" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Refresh">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
-                                    Refresh
-                                </button>
-                            </div>
                         </div>
                     `;
                     table = body.querySelector('table');
@@ -5257,7 +5383,8 @@
                     
                     window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
                     const symKey = `${card.dataset.instanceGuid}_${c.symbol}`;
-                    const isHighlighted = window.vliHighlightedSymbols.has(symKey);
+                    const isOnlySelectedFiltered = window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid];
+                    const isHighlighted = window.vliHighlightedSymbols.has(symKey) && !isOnlySelectedFiltered;
                     
                     tr.className = isHighlighted ? 'scanner-res-row vli-row-highlighted' : 'scanner-res-row';
                     tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
@@ -5275,6 +5402,7 @@
                             window.vliHighlightedSymbols.add(symKey);
                             tr.classList.add('vli-row-highlighted');
                         }
+                        window.saveHighlightedSymbols();
                         insertCardIdIntoChat(`analyze ${c.symbol}`);
                         if (window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) {
                             renderWatchlist(window.lastMacroWatchlistData);
@@ -5821,15 +5949,6 @@
         function handleScannerTierChange(selectElement) {
             // Decoupled: Only refilter locally, do not trigger global backend rescans
             updateScannerResultsUI();
-            
-            const instanceGuid = selectElement.id.replace('scan-filter-', '');
-            const exportBtn = document.getElementById(`scanner-export-btn-${instanceGuid}`);
-            if (exportBtn) {
-                exportBtn.innerHTML = `
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    scanner_watchlist_${selectElement.value.toLowerCase()}.txt
-                `;
-            }
         }
 
         function exportScannerWatchlist(instanceGuid) {
@@ -5864,7 +5983,17 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `scanner_watchlist_${label}.txt`;
+            
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const uniqueTag = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+            link.download = `scanner_watchlist_${label}_${uniqueTag}.txt`;
+            
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -6032,9 +6161,9 @@
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Discount, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="CRT Expected Reversal/Breakout Confidence in the Trend Direction"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT CONF</div></th>
                                     </tr>
                                 </thead>
@@ -6045,16 +6174,6 @@
                             <label style="display: flex; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 600; text-transform: uppercase;" title="Filter by Relative Strength against S&P">
                                 <input type="checkbox" class="track-spy-cb" onchange="toggleTrackSpy(this)" style="accent-color: var(--emerald-green); cursor: pointer;" ${window.vliScannerTrackSpy && window.vliScannerTrackSpy[card.dataset.instanceGuid] ? 'checked' : ''}> RS Filter
                             </label>
-                            <div style="display: flex; gap: 8px;">
-                                <button id="scanner-export-btn-${card.dataset.instanceGuid}" class="scanner-export-btn" onclick="exportScannerWatchlist('${card.dataset.instanceGuid}')" style="background: rgba(88, 166, 255, 0.1); border: 1px solid rgba(88, 166, 255, 0.3); color: var(--cobalt-blue); padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Export Watchlist">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                    scanner_watchlist_${(card.dataset.instanceGuid === 'shield' ? 'shield' : 'sniper')}.txt
-                                </button>
-                                <button class="scanner-refresh-btn" onclick="let b=this.closest('.card-body'); b.querySelectorAll('tbody tr').forEach(r => r.style.opacity = '0.3'); fetch('/api/scanner/bunker').then(r=>r.json()).then(d=>{if(d.status==='success'){activeScannerCandidates=d.data;updateScannerResultsUI();}});" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px;" title="Refresh">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
-                                    Refresh
-                                </button>
-                            </div>
                         </div>
                     `;
                     table = body.querySelector('table');
@@ -6138,7 +6257,8 @@
                     
                     window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
                     const symKey = `${card.dataset.instanceGuid}_${c.symbol}`;
-                    const isHighlighted = window.vliHighlightedSymbols.has(symKey);
+                    const isOnlySelectedFiltered = window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid];
+                    const isHighlighted = window.vliHighlightedSymbols.has(symKey) && !isOnlySelectedFiltered;
                     
                     let classes = ['scanner-res-row'];
                     if (c.isNew) classes.push('new-candidate-highlight');
@@ -6188,6 +6308,7 @@
                             window.vliHighlightedSymbols.add(symKey);
                             tr.classList.add('vli-row-highlighted');
                         }
+                        window.saveHighlightedSymbols();
                         insertCardIdIntoChat(`analyze ${c.symbol}`);
                         if (window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) {
                             updateScannerResultsUI();
@@ -6218,7 +6339,9 @@
                 const wasAtBottom = logContainer.scrollHeight - logContainer.scrollTop <= logContainer.clientHeight + 50;
 
                 const newTelemetry = data.telemetry_tail || "";
+                if (!newTelemetry) return; // Keep showing the initializer spinner
                 if (tBody.dataset.lastContent !== newTelemetry) {
+                    tBody.style.display = 'block'; // Clear flex centering
                     let safeTelemetry = newTelemetry.replace(/\\n/g, '\n');
                     const leakKeywords = ["# SECURITY OVERRIDE", "APEX 500 SYSTEM", "USER IDENTITY: DAVE", "OPERATIONAL MANDATE"];
                     if (leakKeywords.some(k => safeTelemetry.toUpperCase().includes(k))) {
@@ -7224,6 +7347,7 @@
                     }
                     
                     if (msgsContainer.innerHTML !== html) {
+                        msgsContainer.style.display = 'block'; // Clear flex centering
                         msgsContainer.innerHTML = html;
                         if (isAtBottom) {
                             msgsContainer.scrollTop = msgsContainer.scrollHeight;
@@ -7325,10 +7449,8 @@
                         cb.style.accentColor = 'var(--cobalt-blue)';
                         cb.style.cursor = 'pointer';
                         
-                        // Default selections (e.g. Rollover IRA)
-                        if (acc.id.includes('Rollover IRA') || (acc.name && acc.name.includes('Rollover IRA'))) {
-                            cb.checked = true;
-                        }
+                        // Default selections: select all accounts by default
+                        cb.checked = true;
                         
                         cb.onchange = () => {
                             window.updateSelectedAccountsLabel(instanceGuid);
@@ -7345,6 +7467,7 @@
                     });
                     
                     window.updateSelectedAccountsLabel(instanceGuid);
+                    fetchOrderHistory(instanceGuid);
                     
                     if (window.failedModules) window.failedModules.delete(`ACCOUNTS_${instanceGuid}`);
                 } else {
@@ -7500,9 +7623,30 @@
             
             if(!accountId || !startVal || !endVal) {
                 if (!isBackground) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Please select account and date range.</td></tr>';
-                    if (pbody) pbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px; color:var(--text-muted);">Please select account and date range.</td></tr>';
-                    if (cbody) cbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">Please select account and date range.</td></tr>';
+                    const labelEl = document.getElementById(`order-hist-account-selected-label-${instanceGuid}`);
+                    const isLoading = labelEl && labelEl.textContent.includes('Loading Accounts');
+                    if (isLoading) {
+                        const loadingRow = (colspan, message) => `
+                            <tr>
+                                <td colspan="${colspan}" style="text-align:center; padding:30px 20px; border:none;">
+                                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+                                        <svg class="loading-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cobalt-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10" style="opacity: 0.15;"></circle>
+                                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                                        </svg>
+                                        <div style="font-family:var(--font-mono); font-size:9px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase;" class="pulse-anim">${message}</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.innerHTML = loadingRow(5, "Initializing Order History...");
+                        if (pbody) pbody.innerHTML = loadingRow(10, "Initializing Portfolio...");
+                        if (cbody) cbody.innerHTML = loadingRow(7, "Initializing Closed Positions...");
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Please select account and date range.</td></tr>';
+                        if (pbody) pbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px; color:var(--text-muted);">Please select account and date range.</td></tr>';
+                        if (cbody) cbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">Please select account and date range.</td></tr>';
+                    }
                 }
                 if (filterBtn && !isBackground) {
                     filterBtn.disabled = false;
@@ -7523,9 +7667,21 @@
                 if (elReal) elReal.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
                 if (elTot) elTot.innerHTML = '<span style="color:var(--text-muted); font-weight:bold;">$0.00</span>';
 
-                if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted); opacity:0.5; font-style:italic;">Processing...</td></tr>';
-                if (pbody) pbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px; color:var(--text-muted); opacity:0.5; font-style:italic;">Processing...</td></tr>';
-                if (cbody) cbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted); opacity:0.5; font-style:italic;">Processing...</td></tr>';
+                const processingHtml = (colspan) => `
+                    <tr>
+                        <td colspan="${colspan}" style="text-align:center; padding:20px; border:none;">
+                            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+                                <div class="vli-typing-dots">
+                                    <span></span><span></span><span></span>
+                                </div>
+                                <div style="font-family:var(--font-mono); font-size:10px; color:var(--text-muted); letter-spacing:1.5px; text-transform:uppercase;" class="vli-pulse-placeholder">Processing channel</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                if (tbody) tbody.innerHTML = processingHtml(5);
+                if (pbody) pbody.innerHTML = processingHtml(10);
+                if (cbody) cbody.innerHTML = processingHtml(7);
             }
             
             if (filterBtn && !isBackground) {

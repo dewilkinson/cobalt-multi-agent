@@ -127,13 +127,41 @@ YF_LOCK = asyncio.Lock()
 
 TRENDS_CACHE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "trends_cache.json"))
 
+SAVE_LOCK = asyncio.Lock()
+_CACHE_DIRTY = False
+_SAVE_TASK = None
+
 def save_trends_cache():
     try:
         os.makedirs(os.path.dirname(TRENDS_CACHE_PATH), exist_ok=True)
-        with open(TRENDS_CACHE_PATH, "w", encoding="utf-8") as f:
+        temp_path = TRENDS_CACHE_PATH + ".tmp"
+        with open(temp_path, "w", encoding="utf-8") as f:
             json.dump(TRENDS_CACHE, f, default=str)
+        if os.path.exists(temp_path):
+            os.replace(temp_path, TRENDS_CACHE_PATH)
     except Exception as e:
         logger.error(f"Failed to save TRENDS_CACHE to disk: {e}")
+
+async def async_save_trends_cache():
+    global _CACHE_DIRTY, _SAVE_TASK
+    _CACHE_DIRTY = True
+    
+    if _SAVE_TASK is not None and not _SAVE_TASK.done():
+        return
+        
+    async def debounced_save():
+        global _CACHE_DIRTY
+        await asyncio.sleep(2.0)
+        async with SAVE_LOCK:
+            if _CACHE_DIRTY:
+                _CACHE_DIRTY = False
+                try:
+                    await asyncio.to_thread(save_trends_cache)
+                    logger.info("TRENDS_CACHE successfully saved to disk (async debounced).")
+                except Exception as e:
+                    logger.error(f"Async save_trends_cache failed: {e}")
+                    
+    _SAVE_TASK = asyncio.create_task(debounced_save())
 
 def load_trends_cache():
     global TRENDS_CACHE
@@ -905,7 +933,7 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     "timestamp": now
                 }
             
-            save_trends_cache()
+            await async_save_trends_cache()
             # Yield control back to event loop with generous sleep to prevent rate limiting
             await asyncio.sleep(1.5)
             
@@ -1584,7 +1612,7 @@ async def recalculate_trend(req: RecalculateTrendRequest):
                 if "trends" not in TRENDS_CACHE[original]:
                     TRENDS_CACHE[original]["trends"] = {}
                 TRENDS_CACHE[original]["trends"][tf] = trend_str
-                save_trends_cache()
+                await async_save_trends_cache()
             else:
                 cached_c = TRENDS_CACHE.get(original)
                 if cached_c and cached_c.get("trends") and tf in cached_c["trends"]:
@@ -2059,7 +2087,7 @@ async def webhook_tradingview(payload: TradingViewAlertPayload):
         TRENDS_CACHE[sym_key]["timestamp"] = time.time()
         
         # Save cache to disk
-        save_trends_cache()
+        await async_save_trends_cache()
         logger.info(f"Successfully updated webhook trends cache for {sym_key} ({tf_key})")
         
         return {"status": "success", "message": f"Updated {sym_key} ({tf_key})"}
