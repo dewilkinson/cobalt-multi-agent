@@ -11,13 +11,13 @@
         :root {
             --bg-dark: #07090e;
             --card-bg: rgba(13, 17, 24, 0.75);
-            --border-neon: rgba(56, 139, 253, 0.4);
-            --glow-neon: rgba(56, 139, 253, 0.15);
-            --text-cyan: #58a6ff;
-            --text-muted: #8b949e;
-            --emerald-green: #39d353;
-            --amber-gold: #ffc107;
-            --ruby-red: #f85149;
+            --border-neon: rgba(88, 166, 255, 0.2);
+            --glow-neon: rgba(88, 166, 255, 0.05);
+            --text-cyan: #7ea3cc; /* Soft steel blue */
+            --text-muted: #768390; /* Muted slate gray */
+            --emerald-green: #66a076; /* Muted sage green */
+            --amber-gold: #c69752; /* Muted warm gold */
+            --ruby-red: #c96864; /* Muted soft rose red */
             --font-mono: 'Share Tech Mono', monospace;
             --font-sans: 'Inter', sans-serif;
         }
@@ -197,12 +197,12 @@
         }
 
         .status-highlight {
-            color: #bc8cff;
+            color: #a596c0; /* Muted lavender */
             font-weight: bold;
         }
 
         .status-effected {
-            color: #d16900;
+            color: #bf8052; /* Muted rust copper */
             font-weight: bold;
         }
 
@@ -257,9 +257,9 @@
     <div class="boot-card">
         <div class="loader-glow"></div>
         <h2>
-            <span style="color: #fff; letter-spacing: 1.5px; line-height: 1; display: inline-block;">COBALT</span>
-            <span style="color: #58a6ff; margin: 0 6px; font-weight: 300; line-height: 1; display: inline-block; transform: translateY(-2px);">|</span>
-            <span style="color: #58a6ff; letter-spacing: 1.5px; font-family: var(--font-mono); font-weight: 700; line-height: 1; display: inline-block;">Quantdesk</span>
+            <span style="color: #c9d1d9; letter-spacing: 1.5px; line-height: 1; display: inline-block;">COBALT</span>
+            <span style="color: var(--text-cyan); margin: 0 6px; font-weight: 300; line-height: 1; display: inline-block; transform: translateY(-2px);">|</span>
+            <span style="color: var(--text-cyan); letter-spacing: 1.5px; font-family: var(--font-mono); font-weight: 700; line-height: 1; display: inline-block;">Quantdesk</span>
         </h2>
         
         <div class="terminal" id="terminal">
