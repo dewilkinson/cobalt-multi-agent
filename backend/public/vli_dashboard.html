@@ -4006,6 +4006,148 @@
             `;
         }
 
+        function calculateCrtConfidence(c, card) {
+            let trendVal = getTrendValueForCandidate(card, c);
+            if (trendVal === undefined || trendVal === null) trendVal = 0.0;
+            const isBullTrend = trendVal > 0.0;
+            const isBearTrend = trendVal < 0.0;
+            
+            const timeframes = [
+                { name: '15m', segments: c.crt_15m, weight: 0.20 },
+                { name: '1h', segments: c.crt_1h, weight: 0.40 },
+                { name: '4h', segments: c.crt_4h, weight: 0.40 }
+            ];
+            
+            let totalScore = 0.0;
+            let activeCount = 0;
+            
+            timeframes.forEach(tf => {
+                const segs = tf.segments;
+                if (!segs || segs.length === 0) return;
+                
+                const lastIdx = segs.length - 1;
+                let sweepIdx = -1;
+                for (let i = lastIdx - 1; i >= 0; i--) {
+                    const state = segs[i].state || 'NONE';
+                    if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'BULL_OUTSIDE' || state === 'BEAR_OUTSIDE') {
+                        sweepIdx = i;
+                        break;
+                    }
+                }
+                
+                if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
+                    let rangeCandleIdx = sweepIdx - 1;
+                    let rangeLow = parseFloat(segs[rangeCandleIdx].low);
+                    let rangeHigh = parseFloat(segs[rangeCandleIdx].high);
+                    let hasNested = false;
+                    
+                    for (let i = sweepIdx; i <= lastIdx; i++) {
+                        const state = segs[i].state || 'NONE';
+                        if (state === 'INSIDE') {
+                            rangeCandleIdx = i;
+                            rangeLow = parseFloat(segs[i].low);
+                            rangeHigh = parseFloat(segs[i].high);
+                            hasNested = true;
+                        }
+                    }
+                    
+                    if (!isNaN(rangeLow) && !isNaN(rangeHigh)) {
+                        let breachIdx = -1;
+                        const sweepState = segs[sweepIdx].state || 'NONE';
+                        const isOutsideSetup = sweepState === 'BULL_OUTSIDE' || sweepState === 'BEAR_OUTSIDE';
+                        
+                        for (let i = sweepIdx; i <= lastIdx; i++) {
+                            const state = segs[i].state || 'NONE';
+                            if (state === 'INSIDE') {
+                                rangeCandleIdx = i;
+                                rangeLow = parseFloat(segs[i].low);
+                                rangeHigh = parseFloat(segs[i].high);
+                            }
+                            
+                            const closeVal = parseFloat(segs[i].close);
+                            if (!isNaN(closeVal) && !isNaN(rangeLow) && !isNaN(rangeHigh)) {
+                                if (isOutsideSetup) {
+                                    if (closeVal >= rangeLow && closeVal <= rangeHigh) {
+                                        breachIdx = i;
+                                        break;
+                                    }
+                                } else {
+                                    if (sweepState === 'BULL_SWEEP' && closeVal < rangeLow) {
+                                        breachIdx = i;
+                                        break;
+                                    } else if (sweepState === 'BEAR_SWEEP' && closeVal > rangeHigh) {
+                                        breachIdx = i;
+                                        break;
+                                    } else if (sweepState === 'DOUBLE_SWEEP') {
+                                        if (closeVal < rangeLow || closeVal > rangeHigh) {
+                                            breachIdx = i;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        let isSuccessful = false;
+                        let isInProgress = false;
+                        
+                        if (breachIdx === -1) {
+                            if (lastIdx - sweepIdx >= 5) {
+                                isSuccessful = true;
+                            } else {
+                                isInProgress = true;
+                            }
+                        } else {
+                            if (breachIdx - sweepIdx >= 5) {
+                                isSuccessful = true;
+                            }
+                        }
+                        
+                        if (isSuccessful || isInProgress) {
+                            activeCount++;
+                            const isBullSetup = sweepState === 'BULL_SWEEP' || sweepState === 'BULL_OUTSIDE' || (sweepState === 'DOUBLE_SWEEP' && parseFloat(segs[sweepIdx].close) >= parseFloat(segs[sweepIdx].open));
+                            const isBearSetup = sweepState === 'BEAR_SWEEP' || sweepState === 'BEAR_OUTSIDE' || (sweepState === 'DOUBLE_SWEEP' && parseFloat(segs[sweepIdx].close) < parseFloat(segs[sweepIdx].open));
+                            
+                            let alignment = 0.5;
+                            if (isBullTrend) {
+                                alignment = isBullSetup ? 1.0 : 0.3;
+                            } else if (isBearTrend) {
+                                alignment = isBearSetup ? 1.0 : 0.3;
+                            }
+                            
+                            const multiplier = isSuccessful ? 1.0 : Math.max(0.5, 1.0 - (lastIdx - sweepIdx) * 0.1);
+                            const nestedBonus = hasNested ? 0.1 : 0.0;
+                            
+                            const tfScore = alignment * (multiplier + nestedBonus);
+                            totalScore += tfScore * tf.weight;
+                        }
+                    }
+                }
+            });
+            
+            if (activeCount === 0) return 0.0;
+            if (activeCount > 1) {
+                totalScore += 0.10 * (activeCount - 1);
+            }
+            return Math.min(1.0, totalScore);
+        }
+
+        function drawCrtConfidenceCell(score) {
+            if (score <= 0.0) {
+                return `<div style="font-family: var(--font-mono); color: var(--text-muted); font-size: 11px; font-weight: 700; text-align: center;">-</div>`;
+            }
+            const pct = Math.round(score * 100);
+            let color = 'var(--text-muted)';
+            if (pct >= 70) {
+                color = 'var(--emerald-green)';
+            } else if (pct >= 40) {
+                color = 'var(--amber-gold)';
+            } else {
+                color = 'var(--ruby-red)';
+            }
+            return `<div style="font-family: var(--font-mono); color: ${color}; font-size: 11px; font-weight: 800; text-align: center; text-shadow: 0 0 4px ${color}33;">${pct}%</div>`;
+        }
+
         function drawRrEQBar(maxRrVal, targetRrVal) {
             const maxRr = maxRrVal !== undefined && maxRrVal !== null ? parseFloat(maxRrVal) : 0.0;
             const targetRr = targetRrVal !== undefined && targetRrVal !== null ? parseFloat(targetRrVal) : 3.0;
@@ -4246,6 +4388,11 @@
                         ${drawCrtBarIndicator(c.crt_4h, c.symbol, '4h')}
                     </div>
                 </td>
+                <td class="crt-conf-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawCrtConfidenceCell(calculateCrtConfidence(c, card))}
+                    </div>
+                </td>
             `;
         };
 
@@ -4303,7 +4450,12 @@
                     let rangeCandleIdx = sweepIdx - 1;
                     let rangeLow = parseFloat(segments[rangeCandleIdx].low);
                     let rangeHigh = parseFloat(segments[rangeCandleIdx].high);
+                    let breachIdx = -1;
 
+                    const sweepState = segments[sweepIdx].state || 'NONE';
+                    const isOutsideSetup = sweepState === 'BULL_OUTSIDE' || sweepState === 'BEAR_OUTSIDE';
+
+                    // Walk forward from sweepIdx to narrow range on INSIDE bars and find the first breach
                     for (let i = sweepIdx; i <= lastIdx; i++) {
                         const state = segments[i].state || 'NONE';
                         if (state === 'INSIDE') {
@@ -4311,24 +4463,36 @@
                             rangeLow = parseFloat(segments[i].low);
                             rangeHigh = parseFloat(segments[i].high);
                         }
-                    }
-
-                    if (!isNaN(rangeLow) && !isNaN(rangeHigh)) {
-                        let breached = false;
-                        for (let i = rangeCandleIdx + 1; i <= lastIdx; i++) {
-                            const closeVal = parseFloat(segments[i].close);
-                            if (!isNaN(closeVal)) {
-                                if (closeVal < rangeLow || closeVal > rangeHigh) {
-                                    breached = true;
+                        
+                        const closeVal = parseFloat(segments[i].close);
+                        if (!isNaN(closeVal) && !isNaN(rangeLow) && !isNaN(rangeHigh)) {
+                            if (isOutsideSetup) {
+                                if (closeVal >= rangeLow && closeVal <= rangeHigh) {
+                                    breachIdx = i;
                                     break;
+                                }
+                            } else {
+                                if (sweepState === 'BULL_SWEEP' && closeVal < rangeLow) {
+                                    breachIdx = i;
+                                    break;
+                                } else if (sweepState === 'BEAR_SWEEP' && closeVal > rangeHigh) {
+                                    breachIdx = i;
+                                    break;
+                                } else if (sweepState === 'DOUBLE_SWEEP') {
+                                    if (closeVal < rangeLow || closeVal > rangeHigh) {
+                                        breachIdx = i;
+                                        break;
+                                    }
                                 }
                             }
                         }
+                    }
 
-                        if (!breached) {
-                            for (let i = sweepIdx - 1; i <= lastIdx; i++) {
-                                activeCrtIndices.add(i);
-                            }
+                    // Populate activeCrtIndices from sweepIdx - 1 to endIdx (ends at breachIdx if breached, else lastIdx)
+                    const endIdx = breachIdx !== -1 ? breachIdx : lastIdx;
+                    if (!isNaN(rangeLow) && !isNaN(rangeHigh)) {
+                        for (let i = sweepIdx - 1; i <= endIdx; i++) {
+                            activeCrtIndices.add(i);
                         }
                     }
                 }
@@ -4931,7 +5095,7 @@
                             </div>
                         </div>
                         <div style="flex-grow: 1; overflow-x: auto; overflow-y: auto;">
-                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 1000px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
+                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 1084px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
                                         <th style="padding: 4px 16px; text-align: center;" title="Stock Symbol"><div style="min-width: 32px; box-sizing: border-box;">SYMBOL</div></th>
@@ -4949,6 +5113,7 @@
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="CRT Expected Reversal/Breakout Confidence in the Trend Direction"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT CONF</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -5842,7 +6007,7 @@
                             </div>
                         </div>
                         <div style="flex-grow: 1; overflow-x: auto; overflow-y: auto;">
-                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 1000px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
+                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 1084px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
                                         <th style="padding: 4px 16px; text-align: center;" title="Stock Symbol"><div style="min-width: 32px; box-sizing: border-box;">SYMBOL</div></th>
@@ -5860,6 +6025,7 @@
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="CRT Expected Reversal/Breakout Confidence in the Trend Direction"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT CONF</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
