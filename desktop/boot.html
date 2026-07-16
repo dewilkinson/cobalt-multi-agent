@@ -141,6 +141,12 @@
             pointer-events: none;
             box-shadow: 0 0 15px rgba(56, 139, 253, 0.1) inset;
         }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; box-shadow: 0 0 0 0 rgba(57, 211, 83, 0.2); }
+            50% { opacity: 1; box-shadow: 0 0 10px 4px rgba(57, 211, 83, 0.4); }
+            100% { opacity: 0.6; box-shadow: 0 0 0 0 rgba(57, 211, 83, 0.2); }
+        }
     </style>
 </head>
 <body>
@@ -154,6 +160,9 @@
         
         <div class="progress-container">
             <div class="progress-bar"></div>
+        </div>
+        <div id="continue-prompt" style="display: none; margin-top: 20px; font-family: var(--font-sans); font-size: 13px; text-align: center; color: var(--emerald-green); cursor: pointer; text-transform: uppercase; font-weight: bold; border: 1px dashed var(--emerald-green); padding: 12px; border-radius: 6px; animation: pulse 1.5s infinite; background: rgba(57, 211, 83, 0.05); text-shadow: 0 0 4px var(--emerald-green);">
+            Press any key or click here to continue <span id="countdown">(10s)</span>
         </div>
     </div>
 
@@ -235,6 +244,40 @@
                     await addLog(` * ${svc.service}: KEY MISSING (Fallback: ${svc.fallback})`, 100);
                 }
             }
+
+            // Display interactive press any key prompt and start countdown
+            setTimeout(() => {
+                const promptEl = document.getElementById("continue-prompt");
+                if (promptEl) {
+                    promptEl.style.display = "block";
+                }
+                
+                let timeLeft = 10;
+                let navigated = false;
+                
+                function navigate() {
+                    if (navigated) return;
+                    navigated = true;
+                    clearInterval(countdownInterval);
+                    window.location.href = "http://127.0.0.1:8000/vli_dashboard.html";
+                }
+                
+                window.addEventListener("keydown", navigate);
+                if (promptEl) {
+                    promptEl.addEventListener("click", navigate);
+                }
+                
+                const countdownInterval = setInterval(() => {
+                    timeLeft--;
+                    const countdownEl = document.getElementById("countdown");
+                    if (countdownEl) {
+                        countdownEl.innerText = `(${timeLeft}s)`;
+                    }
+                    if (timeLeft <= 0) {
+                        navigate();
+                    }
+                }, 1000);
+            }, 300);
         }
 
         // Start boot sequence once DOM is ready
