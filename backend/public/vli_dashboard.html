@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0216";
+        const VLI_CLIENT_VERSION = "00.000.0218";
     </script>
     
     <link
@@ -4332,48 +4332,48 @@
                         }
                     }
                 }
-            }
 
-            if (activeCrtIndices.size > 0 && sweepIdx !== -1 && sweepIdx - 1 >= 0) {
-                const idxArray = Array.from(activeCrtIndices);
-                const minIdx = Math.min(...idxArray);
-                const maxIdx = Math.max(...idxArray);
-                
-                let rangeCandleIdx = sweepIdx - 1;
-                for (let i = sweepIdx; i <= lastIdx; i++) {
-                    const state = segments[i].state || 'NONE';
-                    if (state === 'INSIDE' && idxArray.includes(i)) {
-                        rangeCandleIdx = i;
-                    }
-                }
-                const rangeCandle = segments[rangeCandleIdx];
-                const currentClose = parseFloat(lastSeg.close);
-                
-                let bgStyle = 'rgba(255, 255, 255, 0.08)';
-                let borderStyle = 'rgba(255, 255, 255, 0.2)';
-                zoneName = 'Equilibrium';
-                
-                if (rangeCandle) {
-                    const rLow = parseFloat(rangeCandle.low);
-                    const rHigh = parseFloat(rangeCandle.high);
-                    if (!isNaN(rLow) && !isNaN(rHigh) && !isNaN(currentClose)) {
-                        const mid = (rLow + rHigh) / 2;
-                        if (currentClose >= mid) {
-                            bgStyle = 'rgba(248, 81, 73, 0.22)';
-                            borderStyle = 'rgba(248, 81, 73, 0.6)';
-                            zoneName = 'Premium Zone';
-                        } else {
-                            bgStyle = 'rgba(63, 185, 80, 0.22)';
-                            borderStyle = 'rgba(63, 185, 80, 0.6)';
-                            zoneName = 'Discount Zone';
+                if (activeCrtIndices.size > 0 && sweepIdx !== -1 && sweepIdx - 1 >= 0) {
+                    const idxArray = Array.from(activeCrtIndices);
+                    const minIdx = Math.min(...idxArray);
+                    const maxIdx = Math.max(...idxArray);
+                    
+                    let rangeCandleIdx = sweepIdx - 1;
+                    for (let i = sweepIdx; i <= lastIdx; i++) {
+                        const state = segments[i].state || 'NONE';
+                        if (state === 'INSIDE' && idxArray.includes(i)) {
+                            rangeCandleIdx = i;
                         }
                     }
+                    const rangeCandle = segments[rangeCandleIdx];
+                    const currentClose = parseFloat(lastSeg.close);
+                    
+                    let bgStyle = 'rgba(255, 255, 255, 0.08)';
+                    let borderStyle = 'rgba(255, 255, 255, 0.2)';
+                    zoneName = 'Equilibrium';
+                    
+                    if (rangeCandle) {
+                        const rLow = parseFloat(rangeCandle.low);
+                        const rHigh = parseFloat(rangeCandle.high);
+                        if (!isNaN(rLow) && !isNaN(rHigh) && !isNaN(currentClose)) {
+                            const mid = (rLow + rHigh) / 2;
+                            if (currentClose >= mid) {
+                                bgStyle = 'rgba(248, 81, 73, 0.22)';
+                                borderStyle = 'rgba(248, 81, 73, 0.6)';
+                                zoneName = 'Premium Zone';
+                            } else {
+                                bgStyle = 'rgba(63, 185, 80, 0.22)';
+                                borderStyle = 'rgba(63, 185, 80, 0.6)';
+                                zoneName = 'Discount Zone';
+                            }
+                        }
+                    }
+                    
+                    const left = minIdx * 12 - 4;
+                    const width = (maxIdx - minIdx) * 12 + 18;
+                    
+                    shadingBoxHtml = `<div class="crt-setup-box" style="position: absolute; left: ${left}px; width: ${width}px; height: 18px; top: -2px; border-radius: 4px; z-index: 1; pointer-events: none; background: ${bgStyle}; border: 1px solid ${borderStyle};" title="CRT Active Range: ${zoneName}"></div>`;
                 }
-                
-                const left = minIdx * 12 - 4;
-                const width = (maxIdx - minIdx) * 12 + 18;
-                
-                shadingBoxHtml = `<div class="crt-setup-box" style="position: absolute; left: ${left}px; width: ${width}px; height: 18px; top: -2px; border-radius: 4px; z-index: 1; pointer-events: none; background: ${bgStyle}; border: 1px solid ${borderStyle};" title="CRT Active Range: ${zoneName}"></div>`;
             }
 
             let html = '';
