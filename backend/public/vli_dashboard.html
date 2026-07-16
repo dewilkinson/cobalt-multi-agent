@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0218";
+        const VLI_CLIENT_VERSION = "00.000.0219";
     </script>
     
     <link
@@ -4455,7 +4455,7 @@
                 const openTime = seg.open_time || 'N/A';
                 const closeTime = seg.close_time || 'N/A';
                 
-                tooltip = `Segment Type: ${stateName.replace('_', ' ')}\nDescription: ${indication}\nStart Time: ${openTime}`;
+                tooltip = `Segment Type: ${stateName === 'NONE' ? 'Normal' : stateName.replace('_', ' ')}\nDescription: ${indication}\nStart Time: ${openTime}`;
                 html += `<div class="${cssClass}" title="${tooltip}">${sweepDotHTML}</div>`;
             });
 
