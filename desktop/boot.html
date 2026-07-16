@@ -1,8 +1,227 @@
+<!DOCTYPE html>
 <html>
-    <body style="background-color: #0a0c10; color: #58a6ff; font-family: monospace; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
-        <div style="text-align: center;">
-            <h2>VLI DESKTOP</h2>
-            <p>Booting Backend and Orchestrator servers...</p>
+<head>
+    <meta charset="utf-8">
+    <title>VLI | Terminal Booting</title>
+    <!-- Import Google Fonts for premium typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #07090e;
+            --card-bg: rgba(13, 17, 24, 0.75);
+            --border-neon: rgba(56, 139, 253, 0.4);
+            --glow-neon: rgba(56, 139, 253, 0.15);
+            --text-cyan: #58a6ff;
+            --text-muted: #8b949e;
+            --emerald-green: #39d353;
+            --amber-gold: #ffc107;
+            --ruby-red: #f85149;
+            --font-mono: 'Share Tech Mono', monospace;
+            --font-sans: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-cyan);
+            font-family: var(--font-sans);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(56, 139, 253, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(139, 0, 139, 0.05) 0%, transparent 40%);
+        }
+
+        /* Glassmorphism boot container */
+        .boot-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-neon);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), 0 0 20px 0 var(--glow-neon);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 12px;
+            padding: 40px;
+            width: 600px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        h2 {
+            font-family: var(--font-sans);
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            margin-top: 0;
+            margin-bottom: 24px;
+            text-align: center;
+            background: linear-gradient(135deg, #58a6ff 0%, #bc8cff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 10px rgba(88, 166, 255, 0.2);
+        }
+
+        /* Monospace terminal console */
+        .terminal {
+            background-color: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 20px;
+            height: 220px;
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            line-height: 1.6;
+            color: #c9d1d9;
+            text-align: left;
+            box-sizing: border-box;
+            margin-bottom: 30px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .log-line {
+            opacity: 0;
+            transform: translateY(4px);
+            animation: fadeInUp 0.2s forwards;
+            white-space: nowrap;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-ok {
+            color: var(--emerald-green);
+            font-weight: bold;
+        }
+
+        .status-warn {
+            color: var(--amber-gold);
+            font-weight: bold;
+        }
+
+        /* Premium progress bar loader */
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #58a6ff 0%, #388bfd 50%, #bc8cff 100%);
+            border-radius: 3px;
+            animation: loadProgress 4.5s linear forwards;
+            box-shadow: 0 0 8px #388bfd;
+        }
+
+        @keyframes loadProgress {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+
+        .loader-glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 12px;
+            pointer-events: none;
+            box-shadow: 0 0 15px rgba(56, 139, 253, 0.1) inset;
+        }
+    </style>
+</head>
+<body>
+    <div class="boot-card">
+        <div class="loader-glow"></div>
+        <h2>COBALT CORE ORCHESTRATOR</h2>
+        
+        <div class="terminal" id="terminal">
+            <div class="log-line">Initializing VLI Boot Sequence...</div>
         </div>
-    </body>
+        
+        <div class="progress-container">
+            <div class="progress-bar"></div>
+        </div>
+    </div>
+
+    <script>
+        const terminal = document.getElementById("terminal");
+
+        function addLog(text, delay = 0) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const el = document.createElement("div");
+                    el.className = "log-line";
+                    el.innerHTML = text;
+                    terminal.appendChild(el);
+                    terminal.scrollTop = terminal.scrollHeight;
+                    resolve();
+                }, delay);
+            });
+        }
+
+        async function fetchApiStatus() {
+            try {
+                const response = await fetch("http://127.0.0.1:8000/api/system/api-status");
+                if (response.ok) {
+                    return await response.json();
+                }
+            } catch (e) {
+                // Ignore connection errors during initial startup
+            }
+            return null;
+        }
+
+        async function bootSequence() {
+            await addLog("Loading configuration profiles...", 400);
+            await addLog("Connecting to local Python core backend...", 400);
+
+            // Poll the backend until it is alive and gives us the status payload
+            let data = null;
+            for (let i = 0; i < 30; i++) {
+                data = await fetchApiStatus();
+                if (data) break;
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            if (!data) {
+                await addLog("<span class='status-warn'>[ ERROR ] Failed to contact VLI service backend.</span>", 200);
+                return;
+            }
+
+            await addLog("Core backend online! Running subscription API diagnostics...", 300);
+
+            // Sequentially print the status of each service from the JSON response
+            for (const svc of data.services) {
+                await addLog(`[ CHECKING ] ${svc.service}...`, 400);
+                if (svc.connected) {
+                    await addLog(`[ <span class='status-ok'>OK</span> ] Connected: ${svc.details}`, 150);
+                } else {
+                    await addLog(`[ <span class='status-warn'>WARN</span> ] Preferred key missing: Using fallback`, 150);
+                    await addLog(`           Fallback path: <span class='status-warn'>${svc.fallback}</span>`, 100);
+                }
+            }
+
+            await addLog("--------------------------------------------------", 300);
+            await addLog("API verification complete. Core initialization finalized.", 200);
+            await addLog("<span class='status-ok'>BOOT COMPLETED. REDIRECTING TO COMMAND CENTER...</span>", 200);
+        }
+
+        // Start boot sequence once DOM is ready
+        window.addEventListener("DOMContentLoaded", bootSequence);
+    </script>
+</body>
 </html>

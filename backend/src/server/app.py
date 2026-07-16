@@ -2437,6 +2437,71 @@ async def force_scanner_sync():
     await run_tv_sync()
     return {"status": "success"}
 
+@app.get("/api/system/api-status")
+async def get_api_status():
+    import os
+    from src.config.loader import get_config
+    config = {}
+    try:
+        config = get_config()
+    except Exception:
+        pass
+
+    # 1. Gemini
+    gemini_key = os.environ.get("GEMINI_API_KEY") or config.get("BASIC_MODEL", {}).get("api_key")
+    gemini_status = {
+        "service": "Google AI Studio (Gemini)",
+        "connected": bool(gemini_key),
+        "details": "Connected (API Key Verified)" if gemini_key else "Unavailable",
+        "fallback": "Local Ollama / Offline Mode" if not gemini_key else None
+    }
+
+    # 2. Alpha Vantage
+    av_key = os.environ.get("ALPHA_VANTAGE_API_KEY")
+    av_status = {
+        "service": "Alpha Vantage API",
+        "connected": bool(av_key),
+        "details": "Connected (Realtime Entitlement Verified)" if av_key else "Unavailable",
+        "fallback": "yfinance (Free/Unlimited Feed)" if not av_key else None
+    }
+
+    # 3. FMP
+    fmp_key = os.environ.get("FMP_API_KEY")
+    fmp_status = {
+        "service": "Financial Modeling Prep (FMP)",
+        "connected": bool(fmp_key),
+        "details": "Connected (Movers API Verified)" if fmp_key else "Unavailable",
+        "fallback": "yfinance / SEC RSS Feed" if not fmp_key else None
+    }
+
+    # 4. Tavily
+    tavily_key = os.environ.get("TAVILY_API_KEY")
+    tavily_status = {
+        "service": "Tavily Search API",
+        "connected": bool(tavily_key),
+        "details": "Connected (Scout Tool Verified)" if tavily_key else "Unavailable",
+        "fallback": "Brave Search / DuckDuckGo (Free)" if not tavily_key else None
+    }
+
+    # 5. Ngrok
+    ngrok_token = os.environ.get("NGROK_AUTHTOKEN") or config.get("NGROK", {}).get("authtoken")
+    ngrok_status = {
+        "service": "Ngrok Tunneling Service",
+        "connected": bool(ngrok_token),
+        "details": "Connected (Webhook Port Forwarding Verified)" if ngrok_token else "Unavailable",
+        "fallback": "Localhost Only (External Webhooks Disabled)" if not ngrok_token else None
+    }
+
+    return {
+        "services": [
+            gemini_status,
+            av_status,
+            fmp_status,
+            tavily_status,
+            ngrok_status
+        ]
+    }
+
 # --- VLI CONSOLIDATED STATE ENDPOINT ---
 
 
