@@ -1823,6 +1823,7 @@ class TradingViewAlertPayload(BaseModel):
     segments: Optional[List[TradingViewSegment]] = None
 
 @router.post("/webhook")
+@router.post("/webhook/")
 async def webhook_tradingview(payload: TradingViewAlertPayload):
     """
     Receives alerts from TradingView, maps the symbol, and updates TRENDS_CACHE
