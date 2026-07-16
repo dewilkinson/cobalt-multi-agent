@@ -195,6 +195,7 @@
         async function bootSequence() {
             await addLog("Loading configuration profiles...", 400);
             await addLog("Connecting to local Python core backend...", 400);
+            await addLog("Starting 3rd party connection diagnostics...", 400);
 
             // Poll the backend until it is alive and gives us the status payload
             let data = null;
