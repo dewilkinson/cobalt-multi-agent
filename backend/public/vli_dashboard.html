@@ -4326,7 +4326,7 @@
                         }
 
                         if (!breached) {
-                            for (let i = rangeCandleIdx; i <= lastIdx; i++) {
+                            for (let i = sweepIdx - 1; i <= lastIdx; i++) {
                                 activeCrtIndices.add(i);
                             }
                         }
