@@ -330,7 +330,7 @@ async def bulk_fetch_trends_and_sparklines(symbols):
             search_symbols = list(set(normalized_chunk_map.values()))
             
             async with YF_LOCK:
-                c_batch_1m = await asyncio.to_thread(yf.download, search_symbols, period="2d", interval="1m", prepost=True, progress=False)
+                c_batch_1m = await asyncio.to_thread(yf.download, search_symbols, period="5d", interval="1m", prepost=True, progress=False)
                 c_batch_5m = await asyncio.to_thread(yf.download, search_symbols, period="5d", interval="5m", prepost=True, progress=False)
                 c_batch_15m = await asyncio.to_thread(yf.download, search_symbols, period="1mo", interval="15m", prepost=True, progress=False)
                 c_batch_1h = await asyncio.to_thread(yf.download, search_symbols, period="3mo", interval="1h", prepost=True, progress=False)
@@ -340,14 +340,44 @@ async def bulk_fetch_trends_and_sparklines(symbols):
             now = time.time()
             for sym in chunk:
                 norm_sym = normalized_chunk_map[sym]
+                df_1m = extract_single_ticker_df(c_batch_1m, norm_sym)
+                df_5m = extract_single_ticker_df(c_batch_5m, norm_sym)
+                df_15m = extract_single_ticker_df(c_batch_15m, norm_sym)
+                df_1h = extract_single_ticker_df(c_batch_1h, norm_sym)
+                df_1d = extract_single_ticker_df(c_batch_1d, norm_sym)
+                df_1w = extract_single_ticker_df(c_batch_1w, norm_sym)
+                
+                clean_sym = sym.lstrip("/^").upper()
+                is_future = clean_sym in ["ES", "MES", "NQ", "MNQ", "YM", "MYM", "RTY", "M2K", "CL", "MCL", "GC", "MGC", "NKD", "MNK"] or clean_sym.endswith("=F")
+                
+                if is_future and df_1m is not None and not df_1m.empty:
+                    try:
+                        col_map = {str(c).lower(): c for c in df_1m.columns}
+                        agg_dict = {}
+                        if 'open' in col_map: agg_dict[col_map['open']] = 'first'
+                        if 'high' in col_map: agg_dict[col_map['high']] = 'max'
+                        if 'low' in col_map: agg_dict[col_map['low']] = 'min'
+                        if 'close' in col_map: agg_dict[col_map['close']] = 'last'
+                        if 'volume' in col_map: agg_dict[col_map['volume']] = 'sum'
+                        
+                        df_15m_res = df_1m.resample('15Min').agg(agg_dict).dropna()
+                        df_15m_res.columns = [col_map[str(c).lower()] for c in df_15m_res.columns]
+                        df_15m = df_15m_res
+                        
+                        df_1h_res = df_1m.resample('1H').agg(agg_dict).dropna()
+                        df_1h_res.columns = [col_map[str(c).lower()] for c in df_1h_res.columns]
+                        df_1h = df_1h_res
+                    except Exception as resample_e:
+                        logger.error(f"Failed to resample futures timeframes from 1m for {sym}: {resample_e}")
+                
                 c_timeframes = {
-                    "1m": extract_single_ticker_df(c_batch_1m, norm_sym),
-                    "5m": extract_single_ticker_df(c_batch_5m, norm_sym),
-                    "15m": extract_single_ticker_df(c_batch_15m, norm_sym),
-                    "1h": extract_single_ticker_df(c_batch_1h, norm_sym),
+                    "1m": df_1m,
+                    "5m": df_5m,
+                    "15m": df_15m,
+                    "1h": df_1h,
                     "4h": None,
-                    "1d": extract_single_ticker_df(c_batch_1d, norm_sym),
-                    "1w": extract_single_ticker_df(c_batch_1w, norm_sym)
+                    "1d": df_1d,
+                    "1w": df_1w
                 }
                 
                 df_1h = c_timeframes["1h"]
@@ -696,29 +726,57 @@ async def enrich_candidates_with_trends(candidates):
         crt_1h = c.get("crt_1h", [])
         crt_4h = c.get("crt_4h", [])
         
-        def has_active_forming_setup(segs):
+        def has_active_setup(segs):
+            if not segs:
+                return False
+            # Case 1: Forming setup
             for s in segs:
                 if s.get("is_forming") and s.get("potential_setup") and s.get("potential_setup") != "NONE":
                     return True
+            # Case 2: In-progress closed setup
+            last_idx = len(segs) - 1
+            sweep_idx = -1
+            for i in range(last_idx - 1, -1, -1):
+                state = segs[i].get("state", "NONE")
+                if state in ["BULL_SWEEP", "BEAR_SWEEP", "BULL_OUTSIDE", "BEAR_OUTSIDE"]:
+                    sweep_idx = i
+                    break
+            if sweep_idx != -1 and sweep_idx - 1 >= 0:
+                range_candle = segs[sweep_idx - 1]
+                try:
+                    r_low = float(range_candle.get("low", 0.0))
+                    r_high = float(range_candle.get("high", 0.0))
+                    breached = False
+                    for i in range(sweep_idx, last_idx + 1):
+                        close_val = float(segs[i].get("close", 0.0))
+                        if close_val < r_low or close_val > r_high:
+                            breached = True
+                            break
+                    if not breached:
+                        return True
+                except (ValueError, TypeError, KeyError):
+                    pass
             return False
             
-        def clear_forming_setup(segs):
+        def clear_all_setups(segs):
             for s in segs:
                 if s.get("is_forming"):
                     s["potential_setup"] = "NONE"
+                if s.get("state") in ["BULL_SWEEP", "BEAR_SWEEP", "BULL_OUTSIDE", "BEAR_OUTSIDE"]:
+                    s["state"] = "NONE"
                     
-        has_15m = has_active_forming_setup(crt_15m)
-        has_1h = has_active_forming_setup(crt_1h)
-        has_4h = has_active_forming_setup(crt_4h)
+        active_15m = has_active_setup(crt_15m)
+        active_1h = has_active_setup(crt_1h)
+        active_4h = has_active_setup(crt_4h)
         
-        if has_15m:
-            if has_1h:
-                clear_forming_setup(crt_1h)
-            if has_4h:
-                clear_forming_setup(crt_4h)
-        elif has_1h:
-            if has_4h:
-                clear_forming_setup(crt_4h)
+        if active_15m:
+            if active_1h:
+                clear_all_setups(crt_1h)
+            if active_4h:
+                clear_all_setups(crt_4h)
+        elif active_1h:
+            if active_4h:
+                clear_all_setups(crt_4h)
         # Enforce Rule 2: No nested CRT setups. If a new setup starts to form, clear historical setup states.
         for tf_key in ["crt_15m", "crt_1h", "crt_4h"]:
             segs = c.get(tf_key, [])

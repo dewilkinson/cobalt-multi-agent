@@ -4273,7 +4273,7 @@
                 return `<div class="crt-bar">${emptyHtml}</div>`;
             }
 
-            // Check for CRT in-progress: search for a closed initiating setup or potential setup forming
+            // Check for CRT in-progress: search for a closed sweep/outside setup (second candle must be complete)
             const activeCrtIndices = new Set();
             let zoneName = '';
             let shadingBoxHtml = '';
@@ -4282,76 +4282,48 @@
                 const lastIdx = segments.length - 1;
                 const lastSeg = segments[lastIdx];
 
-                // Case 1: Forming candle has a pending setup (potential_setup !== 'NONE')
-                if (lastSeg.is_forming && lastSeg.potential_setup && lastSeg.potential_setup !== 'NONE') {
-                    activeCrtIndices.add(lastIdx);
-                    if (lastIdx - 1 >= 0) {
-                        activeCrtIndices.add(lastIdx - 1);
+                // Scan for the most recent closed sweep/outside setup (the second sweep candle must be complete)
+                let sweepIdx = -1;
+                for (let i = lastIdx - 1; i >= 0; i--) {
+                    const state = segments[i].state || 'NONE';
+                    if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'BULL_OUTSIDE' || state === 'BEAR_OUTSIDE') {
+                        sweepIdx = i;
+                        break;
                     }
-                } else {
-                    // Case 2: Scan for the most recent closed sweep/outside setup
-                    let sweepIdx = -1;
-                    for (let i = lastIdx - 1; i >= 0; i--) {
-                        const state = segments[i].state || 'NONE';
-                        if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'BULL_OUTSIDE' || state === 'BEAR_OUTSIDE') {
-                            sweepIdx = i;
-                            break;
-                        }
-                    }
+                }
 
-                    if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
-                        const rangeCandle = segments[sweepIdx - 1];
-                        const rangeLow = parseFloat(rangeCandle.low);
-                        const rangeHigh = parseFloat(rangeCandle.high);
+                if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
+                    const rangeCandle = segments[sweepIdx - 1];
+                    const rangeLow = parseFloat(rangeCandle.low);
+                    const rangeHigh = parseFloat(rangeCandle.high);
 
-                        if (!isNaN(rangeLow) && !isNaN(rangeHigh)) {
-                            let breached = false;
-                            for (let i = sweepIdx; i <= lastIdx; i++) {
-                                const closeVal = parseFloat(segments[i].close);
-                                if (!isNaN(closeVal)) {
-                                    if (closeVal < rangeLow || closeVal > rangeHigh) {
-                                        breached = true;
-                                        break;
-                                    }
+                    if (!isNaN(rangeLow) && !isNaN(rangeHigh)) {
+                        let breached = false;
+                        for (let i = sweepIdx; i <= lastIdx; i++) {
+                            const closeVal = parseFloat(segments[i].close);
+                            if (!isNaN(closeVal)) {
+                                if (closeVal < rangeLow || closeVal > rangeHigh) {
+                                    breached = true;
+                                    break;
                                 }
                             }
+                        }
 
-                            if (!breached) {
-                                for (let i = sweepIdx - 1; i <= lastIdx; i++) {
-                                    activeCrtIndices.add(i);
-                                }
+                        if (!breached) {
+                            for (let i = sweepIdx - 1; i <= lastIdx; i++) {
+                                activeCrtIndices.add(i);
                             }
                         }
                     }
                 }
 
-                if (activeCrtIndices.size > 0) {
+                if (activeCrtIndices.size > 0 && sweepIdx !== -1 && sweepIdx - 1 >= 0) {
                     const idxArray = Array.from(activeCrtIndices);
                     const minIdx = Math.min(...idxArray);
                     const maxIdx = Math.max(...idxArray);
                     
-                    let rangeCandle = null;
-                    let currentClose = NaN;
-                    
-                    if (lastSeg.is_forming && lastSeg.potential_setup && lastSeg.potential_setup !== 'NONE') {
-                        if (lastIdx - 1 >= 0) {
-                            rangeCandle = segments[lastIdx - 1];
-                        }
-                        currentClose = parseFloat(lastSeg.close);
-                    } else {
-                        let sweepIdx = -1;
-                        for (let i = lastIdx - 1; i >= 0; i--) {
-                            const state = segments[i].state || 'NONE';
-                            if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'BULL_OUTSIDE' || state === 'BEAR_OUTSIDE') {
-                                sweepIdx = i;
-                                break;
-                            }
-                        }
-                        if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
-                            rangeCandle = segments[sweepIdx - 1];
-                        }
-                        currentClose = parseFloat(lastSeg.close);
-                    }
+                    const rangeCandle = segments[sweepIdx - 1];
+                    const currentClose = parseFloat(lastSeg.close);
                     
                     let bgStyle = 'rgba(255, 255, 255, 0.08)';
                     let borderStyle = 'rgba(255, 255, 255, 0.2)';
