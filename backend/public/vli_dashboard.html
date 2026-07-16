@@ -74,6 +74,8 @@
             box-sizing: border-box;
             background: rgba(255, 255, 255, 0.05);
             transition: all 0.2s ease;
+            position: relative;
+            z-index: 2;
         }
         .crt-segment.default-bull {
             background: rgba(63, 185, 80, 0.45);
@@ -112,10 +114,7 @@
             border: 1.5px solid #ffffff !important;
             animation: crt-slow-flash 1s infinite ease-in-out;
         }
-        .crt-segment.crt-in-progress {
-            outline: 1.5px solid #ffeb3b !important;
-            outline-offset: 1px;
-        }
+
         @keyframes crt-slow-flash {
             0%, 100% {
                 opacity: 0.3;
@@ -4276,6 +4275,9 @@
 
             // Check for CRT in-progress: search for a closed initiating setup or potential setup forming
             const activeCrtIndices = new Set();
+            let zoneName = '';
+            let shadingBoxHtml = '';
+            
             if (segments.length > 0) {
                 const lastIdx = segments.length - 1;
                 const lastSeg = segments[lastIdx];
@@ -4322,14 +4324,66 @@
                         }
                     }
                 }
+
+                if (activeCrtIndices.size > 0) {
+                    const idxArray = Array.from(activeCrtIndices);
+                    const minIdx = Math.min(...idxArray);
+                    const maxIdx = Math.max(...idxArray);
+                    
+                    let rangeCandle = null;
+                    let currentClose = NaN;
+                    
+                    if (lastSeg.is_forming && lastSeg.potential_setup && lastSeg.potential_setup !== 'NONE') {
+                        if (lastIdx - 1 >= 0) {
+                            rangeCandle = segments[lastIdx - 1];
+                        }
+                        currentClose = parseFloat(lastSeg.close);
+                    } else {
+                        let sweepIdx = -1;
+                        for (let i = lastIdx - 1; i >= 0; i--) {
+                            const state = segments[i].state || 'NONE';
+                            if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'BULL_OUTSIDE' || state === 'BEAR_OUTSIDE') {
+                                sweepIdx = i;
+                                break;
+                            }
+                        }
+                        if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
+                            rangeCandle = segments[sweepIdx - 1];
+                        }
+                        currentClose = parseFloat(lastSeg.close);
+                    }
+                    
+                    let bgStyle = 'rgba(255, 255, 255, 0.08)';
+                    let borderStyle = 'rgba(255, 255, 255, 0.2)';
+                    zoneName = 'Equilibrium';
+                    
+                    if (rangeCandle) {
+                        const rLow = parseFloat(rangeCandle.low);
+                        const rHigh = parseFloat(rangeCandle.high);
+                        if (!isNaN(rLow) && !isNaN(rHigh) && !isNaN(currentClose)) {
+                            const mid = (rLow + rHigh) / 2;
+                            if (currentClose >= mid) {
+                                bgStyle = 'rgba(248, 81, 73, 0.12)'; // Premium Red (Soft)
+                                borderStyle = 'rgba(248, 81, 73, 0.4)';
+                                zoneName = 'Premium Zone';
+                            } else {
+                                bgStyle = 'rgba(63, 185, 80, 0.12)'; // Discount Green (Soft)
+                                borderStyle = 'rgba(63, 185, 80, 0.4)';
+                                zoneName = 'Discount Zone';
+                            }
+                        }
+                    }
+                    
+                    const left = minIdx * 10 - 2;
+                    const width = (maxIdx - minIdx) * 10 + 8 + 4;
+                    
+                    shadingBoxHtml = `<div class="crt-setup-box" style="position: absolute; left: ${left}px; width: ${width}px; height: 18px; top: -2px; border-radius: 3px; z-index: 1; pointer-events: none; background: ${bgStyle}; border: 1px solid ${borderStyle};" title="CRT Active Range: ${zoneName}"></div>`;
+                }
             }
 
             let html = '';
             segments.forEach((seg, idx) => {
                 let cssClass = 'crt-segment';
-                if (activeCrtIndices.has(idx)) {
-                    cssClass += ' crt-in-progress';
-                }
                 const openVal = parseFloat(seg.open);
                 const closeVal = parseFloat(seg.close);
                 if (!isNaN(openVal) && !isNaN(closeVal)) {
@@ -4380,14 +4434,14 @@
                 }
                 
                 if (activeCrtIndices.has(idx)) {
-                    colorMeaning += " [Yellow Outline: Active CRT in-progress]";
+                    colorMeaning += ` [CRT Range: ${zoneName}]`;
                 }
 
                 tooltip = `Timeframe: ${timeframe}\nCandle ${idx + 1}/5 ${seg.is_forming ? '(Forming)' : '(Closed)'}\nState: ${stateName}\n\n• Color Meaning: ${colorMeaning}\n\n• Open: $${seg.open}\n• High: $${seg.high}\n• Low: $${seg.low}\n• Close: $${seg.close}\n• Prev High: $${seg.prev_high}\n• Prev Low: $${seg.prev_low}`;
                 html += `<div class="${cssClass}" title="${tooltip}"></div>`;
             });
 
-            return `<div class="crt-bar">${html}</div>`;
+            return `<div class="crt-bar"><div style="position: relative; display: flex; gap: 2px; width: 48px; height: 14px; align-items: center; justify-content: center;">${shadingBoxHtml}${html}</div></div>`;
         }
 
         function drawVWAPIndicator(val) {
