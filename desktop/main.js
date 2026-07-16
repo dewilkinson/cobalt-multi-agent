@@ -189,8 +189,8 @@ app.whenReady().then(async () => {
     waitForWeb().catch(err => console.error('[VLI-Electron] Web check error:', err));
     
     if (isOnline) {
-        console.log(`[VLI-Electron] Python backend is online. Waiting 4.5s for user to read bootscreen...`);
-        await new Promise(resolve => setTimeout(resolve, 4500));
+        console.log(`[VLI-Electron] Python backend is online. Waiting 7.5s for user to read bootscreen...`);
+        await new Promise(resolve => setTimeout(resolve, 7500));
         
         console.log(`[VLI-Electron] Navigating to VLI Dashboard`);
         session.defaultSession.clearCache().then(() => {

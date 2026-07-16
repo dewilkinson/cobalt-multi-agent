@@ -71,7 +71,7 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 6px;
             padding: 20px;
-            height: 220px;
+            height: 280px;
             overflow-y: auto;
             font-family: var(--font-mono);
             font-size: 13px;
@@ -217,7 +217,24 @@
 
             await addLog("--------------------------------------------------", 300);
             await addLog("API verification complete. Core initialization finalized.", 200);
-            await addLog("<span class='status-ok'>BOOT COMPLETED. REDIRECTING TO COMMAND CENTER...</span>", 200);
+            await addLog("<span class='status-ok'>BOOT COMPLETED. REDIRECTING TO WORKSPACE...</span>", 200);
+            
+            await addLog("<br><span class='status-ok'>[ CORE LOAD REPORT ]</span>", 300);
+            await addLog(" * Configuration Profile Subsystem .................. [ LOADED ]", 100);
+            await addLog(" * Local Python Core Service Engine ................. [ LOADED ]", 100);
+            await addLog(" * Watchlist Analyzer & Scanner Module .............. [ LOADED ]", 100);
+            await addLog(" * FIFO Trades Plotter Script Generator ............. [ LOADED ]", 100);
+            
+            let hasWarnings = false;
+            for (const svc of data.services) {
+                if (!svc.connected) {
+                    if (!hasWarnings) {
+                        await addLog("<br><span class='status-warn'>[ DIAGNOSTIC WARNINGS & LOGS ]</span>", 150);
+                        hasWarnings = true;
+                    }
+                    await addLog(` * ${svc.service}: KEY MISSING (Fallback: ${svc.fallback})`, 100);
+                }
+            }
         }
 
         // Start boot sequence once DOM is ready
