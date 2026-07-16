@@ -53,14 +53,16 @@
 
         h2 {
             font-family: var(--font-sans);
-            font-size: 15px;
-            font-weight: 500;
+            font-size: 24px;
+            font-weight: 800;
             letter-spacing: 2px;
             margin-top: 0;
             margin-bottom: 24px;
             text-align: center;
-            color: var(--text-muted);
-            text-transform: uppercase;
+            background: linear-gradient(135deg, #58a6ff 0%, #bc8cff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 10px rgba(88, 166, 255, 0.2);
         }
 
         /* Monospace terminal console */
@@ -119,6 +121,11 @@
             font-weight: bold;
         }
 
+        .status-effected {
+            color: #d16900;
+            font-weight: bold;
+        }
+
         /* Premium progress bar loader */
         .progress-container {
             width: 100%;
@@ -164,7 +171,7 @@
 <body>
     <div class="boot-card">
         <div class="loader-glow"></div>
-        <h2>VLI Core Orchestrator</h2>
+        <h2>VLI DESKTOP</h2>
         
         <div class="terminal" id="terminal">
             <div class="log-line">Initializing VLI Boot Sequence...</div>
@@ -277,7 +284,7 @@
                     }
                     await addLog(` * <span class='status-warn'>${svc.service}</span>: <span class='status-error'>KEY MISSING</span>`, 100);
                     const affected = affectedFuncs[svc.service] || "None";
-                    await addLog(`   <span class='status-error'>- AFFECTED:</span> <span class='status-warn'>${affected}</span>`, 100);
+                    await addLog(`   <span class='status-effected'>- EFFECTED:</span> <span class='status-warn'>${affected}</span>`, 100);
                 }
             }
 
