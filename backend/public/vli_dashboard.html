@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0212";
+        const VLI_CLIENT_VERSION = "00.000.0213";
     </script>
     
     <link
@@ -58,6 +58,94 @@
         .card[data-active-duration="SWING_LOW"] .sortino-column-cell {
             display: none !important;
         }
+
+        /* --- CRT INDICATION STYLES --- */
+        .crt-bar {
+            display: flex;
+            gap: 2px;
+            align-items: center;
+            justify-content: center;
+            height: 14px;
+        }
+        .crt-segment {
+            width: 8px;
+            height: 14px;
+            border-radius: 1.5px;
+            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+        }
+        .crt-segment.default-bull {
+            background: rgba(63, 185, 80, 0.45);
+            border: 1px solid rgba(63, 185, 80, 0.75);
+        }
+        .crt-segment.default-bear {
+            background: rgba(248, 81, 73, 0.45);
+            border: 1px solid rgba(248, 81, 73, 0.75);
+        }
+        .crt-segment.inside {
+            border: 1px dashed rgba(255, 255, 255, 0.6);
+        }
+        .crt-segment.bull-sweep {
+            background: var(--emerald-green);
+            box-shadow: 0 0 6px rgba(63, 185, 80, 0.4);
+        }
+        .crt-segment.bear-sweep {
+            background: var(--ruby-red);
+            box-shadow: 0 0 6px rgba(248, 81, 73, 0.4);
+        }
+        .crt-segment.bull-outside {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(63, 185, 80, 0.6);
+        }
+        .crt-segment.bear-outside {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(248, 81, 73, 0.6);
+        }
+        .crt-segment.potential-bullish {
+            animation: pulse-crt-bullish 1s infinite alternate;
+        }
+        .crt-segment.potential-bearish {
+            animation: pulse-crt-bearish 1s infinite alternate;
+        }
+        .crt-segment.pending-setup {
+            border: 1.5px solid #ffffff !important;
+            animation: crt-slow-flash 1s infinite ease-in-out;
+        }
+        @keyframes crt-slow-flash {
+            0%, 100% {
+                opacity: 0.3;
+            }
+            50% {
+                opacity: 1.0;
+            }
+        }
+        @keyframes pulse-crt-bullish {
+            0% {
+                background: rgba(63, 185, 80, 0.2);
+                box-shadow: 0 0 2px rgba(63, 185, 80, 0.2);
+                border: 1px solid rgba(63, 185, 80, 0.4);
+            }
+            100% {
+                background: var(--emerald-green);
+                box-shadow: 0 0 8px rgba(63, 185, 80, 0.8);
+                border: 1px solid var(--emerald-green);
+            }
+        }
+        @keyframes pulse-crt-bearish {
+            0% {
+                background: rgba(248, 81, 73, 0.2);
+                box-shadow: 0 0 2px rgba(248, 81, 73, 0.2);
+                border: 1px solid rgba(248, 81, 73, 0.4);
+            }
+            100% {
+                background: var(--ruby-red);
+                box-shadow: 0 0 8px rgba(248, 81, 73, 0.8);
+                border: 1px solid var(--ruby-red);
+            }
+        }
+
+
 
         .col-resizer {
             position: absolute;
@@ -4132,14 +4220,19 @@
                         ${confidenceHtml}
                     </div>
                 </td>
-                <td class="sweep-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.sweepRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
-                        ${(() => {
-                            const sweepInfo = (card.sweepValues && card.sweepValues[c.symbol] !== undefined)
-                                ? card.sweepValues[c.symbol]
-                                : { sweep: "NONE", htf: duration === 'DAY' ? '1h' : (duration === 'SWING_LOW' ? '4h' : (duration === 'SWING_MED' ? '1d' : '1w')) };
-                            return drawSweepIndicator(sweepInfo);
-                        })()}
+                <td class="crt-15m-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawCrtBarIndicator(c.crt_15m, c.symbol, '15m')}
+                    </div>
+                </td>
+                <td class="crt-1h-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawCrtBarIndicator(c.crt_1h, c.symbol, '1h')}
+                    </div>
+                </td>
+                <td class="crt-4h-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawCrtBarIndicator(c.crt_4h, c.symbol, '4h')}
                     </div>
                 </td>
             `;
@@ -4163,6 +4256,77 @@
                     ${arrow} ${sweepLabel} (${htfLabel})
                 </div>
             `;
+        }
+
+
+
+        function drawCrtBarIndicator(segments, symbol, timeframe) {
+            if (!segments || !Array.isArray(segments) || segments.length === 0) {
+                // Return 5 gray blocks
+                let emptyHtml = '';
+                for (let i = 0; i < 5; i++) {
+                    emptyHtml += `<div class="crt-segment" title="No Data"></div>`;
+                }
+                return `<div class="crt-bar">${emptyHtml}</div>`;
+            }
+
+            let html = '';
+            segments.forEach((seg, idx) => {
+                let cssClass = 'crt-segment';
+                const openVal = parseFloat(seg.open);
+                const closeVal = parseFloat(seg.close);
+                if (!isNaN(openVal) && !isNaN(closeVal)) {
+                    cssClass += (closeVal >= openVal) ? ' default-bull' : ' default-bear';
+                }
+                let stateName = seg.state || 'NONE';
+                let tooltip = '';
+
+                if (stateName === 'BULL_SWEEP') {
+                    cssClass += seg.is_forming ? ' potential-bullish' : ' bull-sweep';
+                } else if (stateName === 'BEAR_SWEEP') {
+                    cssClass += seg.is_forming ? ' potential-bearish' : ' bear-sweep';
+                } else if (stateName === 'BULL_OUTSIDE') {
+                    cssClass += ' bull-outside';
+                } else if (stateName === 'BEAR_OUTSIDE') {
+                    cssClass += ' bear-outside';
+                } else if (stateName === 'INSIDE') {
+                    cssClass += ' inside';
+                }
+
+                // If forming and has potential setup, apply pending-setup class
+                if (seg.is_forming && seg.potential_setup && seg.potential_setup !== 'NONE') {
+                    cssClass += ' pending-setup';
+                }
+
+                let colorMeaning = '';
+                if (isNaN(openVal) || isNaN(closeVal)) {
+                    colorMeaning = 'Gray: No Data / Loading';
+                } else {
+                    const isBull = closeVal >= openVal;
+                    let colorBase = isBull ? 'Green (Bullish)' : 'Red (Bearish)';
+                    
+                    if (seg.is_forming && seg.potential_setup && seg.potential_setup !== 'NONE') {
+                        colorMeaning = `Pulsing ${colorBase} with White Border: Pending CRT setup forming`;
+                    } else if (stateName === 'BULL_SWEEP') {
+                        colorMeaning = 'Solid Glowing Green: Closed Bullish Sweep';
+                    } else if (stateName === 'BEAR_SWEEP') {
+                        colorMeaning = 'Solid Glowing Red: Closed Bearish Sweep';
+                    } else if (stateName === 'BULL_OUTSIDE') {
+                        colorMeaning = 'Muted Green with solid border: Bullish Outside Bar';
+                    } else if (stateName === 'BEAR_OUTSIDE') {
+                        colorMeaning = 'Muted Red with solid border: Bearish Outside Bar';
+                    } else if (stateName === 'INSIDE') {
+                        colorMeaning = `${colorBase} with Dashed White Border: Inside Bar`;
+                    } else {
+                        colorMeaning = `${colorBase}: Normal candle color`;
+                    }
+                }
+
+                tooltip = `Timeframe: ${timeframe}\nCandle ${idx + 1}/5 ${seg.is_forming ? '(Forming)' : '(Closed)'}\nState: ${stateName}\n\n• Color Meaning: ${colorMeaning}\n\n• Open: $${seg.open}\n• High: $${seg.high}\n• Low: $${seg.low}\n• Close: $${seg.close}\n• Prev High: $${seg.prev_high}\n• Prev Low: $${seg.prev_low}`;
+                html += `<div class="${cssClass}" title="${tooltip}"></div>`;
+            });
+
+            return `<div class="crt-bar">${html}</div>`;
         }
 
         function drawVWAPIndicator(val) {
@@ -4626,7 +4790,12 @@
                                     </select>
                                 </div>
                             </div>
-                            <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="mw-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <label style="display: flex; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 600; text-transform: uppercase; user-select: none;" title="Show only selected/highlighted rows">
+                                    <input type="checkbox" class="show-selected-cb" onchange="window.toggleOnlyHighlighted('${card.dataset.instanceGuid}', this.checked)" style="accent-color: var(--emerald-green); cursor: pointer;" ${(window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) ? 'checked' : ''}> Show Selected
+                                </label>
+                                <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="mw-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
+                            </div>
                         </div>
                         <div style="flex-grow: 1; overflow-x: auto; overflow-y: auto;">
                             <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 1000px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
@@ -4644,7 +4813,9 @@
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Discount, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Candle Range Theory HTF Sweep status"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SWEEP</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -4745,11 +4916,19 @@
                         return score >= 80;
                     });
                 }
+
+                if (window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) {
+                    window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
+                    filteredCandidates = filteredCandidates.filter(c => {
+                        const symKey = `${card.dataset.instanceGuid}_${c.symbol}`;
+                        return window.vliHighlightedSymbols.has(symKey);
+                    });
+                }
                 
                 if (filteredCandidates.length === 0) {
                     tbody.innerHTML = `
                         <tr style="border: none;">
-                            <td colspan="12" style="text-align: center; padding: 30px 10px; font-size: 12px; color: var(--text-muted); font-style: italic;">No macro assets passed selection criteria.</td>
+                            <td colspan="15" style="text-align: center; padding: 30px 10px; font-size: 12px; color: var(--text-muted); font-style: italic;">No macro assets passed selection criteria.</td>
                         </tr>
                     `;
                 }
@@ -4789,6 +4968,9 @@
                             tr.classList.add('vli-row-highlighted');
                         }
                         insertCardIdIntoChat(`analyze ${c.symbol}`);
+                        if (window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) {
+                            renderWatchlist(window.lastMacroWatchlistData);
+                        }
                     };
                     
                     // Track watchlist price state (stored uniquely for macro list blinking)
@@ -5304,6 +5486,30 @@
             updateScannerResultsUI();
         }
 
+        window.vliOnlyHighlightedFilters = window.vliOnlyHighlightedFilters || {};
+        window.toggleOnlyHighlighted = function(instanceGuid, checked) {
+            window.vliOnlyHighlightedFilters[instanceGuid] = checked;
+            
+            // Synchronize checkbox state in any mirrors (e.g. pop-outs)
+            document.querySelectorAll('.show-selected-cb').forEach(cb => {
+                const card = cb.closest('.card');
+                if (card && card.dataset.instanceGuid === instanceGuid) {
+                    cb.checked = checked;
+                }
+            });
+            
+            // Re-render target card immediately
+            const card = document.getElementById('win-' + instanceGuid);
+            if (card) {
+                const typeGuid = card.dataset.typeGuid;
+                if (typeGuid === 'MACRO_WL' && window.lastMacroWatchlistData) {
+                    renderWatchlist(window.lastMacroWatchlistData);
+                } else if (typeGuid === 'SCAN_RES' && activeScannerCandidates) {
+                    updateScannerResultsUI();
+                }
+            }
+        }
+
         function handleScannerTierChange(selectElement) {
             // Decoupled: Only refilter locally, do not trigger global backend rescans
             updateScannerResultsUI();
@@ -5495,7 +5701,12 @@
                                     </select>
                                 </div>
                             </div>
-                            <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <label style="display: flex; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 600; text-transform: uppercase; user-select: none;" title="Show only selected/highlighted rows">
+                                    <input type="checkbox" class="show-selected-cb" onchange="window.toggleOnlyHighlighted('${card.dataset.instanceGuid}', this.checked)" style="accent-color: var(--emerald-green); cursor: pointer;" ${(window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) ? 'checked' : ''}> Show Selected
+                                </label>
+                                <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
+                            </div>
                         </div>
                         <div style="flex-grow: 1; overflow-x: auto; overflow-y: auto;">
                             <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 1000px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
@@ -5513,7 +5724,9 @@
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Discount, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Candle Range Theory HTF Sweep status"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SWEEP</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -5580,13 +5793,21 @@
                         return score >= 80; // Only show 'A' and 'S' graded RS leaders
                     });
                 }
+
+                if (window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) {
+                    window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
+                    filteredCandidates = filteredCandidates.filter(c => {
+                        const symKey = `${card.dataset.instanceGuid}_${c.symbol}`;
+                        return window.vliHighlightedSymbols.has(symKey);
+                    });
+                }
                 
                 if (filteredCandidates.length === 0) {
                     const statusText = window._vliIsScanning ? "Scanning..." : "Empty List: No candidates passed institutional criteria.";
                     const styleMod = window._vliIsScanning ? "color: var(--cobalt-blue); font-weight: bold; letter-spacing: 1px;" : "color: var(--text-muted); font-style: italic;";
                     tbody.innerHTML = `
                         <tr style="border: none;">
-                            <td colspan="12" style="text-align: center; padding: 30px 10px; font-size: 12px; ${styleMod}">${statusText}</td>
+                            <td colspan="15" style="text-align: center; padding: 30px 10px; font-size: 12px; ${styleMod}">${statusText}</td>
                         </tr>
                     `;
                 }
@@ -5659,6 +5880,9 @@
                             tr.classList.add('vli-row-highlighted');
                         }
                         insertCardIdIntoChat(`analyze ${c.symbol}`);
+                        if (window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) {
+                            updateScannerResultsUI();
+                        }
                     };
                     
                     tr.innerHTML = generateCandidateRowInnerHTML(c, card);

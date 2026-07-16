@@ -244,6 +244,65 @@ def calculate_vwap_state(df_5m, atr=1.0):
         logger.error(f"Error calculating VWAP state: {e}")
         return 0.0
 
+def calculate_crt_segments(df):
+    if df is None or len(df) < 6:
+        return [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE"} for i in range(5)]
+    
+    sub = df.tail(6)
+    segments = []
+    
+    col_map = {str(c).lower(): c for c in sub.columns}
+    high_col = col_map.get("high")
+    low_col = col_map.get("low")
+    close_col = col_map.get("close")
+    open_col = col_map.get("open")
+    
+    if not (high_col and low_col and close_col and open_col):
+        return [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE"} for i in range(5)]
+
+    for i in range(1, 6):
+        prev = sub.iloc[i-1]
+        curr = sub.iloc[i]
+        
+        prev_low = float(prev[low_col])
+        prev_high = float(prev[high_col])
+        curr_low = float(curr[low_col])
+        curr_high = float(curr[high_col])
+        curr_close = float(curr[close_col])
+        curr_open = float(curr[open_col])
+        
+        is_forming = (i == 5)
+        state = "NONE"
+        potential_setup = "NONE"
+        
+        if curr_low < prev_low and curr_close > prev_low:
+            state = "BULL_SWEEP"
+            if is_forming:
+                potential_setup = "BULLISH"
+        elif curr_high > prev_high and curr_close < prev_high:
+            state = "BEAR_SWEEP"
+            if is_forming:
+                potential_setup = "BEARISH"
+        elif curr_close > prev_high:
+            state = "BULL_OUTSIDE"
+        elif curr_close < prev_low:
+            state = "BEAR_OUTSIDE"
+        elif curr_high <= prev_high and curr_low >= prev_low:
+            state = "INSIDE"
+            
+        segments.append({
+            "state": state,
+            "is_forming": is_forming,
+            "potential_setup": potential_setup,
+            "high": round(curr_high, 2),
+            "low": round(curr_low, 2),
+            "close": round(curr_close, 2),
+            "open": round(curr_open, 2),
+            "prev_high": round(prev_high, 2),
+            "prev_low": round(prev_low, 2)
+        })
+    return segments
+
 PENDING_FETCH = set()
 
 async def bulk_fetch_trends_and_sparklines(symbols):
@@ -294,7 +353,14 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                 df_1h = c_timeframes["1h"]
                 if df_1h is not None and not df_1h.empty:
                     try:
-                        c_timeframes["4h"] = df_1h.resample('4h').last().dropna()
+                        col_map = {str(c).lower(): c for c in df_1h.columns}
+                        agg_dict = {}
+                        if 'open' in col_map: agg_dict[col_map['open']] = 'first'
+                        if 'high' in col_map: agg_dict[col_map['high']] = 'max'
+                        if 'low' in col_map: agg_dict[col_map['low']] = 'min'
+                        if 'close' in col_map: agg_dict[col_map['close']] = 'last'
+                        if 'volume' in col_map: agg_dict[col_map['volume']] = 'sum'
+                        c_timeframes["4h"] = df_1h.resample('4h').agg(agg_dict).dropna()
                     except Exception as resample_e:
                         logger.error(f"Failed to resample 4h for {sym}: {resample_e}")
                         
@@ -442,6 +508,11 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                 atr_val = calculate_atr_14(c_timeframes["1d"])
                 vwap_val = calculate_vwap_state(c_timeframes["5m"], atr=atr_val)
                 
+                # Calculate CRT segments for 15m, 1h, and 4h timeframes
+                crt_15m = calculate_crt_segments(c_timeframes["15m"])
+                crt_1h = calculate_crt_segments(c_timeframes["1h"])
+                crt_4h = calculate_crt_segments(c_timeframes["4h"])
+                
                 TRENDS_CACHE[sym] = {
                     "trends": trends if (trends and any(v != "No Data" for v in trends.values())) else (existing_trends or {}),
                     "sparkline_1m": spark_1m if spark_1m else (existing_spark_1m or []),
@@ -455,6 +526,9 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     "change": live_change if live_change is not None else (cached.get("change") if cached else None),
                     "rvol": live_rvol if live_rvol is not None else (cached.get("rvol") if cached else None),
                     "pd_zone": live_pd_zone if live_pd_zone is not None else (cached.get("pd_zone") if cached else None),
+                    "crt_15m": crt_15m,
+                    "crt_1h": crt_1h,
+                    "crt_4h": crt_4h,
                     "timestamp": now
                 }
             
@@ -532,6 +606,9 @@ async def enrich_candidates_with_trends(candidates):
                 "vwap_state": 0.35 if (sum(ord(char) for char in sym) % 2 == 0) else -0.45,
                 "rvol": 1.25 if (sum(ord(char) for char in sym) % 2 == 0) else 0.75,
                 "pd_zone": -0.3 if (sum(ord(char) for char in sym) % 3 == 0) else (0.1 if (sum(ord(char) for char in sym) % 3 == 1) else 0.5),
+                "crt_15m": [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)],
+                "crt_1h": [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)],
+                "crt_4h": [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)],
                 "timestamp": now - 600 # mark as stale so background task updates it
             }
             
@@ -547,6 +624,9 @@ async def enrich_candidates_with_trends(candidates):
                     "sparkline_4h": c.get("sparkline_4h", []),
                     "sparkline_1d": c.get("sparkline_1d", []),
                     "vwap_state": c.get("vwap_state", 0.0),
+                    "crt_15m": c.get("crt_15m", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)]),
+                    "crt_1h": c.get("crt_1h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)]),
+                    "crt_4h": c.get("crt_4h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)]),
                     "timestamp": now
                 }
             
@@ -577,6 +657,10 @@ async def enrich_candidates_with_trends(candidates):
             c["sparkline_1d"] = TRENDS_CACHE[sym].get("sparkline_1d", [])
             c["vwap_state"] = TRENDS_CACHE[sym].get("vwap_state", 0.0)
             
+            c["crt_15m"] = TRENDS_CACHE[sym].get("crt_15m", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
+            c["crt_1h"] = TRENDS_CACHE[sym].get("crt_1h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
+            c["crt_4h"] = TRENDS_CACHE[sym].get("crt_4h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
+            
              # Update live stats dynamically
             cached_price = TRENDS_CACHE[sym].get("price")
             cached_change = TRENDS_CACHE[sym].get("change")
@@ -606,7 +690,49 @@ async def enrich_candidates_with_trends(candidates):
             c["vwap_state"] = c.get("vwap_state", 0.0)
             c["rvol"] = c.get("rvol", 1.0)
             c["pd_zone"] = c.get("pd_zone", 0.0)
+    # Enforce Rule: If a setup formation is detected on multiple timeframes, only the lowest timeframe must indicate it.
+    for c in candidates:
+        crt_15m = c.get("crt_15m", [])
+        crt_1h = c.get("crt_1h", [])
+        crt_4h = c.get("crt_4h", [])
+        
+        def has_active_forming_setup(segs):
+            for s in segs:
+                if s.get("is_forming") and s.get("potential_setup") and s.get("potential_setup") != "NONE":
+                    return True
+            return False
             
+        def clear_forming_setup(segs):
+            for s in segs:
+                if s.get("is_forming"):
+                    s["potential_setup"] = "NONE"
+                    
+        has_15m = has_active_forming_setup(crt_15m)
+        has_1h = has_active_forming_setup(crt_1h)
+        has_4h = has_active_forming_setup(crt_4h)
+        
+        if has_15m:
+            if has_1h:
+                clear_forming_setup(crt_1h)
+            if has_4h:
+                clear_forming_setup(crt_4h)
+        elif has_1h:
+            if has_4h:
+                clear_forming_setup(crt_4h)
+        # Enforce Rule 2: No nested CRT setups. If a new setup starts to form, clear historical setup states.
+        for tf_key in ["crt_15m", "crt_1h", "crt_4h"]:
+            segs = c.get(tf_key, [])
+            has_forming_setup = False
+            for s in segs:
+                if s.get("is_forming") and s.get("potential_setup") and s.get("potential_setup") != "NONE":
+                    has_forming_setup = True
+                    break
+            if has_forming_setup:
+                for s in segs:
+                    if not s.get("is_forming"):
+                        if s.get("state") in ["BULL_SWEEP", "BEAR_SWEEP", "BULL_OUTSIDE", "BEAR_OUTSIDE"]:
+                            s["state"] = "NONE"
+                            
     return candidates
 
 @router.get("/bunker")
@@ -1316,7 +1442,7 @@ async def recalculate_sweep(req: RecalculateSweepRequest):
                     if 'close' in col_map: agg_dict[col_map['close']] = 'last'
                     if 'volume' in col_map: agg_dict[col_map['volume']] = 'sum'
                     
-                    df = df.resample('4H').agg(agg_dict).dropna()
+                    df = df.resample('4h').agg(agg_dict).dropna()
                 except Exception as ex:
                     logger.error(f"Resampling failed for {original}: {ex}")
                     
