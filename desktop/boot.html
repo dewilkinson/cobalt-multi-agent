@@ -235,10 +235,24 @@
             
             // Dynamically list each third-party subscription API service status
             for (const svc of data.services) {
-                const paddedName = svc.service.padEnd(48, '.');
-                const statusStr = svc.connected ? "<span class='status-ok'>[ LOADED ]</span>" : "<span class='status-warn'>[ OFFLINE ]</span>";
+                let statusStr = "";
+                if (svc.connected) {
+                    statusStr = "<span class='status-ok'>[ LOADED ]</span>";
+                } else {
+                    const shortFallback = svc.fallback.split(" (")[0].split(" / ")[0];
+                    statusStr = `<span class='status-warn'>[ OFFLINE -> ${shortFallback} ]</span>`;
+                }
+                const paddedName = svc.service.padEnd(42, '.');
                 await addLog(` * ${paddedName} ${statusStr}`, 100);
             }
+            
+            const affectedFuncs = {
+                "Google AI Studio (Gemini)": "Agent chat / reasoning, automated chart reviews, macro briefing summaries (Ollama fallback is slower)",
+                "Financial Modeling Prep (FMP)": "Realtime gainers/losers/active scanners (yfinance fallback is delayed/less real-time)",
+                "Alpha Vantage API": "Intraday news sentiment indexes, macroeconomic indicators",
+                "Tavily Search API": "Scout agent web search & research utilities (falls back to Brave/DuckDuckGo Search)",
+                "Ngrok Tunneling Service": "External TradingView alert webhooks (webhook ingestion disabled; localhost-only)"
+            };
             
             let hasWarnings = false;
             for (const svc of data.services) {
@@ -247,7 +261,9 @@
                         await addLog("<br><span class='status-warn'>[ DIAGNOSTIC WARNINGS & LOGS ]</span>", 150);
                         hasWarnings = true;
                     }
-                    await addLog(` * ${svc.service}: KEY MISSING (Using Fallback: ${svc.fallback})`, 100);
+                    await addLog(` * ${svc.service}: KEY MISSING`, 100);
+                    const affected = affectedFuncs[svc.service] || "None";
+                    await addLog(`   <span class='status-warn'>- AFFECTED:</span> ${affected}`, 100);
                 }
             }
 
