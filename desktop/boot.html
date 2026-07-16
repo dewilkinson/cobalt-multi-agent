@@ -249,10 +249,10 @@
             await addLog("<span class='status-highlight'>BOOT COMPLETED. REDIRECTING TO WORKSPACE...</span>", 200);
             
             await addLog("<br><span class='status-ok'>[ CORE LOAD REPORT ]</span>", 300);
-            await addLog(" * Configuration Profile Subsystem .................. [ LOADED ]", 100);
-            await addLog(" * Local Python Core Service Engine ................. [ LOADED ]", 100);
-            await addLog(" * Watchlist Analyzer & Scanner Module .............. [ LOADED ]", 100);
-            await addLog(" * FIFO Trades Plotter Script Generator ............. [ LOADED ]", 100);
+            await addLog(" * Configuration Profile Subsystem .................. <span class='status-ok'>[ LOADED ]</span>", 100);
+            await addLog(" * Local Python Core Service Engine ................. <span class='status-ok'>[ LOADED ]</span>", 100);
+            await addLog(" * Watchlist Analyzer & Scanner Module .............. <span class='status-ok'>[ LOADED ]</span>", 100);
+            await addLog(" * FIFO Trades Plotter Script Generator ............. <span class='status-ok'>[ LOADED ]</span>", 100);
             
             // Dynamically list each third-party subscription API service status
             for (const svc of data.services) {
