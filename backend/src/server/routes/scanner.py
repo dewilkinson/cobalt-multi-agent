@@ -579,7 +579,13 @@ def align_forming_candle(df, tf_name, live_price, now_time, is_future=False):
             minute = (now_dt.minute // 15) * 15
             current_forming_ts = now_dt.replace(minute=minute, second=0, microsecond=0)
         elif tf_clean in ["1h", "1min"]:
-            current_forming_ts = now_dt.replace(minute=0, second=0, microsecond=0)
+            if is_future:
+                current_forming_ts = now_dt.replace(minute=0, second=0, microsecond=0)
+            else:
+                if now_dt.minute >= 30:
+                    current_forming_ts = now_dt.replace(minute=30, second=0, microsecond=0)
+                else:
+                    current_forming_ts = (now_dt - timedelta(hours=1)).replace(minute=30, second=0, microsecond=0)
         elif tf_clean in ["4h"]:
             if is_future:
                 shifted_dt = now_dt - timedelta(hours=2)
