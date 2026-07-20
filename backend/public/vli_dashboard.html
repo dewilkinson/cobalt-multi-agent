@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0231";
+        const VLI_CLIENT_VERSION = "00.000.0234";
     </script>
     
     <link
@@ -96,9 +96,11 @@
             border: none !important;
         }
         .crt-segment.bull-sweep {
+            background: var(--cobalt-blue) !important;
             box-shadow: 0 0 6px rgba(126, 163, 204, 0.3);
         }
         .crt-segment.bear-sweep {
+            background: var(--ruby-red) !important;
             box-shadow: 0 0 6px rgba(154, 145, 168, 0.3);
         }
         .crt-segment.bull-outside {
@@ -4592,10 +4594,10 @@
                     // Walk forward from sweepIdx to narrow range on INSIDE bars and find the first breach
                     for (let i = sweepIdx; i <= lastIdx; i++) {
                         const state = segments[i].state || 'NONE';
-                        if (state === 'INSIDE') {
-                            rangeCandleIdx = i;
-                            rangeLow = parseFloat(segments[i].low);
-                            rangeHigh = parseFloat(segments[i].high);
+                        if (state === 'INSIDE' && !segments[i].is_forming) {
+                            rangeCandleIdx = i - 1;
+                            rangeLow = parseFloat(segments[rangeCandleIdx].low);
+                            rangeHigh = parseFloat(segments[rangeCandleIdx].high);
                         }
                         
                         const closeVal = parseFloat(segments[i].close);
@@ -4639,15 +4641,15 @@
                     let rangeCandleIdx = sweepIdx - 1;
                     for (let i = sweepIdx; i <= lastIdx; i++) {
                         const state = segments[i].state || 'NONE';
-                        if (state === 'INSIDE' && idxArray.includes(i)) {
-                            rangeCandleIdx = i;
+                        if (state === 'INSIDE' && idxArray.includes(i) && !segments[i].is_forming) {
+                            rangeCandleIdx = i - 1;
                         }
                     }
                     const rangeCandle = segments[rangeCandleIdx];
                     const currentClose = parseFloat(lastSeg.close);
                     
-                    let bgStyle = 'rgba(255, 255, 255, 0.08)';
-                    let borderStyle = 'rgba(255, 255, 255, 0.2)';
+                    let bgStyle = 'rgba(241, 196, 15, 0.12)';
+                    let borderStyle = 'rgba(241, 196, 15, 0.5)';
                     zoneName = 'Equilibrium';
                     
                     if (rangeCandle) {
@@ -4656,12 +4658,12 @@
                         if (!isNaN(rLow) && !isNaN(rHigh) && !isNaN(currentClose)) {
                             const mid = (rLow + rHigh) / 2;
                             if (currentClose >= mid) {
-                                bgStyle = 'rgba(154, 145, 168, 0.22)';
-                                borderStyle = 'rgba(154, 145, 168, 0.6)';
+                                bgStyle = 'rgba(248, 81, 73, 0.18)';
+                                borderStyle = 'rgba(248, 81, 73, 0.55)';
                                 zoneName = 'Premium Zone';
                             } else {
-                                bgStyle = 'rgba(126, 163, 204, 0.22)';
-                                borderStyle = 'rgba(126, 163, 204, 0.6)';
+                                bgStyle = 'rgba(63, 185, 80, 0.18)';
+                                borderStyle = 'rgba(63, 185, 80, 0.55)';
                                 zoneName = 'Discount Zone';
                             }
                         }
@@ -4744,10 +4746,10 @@
 
                 let sweepDotHTML = '';
                 if (stateName === 'BULL_SWEEP' || stateName === 'DOUBLE_SWEEP') {
-                    sweepDotHTML += `<div class="sweep-dot bull-sweep-dot" style="position: absolute; width: 4px; height: 4px; background: var(--cobalt-blue); border-radius: 50%; bottom: -6px; left: 3px; z-index: 10;"></div>`;
+                    sweepDotHTML += `<div class="sweep-dot bull-sweep-dot" style="position: absolute; width: 4px; height: 4px; background: var(--cobalt-blue); border-radius: 50%; bottom: -6px; left: 50%; transform: translateX(-50%); z-index: 10;"></div>`;
                 }
                 if (stateName === 'BEAR_SWEEP' || stateName === 'DOUBLE_SWEEP') {
-                    sweepDotHTML += `<div class="sweep-dot bear-sweep-dot" style="position: absolute; width: 4px; height: 4px; background: var(--ruby-red); border-radius: 50%; top: -6px; left: 3px; z-index: 10;"></div>`;
+                    sweepDotHTML += `<div class="sweep-dot bear-sweep-dot" style="position: absolute; width: 4px; height: 4px; background: var(--ruby-red); border-radius: 50%; top: -6px; left: 50%; transform: translateX(-50%); z-index: 10;"></div>`;
                 }
                 
                 const openTime = seg.open_time || 'N/A';
@@ -5922,9 +5924,14 @@
             updateScannerResultsUI();
         }
 
-        window.vliOnlyHighlightedFilters = window.vliOnlyHighlightedFilters || {};
+        try {
+            window.vliOnlyHighlightedFilters = JSON.parse(localStorage.getItem('vliOnlyHighlightedFilters')) || {};
+        } catch (e) {
+            window.vliOnlyHighlightedFilters = {};
+        }
         window.toggleOnlyHighlighted = function(instanceGuid, checked) {
             window.vliOnlyHighlightedFilters[instanceGuid] = checked;
+            localStorage.setItem('vliOnlyHighlightedFilters', JSON.stringify(window.vliOnlyHighlightedFilters));
             
             // Synchronize checkbox state in any mirrors (e.g. pop-outs)
             document.querySelectorAll('.show-selected-cb').forEach(cb => {
@@ -8059,7 +8066,19 @@
             flex-direction: column;
             gap: 12px;
             z-index: 40002;
-            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), right 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        #sidebar-tabs-left {
+            transform: translateY(-50%) translateX(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        #sidebar-tabs-right {
+            transform: translateY(-50%) translateX(100%);
+            opacity: 0;
+            pointer-events: none;
         }
         
         .folder-tab {
@@ -8292,6 +8311,56 @@
         
         // --- SIDEBAR RESIZING LOGIC ---
         document.addEventListener('DOMContentLoaded', () => {
+            // Dynamic visibility of sidebar tabs based on mouse position
+            document.addEventListener('mousemove', (e) => {
+                const threshold = 50; // Show tabs if mouse is within 50px of the trigger margin
+                const leftTabs = document.getElementById('sidebar-tabs-left');
+                const rightTabs = document.getElementById('sidebar-tabs-right');
+                
+                const leftSidebar = document.getElementById('vli-sidebar-left');
+                const rightSidebar = document.getElementById('vli-sidebar-right');
+                
+                // Check if left sidebar is open
+                const isLeftOpen = activeSidebarTabs.has('artifacts') || activeSidebarTabs.has('strategy');
+                if (leftTabs && leftSidebar) {
+                    let triggerLimit = threshold;
+                    if (isLeftOpen) {
+                        const rect = leftSidebar.getBoundingClientRect();
+                        triggerLimit = rect.width + threshold;
+                    }
+                    
+                    if (e.clientX < triggerLimit || leftTabs.matches(':hover')) {
+                        leftTabs.style.transform = 'translateY(-50%) translateX(0)';
+                        leftTabs.style.opacity = '1';
+                        leftTabs.style.pointerEvents = 'auto';
+                    } else {
+                        leftTabs.style.transform = 'translateY(-50%) translateX(-100%)';
+                        leftTabs.style.opacity = '0';
+                        leftTabs.style.pointerEvents = 'none';
+                    }
+                }
+                
+                // Check if right sidebar is open
+                const isRightOpen = activeSidebarTabs.has('coordinator');
+                if (rightTabs && rightSidebar) {
+                    let triggerLimit = window.innerWidth - threshold;
+                    if (isRightOpen) {
+                        const rect = rightSidebar.getBoundingClientRect();
+                        triggerLimit = window.innerWidth - rect.width - threshold;
+                    }
+                    
+                    if (e.clientX > triggerLimit || rightTabs.matches(':hover')) {
+                        rightTabs.style.transform = 'translateY(-50%) translateX(0)';
+                        rightTabs.style.opacity = '1';
+                        rightTabs.style.pointerEvents = 'auto';
+                    } else {
+                        rightTabs.style.transform = 'translateY(-50%) translateX(100%)';
+                        rightTabs.style.opacity = '0';
+                        rightTabs.style.pointerEvents = 'none';
+                    }
+                }
+            });
+
             const resizers = document.querySelectorAll('.sidebar-resizer');
             
             let isResizingSidebar = false;

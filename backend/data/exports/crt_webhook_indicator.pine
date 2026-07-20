@@ -1,67 +1,343 @@
 //@version=6
-indicator("Candle Range Theory Webhook (Cobalt)", overlay=true)
+indicator("Candle Range Theory Webhook & Dashboard (Cobalt)", overlay=true)
 
-// Calculate states
+// User-Defined Type to hold historical prices safely without function parameter history tracking issues
+type CrtPriceData
+    float o0
+    float o1
+    float o2
+    float o3
+    float o4
+    float h0
+    float h1
+    float h2
+    float h3
+    float h4
+    float h5
+    float l0
+    float l1
+    float l2
+    float l3
+    float l4
+    float l5
+    float c0
+    float c1
+    float c2
+    float c3
+    float c4
+
+// Color Customizations (for Dashboard Table UI)
+color_table_bull = input.color(#7ea3cc, "Table Bullish Color (Steel Blue)")
+color_table_bear = input.color(#9a91a8, "Table Bearish Color (Slate Gray)")
+color_table_double = input.color(#ffa500, "Table Double Sweep (Orange)")
+
+// Timeframe Customizations (for Dashboard Table UI)
+tf1 = input.timeframe("15", "Table Timeframe 1")
+tf2 = input.timeframe("60", "Table Timeframe 2")
+tf3 = input.timeframe("240", "Table Timeframe 3")
+
+// Table Layout Customizations
+table_pos = input.string("top_right", "Table Position", options=["top_right", "top_left", "bottom_right", "bottom_left"])
+text_sz = input.string("normal", "Table Text Size", options=["small", "normal", "large"])
+
+// Alert Customizations
+alert_delay_min = input.int(5, "Min Webhook Delay (minutes)", minval=1)
+alert_delay_sec = alert_delay_min * 60
+alert_freq_opt = input.string("Once Per Bar", "Alert Frequency Mode", options=["Every Tick", "Once Per Bar", "Once Per Bar Close"])
+
+// Resolve table position and text size as compile-time constants
+text_size_const = text_sz == "small" ? size.small : text_sz == "large" ? size.large : size.normal
+table_pos_const = table_pos == "top_left" ? position.top_left : table_pos == "bottom_right" ? position.bottom_right : table_pos == "bottom_left" ? position.bottom_left : position.top_right
+
+// Map logical table columns to physical columns for margin offsets
+is_left = table_pos == "top_left" or table_pos == "bottom_left"
+get_col(col_idx) => is_left ? col_idx + 1 : col_idx
+spacer_col = is_left ? 0 : 6
+
+// Calculate CRT states for the current chart bar
 prev_high = high[1]
 prev_low = low[1]
+
+// Global bar change detection (assigned at global scope to comply with CW10003)
+is_new_bar = not na(time[1]) and time != time[1]
 
 is_bull_sweep = low < prev_low and close > prev_low
 is_bear_sweep = high > prev_high and close < prev_high
 
-state = "NONE"
-if (is_bull_sweep and is_bear_sweep)
-    state := "DOUBLE_SWEEP"
-else if (is_bull_sweep)
-    state := "BULL_SWEEP"
-else if (is_bear_sweep)
-    state := "BEAR_SWEEP"
-else if (close > prev_high)
-    state := "BULL_OUTSIDE"
-else if (close < prev_low)
-    state := "BEAR_OUTSIDE"
-else if (high <= prev_high and low >= prev_low)
-    state := "INSIDE"
+// State and State Code Calculations using pure functional expressions (compile-safe)
+state = is_bull_sweep and is_bear_sweep ? "DOUBLE_SWEEP" : is_bull_sweep ? "BULL_SWEEP" : is_bear_sweep ? "BEAR_SWEEP" : close > prev_high ? "BULL_OUTSIDE" : close < prev_low ? "BEAR_OUTSIDE" : high <= prev_high and low >= prev_low ? "INSIDE" : "NONE"
+state_code = is_bull_sweep and is_bear_sweep ? 3 : is_bull_sweep ? 1 : is_bear_sweep ? 2 : close > prev_high ? 4 : close < prev_low ? 5 : high <= prev_high and low >= prev_low ? 6 : 0
 
-// Construct JSON segments using constant indices (0 to 4)
-open_time_4 = str.format("{0,date,yyyy-MM-dd HH:mm}", time[4])
-seg4 = '{"state": "' + state[4] + '", "is_forming": false, "open": ' + str.tostring(open[4]) + ', "high": ' + str.tostring(high[4]) + ', "low": ' + str.tostring(low[4]) + ', "close": ' + str.tostring(close[4]) + ', "prev_high": ' + str.tostring(high[5]) + ', "prev_low": ' + str.tostring(low[5]) + ', "open_time": "' + open_time_4 + '"}'
+// Helper function to resolve state string from state code (avoiding illegal string history lookup)
+get_state_str(code) =>
+    switch code
+        1 => "BULL_SWEEP"
+        2 => "BEAR_SWEEP"
+        3 => "DOUBLE_SWEEP"
+        4 => "BULL_OUTSIDE"
+        5 => "BEAR_OUTSIDE"
+        6 => "INSIDE"
+        => "NONE"
 
-open_time_3 = str.format("{0,date,yyyy-MM-dd HH:mm}", time[3])
-seg3 = '{"state": "' + state[3] + '", "is_forming": false, "open": ' + str.tostring(open[3]) + ', "high": ' + str.tostring(high[3]) + ', "low": ' + str.tostring(low[3]) + ', "close": ' + str.tostring(close[3]) + ', "prev_high": ' + str.tostring(high[4]) + ', "prev_low": ' + str.tostring(low[4]) + ', "open_time": "' + open_time_3 + '"}'
+// Rate-limit variables at global scope
+varip string last_sent_state = "NONE"
+varip int last_sent_time = 0
 
-open_time_2 = str.format("{0,date,yyyy-MM-dd HH:mm}", time[2])
-seg2 = '{"state": "' + state[2] + '", "is_forming": false, "open": ' + str.tostring(open[2]) + ', "high": ' + str.tostring(high[2]) + ', "low": ' + str.tostring(low[2]) + ', "close": ' + str.tostring(close[2]) + ', "prev_high": ' + str.tostring(high[3]) + ', "prev_low": ' + str.tostring(low[3]) + ', "open_time": "' + open_time_2 + '"}'
+// Construct JSON segments and trigger webhook alerts only if enough history exists (prevents startup runtime crash on bar 0)
+if not na(time[4]) and not na(high[5]) and not na(low[5])
+    open_time_4 = str.format("{0,date,yyyy-MM-dd HH:mm}", na(time[4]) ? 0 : time[4])
+    seg4 = '{"state": "' + get_state_str(state_code[4]) + '", "is_forming": false, "open": ' + str.tostring(open[4]) + ', "high": ' + str.tostring(high[4]) + ', "low": ' + str.tostring(low[4]) + ', "close": ' + str.tostring(close[4]) + ', "prev_high": ' + str.tostring(high[5]) + ', "prev_low": ' + str.tostring(low[5]) + ', "open_time": "' + open_time_4 + '"}'
 
-open_time_1 = str.format("{0,date,yyyy-MM-dd HH:mm}", time[1])
-seg1 = '{"state": "' + state[1] + '", "is_forming": false, "open": ' + str.tostring(open[1]) + ', "high": ' + str.tostring(high[1]) + ', "low": ' + str.tostring(low[1]) + ', "close": ' + str.tostring(close[1]) + ', "prev_high": ' + str.tostring(high[2]) + ', "prev_low": ' + str.tostring(low[2]) + ', "open_time": "' + open_time_1 + '"}'
+    open_time_3 = str.format("{0,date,yyyy-MM-dd HH:mm}", na(time[3]) ? 0 : time[3])
+    seg3 = '{"state": "' + get_state_str(state_code[3]) + '", "is_forming": false, "open": ' + str.tostring(open[3]) + ', "high": ' + str.tostring(high[3]) + ', "low": ' + str.tostring(low[3]) + ', "close": ' + str.tostring(close[3]) + ', "prev_high": ' + str.tostring(high[4]) + ', "prev_low": ' + str.tostring(low[4]) + ', "open_time": "' + open_time_3 + '"}'
 
-open_time_0 = str.format("{0,date,yyyy-MM-dd HH:mm}", time[0])
-is_forming_0 = barstate.isconfirmed ? "false" : "true"
-seg0 = '{"state": "' + state[0] + '", "is_forming": ' + is_forming_0 + ', "open": ' + str.tostring(open[0]) + ', "high": ' + str.tostring(high[0]) + ', "low": ' + str.tostring(low[0]) + ', "close": ' + str.tostring(close[0]) + ', "prev_high": ' + str.tostring(high[1]) + ', "prev_low": ' + str.tostring(low[1]) + ', "open_time": "' + open_time_0 + '"}'
+    open_time_2 = str.format("{0,date,yyyy-MM-dd HH:mm}", na(time[2]) ? 0 : time[2])
+    seg2 = '{"state": "' + get_state_str(state_code[2]) + '", "is_forming": false, "open": ' + str.tostring(open[2]) + ', "high": ' + str.tostring(high[2]) + ', "low": ' + str.tostring(low[2]) + ', "close": ' + str.tostring(close[2]) + ', "prev_high": ' + str.tostring(high[3]) + ', "prev_low": ' + str.tostring(low[3]) + ', "open_time": "' + open_time_2 + '"}'
 
-payload = '{"symbol": "' + syminfo.ticker + '", "timeframe": "' + timeframe.period + '", "segments": [' + seg4 + ', ' + seg3 + ', ' + seg2 + ', ' + seg1 + ', ' + seg0 + ']}'
+    open_time_1 = str.format("{0,date,yyyy-MM-dd HH:mm}", na(time[1]) ? 0 : time[1])
+    seg1 = '{"state": "' + get_state_str(state_code[1]) + '", "is_forming": false, "open": ' + str.tostring(open[1]) + ', "high": ' + str.tostring(high[1]) + ', "low": ' + str.tostring(low[1]) + ', "close": ' + str.tostring(close[1]) + ', "prev_high": ' + str.tostring(high[2]) + ', "prev_low": ' + str.tostring(low[2]) + ', "open_time": "' + open_time_1 + '"}'
 
-// Rate-limit alerts during the forming candle to prevent TradingView from pausing it
-var string last_sent_state = "NONE"
-var int last_sent_time = 0
+    open_time_0 = str.format("{0,date,yyyy-MM-dd HH:mm}", na(time[0]) ? 0 : time[0])
+    is_forming_0 = barstate.isconfirmed ? "false" : "true"
+    seg0 = '{"state": "' + get_state_str(state_code[0]) + '", "is_forming": ' + is_forming_0 + ', "open": ' + str.tostring(open[0]) + ', "high": ' + str.tostring(high[0]) + ', "low": ' + str.tostring(low[0]) + ', "close": ' + str.tostring(close[0]) + ', "prev_high": ' + str.tostring(high[1]) + ', "prev_low": ' + str.tostring(low[1]) + ', "open_time": "' + open_time_0 + '"}'
 
-state_changed = (state != last_sent_state)
-// Coalesce updates to at most once every 10 seconds during the forming bar, or when state changes
-time_elapsed = timenow - last_sent_time
-should_alert = false
+    payload = '{"symbol": "' + syminfo.ticker + '", "timeframe": "' + timeframe.period + '", "segments": [' + seg4 + ', ' + seg3 + ', ' + seg2 + ', ' + seg1 + ', ' + seg0 + ']}'
 
-if barstate.isconfirmed or barstate.isnew
-    should_alert := true
-else if (state_changed or (time_elapsed >= 10000 and ta.change(close) != 0))
-    should_alert := true
+    if barstate.islast
+        state_changed = (state != last_sent_state)
+        time_elapsed = timenow - last_sent_time
+        should_alert = false
 
-if should_alert
-    alert(payload, alert.freq_all)
-    last_sent_state := state
-    last_sent_time := timenow
+        if barstate.isconfirmed
+            should_alert := true
+        else if state_changed and time_elapsed >= (alert_delay_sec * 1000)
+            should_alert := true
 
-// Visual markers on TradingView chart for confirmation
-plotshape(state == "BULL_SWEEP", title="Bull Sweep", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small)
-plotshape(state == "BEAR_SWEEP", title="Bear Sweep", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
-plotshape(state == "DOUBLE_SWEEP", title="Double Sweep", style=shape.diamond, location=location.belowbar, color=color.orange, size=size.small)
-plotshape(state == "INSIDE", title="Inside Bar", style=shape.circle, location=location.belowbar, color=color.yellow, size=size.small)
+        if should_alert
+            if alert_freq_opt == "Once Per Bar"
+                alert(payload, alert.freq_once_per_bar)
+            else if alert_freq_opt == "Once Per Bar Close"
+                alert(payload, alert.freq_once_per_bar_close)
+            else
+                alert(payload, alert.freq_all)
+            last_sent_state := state
+            last_sent_time := timenow
+
+// Define the function that constructs the CrtPriceData type inside security context
+fetch_prices() =>
+    CrtPriceData.new(
+       open, open[1], open[2], open[3], open[4],
+       high, high[1], high[2], high[3], high[4], high[5],
+       low, low[1], low[2], low[3], low[4], low[5],
+       close, close[1], close[2], close[3], close[4]
+     )
+
+// Fetch raw prices for all 4 timeframes at the global scope (100% runtime and compilation safe)
+tf1_prices = request.security(syminfo.tickerid, tf1, fetch_prices())
+tf2_prices = request.security(syminfo.tickerid, tf2, fetch_prices())
+tf3_prices = request.security(syminfo.tickerid, tf3, fetch_prices())
+
+// Pure helper function to resolve state code from price data variables (avoiding na values)
+get_state_code_from_prices(o_curr, h_curr, l_curr, c_curr, h_prev, l_prev) =>
+    is_bull = l_curr < l_prev and c_curr > l_prev
+    is_bear = h_curr > h_prev and c_curr < h_prev
+    code = is_bull and is_bear ? 3 : is_bull ? 1 : is_bear ? 2 : c_curr > h_prev ? 4 : c_curr < l_prev ? 5 : h_curr <= h_prev and l_curr >= l_prev ? 6 : 0
+    code
+
+// Define function to render a timeframe row
+draw_tf_row(tb, row_idx, tf_label, p) =>
+    if not na(p) and not na(p.o4) and not na(p.h5) and not na(p.l5)
+        // Arrays representing the 5 segments (from oldest to newest)
+        state_codes = array.new_int(5)
+        array.set(state_codes, 0, get_state_code_from_prices(p.o4, p.h4, p.l4, p.c4, p.h5, p.l5))
+        array.set(state_codes, 1, get_state_code_from_prices(p.o3, p.h3, p.l3, p.c3, p.h4, p.l4))
+        array.set(state_codes, 2, get_state_code_from_prices(p.o2, p.h2, p.l2, p.c2, p.h3, p.l3))
+        array.set(state_codes, 3, get_state_code_from_prices(p.o1, p.h1, p.l1, p.c1, p.h2, p.l2))
+        array.set(state_codes, 4, get_state_code_from_prices(p.o0, p.h0, p.l0, p.c0, p.h1, p.l1))
+
+        opens = array.new_float(5)
+        array.set(opens, 0, p.o4)
+        array.set(opens, 1, p.o3)
+        array.set(opens, 2, p.o2)
+        array.set(opens, 3, p.o1)
+        array.set(opens, 4, p.o0)
+
+        highs = array.new_float(5)
+        array.set(highs, 0, p.h4)
+        array.set(highs, 1, p.h3)
+        array.set(highs, 2, p.h2)
+        array.set(highs, 3, p.h1)
+        array.set(highs, 4, p.h0)
+
+        lows = array.new_float(5)
+        array.set(lows, 0, p.l4)
+        array.set(lows, 1, p.l3)
+        array.set(lows, 2, p.l2)
+        array.set(lows, 3, p.l1)
+        array.set(lows, 4, p.l0)
+
+        closes = array.new_float(5)
+        array.set(closes, 0, p.c4)
+        array.set(closes, 1, p.c3)
+        array.set(closes, 2, p.c2)
+        array.set(closes, 3, p.c1)
+        array.set(closes, 4, p.c0)
+
+        // Calculate active CRT range
+        sweep_idx = -1
+        for i = 0 to 3
+            idx = 3 - i
+            sc = array.get(state_codes, idx)
+            if sc == 1 or sc == 2 or sc == 4 or sc == 5
+                sweep_idx := idx
+                break
+
+        active_indices = array.new_bool(5, false)
+        breach_idx = -1
+        range_candle_idx = -1
+        
+        if sweep_idx != -1
+            range_candle_idx := math.max(0, sweep_idx - 1)
+            range_low = array.get(lows, range_candle_idx)
+            range_high = array.get(highs, range_candle_idx)
+            
+            sweep_state = array.get(state_codes, sweep_idx)
+            is_outside_setup = sweep_state == 4 or sweep_state == 5
+            
+            for i = sweep_idx to 4
+                c_val = array.get(closes, i)
+                if is_outside_setup
+                    if c_val >= range_low and c_val <= range_high
+                        breach_idx := i
+                        break
+                else
+                    if sweep_state == 1 and c_val < range_low
+                        breach_idx := i
+                        break
+                    else if sweep_state == 2 and c_val > range_high
+                        breach_idx := i
+                        break
+                    else if sweep_state == 3
+                        if c_val < range_low or c_val > range_high
+                            breach_idx := i
+                            break
+                            
+                sc = array.get(state_codes, i)
+                if sc == 6
+                    range_candle_idx := i
+                    range_low := array.get(lows, i)
+                    range_high := array.get(highs, i)
+            
+            end_idx = breach_idx != -1 ? math.max(0, breach_idx - 1) : 4
+            for i = math.max(0, sweep_idx - 1) to end_idx
+                array.set(active_indices, i, true)
+
+
+        // Set spacer cell for alignment offset
+        table.cell(tb, spacer_col, row_idx, "      ", bgcolor=color.new(color.black, 100))
+
+        // Set Timeframe Label Cell (Row Header backshaded in lighter shade of blue #c8daf0)
+        lbl = tf_label == "15" ? " 15m " : tf_label == "60" ? "  1h  " : tf_label == "240" ? "  4h  " : tf_label == "D" ? "  1d  " : "  " + tf_label + "  "
+        table.cell(tb, get_col(0), row_idx, lbl, text_color=color.black, text_size=text_size_const, bgcolor=#c8daf0, text_formatting=text.format_bold, tooltip="Timeframe " + tf_label)
+
+        // Set segment indicator cells (columns 1 to 5, shifted by column mapper)
+        for idx = 0 to 4
+            sc = array.get(state_codes, idx)
+            
+            // Symbols mapping with space padding to auto-widen cells cleanly
+            sym = "  ○  "
+            t_color = #595959 // Default dark gray text for normal symbols to stand out
+            tt_desc = "Normal Bar"
+            
+            if sc == 1 // BULL_SWEEP
+                sym := "  ◆  "
+                t_color := #9c9c9c // Darker Light Gray
+                tt_desc := "Bullish Sweep"
+            else if sc == 2 // BEAR_SWEEP
+                sym := "  ◆  "
+                t_color := #9bc5fa // Light Blue
+                tt_desc := "Bearish Sweep"
+            else if sc == 3 // DOUBLE_SWEEP
+                sym := "  ◆  "
+                t_color := #0f3d1d // Very Dark Forest Green
+                tt_desc := "Double Sweep"
+            else if sc == 4 // BULL_OUTSIDE
+                sym := "  ⬤  "
+                t_color := #9c9c9c // Darker Light Gray
+                tt_desc := "Bullish Outside Bar"
+            else if sc == 5 // BEAR_OUTSIDE
+                sym := "  ⬤  "
+                t_color := #9bc5fa // Light Blue
+                tt_desc := "Bearish Outside Bar"
+            else if sc == 6 // INSIDE
+                sym := "  ⊚  "
+                c_val = array.get(closes, idx)
+                o_val = array.get(opens, idx)
+                if c_val >= o_val
+                    t_color := #9c9c9c // Darker Light Gray (Bullish Inside)
+                    tt_desc := "Bullish Inside Bar"
+                else
+                    t_color := #9bc5fa // Light Blue (Bearish Inside)
+                    tt_desc := "Bearish Inside Bar"
+
+            // Shading Box Backgrounds (Light Pastel Orange for active CRT in-progress ranges)
+            bg_col = #ffffff // Off-white default
+            if array.get(active_indices, idx)
+                bg_col := #ffe5cc // Light Pastel Orange
+                tt_desc := tt_desc + " (CRT Range in progress)"
+                    
+            // Set cell size dynamically (enlarge sweeps ◆ to match the visual scale of other indicators)
+            t_sz = text_size_const
+            if sc == 1 or sc == 2 or sc == 3
+                t_sz := size.large
+
+            // Set cell (Auto-sized, no explicit width/height to prevent blurriness)
+            table.cell(tb, get_col(idx + 1), row_idx, sym, text_color=t_color, text_size=t_sz, bgcolor=bg_col, text_formatting=text.format_bold, tooltip=tt_desc)
+    else
+        // If data is na, render table row with label and placeholder circles
+        table.cell(tb, spacer_col, row_idx, "      ", bgcolor=color.new(color.black, 100))
+        lbl_na = tf_label == "15" ? " 15m " : tf_label == "60" ? "  1h  " : tf_label == "240" ? "  4h  " : tf_label == "D" ? "  1d  " : "  " + tf_label + "  "
+        table.cell(tb, get_col(0), row_idx, lbl_na, text_color=color.black, text_size=text_size_const, bgcolor=#c8daf0, text_formatting=text.format_bold, tooltip="Timeframe " + tf_label + " (Loading...)")
+        for idx = 0 to 4
+            table.cell(tb, get_col(idx + 1), row_idx, "  ○  ", text_color=color.gray, text_size=text_size_const, bgcolor=#f8f9fa, tooltip="Data Loading...")
+
+// Initialize the dashboard table (7 columns, 5 rows, thin solid black borders with high transparency)
+var tb = table.new(table_pos_const, 7, 5, bgcolor=color.new(color.black, 100), border_color=color.new(color.black, 88), border_width=1)
+
+if barstate.islast
+    // Set spacer cell for header alignment offset
+    table.cell(tb, spacer_col, 0, "      ", bgcolor=color.new(color.black, 100))
+
+    // 1. Header Row (Row 0 - Col and Row headers backshaded in lighter shade of blue #c8daf0)
+    table.cell(tb, get_col(0), 0, "  TF  ", text_color=color.black, text_size=text_size_const, bgcolor=#c8daf0, text_formatting=text.format_bold, tooltip="Timeframe Column")
+    for i = 1 to 5
+        table.cell(tb, get_col(i), 0, "  " + str.tostring(i) + "  ", text_color=color.black, text_size=text_size_const, bgcolor=#c8daf0, text_formatting=text.format_bold, tooltip="Segment " + str.tostring(i))
+
+    // 2. Draw rows for each of the 3 requested timeframes (Rows 1 to 3)
+    draw_tf_row(tb, 1, tf1, tf1_prices)
+    draw_tf_row(tb, 2, tf2, tf2_prices)
+    draw_tf_row(tb, 3, tf3, tf3_prices)
+
+    // 3. Draw Legend Row (Row 4)
+    table.cell(tb, spacer_col, 4, "      ", bgcolor=color.new(color.black, 100))
+    table.cell(tb, get_col(0), 4, " Legend ", text_color=color.black, text_size=size.small, bgcolor=#c8daf0, text_formatting=text.format_bold, tooltip="Legend Row")
+    table.cell(tb, get_col(1), 4, " ◆ Sweep ", text_color=#595959, text_size=size.small, bgcolor=#ffffff, tooltip="Sweep Bar (Bullish: Gray, Bearish: Blue)")
+    table.cell(tb, get_col(2), 4, " ⬤ Out ", text_color=#595959, text_size=size.small, bgcolor=#ffffff, tooltip="Outside Expansion Bar")
+    table.cell(tb, get_col(3), 4, " ⊚ In ", text_color=#595959, text_size=size.small, bgcolor=#ffffff, tooltip="Inside Consolidation Bar")
+    table.cell(tb, get_col(4), 4, " ○ Norm ", text_color=#595959, text_size=size.small, bgcolor=#ffffff, tooltip="Normal Bar")
+    table.cell(tb, get_col(5), 4, " Range ", text_color=color.black, text_size=size.small, bgcolor=#ffe5cc, tooltip="Active CRT Range in Progress")
+
+// Programmatic alerts for each CRT signal type on the current chart timeframe
+if barstate.isrealtime and is_new_bar // Trigger only when a bar closes / new bar starts in real-time
+    if state_code == 1
+        alert("CRT Bullish Sweep detected on " + syminfo.ticker + " (" + timeframe.period + ")", alert.freq_once_per_bar)
+    else if state_code == 2
+        alert("CRT Bearish Sweep detected on " + syminfo.ticker + " (" + timeframe.period + ")", alert.freq_once_per_bar)
+    else if state_code == 3
+        alert("CRT Double Sweep detected on " + syminfo.ticker + " (" + timeframe.period + ")", alert.freq_once_per_bar)
+    else if state_code == 4
+        alert("CRT Bullish Expansion (Outside Bar) detected on " + syminfo.ticker + " (" + timeframe.period + ")", alert.freq_once_per_bar)
+    else if state_code == 5
+        alert("CRT Bearish Expansion (Outside Bar) detected on " + syminfo.ticker + " (" + timeframe.period + ")", alert.freq_once_per_bar)
+    else if state_code == 6
+        alert("CRT Inside Bar detected on " + syminfo.ticker + " (" + timeframe.period + ")", alert.freq_once_per_bar)

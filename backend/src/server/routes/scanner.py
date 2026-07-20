@@ -127,40 +127,50 @@ YF_LOCK = asyncio.Lock()
 
 TRENDS_CACHE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "trends_cache.json"))
 
-SAVE_LOCK = asyncio.Lock()
+import threading
+
+_SAVE_THREAD_LOCK = threading.Lock()
 _CACHE_DIRTY = False
 _SAVE_TASK = None
 
 def save_trends_cache():
-    try:
-        os.makedirs(os.path.dirname(TRENDS_CACHE_PATH), exist_ok=True)
-        temp_path = TRENDS_CACHE_PATH + ".tmp"
-        with open(temp_path, "w", encoding="utf-8") as f:
-            json.dump(TRENDS_CACHE, f, default=str)
-        if os.path.exists(temp_path):
-            os.replace(temp_path, TRENDS_CACHE_PATH)
-    except Exception as e:
-        logger.error(f"Failed to save TRENDS_CACHE to disk: {e}")
+    with _SAVE_THREAD_LOCK:
+        try:
+            os.makedirs(os.path.dirname(TRENDS_CACHE_PATH), exist_ok=True)
+            temp_path = TRENDS_CACHE_PATH + ".tmp"
+            with open(temp_path, "w", encoding="utf-8") as f:
+                json.dump(TRENDS_CACHE, f, default=str)
+            if os.path.exists(temp_path):
+                os.replace(temp_path, TRENDS_CACHE_PATH)
+        except Exception as e:
+            logger.error(f"Failed to save TRENDS_CACHE to disk: {e}")
 
 async def async_save_trends_cache():
     global _CACHE_DIRTY, _SAVE_TASK
     _CACHE_DIRTY = True
     
+    # Check if we are running in the main thread
+    is_main_thread = (threading.current_thread() is threading.main_thread())
+    
+    if not is_main_thread:
+        # If on a background thread, run the file write synchronously to avoid cross-loop task creation
+        await asyncio.to_thread(save_trends_cache)
+        return
+        
     if _SAVE_TASK is not None and not _SAVE_TASK.done():
         return
         
     async def debounced_save():
         global _CACHE_DIRTY
         await asyncio.sleep(2.0)
-        async with SAVE_LOCK:
-            if _CACHE_DIRTY:
-                _CACHE_DIRTY = False
-                try:
-                    await asyncio.to_thread(save_trends_cache)
-                    logger.info("TRENDS_CACHE successfully saved to disk (async debounced).")
-                except Exception as e:
-                    logger.error(f"Async save_trends_cache failed: {e}")
-                    
+        if _CACHE_DIRTY:
+            _CACHE_DIRTY = False
+            try:
+                await asyncio.to_thread(save_trends_cache)
+                logger.info("TRENDS_CACHE successfully saved to disk (async debounced).")
+            except Exception as e:
+                logger.error(f"Async save_trends_cache failed: {e}")
+                
     _SAVE_TASK = asyncio.create_task(debounced_save())
 
 def load_trends_cache():
@@ -390,8 +400,11 @@ def calculate_crt_segments(df):
         state = "NONE"
         potential_setup = "NONE"
         
-        is_bull_sweep = curr_low < prev_low and curr_close > prev_low
-        is_bear_sweep = curr_high > prev_high and curr_close < prev_high
+        # Define noise tolerance (0.005% of price) to prevent minor data feed differences from causing false states
+        tol = prev_low * 0.00005
+        
+        is_bull_sweep = curr_low < prev_low - tol and curr_close > prev_low - tol and curr_close <= prev_high + tol
+        is_bear_sweep = curr_high > prev_high + tol and curr_close < prev_high + tol and curr_close >= prev_low - tol
 
         if is_bull_sweep and is_bear_sweep:
             state = "DOUBLE_SWEEP"
@@ -405,24 +418,31 @@ def calculate_crt_segments(df):
             state = "BEAR_SWEEP"
             if is_forming:
                 potential_setup = "BEARISH"
-        elif curr_close > prev_high:
+        elif curr_close > prev_high + tol:
             state = "BULL_OUTSIDE"
-        elif curr_close < prev_low:
+        elif curr_close < prev_low - tol:
             state = "BEAR_OUTSIDE"
-        elif curr_high <= prev_high and curr_low >= prev_low:
+        elif curr_high <= prev_high + tol and curr_low >= prev_low - tol:
             state = "INSIDE"
             
         open_time_str = ""
         close_time_str = ""
         try:
             if hasattr(curr, "name") and isinstance(curr.name, (pd.Timestamp, datetime)):
-                open_time_str = curr.name.strftime("%Y-%m-%d %H:%M")
-                close_time_str = (curr.name + candle_duration).strftime("%Y-%m-%d %H:%M")
-                if curr.name.tzinfo is not None:
-                    tz_name = curr.name.strftime("%Z")
-                    if tz_name:
-                        open_time_str += f" {tz_name}"
-                        close_time_str += f" {tz_name}"
+                import pytz
+                est = pytz.timezone("America/New_York")
+                dt_open = curr.name
+                if isinstance(dt_open, pd.Timestamp):
+                    dt_open = dt_open.to_pydatetime()
+                if dt_open.tzinfo is not None:
+                    dt_open_local = dt_open.astimezone(est)
+                else:
+                    dt_open_local = pytz.utc.localize(dt_open).astimezone(est)
+                    
+                dt_close_local = dt_open_local + candle_duration
+                
+                open_time_str = dt_open_local.strftime("%Y-%m-%d %H:%M %Z")
+                close_time_str = dt_close_local.strftime("%Y-%m-%d %H:%M %Z")
         except Exception as e:
             logger.warning(f"Error formatting candle times in segments: {e}")
 
@@ -707,18 +727,18 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                             if 'close' in col_map: agg_dict[col_map['close']] = 'last'
                             if 'volume' in col_map: agg_dict[col_map['volume']] = 'sum'
                             
-                            df_15m_res = df_1m.resample('15Min').agg(agg_dict).dropna()
+                            df_15m_res = df_1m.resample('15min').agg(agg_dict).dropna()
                             df_15m_res.columns = [col_map[str(c).lower()] for c in df_15m_res.columns]
                             df_15m = df_15m_res
                             
-                            df_1h_res = df_1m.resample('1H').agg(agg_dict).dropna()
+                            df_1h_res = df_1m.resample('1h').agg(agg_dict).dropna()
                             df_1h_res.columns = [col_map[str(c).lower()] for c in df_1h_res.columns]
                             df_1h = df_1h_res
                         except Exception as resample_e:
                             logger.error(f"Failed to resample futures timeframes from 1m for {sym}: {resample_e}")
                             
                     # Apply futures gap-filling to ensure alignment with TradingView
-                    df_15m = fill_futures_gaps(df_15m, '15Min')
+                    df_15m = fill_futures_gaps(df_15m, '15min')
                     df_1h = fill_futures_gaps(df_1h, '1h')
                 
                 c_timeframes = {
@@ -901,17 +921,54 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                 c_timeframes["1h"] = df_1h
                 c_timeframes["4h"] = df_4h
                 
-                # Calculate CRT segments for 15m, 1h, and 4h timeframes (preserving webhook values if managed)
-                if cached and cached.get("webhook_managed"):
-                    crt_15m = cached.get("crt_15m", calculate_crt_segments(df_15m))
-                    crt_1h = cached.get("crt_1h", calculate_crt_segments(df_1h))
-                    crt_4h = cached.get("crt_4h", calculate_crt_segments(df_4h))
-                else:
-                    crt_15m = calculate_crt_segments(df_15m)
-                    crt_1h = calculate_crt_segments(df_1h)
-                    crt_4h = calculate_crt_segments(df_4h)
+                # Calculate CRT segments for 15m, 1h, and 4h timeframes (preserving webhook values if managed and not stale)
+                def get_valid_crt_segments(df_tf, cached_key):
+                    calc_segs = calculate_crt_segments(df_tf)
+                    if not cached or not cached.get("webhook_managed") or cached_key not in cached:
+                        return calc_segs
+                    cached_segs = cached[cached_key]
+                    if not cached_segs or len(cached_segs) < 5:
+                        return calc_segs
+                    
+                    # Prevent yfinance overwrites if webhook is active (updated within last 12 periods)
+                    import time
+                    webhook_ts = cached.get("webhook_ts_" + cached_key, 0.0)
+                    timeframe_durations = {
+                        "crt_15m": 15 * 60,
+                        "crt_1h": 60 * 60,
+                        "crt_4h": 4 * 60 * 60
+                    }
+                    duration = timeframe_durations.get(cached_key, 15 * 60)
+                    if time.time() - webhook_ts < 12 * duration:
+                        return cached_segs
+                    
+                    cached_latest_time = cached_segs[-1].get("open_time", "")
+                    calc_latest_time = calc_segs[-1].get("open_time", "") if calc_segs else ""
+                    
+                    def clean_time_str(t_str):
+                        if not t_str:
+                            return ""
+                        parts = t_str.strip().split()
+                        if len(parts) >= 2:
+                            return f"{parts[0]} {parts[1]}"
+                        return t_str
+                        
+                    calc_latest_clean = clean_time_str(calc_latest_time)
+                    cached_latest_clean = clean_time_str(cached_latest_time)
+                    
+                    if calc_latest_clean and cached_latest_clean:
+                        if calc_latest_clean > cached_latest_clean:
+                            return calc_segs
+                        return cached_segs
+                    return calc_segs
+
+                crt_15m = get_valid_crt_segments(df_15m, "crt_15m")
+                crt_1h = get_valid_crt_segments(df_1h, "crt_1h")
+                crt_4h = get_valid_crt_segments(df_4h, "crt_4h")
                 
-                TRENDS_CACHE[sym] = {
+                if sym not in TRENDS_CACHE:
+                    TRENDS_CACHE[sym] = {}
+                TRENDS_CACHE[sym].update({
                     "trends": trends if (trends and any(v != "No Data" for v in trends.values())) else (existing_trends or {}),
                     "sparkline_1m": spark_1m if spark_1m else (existing_spark_1m or []),
                     "sparkline_5m": spark_5m if spark_5m else (existing_spark_5m or []),
@@ -931,7 +988,7 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     "crt_1h_stats": backtest_timeframe_setups(df_1h),
                     "crt_4h_stats": backtest_timeframe_setups(df_4h),
                     "timestamp": now
-                }
+                })
             
             await async_save_trends_cache()
             # Yield control back to event loop with generous sleep to prevent rate limiting
@@ -1141,12 +1198,10 @@ async def enrich_candidates_with_trends(candidates):
                     pass
             return False
             
-        def clear_all_setups(segs):
+        def clear_forming_setup(segs):
             for s in segs:
                 if s.get("is_forming"):
                     s["potential_setup"] = "NONE"
-                if s.get("state") in ["BULL_SWEEP", "BEAR_SWEEP", "BULL_OUTSIDE", "BEAR_OUTSIDE"]:
-                    s["state"] = "NONE"
                     
         active_15m = has_active_setup(crt_15m)
         active_1h = has_active_setup(crt_1h)
@@ -1154,25 +1209,12 @@ async def enrich_candidates_with_trends(candidates):
         
         if active_15m:
             if active_1h:
-                clear_all_setups(crt_1h)
+                clear_forming_setup(crt_1h)
             if active_4h:
-                clear_all_setups(crt_4h)
+                clear_forming_setup(crt_4h)
         elif active_1h:
             if active_4h:
-                clear_all_setups(crt_4h)
-        # Enforce Rule 2: No nested CRT setups. If a new setup starts to form, clear historical setup states.
-        for tf_key in ["crt_15m", "crt_1h", "crt_4h"]:
-            segs = c.get(tf_key, [])
-            has_forming_setup = False
-            for s in segs:
-                if s.get("is_forming") and s.get("potential_setup") and s.get("potential_setup") != "NONE":
-                    has_forming_setup = True
-                    break
-            if has_forming_setup:
-                for s in segs:
-                    if not s.get("is_forming"):
-                        if s.get("state") in ["BULL_SWEEP", "BEAR_SWEEP", "BULL_OUTSIDE", "BEAR_OUTSIDE"]:
-                            s["state"] = "NONE"
+                clear_forming_setup(crt_4h)
                             
     return candidates
 
@@ -1990,7 +2032,7 @@ async def webhook_tradingview(payload: TradingViewAlertPayload):
         if sym_key not in TRENDS_CACHE:
             TRENDS_CACHE[sym_key] = {
                 "trends": {},
-                "timestamp": time.time(),
+                "timestamp": 0.0,
                 "price": payload.close,
                 "change": 0.0,
                 "rvol": 1.0,
@@ -2082,9 +2124,10 @@ async def webhook_tradingview(payload: TradingViewAlertPayload):
             
             latest_close = payload.close
         
-        # Update symbol price and timestamp in cache
+        # Update symbol price in cache
+        import time
         TRENDS_CACHE[sym_key]["price"] = latest_close
-        TRENDS_CACHE[sym_key]["timestamp"] = time.time()
+        TRENDS_CACHE[sym_key]["webhook_ts_" + tf_key] = time.time()
         
         # Save cache to disk
         await async_save_trends_cache()
