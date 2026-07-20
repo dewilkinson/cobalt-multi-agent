@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0234";
+        const VLI_CLIENT_VERSION = "00.000.0235";
     </script>
     
     <link
@@ -4152,7 +4152,7 @@
                 let sweepIdx = -1;
                 for (let i = lastIdx - 1; i >= 0; i--) {
                     const state = segs[i].state || 'NONE';
-                    if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'BULL_OUTSIDE' || state === 'BEAR_OUTSIDE') {
+                    if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'DOUBLE_SWEEP') {
                         sweepIdx = i;
                         break;
                     }
@@ -4576,7 +4576,7 @@
                 let sweepIdx = -1;
                 for (let i = lastIdx - 1; i >= 0; i--) {
                     const state = segments[i].state || 'NONE';
-                    if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'BULL_OUTSIDE' || state === 'BEAR_OUTSIDE') {
+                    if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'DOUBLE_SWEEP') {
                         sweepIdx = i;
                         break;
                     }
