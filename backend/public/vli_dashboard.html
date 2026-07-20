@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0237";
+        const VLI_CLIENT_VERSION = "00.000.0238";
     </script>
     
     <link
@@ -4640,10 +4640,10 @@
                         }
                     }
 
-                    // Populate activeCrtIndices from sweepIdx - 1 to endIdx (ends at breachIdx if breached, else lastIdx)
+                    // Populate activeCrtIndices from rangeCandleIdx to endIdx (ends at breachIdx if breached, else lastIdx)
                     const endIdx = breachIdx !== -1 ? breachIdx : lastIdx;
                     if (!isNaN(rangeLow) && !isNaN(rangeHigh)) {
-                        for (let i = sweepIdx - 1; i <= endIdx; i++) {
+                        for (let i = rangeCandleIdx; i <= endIdx; i++) {
                             activeCrtIndices.add(i);
                         }
                     }
