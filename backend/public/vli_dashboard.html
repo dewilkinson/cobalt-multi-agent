@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0239";
+        const VLI_CLIENT_VERSION = "00.000.0240";
     </script>
     
     <link
@@ -4162,7 +4162,7 @@
                     let rangeCandleIdx = sweepIdx - 1;
                     while (rangeCandleIdx > 0) {
                         const rState = segs[rangeCandleIdx].state || 'NONE';
-                        if (rState === 'BULL_SWEEP' || rState === 'BEAR_SWEEP' || rState === 'DOUBLE_SWEEP') {
+                        if (rState === 'BULL_SWEEP' || rState === 'BEAR_SWEEP' || rState === 'DOUBLE_SWEEP' || rState === 'BULL_OUTSIDE' || rState === 'BEAR_OUTSIDE') {
                             rangeCandleIdx--;
                         } else {
                             break;
@@ -4594,7 +4594,7 @@
                     let rangeCandleIdx = sweepIdx - 1;
                     while (rangeCandleIdx > 0) {
                         const rState = segments[rangeCandleIdx].state || 'NONE';
-                        if (rState === 'BULL_SWEEP' || rState === 'BEAR_SWEEP' || rState === 'DOUBLE_SWEEP') {
+                        if (rState === 'BULL_SWEEP' || rState === 'BEAR_SWEEP' || rState === 'DOUBLE_SWEEP' || rState === 'BULL_OUTSIDE' || rState === 'BEAR_OUTSIDE') {
                             rangeCandleIdx--;
                         } else {
                             break;
