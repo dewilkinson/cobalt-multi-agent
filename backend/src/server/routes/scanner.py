@@ -403,8 +403,8 @@ def calculate_crt_segments(df):
         # Define noise tolerance (0.005% of price) to prevent minor data feed differences from causing false states
         tol = prev_low * 0.00005
         
-        is_bull_sweep = curr_low < prev_low - tol and curr_close > prev_low - tol and curr_close <= prev_high + tol
-        is_bear_sweep = curr_high > prev_high + tol and curr_close < prev_high + tol and curr_close >= prev_low - tol
+        is_bull_sweep = curr_low < prev_low - tol and curr_close > prev_low - tol and curr_close <= prev_high + tol and curr_low < min(curr_open, curr_close)
+        is_bear_sweep = curr_high > prev_high + tol and curr_close < prev_high + tol and curr_close >= prev_low - tol and curr_high > max(curr_open, curr_close)
 
         if is_bull_sweep and is_bear_sweep:
             state = "DOUBLE_SWEEP"
