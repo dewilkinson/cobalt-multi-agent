@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0235";
+        const VLI_CLIENT_VERSION = "00.000.0236";
     </script>
     
     <link
@@ -4160,6 +4160,9 @@
                 
                 if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
                     let rangeCandleIdx = sweepIdx - 1;
+                    while (rangeCandleIdx > 0 && (segs[rangeCandleIdx].state === 'INSIDE')) {
+                        rangeCandleIdx--;
+                    }
                     let rangeLow = parseFloat(segs[rangeCandleIdx].low);
                     let rangeHigh = parseFloat(segs[rangeCandleIdx].high);
                     let hasNested = false;
@@ -4584,6 +4587,9 @@
 
                 if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
                     let rangeCandleIdx = sweepIdx - 1;
+                    while (rangeCandleIdx > 0 && (segments[rangeCandleIdx].state === 'INSIDE')) {
+                        rangeCandleIdx--;
+                    }
                     let rangeLow = parseFloat(segments[rangeCandleIdx].low);
                     let rangeHigh = parseFloat(segments[rangeCandleIdx].high);
                     let breachIdx = -1;
