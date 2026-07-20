@@ -942,6 +942,10 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     if time.time() - webhook_ts < 12 * duration:
                         return cached_segs
                     
+                    # Webhook is stale: if we have valid yfinance segments, unconditionally fall back to them
+                    if calc_segs and len(calc_segs) >= 5:
+                        return calc_segs
+                        
                     cached_latest_time = cached_segs[-1].get("open_time", "")
                     calc_latest_time = calc_segs[-1].get("open_time", "") if calc_segs else ""
                     
