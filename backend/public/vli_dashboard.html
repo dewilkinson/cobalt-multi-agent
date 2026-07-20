@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0241";
+        const VLI_CLIENT_VERSION = "00.000.0242";
     </script>
     
     <link
@@ -4189,6 +4189,10 @@
                         
                         for (let i = sweepIdx; i <= lastIdx; i++) {
                             const state = segs[i].state || 'NONE';
+                            if (i > sweepIdx && (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'DOUBLE_SWEEP' || state === 'BULL_OUTSIDE' || state === 'BEAR_OUTSIDE')) {
+                                breachIdx = i;
+                                break;
+                            }
                             if (state === 'INSIDE') {
                                 rangeCandleIdx = i;
                                 rangeLow = parseFloat(segs[i].low);
@@ -4610,6 +4614,10 @@
                     // Walk forward from sweepIdx to narrow range on INSIDE bars and find the first breach
                     for (let i = sweepIdx; i <= lastIdx; i++) {
                         const state = segments[i].state || 'NONE';
+                        if (i > sweepIdx && (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'DOUBLE_SWEEP' || state === 'BULL_OUTSIDE' || state === 'BEAR_OUTSIDE')) {
+                            breachIdx = i;
+                            break;
+                        }
                         if (state === 'INSIDE' && !segments[i].is_forming) {
                             rangeCandleIdx = i - 1;
                             rangeLow = parseFloat(segments[rangeCandleIdx].low);
