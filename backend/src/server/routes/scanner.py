@@ -573,27 +573,31 @@ def align_forming_candle(df, tf_name, live_price, now_time, is_future=False):
             
         now_dt = datetime.fromtimestamp(now_time, pytz.utc).astimezone(tz)
         
+        # For stocks, check if regular market is open (Mon-Fri 09:30 - 16:00 EDT)
+        if not is_future:
+            if now_dt.weekday() >= 5:
+                return df
+            mkt_open = now_dt.replace(hour=9, minute=30, second=0, microsecond=0)
+            mkt_close = now_dt.replace(hour=16, minute=0, second=0, microsecond=0)
+            if now_dt < mkt_open or now_dt >= mkt_close:
+                return df
+        
         # Calculate current forming candle timestamp
         tf_clean = tf_name.lower().strip()
         if tf_clean in ["15m", "15min"]:
             minute = (now_dt.minute // 15) * 15
             current_forming_ts = now_dt.replace(minute=minute, second=0, microsecond=0)
         elif tf_clean in ["1h", "1min"]:
-            if is_future:
-                current_forming_ts = now_dt.replace(minute=0, second=0, microsecond=0)
-            else:
-                if now_dt.minute >= 30:
-                    current_forming_ts = now_dt.replace(minute=30, second=0, microsecond=0)
-                else:
-                    current_forming_ts = (now_dt - timedelta(hours=1)).replace(minute=30, second=0, microsecond=0)
+            current_forming_ts = now_dt.replace(minute=0, second=0, microsecond=0)
         elif tf_clean in ["4h"]:
             if is_future:
                 shifted_dt = now_dt - timedelta(hours=2)
                 hour = (shifted_dt.hour // 4) * 4
                 current_forming_ts = shifted_dt.replace(hour=hour, minute=0, second=0, microsecond=0) + timedelta(hours=2)
             else:
-                hour = (now_dt.hour // 4) * 4
-                current_forming_ts = now_dt.replace(hour=hour, minute=0, second=0, microsecond=0)
+                shifted_dt = now_dt - timedelta(hours=1)
+                hour = (shifted_dt.hour // 4) * 4
+                current_forming_ts = shifted_dt.replace(hour=hour, minute=0, second=0, microsecond=0) + timedelta(hours=1)
         elif tf_clean in ["1d"]:
             current_forming_ts = now_dt.replace(hour=0, minute=0, second=0, microsecond=0)
         else:
@@ -746,6 +750,26 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     # Apply futures gap-filling to ensure alignment with TradingView
                     df_15m = fill_futures_gaps(df_15m, '15min')
                     df_1h = fill_futures_gaps(df_1h, '1h')
+                else:
+                    if df_1m is not None and not df_1m.empty:
+                        try:
+                            col_map = {str(c).lower(): c for c in df_1m.columns}
+                            agg_dict = {}
+                            if 'open' in col_map: agg_dict[col_map['open']] = 'first'
+                            if 'high' in col_map: agg_dict[col_map['high']] = 'max'
+                            if 'low' in col_map: agg_dict[col_map['low']] = 'min'
+                            if 'close' in col_map: agg_dict[col_map['close']] = 'last'
+                            if 'volume' in col_map: agg_dict[col_map['volume']] = 'sum'
+                            
+                            df_15m_res = df_1m.resample('15min').agg(agg_dict).dropna()
+                            df_15m_res.columns = [col_map[str(c).lower()] for c in df_15m_res.columns]
+                            df_15m = df_15m_res
+                            
+                            df_1h_res = df_1m.resample('1h', origin='start_day').agg(agg_dict).dropna()
+                            df_1h_res.columns = [col_map[str(c).lower()] for c in df_1h_res.columns]
+                            df_1h = df_1h_res
+                        except Exception as resample_e:
+                            logger.error(f"Failed to resample stock timeframes from 1m for {sym}: {resample_e}")
                 
                 c_timeframes = {
                     "1m": df_1m,
@@ -771,7 +795,7 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                             c_timeframes["4h"] = df_1h.resample('4h', offset='2h').agg(agg_dict).dropna()
                             c_timeframes["4h"] = fill_futures_gaps(c_timeframes["4h"], '4h')
                         else:
-                            c_timeframes["4h"] = df_1h.resample('4h').agg(agg_dict).dropna()
+                            c_timeframes["4h"] = df_1h.resample('4h', offset='1h').agg(agg_dict).dropna()
                     except Exception as resample_e:
                         logger.error(f"Failed to resample 4h for {sym}: {resample_e}")
                         
@@ -1935,7 +1959,11 @@ async def recalculate_sweep(req: RecalculateSweepRequest):
                     if 'close' in col_map: agg_dict[col_map['close']] = 'last'
                     if 'volume' in col_map: agg_dict[col_map['volume']] = 'sum'
                     
-                    df = df.resample('4h').agg(agg_dict).dropna()
+                    is_fut = original.startswith("/") or original.endswith("=F")
+                    if is_fut:
+                        df = df.resample('4h', offset='2h').agg(agg_dict).dropna()
+                    else:
+                        df = df.resample('4h', offset='1h').agg(agg_dict).dropna()
                 except Exception as ex:
                     logger.error(f"Resampling failed for {original}: {ex}")
                     
