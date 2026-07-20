@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0240";
+        const VLI_CLIENT_VERSION = "00.000.0241";
     </script>
     
     <link
@@ -4150,7 +4150,7 @@
                 
                 const lastIdx = segs.length - 1;
                 let sweepIdx = -1;
-                for (let i = lastIdx - 1; i >= 0; i--) {
+                for (let i = lastIdx; i >= 0; i--) {
                     const state = segs[i].state || 'NONE';
                     if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'DOUBLE_SWEEP') {
                         sweepIdx = i;
@@ -4158,7 +4158,7 @@
                     }
                 }
                 
-                if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
+                if (sweepIdx !== -1 && sweepIdx < lastIdx && sweepIdx - 1 >= 0) {
                     let rangeCandleIdx = sweepIdx - 1;
                     while (rangeCandleIdx > 0) {
                         const rState = segs[rangeCandleIdx].state || 'NONE';
@@ -4582,7 +4582,7 @@
                 const lastSeg = segments[lastIdx];
 
                 let sweepIdx = -1;
-                for (let i = lastIdx - 1; i >= 0; i--) {
+                for (let i = lastIdx; i >= 0; i--) {
                     const state = segments[i].state || 'NONE';
                     if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'DOUBLE_SWEEP') {
                         sweepIdx = i;
@@ -4590,7 +4590,7 @@
                     }
                 }
 
-                if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
+                if (sweepIdx !== -1 && sweepIdx < lastIdx && sweepIdx - 1 >= 0) {
                     let rangeCandleIdx = sweepIdx - 1;
                     while (rangeCandleIdx > 0) {
                         const rState = segments[rangeCandleIdx].state || 'NONE';
@@ -4649,7 +4649,7 @@
                     }
                 }
 
-                if (activeCrtIndices.size > 0 && sweepIdx !== -1 && sweepIdx - 1 >= 0) {
+                if (activeCrtIndices.size > 0 && sweepIdx !== -1 && sweepIdx < lastIdx && sweepIdx - 1 >= 0) {
                     const idxArray = Array.from(activeCrtIndices);
                     const minIdx = Math.min(...idxArray);
                     const maxIdx = Math.max(...idxArray);
