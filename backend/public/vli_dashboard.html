@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0236";
+        const VLI_CLIENT_VERSION = "00.000.0237";
     </script>
     
     <link
@@ -4160,8 +4160,13 @@
                 
                 if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
                     let rangeCandleIdx = sweepIdx - 1;
-                    while (rangeCandleIdx > 0 && (segs[rangeCandleIdx].state === 'INSIDE')) {
-                        rangeCandleIdx--;
+                    while (rangeCandleIdx > 0) {
+                        const rState = segs[rangeCandleIdx].state || 'NONE';
+                        if (rState === 'INSIDE' || rState === 'BULL_SWEEP' || rState === 'BEAR_SWEEP' || rState === 'DOUBLE_SWEEP') {
+                            rangeCandleIdx--;
+                        } else {
+                            break;
+                        }
                     }
                     let rangeLow = parseFloat(segs[rangeCandleIdx].low);
                     let rangeHigh = parseFloat(segs[rangeCandleIdx].high);
@@ -4587,8 +4592,13 @@
 
                 if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
                     let rangeCandleIdx = sweepIdx - 1;
-                    while (rangeCandleIdx > 0 && (segments[rangeCandleIdx].state === 'INSIDE')) {
-                        rangeCandleIdx--;
+                    while (rangeCandleIdx > 0) {
+                        const rState = segments[rangeCandleIdx].state || 'NONE';
+                        if (rState === 'INSIDE' || rState === 'BULL_SWEEP' || rState === 'BEAR_SWEEP' || rState === 'DOUBLE_SWEEP') {
+                            rangeCandleIdx--;
+                        } else {
+                            break;
+                        }
                     }
                     let rangeLow = parseFloat(segments[rangeCandleIdx].low);
                     let rangeHigh = parseFloat(segments[rangeCandleIdx].high);
