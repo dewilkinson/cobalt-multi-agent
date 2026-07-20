@@ -4754,8 +4754,9 @@
                 
                 const openTime = seg.open_time || 'N/A';
                 const closeTime = seg.close_time || 'N/A';
+                const formationState = seg.is_forming ? 'Forming' : 'Completed';
                 
-                tooltip = `Segment Type: ${stateName === 'NONE' ? 'Normal' : stateName.replace('_', ' ')}\nDescription: ${indication}\nStart Time: ${openTime}`;
+                tooltip = `Segment Type: ${stateName === 'NONE' ? 'Normal' : stateName.replace('_', ' ')} (${formationState})\nDescription: ${indication}\nStart Time: ${openTime}`;
                 html += `<div class="${cssClass}" title="${tooltip}">${sweepDotHTML}</div>`;
             });
 
