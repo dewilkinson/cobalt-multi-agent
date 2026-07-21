@@ -3079,11 +3079,10 @@
         }
 
         function loadHardcodedDefaultLayout() {
-            // Optimized High-Fidelity Workspace Layout
-            UXManager.createCard('MACRO_WL', {top: '2%', left: '1%', width: '82%', height: '22%'}, 'watchlist');
-            UXManager.createCard('MACRO_WL', {top: '25%', left: '1%', width: '82%', height: '22%'}, 'futures_watchlist');
-            UXManager.createCard('SCAN_RES', {top: '48%', left: '1%', width: '82%', height: '32%'}, 'scanner');
-            UXManager.createCard('SCAN_RES', {top: '48%', left: '42.5%', width: '40.5%', height: '32%', display: 'none'}, 'shield');
+            UXManager.createCard('MACRO_WL', {top: '1%', left: '1%', width: '98%', height: '22%'}, 'watchlist');
+            UXManager.createCard('MACRO_WL', {top: '24%', left: '1%', width: '98%', height: '22%'}, 'futures_watchlist');
+            UXManager.createCard('SCAN_RES', {top: '47%', left: '1%', width: '98%', height: '31%'}, 'scanner');
+            UXManager.createCard('SCAN_RES', {top: '47%', left: '1%', width: '98%', height: '31%', display: 'none'}, 'shield');
             
             // Add RUN button to Scanner Results header for backup
             setTimeout(() => {
@@ -3106,8 +3105,8 @@
                     scHeader.insertBefore(btnContainer, scHeader.querySelector('.card-controls'));
                 }
             }, 500);
-            UXManager.createCard('ORDER_HIST', {top: '81%', left: '1%', width: '55%', height: '17%'}, 'order_history');
-            UXManager.createCard('VLI_TELEMETRY', {top: '81%', left: '56%', width: '27%', height: '17%'}, 'telemetry');
+            UXManager.createCard('ORDER_HIST', {top: '79%', left: '1%', width: '76%', height: '20%'}, 'order_history');
+            UXManager.createCard('VLI_TELEMETRY', {top: '79%', left: '78%', width: '21%', height: '20%'}, 'telemetry');
         }
 
         function loadWorkspace(customKey = null) {
@@ -3143,10 +3142,6 @@
             try {
                 const layout = JSON.parse(saved);
                 applyLayout(layout);
-                // Background sync layout to backend to keep default layout in sync
-                if (targetKey === 'vli_wm_layout') {
-                    setTimeout(saveLayout, 1000);
-                }
             } catch(e) {}
         }
 
@@ -3172,10 +3167,10 @@
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('popout')) return;
             
-            // Force reset cached layout to pull template from default_layout.json
-            if (!localStorage.getItem('vli_layout_forced_template_reset_v5') || urlParams.get('reset') === '1' || urlParams.get('reset') === 'true') {
+            // Clear cached layout to strictly apply default_layout.json from backend
+            if (urlParams.get('reset') === '1' || urlParams.get('reset') === 'true' || !localStorage.getItem('vli_layout_persisted_clean_v7')) {
                 localStorage.removeItem('vli_wm_layout');
-                localStorage.setItem('vli_layout_forced_template_reset_v5', 'true');
+                localStorage.setItem('vli_layout_persisted_clean_v7', 'true');
             }
             loadWorkspace('vli_wm_layout');
         }
