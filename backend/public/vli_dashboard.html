@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0247";
+        const VLI_CLIENT_VERSION = "00.000.0249";
     </script>
     
     <link
@@ -3148,12 +3148,32 @@
             } catch(e) {}
         }
 
+        function resetDefaultLayout() {
+            localStorage.removeItem('vli_wm_layout');
+            fetch('/api/settings/default_layout')
+            .then(res => res.json())
+            .then(resData => {
+                if (resData.status === 'success' && resData.layout) {
+                    applyLayout(resData.layout);
+                    localStorage.setItem('vli_wm_layout', JSON.stringify(resData.layout));
+                } else {
+                    loadHardcodedDefaultLayout();
+                }
+            })
+            .catch(() => {
+                loadHardcodedDefaultLayout();
+            });
+        }
+        window.resetDefaultLayout = resetDefaultLayout;
+
         function loadLayout() {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('popout')) return;
-            if (!localStorage.getItem('vli_layout_touching_telemetry_reset')) {
+            
+            // Force reset cached layout to pull template from default_layout.json
+            if (!localStorage.getItem('vli_layout_forced_template_reset_v4') || urlParams.get('reset') === '1' || urlParams.get('reset') === 'true') {
                 localStorage.removeItem('vli_wm_layout');
-                localStorage.setItem('vli_layout_touching_telemetry_reset', 'true');
+                localStorage.setItem('vli_layout_forced_template_reset_v4', 'true');
             }
             loadWorkspace('vli_wm_layout');
         }
