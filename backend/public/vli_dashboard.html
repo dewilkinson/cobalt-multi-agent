@@ -2943,7 +2943,9 @@
                     trendTimeframe: card.dataset.trendTimeframe,
                     zoneLookback: card.dataset.zoneLookback,
                     activeFilter: card.dataset.activeFilter,
-                    trackSpy: window.vliScannerTrackSpy ? !!window.vliScannerTrackSpy[card.dataset.instanceGuid] : false
+                    sparklineTimeframes: card.dataset.sparklineTimeframes,
+                    trackSpy: window.vliScannerTrackSpy ? !!window.vliScannerTrackSpy[card.dataset.instanceGuid] : false,
+                    onlyHighlighted: window.vliOnlyHighlightedFilters ? !!window.vliOnlyHighlightedFilters[card.dataset.instanceGuid] : false
                 };
             });
             localStorage.setItem('vli_wm_layout', JSON.stringify(layout));
@@ -3019,6 +3021,16 @@
                         if (state.trendTimeframe) card.dataset.trendTimeframe = state.trendTimeframe;
                         if (state.zoneLookback) card.dataset.zoneLookback = state.zoneLookback;
                         if (state.activeFilter) card.dataset.activeFilter = state.activeFilter;
+                        if (state.sparklineTimeframes) card.dataset.sparklineTimeframes = state.sparklineTimeframes;
+                        
+                        if (typeof state.trackSpy !== 'undefined') {
+                            window.vliScannerTrackSpy = window.vliScannerTrackSpy || {};
+                            window.vliScannerTrackSpy[card.dataset.instanceGuid] = !!state.trackSpy;
+                        }
+                        if (typeof state.onlyHighlighted !== 'undefined') {
+                            window.vliOnlyHighlightedFilters = window.vliOnlyHighlightedFilters || {};
+                            window.vliOnlyHighlightedFilters[card.dataset.instanceGuid] = !!state.onlyHighlighted;
+                        }
                         
                         // Restore artifact content if present
                         if (state.artifactPath) {
@@ -6858,6 +6870,7 @@
         window.toggleOnlyHighlighted = function(instanceGuid, checked) {
             window.vliOnlyHighlightedFilters[instanceGuid] = checked;
             localStorage.setItem('vliOnlyHighlightedFilters', JSON.stringify(window.vliOnlyHighlightedFilters));
+            saveLayout();
             
             // Synchronize checkbox state in any mirrors (e.g. pop-outs)
             document.querySelectorAll('.show-selected-cb').forEach(cb => {
