@@ -878,7 +878,26 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     try:
                         if vol_col_d in df_1d.columns:
                             valid_vols = df_1d[vol_col_d].dropna()
-                            avg_vol = float(valid_vols.iloc[-30:-1].mean()) if len(valid_vols) > 30 else float(valid_vols.mean())
+                            # Fallback: if daily volumes are sparse or missing (e.g. MCL=F has only 1 row),
+                            # reconstruct daily volumes from hourly data which has 3 months of history
+                            if len(valid_vols) < 5 and df_1h is not None and not df_1h.empty:
+                                try:
+                                    df_h_local = df_1h.copy()
+                                    if df_h_local.index.tz is None:
+                                        df_h_local.index = df_h_local.index.tz_localize("UTC")
+                                    df_h_local.index = df_h_local.index.tz_convert("America/New_York")
+                                    vol_col_h = "Volume" if "Volume" in df_h_local.columns else ("volume" if "volume" in df_h_local.columns else None)
+                                    if vol_col_h:
+                                        df_h_local["local_date"] = df_h_local.index.date
+                                        daily_vols = df_h_local.groupby("local_date")[vol_col_h].sum()
+                                        avg_vol = float(daily_vols.iloc[-30:-1].mean()) if len(daily_vols) > 30 else float(daily_vols.mean())
+                                    else:
+                                        avg_vol = float(valid_vols.iloc[-30:-1].mean()) if len(valid_vols) > 30 else float(valid_vols.mean())
+                                except Exception as resample_err:
+                                    logger.error(f"Failed to calculate avg_vol from hourly fallback for {sym}: {resample_err}")
+                                    avg_vol = float(valid_vols.iloc[-30:-1].mean()) if len(valid_vols) > 30 else float(valid_vols.mean())
+                            else:
+                                avg_vol = float(valid_vols.iloc[-30:-1].mean()) if len(valid_vols) > 30 else float(valid_vols.mean())
                         else:
                             avg_vol = 0.0
                             
@@ -898,19 +917,27 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                             import pytz
                             est = pytz.timezone('America/New_York')
                             now_est = datetime.now(est)
-                            mkt_open = now_est.replace(hour=9, minute=30, second=0, microsecond=0)
-                            mkt_close = now_est.replace(hour=16, minute=0, second=0, microsecond=0)
                             
-                            if mkt_open <= now_est <= mkt_close:
-                                elapsed_mins = (now_est - mkt_open).total_seconds() / 60.0
+                            if is_future:
+                                # Futures trade 24h, sum of 1m volumes since midnight ET.
+                                midnight = now_est.replace(hour=0, minute=0, second=0, microsecond=0)
+                                elapsed_mins = (now_est - midnight).total_seconds() / 60.0
                                 elapsed_mins = max(15.0, elapsed_mins)
-                                scaled_avg_vol = avg_vol * (elapsed_mins / 390.0)
+                                scaled_avg_vol = avg_vol * (elapsed_mins / 1440.0)
                                 live_rvol = float(curr_vol / scaled_avg_vol)
                             else:
-                                if now_est < mkt_open:
-                                    live_rvol = float(curr_vol / (avg_vol * 0.05))
+                                mkt_open = now_est.replace(hour=9, minute=30, second=0, microsecond=0)
+                                mkt_close = now_est.replace(hour=16, minute=0, second=0, microsecond=0)
+                                if mkt_open <= now_est <= mkt_close:
+                                    elapsed_mins = (now_est - mkt_open).total_seconds() / 60.0
+                                    elapsed_mins = max(15.0, elapsed_mins)
+                                    scaled_avg_vol = avg_vol * (elapsed_mins / 390.0)
+                                    live_rvol = float(curr_vol / scaled_avg_vol)
                                 else:
-                                    live_rvol = float(curr_vol / avg_vol)
+                                    if now_est < mkt_open:
+                                        live_rvol = float(curr_vol / (avg_vol * 0.05))
+                                    else:
+                                        live_rvol = float(curr_vol / avg_vol)
                     except Exception as quant_e:
                         logger.error(f"Failed to calculate quant metrics for {sym}: {quant_e}")
 
