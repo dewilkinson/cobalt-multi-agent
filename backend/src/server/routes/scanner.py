@@ -1586,19 +1586,7 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                             val = last_row.get("CHOCH", 0) if is_choch else last_row.get("BOS", 0)
                             event_name = "CHoCH" if is_choch else "BOS"
                             direction = "BULLISH" if val == 1 else "BEARISH"
-                            
-                            current_close = float(df_calc["close"].iloc[-1])
-                            # Option B: Persist structure state until invalidated by breaching Swing Low (Bullish) or Swing High (Bearish)
-                            if val == 1:
-                                if res["swing_low"] is not None and current_close < res["swing_low"]:
-                                    res["structure"] = "STABLE"
-                                else:
-                                    res["structure"] = f"{direction} {event_name}"
-                            elif val == -1:
-                                if res["swing_high"] is not None and current_close > res["swing_high"]:
-                                    res["structure"] = "STABLE"
-                                else:
-                                    res["structure"] = f"{direction} {event_name}"
+                            res["structure"] = f"{direction} {event_name}"
                     except Exception as e:
                         logger.error(f"Failed to calculate structure: {e}")
                     return res
