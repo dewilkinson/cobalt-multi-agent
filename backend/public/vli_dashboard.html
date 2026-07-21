@@ -3173,9 +3173,9 @@
             if (urlParams.get('popout')) return;
             
             // Force reset cached layout to pull template from default_layout.json
-            if (!localStorage.getItem('vli_layout_forced_template_reset_v4') || urlParams.get('reset') === '1' || urlParams.get('reset') === 'true') {
+            if (!localStorage.getItem('vli_layout_forced_template_reset_v5') || urlParams.get('reset') === '1' || urlParams.get('reset') === 'true') {
                 localStorage.removeItem('vli_wm_layout');
-                localStorage.setItem('vli_layout_forced_template_reset_v4', 'true');
+                localStorage.setItem('vli_layout_forced_template_reset_v5', 'true');
             }
             loadWorkspace('vli_wm_layout');
         }
