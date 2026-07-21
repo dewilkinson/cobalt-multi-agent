@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0242";
+        const VLI_CLIENT_VERSION = "00.000.0243";
     </script>
     
     <link
@@ -56,6 +56,11 @@
         .card[data-active-duration="DAY"] .sortino-column-cell,
         .card[data-active-duration="SWING_LOW"] .sortino-column-header,
         .card[data-active-duration="SWING_LOW"] .sortino-column-cell {
+            display: none !important;
+        }
+
+        .trend-column-header,
+        .trend-column-cell {
             display: none !important;
         }
 
@@ -5276,7 +5281,7 @@
                                         <th style="padding: 4px 16px; text-align: center;" title="Latest Close Price"><div style="min-width: 48px; box-sizing: border-box;">PRICE</div></th>
                                         <th style="padding: 4px 16px; text-align: center;" title="Price Change from Open"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
                                         <th style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="${tfTitle}"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CHART</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Timeframe Trend Alignment (EQ Bar): Bearish/Red <= -0.50, Neutral/Gray = 0.0, Bullish/Green >= +0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">TREND</div></th>
+                                        <th class="trend-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Timeframe Trend Alignment (EQ Bar): Bearish/Red <= -0.50, Neutral/Gray = 0.0, Bullish/Green >= +0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">TREND</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">DISCOUNT</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
@@ -6186,7 +6191,7 @@
                                         <th style="padding: 4px 16px; text-align: center;" title="Latest Close Price"><div style="min-width: 48px; box-sizing: border-box;">PRICE</div></th>
                                         <th style="padding: 4px 16px; text-align: center;" title="Price Change from Open"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
                                         <th style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="${tfTitle}"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CHART</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Timeframe Trend Alignment (EQ Bar): Bearish/Red <= -0.50, Neutral/Gray = 0.0, Bullish/Green >= +0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">TREND</div></th>
+                                        <th class="trend-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Timeframe Trend Alignment (EQ Bar): Bearish/Red <= -0.50, Neutral/Gray = 0.0, Bullish/Green >= +0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">TREND</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">DISCOUNT</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
