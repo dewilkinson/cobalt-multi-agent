@@ -864,14 +864,14 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
             avg_cost = closes[t]
             atr_val = atr_series[t]
             
-            # Step 1: P&D Zone Filter (Strict Discount Requirement: pd_val <= -0.20)
-            if pd_val > -0.2:
+            # Step 1: P&D Zone Filter (Reject Deep Premium: pd_val >= 0.5)
+            if pd_val >= 0.5:
                 rejected_trades.append({
                     "type": "Long",
                     "time": dt.strftime("%Y-%m-%d %H:%M"),
                     "price": float(round(avg_cost, 2)),
                     "step": "P&D Filter",
-                    "reason": f"P&D zone value ({pd_val:.1f}) is not in Deep Discount (<= -0.20)"
+                    "reason": f"P&D zone value ({pd_val:.1f}) is in Premium (>= 0.5)"
                 })
                 t += 1
                 continue
@@ -2200,9 +2200,9 @@ async def enrich_candidates_with_trends(candidates):
                 now_est = datetime.now(est_tz)
                 is_market_open_safe = (now_est.hour > 10 or (now_est.hour == 10 and now_est.minute >= 30)) and (now_est.hour < 13 or (now_est.hour == 13 and now_est.minute <= 30))
                 
-                if is_market_open_safe and tf_trend_bias == "BULLISH" and pd_val <= -0.2 and has_bull_sweep and rvol_val >= 1.1:
+                if is_market_open_safe and tf_trend_bias == "BULLISH" and pd_val < 0.5 and has_bull_sweep and rvol_val >= 1.1:
                     c["smc_triggers"][tf] = "BUY"
-                elif is_market_open_safe and tf_trend_bias == "BEARISH" and pd_val >= 0.2 and has_bear_sweep and rvol_val >= 1.1:
+                elif is_market_open_safe and tf_trend_bias == "BEARISH" and pd_val > -0.5 and has_bear_sweep and rvol_val >= 1.1:
                     c["smc_triggers"][tf] = "SELL"
                 else:
                     c["smc_triggers"][tf] = "WAIT"
