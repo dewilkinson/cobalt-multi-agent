@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0237";
+        const VLI_CLIENT_VERSION = "00.000.0238";
     </script>
     
     <link
@@ -4529,20 +4529,42 @@
                  <td class="smc-trigger-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
                      <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
                          ${(() => {
-                             const trigger = c.smc_trigger || 'WAIT';
+                             const rawTrigger = c.smc_trigger || 'WAIT';
+                             let displayVal = 'WAIT';
                              let color = 'rgba(255,255,255,0.2)';
                              let bg = 'rgba(255,255,255,0.05)';
                              let border = '1px solid rgba(255,255,255,0.1)';
-                             if (trigger === 'BUY') {
-                                 color = 'var(--emerald-green)';
-                                 bg = 'rgba(0, 200, 83, 0.1)';
-                                 border = '1px solid rgba(0, 200, 83, 0.3)';
-                             } else if (trigger === 'SELL') {
-                                 color = 'var(--price-down)';
-                                 bg = 'rgba(229, 115, 115, 0.1)';
-                                 border = '1px solid rgba(229, 115, 115, 0.3)';
+                             
+                             if (rawTrigger !== 'WAIT') {
+                                 const cardIsBullish = isBullish; // resolved in outer scope from activeSide and trendVal
+                                 if (cardIsBullish) {
+                                     if (rawTrigger === 'BUY') {
+                                         displayVal = 'ENTRY';
+                                         color = 'var(--emerald-green)';
+                                         bg = 'rgba(0, 200, 83, 0.1)';
+                                         border = '1px solid rgba(0, 200, 83, 0.3)';
+                                     } else if (rawTrigger === 'SELL') {
+                                         displayVal = 'EXIT';
+                                         color = 'var(--price-down)';
+                                         bg = 'rgba(229, 115, 115, 0.1)';
+                                         border = '1px solid rgba(229, 115, 115, 0.3)';
+                                     }
+                                 } else {
+                                     // Short bias: Bearish setup (SELL) is ENTRY (Red), Bullish setup (BUY) is EXIT (Green)
+                                     if (rawTrigger === 'SELL') {
+                                         displayVal = 'ENTRY';
+                                         color = 'var(--price-down)';
+                                         bg = 'rgba(229, 115, 115, 0.1)';
+                                         border = '1px solid rgba(229, 115, 115, 0.3)';
+                                     } else if (rawTrigger === 'BUY') {
+                                         displayVal = 'EXIT';
+                                         color = 'var(--emerald-green)';
+                                         bg = 'rgba(0, 200, 83, 0.1)';
+                                         border = '1px solid rgba(0, 200, 83, 0.3)';
+                                     }
+                                 }
                              }
-                             return `<span style="color: ${color}; background: ${bg}; border: ${border}; padding: 2px 6px; border-radius: 3px; font-weight: 700; font-size: 9px; letter-spacing: 0.5px;">${trigger}</span>`;
+                             return `<span style="color: ${color}; background: ${bg}; border: ${border}; padding: 2px 6px; border-radius: 3px; font-weight: 700; font-size: 9px; letter-spacing: 0.5px;">${displayVal}</span>`;
                          })()}
                      </div>
                  </td>
