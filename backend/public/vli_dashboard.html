@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0243";
+        const VLI_CLIENT_VERSION = "00.000.0237";
     </script>
     
     <link
@@ -4522,11 +4522,31 @@
                     </div>
                 </td>
                 <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.trendRecalculating === 'true' || card.dataset.zoneRecalculating === 'true' || card.dataset.rrRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
-                        ${confidenceHtml}
-                    </div>
-                </td>
-                <td class="crt-15m-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                     <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.trendRecalculating === 'true' || card.dataset.zoneRecalculating === 'true' || card.dataset.rrRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
+                         ${confidenceHtml}
+                     </div>
+                 </td>
+                 <td class="smc-trigger-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                     <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                         ${(() => {
+                             const trigger = c.smc_trigger || 'WAIT';
+                             let color = 'rgba(255,255,255,0.2)';
+                             let bg = 'rgba(255,255,255,0.05)';
+                             let border = '1px solid rgba(255,255,255,0.1)';
+                             if (trigger === 'BUY') {
+                                 color = 'var(--emerald-green)';
+                                 bg = 'rgba(0, 200, 83, 0.1)';
+                                 border = '1px solid rgba(0, 200, 83, 0.3)';
+                             } else if (trigger === 'SELL') {
+                                 color = 'var(--price-down)';
+                                 bg = 'rgba(229, 115, 115, 0.1)';
+                                 border = '1px solid rgba(229, 115, 115, 0.3)';
+                             }
+                             return `<span style="color: ${color}; background: ${bg}; border: ${border}; padding: 2px 6px; border-radius: 3px; font-weight: 700; font-size: 9px; letter-spacing: 0.5px;">${trigger}</span>`;
+                         })()}
+                     </div>
+                 </td>
+                 <td class="crt-15m-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
                     <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
                         ${drawCrtBarIndicator(c.crt_15m, c.symbol, '15m')}
                     </div>
@@ -5288,6 +5308,7 @@
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Discount, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="SMC Trigger Signal: Bullish Sweep + HTF Discount (Buy) or Bearish Sweep + HTF Premium (Sell)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SMC TRIGGER</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>
@@ -6198,6 +6219,7 @@
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Discount, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="SMC Trigger Signal: Bullish Sweep + HTF Discount (Buy) or Bearish Sweep + HTF Premium (Sell)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SMC TRIGGER</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>

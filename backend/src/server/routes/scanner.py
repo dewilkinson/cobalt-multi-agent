@@ -1296,6 +1296,44 @@ async def enrich_candidates_with_trends(candidates):
         elif active_1h:
             if active_4h:
                 clear_forming_setup(crt_4h)
+                
+        # Compute SMC Trigger (BUY, SELL, or WAIT)
+        trends = c.get("trends", {})
+        trend_bias = "NONE"
+        for tf in ["1d", "4h", "1h", "15m"]:
+            t_val = trends.get(tf)
+            if t_val in ["Bullish", "Strong Bullish", "Weak Bullish"]:
+                trend_bias = "BULLISH"
+                break
+            elif t_val in ["Bearish", "Strong Bearish", "Weak Bearish"]:
+                trend_bias = "BEARISH"
+                break
+        
+        pd_val = float(c.get("pd_zone", 0.0))
+        rvol_val = float(c.get("rvol", 1.0))
+        
+        has_bull_sweep = False
+        has_bear_sweep = False
+        for tf_name in ["crt_15m", "crt_1h", "crt_4h"]:
+            segs = c.get(tf_name, [])
+            for s in segs:
+                if s.get("potential_setup") == "BULLISH":
+                    has_bull_sweep = True
+                elif s.get("potential_setup") == "BEARISH":
+                    has_bear_sweep = True
+                
+                state = s.get("state", "NONE")
+                if "BULL_SWEEP" in state or "BULL_OUTSIDE" in state:
+                    has_bull_sweep = True
+                elif "BEAR_SWEEP" in state or "BEAR_OUTSIDE" in state:
+                    has_bear_sweep = True
+        
+        if trend_bias == "BULLISH" and pd_val <= -0.2 and has_bull_sweep and rvol_val >= 1.1:
+            c["smc_trigger"] = "BUY"
+        elif trend_bias == "BEARISH" and pd_val >= 0.2 and has_bear_sweep and rvol_val >= 1.1:
+            c["smc_trigger"] = "SELL"
+        else:
+            c["smc_trigger"] = "WAIT"
                             
     return candidates
 
