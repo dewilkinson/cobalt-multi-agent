@@ -852,6 +852,11 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                 df_1m = c_timeframes["1m"]
                 df_1d = c_timeframes["1d"]
                 
+                import pytz
+                est = pytz.timezone('America/New_York')
+                now_est = datetime.now(est)
+                today_date = now_est.date()
+                
                 if df_1m is not None and not df_1m.empty:
                     close_col = "Close" if "Close" in df_1m.columns else "close"
                     vol_col = "Volume" if "Volume" in df_1m.columns else "volume"
@@ -865,10 +870,20 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                         df_local.index = df_local.index.tz_convert("America/New_York")
                         df_local["local_date"] = df_local.index.date
                         latest_date = df_local["local_date"].iloc[-1]
-                        today_df = df_local[df_local["local_date"] == latest_date]
-                        curr_vol = float(today_df[vol_col].sum()) if vol_col in today_df.columns else 0.0
+                        
+                        # Check if the latest data is stale (e.g. from previous day, when we are already in today's session cycle)
+                        is_stale = False
+                        if latest_date < today_date:
+                            if today_date.weekday() < 5 and now_est.hour >= 4:
+                                is_stale = True
+                        
+                        if not is_stale:
+                            today_df = df_local[df_local["local_date"] == latest_date]
+                            curr_vol = float(today_df[vol_col].sum()) if vol_col in today_df.columns else 0.0
+                        else:
+                            curr_vol = 0.0
                     except Exception as vol_e:
-                        curr_vol = float(df_1m[vol_col].dropna().iloc[-1]) if (vol_col in df_1m.columns and not df_1m[vol_col].dropna().empty) else 0.0
+                        curr_vol = 0.0
                 else:
                     curr_vol = 0.0
 
@@ -909,14 +924,19 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                         
                         if live_price is None and close_col_d in df_1d.columns and not valid_closes.empty:
                             live_price = float(valid_closes.iloc[-1])
-                            curr_vol = float(valid_vols.iloc[-1]) if not valid_vols.empty else 0.0
+                            last_daily_date = df_1d.index[-1].date() if hasattr(df_1d.index[-1], "date") else None
+                            is_daily_stale = False
+                            if last_daily_date and last_daily_date < today_date:
+                                if today_date.weekday() < 5 and now_est.hour >= 4:
+                                    is_daily_stale = True
+                            if not is_daily_stale:
+                                curr_vol = float(valid_vols.iloc[-1]) if not valid_vols.empty else 0.0
+                            else:
+                                curr_vol = 0.0
                             
                         if prev_close > 0 and live_price is not None:
                             live_change = float(((live_price - prev_close) / prev_close) * 100.0)
                         if avg_vol > 0:
-                            import pytz
-                            est = pytz.timezone('America/New_York')
-                            now_est = datetime.now(est)
                             
                             if is_future:
                                 # Futures trade 24h, sum of 1m volumes since midnight ET.
