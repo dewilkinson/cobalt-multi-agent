@@ -1,4 +1,5 @@
 import time
+import os
 import logging
 from collections import deque
 from typing import Dict, List, Tuple
@@ -78,7 +79,23 @@ class QuotaShield:
                     "core": (500, 3000000),
                     "legacy": (2000, 4000000)
                 }
+                cls._instance._load_limits()
             return cls._instance
+
+    def _load_limits(self):
+        try:
+            from src.config.loader import get_config
+            config = get_config()
+            if config:
+                limits = config.get("QUOTA_LIMITS", {})
+                for tier, limits_dict in limits.items():
+                    if isinstance(limits_dict, dict):
+                        default_rpm, default_tpm = self.tier_limits.get(tier, (10, 100000))
+                        rpm = limits_dict.get("rpm", default_rpm)
+                        tpm = limits_dict.get("tpm", default_tpm)
+                        self.tier_limits[tier] = (rpm, tpm)
+        except Exception as e:
+            logger.warning(f"Error loading quota limits from config: {e}")
 
     def get_bucket(self, tier: str) -> QuotaBucket:
         if tier not in self.buckets:
@@ -88,5 +105,34 @@ class QuotaShield:
 
     def allow_request(self, tier: str, estimated_tokens: int = 1000) -> bool:
         return self.get_bucket(tier).check_and_reserve(estimated_tokens)
+
+def get_daily_token_cap() -> int:
+    """Gets the daily token cap, defaulting to 2,000,000."""
+    # 1. Environment variable check
+    env_cap = os.getenv("DAILY_TOKEN_CAP")
+    if env_cap is not None:
+        try:
+            return int(env_cap)
+        except ValueError:
+            pass
+            
+    # 2. Config check
+    try:
+        from src.config.loader import get_config
+        config = get_config()
+        if config:
+            # Check top level
+            for key in ["DAILY_TOKEN_CAP", "daily_token_cap"]:
+                if key in config:
+                    return int(config[key])
+            # Check under QUOTA_LIMITS
+            quota_limits = config.get("QUOTA_LIMITS", {})
+            for key in ["DAILY_TOKEN_CAP", "daily_token_cap"]:
+                if key in quota_limits:
+                    return int(quota_limits[key])
+    except Exception as e:
+        logger.warning(f"Error loading daily token cap: {e}")
+        
+    return 2000000
 
 quota_shield = QuotaShield()

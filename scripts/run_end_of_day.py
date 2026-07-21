@@ -16,6 +16,24 @@ def main():
     # Get today and tomorrow dates in Eastern Time
     eastern = ZoneInfo("America/New_York")
     today_dt = datetime.now(eastern)
+    
+    # Check if a custom date was provided (either as YYYY-MM-DD or --date=YYYY-MM-DD)
+    custom_date_str = None
+    import re
+    for arg in sys.argv[1:]:
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", arg):
+            custom_date_str = arg
+            break
+        elif arg.startswith("--date="):
+            custom_date_str = arg.split("=")[1]
+            break
+            
+    if custom_date_str:
+        try:
+            today_dt = datetime.strptime(custom_date_str, "%Y-%m-%d").replace(tzinfo=eastern)
+        except Exception as e:
+            print(f"Warning: Failed to parse custom date '{custom_date_str}': {e}. Using current time.")
+            
     today_str = today_dt.strftime("%Y-%m-%d")
     tomorrow_dt = today_dt + timedelta(days=1)
     tomorrow_str = tomorrow_dt.strftime("%Y-%m-%d")
@@ -27,7 +45,7 @@ def main():
             mode = "full"
             break
             
-    print(f"Current Date (ET): {today_str} (Mode: {mode.upper()})")
+    print(f"EOD Reference Date (ET): {today_str} (Mode: {mode.upper()})")
     
     # Check if any trades were made today in brokerage cache
     import json
@@ -99,7 +117,8 @@ def main():
     print("\n[3/3] Generating TradingView Trades Plotter Pine Script...")
     cmd_tv = [
         sys.executable,
-        "scripts/utils/generate_tradingview_script.py"
+        "scripts/utils/generate_tradingview_script.py",
+        "--date", today_str
     ]
     try:
         res = subprocess.run(cmd_tv, capture_output=True, text=True, check=True)
@@ -114,7 +133,8 @@ def main():
     cmd_market = [
         sys.executable,
         "scripts/generate_daily_scanner_review.py",
-        f"--mode={mode}"
+        f"--mode={mode}",
+        f"--date={today_str}"
     ]
     try:
         res = subprocess.run(cmd_market, capture_output=True, text=True, check=True)

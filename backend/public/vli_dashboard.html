@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0242";
+        const VLI_CLIENT_VERSION = "00.000.0247";
     </script>
     
     <link
@@ -62,6 +62,44 @@
         .trend-column-header,
         .trend-column-cell {
             display: none !important;
+        }
+
+        /* --- FLASHING BADGE STYLES --- */
+        @keyframes dummy-green { from { opacity: 0.99; } to { opacity: 1; } }
+        @keyframes dummy-yellow { from { opacity: 0.99; } to { opacity: 1; } }
+        @keyframes dummy-orange { from { opacity: 0.99; } to { opacity: 1; } }
+        @keyframes dummy-blue { from { opacity: 0.99; } to { opacity: 1; } }
+        @keyframes dummy-red { from { opacity: 0.99; } to { opacity: 1; } }
+
+        .flash-badge-green {
+            animation: dummy-green 3s infinite;
+            background-color: rgba(0, 200, 83, calc(0.1 + 0.15 * var(--flash-progress-3s))) !important;
+            border-color: rgba(0, 200, 83, calc(0.3 + 0.4 * var(--flash-progress-3s))) !important;
+            box-shadow: 0 0 calc(8px * var(--flash-progress-3s)) rgba(0, 200, 83, calc(0.5 * var(--flash-progress-3s))) !important;
+        }
+        .flash-badge-yellow {
+            animation: dummy-yellow 2s infinite;
+            background-color: rgba(255, 235, 59, calc(0.1 + 0.15 * var(--flash-progress-2s))) !important;
+            border-color: rgba(255, 235, 59, calc(0.3 + 0.4 * var(--flash-progress-2s))) !important;
+            box-shadow: 0 0 calc(8px * var(--flash-progress-2s)) rgba(255, 235, 59, calc(0.5 * var(--flash-progress-2s))) !important;
+        }
+        .flash-badge-orange {
+            animation: dummy-orange 2s infinite;
+            background-color: rgba(255, 152, 0, calc(0.1 + 0.15 * var(--flash-progress-2s))) !important;
+            border-color: rgba(255, 152, 0, calc(0.3 + 0.4 * var(--flash-progress-2s))) !important;
+            box-shadow: 0 0 calc(8px * var(--flash-progress-2s)) rgba(255, 152, 0, calc(0.5 * var(--flash-progress-2s))) !important;
+        }
+        .flash-badge-blue {
+            animation: dummy-blue 2s infinite;
+            background-color: rgba(33, 150, 243, calc(0.1 + 0.15 * var(--flash-progress-2s))) !important;
+            border-color: rgba(33, 150, 243, calc(0.3 + 0.4 * var(--flash-progress-2s))) !important;
+            box-shadow: 0 0 calc(8px * var(--flash-progress-2s)) rgba(33, 150, 243, calc(0.5 * var(--flash-progress-2s))) !important;
+        }
+        .flash-badge-red {
+            animation: dummy-red 1s infinite;
+            background-color: rgba(229, 115, 115, calc(0.1 + 0.15 * var(--flash-progress-1s))) !important;
+            border-color: rgba(229, 115, 115, calc(0.3 + 0.4 * var(--flash-progress-1s))) !important;
+            box-shadow: 0 0 calc(8px * var(--flash-progress-1s)) rgba(229, 115, 115, calc(0.5 * var(--flash-progress-1s))) !important;
         }
 
         /* --- CRT INDICATION STYLES --- */
@@ -125,6 +163,20 @@
         .crt-segment.pending-setup {
             border: 1.5px solid #ffffff !important;
             animation: crt-slow-flash 1s infinite ease-in-out;
+        }
+        .vli-structure-flash {
+            animation: vli-struct-glow 1.5s infinite ease-in-out;
+        }
+
+        @keyframes vli-struct-glow {
+            0%, 100% {
+                box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+                border-color: rgba(255, 255, 255, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 8px currentColor;
+                border-color: currentColor;
+            }
         }
 
         @keyframes crt-slow-flash {
@@ -473,6 +525,14 @@
             border-bottom: 1px solid var(--card-border);
             border-top: 1px solid var(--card-border);
             text-transform: uppercase;
+        }
+
+        .scanner-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #0d1118 !important;
+            box-shadow: inset 0 1px 0 var(--card-border), inset 0 -1px 0 var(--card-border);
         }
 
         .macro-table td {
@@ -1593,6 +1653,8 @@
         </div>
     </div>
 
+
+
     <div id="snaptrade-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
         <div class="modal-content" style="width: 500px; max-width: 90vw;">
             <div class="modal-header">
@@ -1775,6 +1837,29 @@
             toggleThinkingMode(window.isThinkingMode);
             pollTokenTally();
             setInterval(pollTokenTally, 10000); // Check every 10 seconds
+            
+            function startGlobalFlashSync() {
+                function update() {
+                    const now = Date.now();
+                    
+                    const t3 = (now % 3000) / 3000;
+                    const progress3 = t3 < 0.5 ? (t3 * 2) : ((1 - t3) * 2);
+                    
+                    const t2 = (now % 2000) / 2000;
+                    const progress2 = t2 < 0.5 ? (t2 * 2) : ((1 - t2) * 2);
+                    
+                    const t1 = (now % 1000) / 1000;
+                    const progress1 = t1 < 0.5 ? (t1 * 2) : ((1 - t1) * 2);
+                    
+                    document.documentElement.style.setProperty('--flash-progress-3s', progress3.toFixed(4));
+                    document.documentElement.style.setProperty('--flash-progress-2s', progress2.toFixed(4));
+                    document.documentElement.style.setProperty('--flash-progress-1s', progress1.toFixed(4));
+                    
+                    requestAnimationFrame(update);
+                }
+                requestAnimationFrame(update);
+            }
+            startGlobalFlashSync();
         });
         const getSnaptradeSettings = () => ({
             SNAPTRADE_CLIENT_ID: localStorage.getItem('SNAPTRADE_CLIENT_ID') || '',
@@ -1782,6 +1867,219 @@
             SNAPTRADE_USER_ID: localStorage.getItem('SNAPTRADE_USER_ID') || '',
             SNAPTRADE_USER_SECRET: localStorage.getItem('SNAPTRADE_USER_SECRET') || ''
         });
+
+        window.openLedgerModal = function(symbol, ledgerData, rejectedData) {
+            let ledger = [];
+            let rejected = [];
+            try {
+                if (typeof ledgerData === 'string' && ledgerData) {
+                    ledger = JSON.parse(decodeURIComponent(ledgerData));
+                } else if (Array.isArray(ledgerData)) {
+                    ledger = ledgerData;
+                }
+            } catch (e) {
+                console.error("Error parsing ledger data:", e);
+            }
+            try {
+                if (typeof rejectedData === 'string' && rejectedData) {
+                    rejected = JSON.parse(decodeURIComponent(rejectedData));
+                } else if (Array.isArray(rejectedData)) {
+                    rejected = rejectedData;
+                }
+            } catch (e) {
+                console.error("Error parsing rejected data:", e);
+            }
+            
+            const card = UXManager.createCard('TRADE_LEDGER', {
+                width: '800px',
+                height: '420px',
+                top: '120px',
+                left: '280px'
+            });
+            if (!card) return;
+            
+            const instanceGuid = card.dataset.instanceGuid;
+            const titleEl = card.querySelector('.card-title-text');
+            if (titleEl) {
+                titleEl.innerText = `Trade Ledger - ${symbol}`;
+            }
+            
+            const thead = card.querySelector('thead');
+            const tbody = card.querySelector(`#ledger-table-body-${instanceGuid}`);
+            
+            const tabExec = card.querySelector(`#ledger-tab-exec-${instanceGuid}`);
+            const tabRej = card.querySelector(`#ledger-tab-rej-${instanceGuid}`);
+            
+            function showExecuted() {
+                tabExec.style.background = 'var(--cobalt-blue)';
+                tabExec.style.borderColor = 'var(--cobalt-blue)';
+                tabExec.style.color = '#fff';
+                
+                tabRej.style.background = 'transparent';
+                tabRej.style.borderColor = 'rgba(255,255,255,0.1)';
+                tabRej.style.color = 'var(--text-muted)';
+                
+                thead.innerHTML = `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); font-size: 12px; font-weight: 700;">
+                        <th style="padding: 8px 4px;">Type</th>
+                        <th style="padding: 8px 4px;">Source</th>
+                        <th style="padding: 8px 4px;">Entry Time</th>
+                        <th style="padding: 8px 4px;">Exit Time</th>
+                        <th style="padding: 8px 4px; text-align: right;">Entry Price</th>
+                        <th style="padding: 8px 4px; text-align: right;">Exit Price</th>
+                        <th style="padding: 8px 4px; text-align: right;">Qty</th>
+                        <th style="padding: 8px 4px; text-align: center;">Outcome</th>
+                        <th style="padding: 8px 4px; text-align: right;">PnL ($)</th>
+                        <th style="padding: 8px 4px; text-align: right;">PnL %</th>
+                        <th style="padding: 8px 4px; text-align: right;">R:R</th>
+                    </tr>
+                `;
+                tbody.innerHTML = '';
+                
+                let total = ledger.length;
+                const maxRows = Math.min(Math.max(total, 1), 20);
+                const calculatedHeight = 220 + (maxRows * 32);
+                card.style.height = `${calculatedHeight}px`;
+                
+                let success = 0;
+                let fail = 0;
+                let sumPnlPct = 0;
+                
+                if (total === 0) {
+                    tbody.innerHTML = `<tr><td colspan="11" style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 13px;">No trade outcomes recorded yet for this symbol.</td></tr>`;
+                    card.querySelector(`#ledger-stat-total-${instanceGuid}`).innerText = '0';
+                    card.querySelector(`#ledger-stat-accuracy-${instanceGuid}`).innerText = '-';
+                    card.querySelector(`#ledger-stat-accuracy-${instanceGuid}`).style.color = 'var(--text-muted)';
+                    card.querySelector(`#ledger-stat-tally-${instanceGuid}`).innerText = '0 / 0';
+                    card.querySelector(`#ledger-stat-pnl-${instanceGuid}`).innerText = '0.0%';
+                    card.querySelector(`#ledger-stat-pnl-${instanceGuid}`).style.color = 'var(--text-muted)';
+                    return;
+                }
+                
+                ledger.forEach(t => {
+                    if (t.outcome === 'Success') success++;
+                    else fail++;
+                    sumPnlPct += t.pnl_percent || 0.0;
+                    
+                    const typeColor = t.type === 'Long' ? 'var(--emerald-green)' : '#ff6b6b';
+                    const outcomeColor = t.outcome === 'Success' ? 'var(--emerald-green)' : '#ff6b6b';
+                    const displayOutcome = t.outcome === 'Success' ? 'Win' : (t.outcome === 'Fail' ? 'Loss' : t.outcome);
+                    const pnlVal = t.pnl_percent !== undefined ? t.pnl_percent : 0.0;
+                    const pnlColor = pnlVal >= 0.0 ? 'var(--emerald-green)' : '#ff6b6b';
+                    const pnlSign = pnlVal >= 0.0 ? '+' : '';
+                    
+                    const rrVal = t.rr !== undefined ? t.rr : 0.0;
+                    let rrColor = 'var(--text-muted)';
+                    if (rrVal < 1.0) {
+                        rrColor = '#ff6b6b';
+                    } else if (rrVal >= 2.0) {
+                        rrColor = '#00ff66';
+                    } else {
+                        rrColor = '#00e676';
+                    }
+                    const rrText = `${rrVal.toFixed(1)}`;
+                    
+                    const pnlUsd = t.pnl !== undefined ? t.pnl : 0.0;
+                    const usdSign = pnlUsd >= 0.0 ? '+' : '-';
+                    const usdText = `${usdSign}$${Math.abs(pnlUsd).toFixed(2)}`;
+                    
+                    const qtyVal = t.quantity !== undefined ? t.quantity : 1.0;
+                    const qtyText = Number.isInteger(qtyVal) ? qtyVal : qtyVal.toFixed(2);
+                    
+                    const row = document.createElement('tr');
+                    row.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                    row.style.height = '32px';
+                    row.style.fontSize = '13px';
+                    row.innerHTML = `
+                        <td style="padding: 8px 4px; color: ${typeColor}; font-weight:700;">${t.type}</td>
+                        <td style="padding: 8px 4px; color: var(--text-muted);">${t.source || 'Backtest'}</td>
+                        <td style="padding: 8px 4px; color: #fff;">${t.entry_time}</td>
+                        <td style="padding: 8px 4px; color: #fff;">${t.exit_time}</td>
+                        <td style="padding: 8px 4px; text-align: right; color: #fff;">$${parseFloat(t.entry_price).toFixed(2)}</td>
+                        <td style="padding: 8px 4px; text-align: right; color: #fff;">$${parseFloat(t.exit_price).toFixed(2)}</td>
+                        <td style="padding: 8px 4px; text-align: right; color: var(--text-muted);">${qtyText}</td>
+                        <td style="padding: 8px 4px; text-align: center; color: ${outcomeColor}; font-weight: 700;">${displayOutcome}</td>
+                        <td style="padding: 8px 4px; text-align: right; color: ${pnlColor}; font-weight: 700;">${usdText}</td>
+                        <td style="padding: 8px 4px; text-align: right; color: ${pnlColor}; font-weight: 700;">${pnlSign}${pnlVal.toFixed(2)}%</td>
+                        <td style="padding: 8px 4px; text-align: right; color: ${rrColor}; font-weight: 700;">${rrText}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                card.querySelector(`#ledger-stat-total-${instanceGuid}`).innerText = total.toString();
+                const accVal = total > 0 ? Math.round((success / total) * 100) : 0;
+                
+                let sumRr = 0.0;
+                ledger.forEach(t => {
+                    sumRr += t.rr !== undefined ? t.rr : 0.0;
+                });
+                const avgRrAll = total > 0 ? sumRr / total : 0.0;
+                
+                const accuracyColor = accVal >= 50 ? 'var(--emerald-green)' : '#ff6b6b';
+                const rrColor = avgRrAll < 1.0 ? '#ff6b6b' : 'var(--emerald-green)';
+                
+                card.querySelector(`#ledger-stat-accuracy-${instanceGuid}`).style.color = accuracyColor;
+                card.querySelector(`#ledger-stat-accuracy-${instanceGuid}`).innerHTML = `${accVal}% <span style="font-size: 12px; font-weight: 700; color: ${rrColor}; margin-left: 4px;">(${avgRrAll.toFixed(1)} R)</span>`;
+                card.querySelector(`#ledger-stat-tally-${instanceGuid}`).innerText = `${success} / ${fail}`;
+                
+                const roundedPnl = sumPnlPct.toFixed(2);
+                card.querySelector(`#ledger-stat-pnl-${instanceGuid}`).innerText = `${roundedPnl}%`;
+                card.querySelector(`#ledger-stat-pnl-${instanceGuid}`).style.color = sumPnlPct >= 0.0 ? 'var(--emerald-green)' : '#ff6b6b';
+            }
+            
+            function showRejected() {
+                tabRej.style.background = 'var(--cobalt-blue)';
+                tabRej.style.borderColor = 'var(--cobalt-blue)';
+                tabRej.style.color = '#fff';
+                
+                tabExec.style.background = 'transparent';
+                tabExec.style.borderColor = 'rgba(255,255,255,0.1)';
+                tabRej.style.color = '#fff';
+                tabExec.style.color = 'var(--text-muted)';
+                
+                thead.innerHTML = `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); font-size: 12px; font-weight: 700;">
+                        <th style="padding: 8px 4px;">Type</th>
+                        <th style="padding: 8px 4px;">Time</th>
+                        <th style="padding: 8px 4px; text-align: right;">Price</th>
+                        <th style="padding: 8px 4px;">Step</th>
+                        <th style="padding: 8px 4px;">Reason</th>
+                    </tr>
+                `;
+                tbody.innerHTML = '';
+                
+                let total = rejected.length;
+                const maxRows = Math.min(Math.max(total, 1), 20);
+                const calculatedHeight = 220 + (maxRows * 32);
+                card.style.height = `${calculatedHeight}px`;
+                
+                if (total === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 13px;">No candidate entries rejected for this symbol.</td></tr>`;
+                    return;
+                }
+                
+                rejected.forEach(r => {
+                    const typeColor = r.type === 'Long' ? 'var(--emerald-green)' : '#ff6b6b';
+                    const row = document.createElement('tr');
+                    row.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                    row.style.height = '32px';
+                    row.style.fontSize = '13px';
+                    row.innerHTML = `
+                        <td style="padding: 8px 4px; color: ${typeColor}; font-weight:700;">${r.type}</td>
+                        <td style="padding: 8px 4px; color: #fff;">${r.time}</td>
+                        <td style="padding: 8px 4px; text-align: right; color: #fff;">$${parseFloat(r.price).toFixed(2)}</td>
+                        <td style="padding: 8px 4px; color: #ffab00; font-weight: 700;">${r.step}</td>
+                        <td style="padding: 8px 4px; color: var(--text-muted);">${r.reason}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+            
+            tabExec.addEventListener('click', showExecuted);
+            tabRej.addEventListener('click', showRejected);
+            
+            showExecuted();
+        };
 
         function openSnaptradeModal() {
             document.getElementById('snaptrade-modal').style.display = 'flex';
@@ -1868,13 +2166,14 @@
             'SCAN_RES': { idPrefix: 'SR', title: 'Market Scan', isSingleton: false },
             'ORDER_HIST': { idPrefix: 'OH', title: 'Portfolio', isSingleton: true },
             'SCHEDULER_LOG': { idPrefix: 'SL', title: 'Scheduler Telemetry', isSingleton: true },
-            'ARTIFACT_VIEWER': { idPrefix: 'ART', title: 'Artifact Viewer', isSingleton: false, initContent: () => `<div class="artifact-content msg-ai" style="padding:15px; overflow-y:auto; height:100%;"></div>`, onAttach: () => {} }
+            'ARTIFACT_VIEWER': { idPrefix: 'ART', title: 'Artifact Viewer', isSingleton: false, initContent: () => `<div class="artifact-content msg-ai" style="padding:15px; overflow-y:auto; height:100%;"></div>`, onAttach: () => {} },
+            'TRADE_LEDGER': { idPrefix: 'TL', title: 'Trade Ledger', isSingleton: false }
         };
 
         class UXCardManager {
             constructor() {
                 this.instances = {};
-                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'STRUCTURAL_ANALY': 0, 'SCAN_RES': 0, 'ORDER_HIST': 0, 'SCHEDULER_LOG': 0, 'ARTIFACT_VIEWER': 0 };
+                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'STRUCTURAL_ANALY': 0, 'SCAN_RES': 0, 'ORDER_HIST': 0, 'SCHEDULER_LOG': 0, 'ARTIFACT_VIEWER': 0, 'TRADE_LEDGER': 0 };
             }
 
             generateGUID() {
@@ -2204,6 +2503,54 @@
                                 </table>
                             </div>
                         </div>`;
+                } else if (typeGuid === 'TRADE_LEDGER') {
+                    bodyContent = `
+                        <div class="card-body" style="overflow-y: auto; padding: 12px; display: flex; flex-direction: column; background: #121214;">
+                            <div style="display: flex; gap: 10px; margin-bottom: 12px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); font-family: var(--font-mono); font-size: 13px;">
+                                <div style="flex: 1; text-align: center;">
+                                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Total Trades</div>
+                                    <div id="ledger-stat-total-${instanceGuid}" style="font-size: 16px; font-weight: 800; color: #fff; margin-top: 4px;">0</div>
+                                </div>
+                                <div style="flex: 1; text-align: center; border-left: 1px solid rgba(255,255,255,0.05);">
+                                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Accuracy</div>
+                                    <div id="ledger-stat-accuracy-${instanceGuid}" style="font-size: 16px; font-weight: 800; color: var(--emerald-green); margin-top: 4px;">0%</div>
+                                </div>
+                                <div style="flex: 1; text-align: center; border-left: 1px solid rgba(255,255,255,0.05);">
+                                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Win / Loss</div>
+                                    <div id="ledger-stat-tally-${instanceGuid}" style="font-size: 16px; font-weight: 800; color: #fff; margin-top: 4px;">0 / 0</div>
+                                </div>
+                                <div style="flex: 1; text-align: center; border-left: 1px solid rgba(255,255,255,0.05);">
+                                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Cum PnL %</div>
+                                    <div id="ledger-stat-pnl-${instanceGuid}" style="font-size: 16px; font-weight: 800; color: var(--emerald-green); margin-top: 4px;">0.0%</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 6px; margin-bottom: 12px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; text-transform: uppercase;">
+                                <button id="ledger-tab-exec-${instanceGuid}" style="padding: 6px 12px; border-radius: 4px; border: 1px solid var(--cobalt-blue); background: var(--cobalt-blue); color: #fff; cursor: pointer; transition: all 0.2s;">Executed Trades</button>
+                                <button id="ledger-tab-rej-${instanceGuid}" style="padding: 6px 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;">Rejected Entries</button>
+                            </div>
+                            <div style="overflow-x: auto; width: 100%; flex-grow: 1;">
+                                <table style="width: 100%; border-collapse: collapse; text-align: left; font-family: var(--font-mono); font-size: 13px;">
+                                    <thead>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); font-size: 12px; font-weight: 700;">
+                                            <th style="padding: 8px 4px;">Type</th>
+                                            <th style="padding: 8px 4px;">Source</th>
+                                            <th style="padding: 8px 4px;">Entry Time</th>
+                                            <th style="padding: 8px 4px;">Exit Time</th>
+                                            <th style="padding: 8px 4px; text-align: right;">Entry Price</th>
+                                            <th style="padding: 8px 4px; text-align: right;">Exit Price</th>
+                                            <th style="padding: 8px 4px; text-align: right;">Qty</th>
+                                            <th style="padding: 8px 4px; text-align: center;">Outcome</th>
+                                            <th style="padding: 8px 4px; text-align: right;">PnL ($)</th>
+                                            <th style="padding: 8px 4px; text-align: right;">PnL %</th>
+                                            <th style="padding: 8px 4px; text-align: right;">R:R</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ledger-table-body-${instanceGuid}">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>`;
                 } else if (typeGuid === 'SCHEDULER_LOG') {
                     bodyContent = `
                         <div class="card-body" style="padding:0; overflow:hidden; display:flex; flex-direction:column;">
@@ -2225,7 +2572,7 @@
                     <div class="card-header">
                         <div style="display:flex; align-items:center; gap:8px;">
                             <div class="descriptor" style="cursor: pointer; transition: transform 0.1s;" onclick="insertCardIdIntoChat('${badgeLabel}')" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Insert ${badgeLabel} to Chat">${badgeLabel}</div>
-                            <div>${instanceGuid.includes('futures') ? 'Futures Watchlist' : typeDef.title} ${liveBadgeHTML}${typeGuid === 'SCAN_RES' ? '<span id="scanner-warning-badge" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 800; margin-left: 8px; letter-spacing: 0.5px; display: none;">⚠️ Using Sample Values</span>' : ''}</div>
+                            <div class="card-title-text" style="display:inline-flex; align-items:center; gap:4px;">${instanceGuid.includes('futures') ? 'Futures Watchlist' : typeDef.title} ${liveBadgeHTML}${typeGuid === 'SCAN_RES' ? '<span id="scanner-warning-badge" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 800; margin-left: 8px; letter-spacing: 0.5px; display: none;">⚠️ Using Sample Values</span>' : ''}</div>
                         </div>
                             ${(typeGuid === 'SCAN_RES' || typeGuid === 'MACRO_WL') ? `
                                 <div class="win-btn" onclick="${typeGuid === 'SCAN_RES' ? 'exportScannerWatchlist' : 'exportMacroWatchlist'}('${instanceGuid}'); event.stopPropagation();" title="Export Watchlist" style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-right: 6px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
@@ -3993,11 +4340,11 @@
             
             const red = 'var(--ruby-red)';
             const orange = '#ff7a00';
-            const yellow = '#ffc400';
             const blue = '#00e5ff';
+            const yellow = '#ffc400';
             const green = 'var(--emerald-green)';
             
-            const colors = [red, red, orange, orange, yellow, yellow, blue, blue, green];
+            const colors = [red, red, orange, orange, blue, blue, yellow, yellow, green];
             
             let barsHtml = '';
             for (let i = 0; i < 9; i++) {
@@ -4074,11 +4421,58 @@
                 : (c.sortino !== undefined && c.sortino !== null ? parseFloat(c.sortino) : 0.0);
             let sortinoScore = Math.max(0.0, Math.min(1.0, sortinoVal / 1.5));
 
+            // CRT Confluence
+            let crtRes = calculateCrtConfidence(c, card);
+            let crtScore = crtRes ? crtRes.score : 0.0;
+
+            // SMC Trigger Confluence
+            let smcTriggerVal = c.smc_trigger || 'WAIT';
+            let smcTriggerScore = 0.0;
+            if (isBullish && smcTriggerVal === 'BUY') {
+                smcTriggerScore = 1.0;
+            } else if (!isBullish && smcTriggerVal === 'SELL') {
+                smcTriggerScore = 1.0;
+            }
+
+            // Market Structure Confluence
+            let targetTf = '1h';
+            if (duration === 'DAY') {
+                targetTf = '5m';
+            } else if (duration === 'SWING_LOW') {
+                targetTf = '15m';
+            } else if (duration === 'SWING_MED') {
+                targetTf = '1h';
+            } else if (duration === 'HOLD') {
+                targetTf = '1d';
+            }
+            const events = c.structure_events || {};
+            const structRaw = events[targetTf] || c.structure_event || 'STABLE';
+            const struct = structRaw.split(':')[0];
+            let structureScore = 0.0;
+            if (struct.includes('BULLISH') && isBullish) {
+                structureScore = 1.0;
+            } else if (struct.includes('BEARISH') && !isBullish) {
+                structureScore = 1.0;
+            }
+
             let total = 0.0;
             if (isSortinoEnabled) {
-                total = (trendScore * 0.30) + (zoneScore * 0.30) + (rvolScore * 0.15) + (vwapScore * 0.15) + (sortinoScore * 0.10);
+                total = (trendScore * 0.20) + 
+                        (zoneScore * 0.20) + 
+                        (crtScore * 0.15) + 
+                        (smcTriggerScore * 0.15) + 
+                        (structureScore * 0.10) + 
+                        (rvolScore * 0.10) + 
+                        (vwapScore * 0.05) + 
+                        (sortinoScore * 0.05);
             } else {
-                total = (trendScore * 0.35) + (zoneScore * 0.35) + (rvolScore * 0.15) + (vwapScore * 0.15);
+                total = (trendScore * 0.225) + 
+                        (zoneScore * 0.225) + 
+                        (crtScore * 0.15) + 
+                        (smcTriggerScore * 0.15) + 
+                        (structureScore * 0.10) + 
+                        (rvolScore * 0.10) + 
+                        (vwapScore * 0.05);
             }
 
             return {
@@ -4088,6 +4482,9 @@
                 rvolScore,
                 vwapScore,
                 sortinoScore,
+                crtScore,
+                smcTriggerScore,
+                structureScore,
                 isSortinoEnabled
             };
         }
@@ -4125,18 +4522,24 @@
             else if (total >= 0.6) tier = "B-Tier (Moderate Setup)";
             else if (total >= 0.45) tier = "C-Tier (Fair Setup)";
             
-            let tooltipText = `Setup Confidence: ${Math.round(total * 100)}% (${tier})\n\n`;
+            let tooltipText = `Setup Quality: ${Math.round(total * 100)}% (${tier})\n\n`;
             if (scoreObj.isSortinoEnabled) {
-                tooltipText += `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 30%)\n` +
-                               `• Discount: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 30%)\n` +
-                               `• Relative Volume: ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 15%)\n` +
-                               `• VWAP Position: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 15%)\n` +
-                               `• Sortino Ratio: ${Math.round(scoreObj.sortinoScore * 100)}% (Weight: 10%)`;
+                tooltipText += `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 20%)\n` +
+                               `• Discount: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 20%)\n` +
+                               `• Accuracy: ${Math.round(scoreObj.crtScore * 100)}% (Weight: 15%)\n` +
+                               `• SMC Trigger: ${Math.round(scoreObj.smcTriggerScore * 100)}% (Weight: 15%)\n` +
+                               `• Market Structure: ${Math.round(scoreObj.structureScore * 100)}% (Weight: 10%)\n` +
+                               `• Relative Volume: ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 10%)\n` +
+                               `• VWAP Position: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 5%)\n` +
+                               `• Sortino Ratio: ${Math.round(scoreObj.sortinoScore * 100)}% (Weight: 5%)`;
             } else {
-                tooltipText += `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 35%)\n` +
-                               `• Discount: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 35%)\n` +
-                               `• Relative Volume: ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 15%)\n` +
-                               `• VWAP Position: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 15%)`;
+                tooltipText += `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 22.5%)\n` +
+                               `• Discount: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 22.5%)\n` +
+                               `• Accuracy: ${Math.round(scoreObj.crtScore * 100)}% (Weight: 15%)\n` +
+                               `• SMC Trigger: ${Math.round(scoreObj.smcTriggerScore * 100)}% (Weight: 15%)\n` +
+                               `• Market Structure: ${Math.round(scoreObj.structureScore * 100)}% (Weight: 10%)\n` +
+                               `• Relative Volume: ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 10%)\n` +
+                               `• VWAP Position: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 5%)`;
             }
                                 
             return `
@@ -4152,6 +4555,9 @@
             if (trendVal === undefined || trendVal === null) trendVal = 0.0;
             const isBullTrend = trendVal > 0.0;
             const isBearTrend = trendVal < 0.0;
+            
+            let rawZone = (card.zoneValues && c.symbol in card.zoneValues) ? card.zoneValues[c.symbol] : c.pd_zone;
+            let pdVal = rawZone !== undefined && rawZone !== null ? parseFloat(rawZone) : 0.0;
             
             const timeframes = [
                 { name: '15m', segments: c.crt_15m, weight: 0.20 },
@@ -4172,13 +4578,13 @@
                 let sweepIdx = -1;
                 for (let i = lastIdx; i >= 0; i--) {
                     const state = segs[i].state || 'NONE';
-                    if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'DOUBLE_SWEEP') {
+                    if (state === 'BULL_SWEEP' || state === 'BEAR_SWEEP' || state === 'DOUBLE_SWEEP' || state === 'BULL_OUTSIDE' || state === 'BEAR_OUTSIDE') {
                         sweepIdx = i;
                         break;
                     }
                 }
                 
-                if (sweepIdx !== -1 && sweepIdx < lastIdx && sweepIdx - 1 >= 0) {
+                if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
                     let rangeCandleIdx = sweepIdx - 1;
                     while (rangeCandleIdx > 0) {
                         const rState = segs[rangeCandleIdx].state || 'NONE';
@@ -4264,10 +4670,25 @@
                             const isBearSetup = sweepState === 'BEAR_SWEEP' || sweepState === 'BEAR_OUTSIDE' || (sweepState === 'DOUBLE_SWEEP' && parseFloat(segs[sweepIdx].close) < parseFloat(segs[sweepIdx].open));
                             
                             let alignment = 0.5;
-                            if (isBullTrend) {
-                                alignment = isBullSetup ? 1.0 : 0.3;
-                            } else if (isBearTrend) {
-                                alignment = isBearSetup ? 1.0 : 0.3;
+                            const rvolVal = parseFloat(c.rvol || 1.0);
+                            
+                            const isBullEntryTrigger = isBullTrend && pdVal <= -0.2 && rvolVal >= 1.1;
+                            const isBearEntryTrigger = isBearTrend && pdVal >= 0.2 && rvolVal >= 1.1;
+                            
+                            if (isBullEntryTrigger && isBullSetup) {
+                                alignment = 1.0;
+                            } else if (isBearEntryTrigger && isBearSetup) {
+                                alignment = 1.0;
+                            } else if (isBullTrend && pdVal >= 0.2 && isBullSetup) {
+                                alignment = 0.0;
+                            } else if (isBearTrend && pdVal <= -0.2 && isBearSetup) {
+                                alignment = 0.0;
+                            } else {
+                                if (isBullTrend) {
+                                    alignment = isBullSetup ? 0.8 : 0.3;
+                                } else if (isBearTrend) {
+                                    alignment = isBearSetup ? 0.8 : 0.3;
+                                }
                             }
                             
                             const multiplier = isSuccessful ? 1.0 : Math.max(0.5, 1.0 - (lastIdx - sweepIdx) * 0.1);
@@ -4297,22 +4718,156 @@
             };
         }
  
-        function drawCrtConfidenceCell(res) {
-            if (!res || res.score <= 0.0) {
+        function getProfitabilityScore(accuracyPct, avgRr) {
+            const a = accuracyPct / 100.0;
+            const rr = parseFloat(avgRr || 0.0);
+            
+            // Expected Value (EV) per trade in units of risk
+            const ev = a * rr - (1.0 - a);
+            
+            let score = 0.0;
+            if (ev < 0.0) {
+                // Scale EV from [-1, 0] to [0, 33]
+                const boundedEv = Math.max(-1.0, ev);
+                score = 33.0 * (boundedEv + 1.0);
+            } else {
+                // Scale EV from [0, +inf) to [33, 100] using soft-saturation: 33 + 67 * ev / (ev + 1.0)
+                score = 33.0 + 67.0 * (ev / (ev + 1.0));
+            }
+            return score;
+        }
+
+        function getJointProfitabilityColor(accuracyPct, avgRr) {
+            const score = getProfitabilityScore(accuracyPct, avgRr);
+            if (score >= 60) {
+                return '#00ff66'; // neon green
+            } else if (score >= 50) {
+                return '#00e676'; // bright green
+            } else if (score >= 33) {
+                return '#4caf50'; // darker green
+            } else {
+                return '#ff6b6b'; // bright vibrant red
+            }
+        }
+
+        function getDaysSinceFirstTrade(ledger) {
+            if (!ledger || ledger.length === 0) return null;
+            let earliest = null;
+            ledger.forEach(t => {
+                if (t.entry_time) {
+                    const d = new Date(t.entry_time.replace(/-/g, '/'));
+                    if (!isNaN(d.getTime())) {
+                        if (!earliest || d < earliest) {
+                            earliest = d;
+                        }
+                    }
+                }
+            });
+            if (!earliest) return null;
+            const diffMs = new Date() - earliest;
+            return Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+        }
+
+        function drawWinRrCell(res, ledger, symbol, rejected) {
+            let successCount = 0;
+            let failCount = 0;
+            if (ledger && ledger.length > 0) {
+                successCount = ledger.filter(t => t.outcome === 'Success').length;
+                failCount = ledger.length - successCount;
+            } else if (res) {
+                successCount = res.success;
+                failCount = res.fail;
+            }
+            
+            const total = successCount + failCount;
+            if (total === 0) {
                 return `<div style="font-family: var(--font-mono); color: var(--text-muted); font-size: 11px; font-weight: 700; text-align: center;">-</div>`;
             }
-            const pct = Math.round(res.score * 100);
-            let color = 'var(--text-muted)';
-            if (pct >= 70) {
-                color = 'var(--emerald-green)';
-            } else if (pct >= 40) {
-                color = 'var(--amber-gold)';
-            } else {
-                color = 'var(--ruby-red)';
+            const pct = Math.round((successCount / total) * 100);
+            
+            // Calculate avgRr from ledger
+            let avgRr = 0.0;
+            if (ledger && ledger.length > 0) {
+                const wins = ledger.filter(t => t.outcome === 'Success');
+                const targetTrades = wins.length > 0 ? wins : ledger;
+                const sum = targetTrades.reduce((acc, t) => acc + Math.abs(t.rr || 0.0), 0.0);
+                avgRr = sum / targetTrades.length;
             }
-            return `<div style="font-family: var(--font-mono); color: ${color}; font-size: 11px; font-weight: 800; text-align: center; text-shadow: 0 0 4px ${color}33;">
-                ${pct}%
-                <div style="font-size: 9px; font-weight: 600; opacity: 0.7; margin-top: 1px; color: var(--text-muted);">${res.success}/${res.fail}</div>
+            
+            let inProfit = false;
+            if (ledger && ledger.length > 0) {
+                const netPnlPercent = ledger.reduce((acc, t) => acc + (t.pnl_percent || 0.0), 0.0);
+                inProfit = netPnlPercent > 0.0;
+            } else {
+                const score = getProfitabilityScore(pct, avgRr);
+                inProfit = score >= 33;
+            }
+            const color = inProfit ? '#00ff66' : '#ff6b6b';
+            
+            const days = getDaysSinceFirstTrade(ledger);
+            const daysText = days !== null ? `\n• Days Accumulating: ${days}` : '';
+            const tooltipText = `WIN / RR DETAILS:\n\n• Success Rate: ${pct}%\n• Average Realized RR: ${avgRr.toFixed(1)}\n• Trade Count: ${total}${daysText}\n• Win / Loss: ${successCount} / ${failCount}\n\nClick to view full Trade Ledger.`;
+            
+            const ledgerJson = encodeURIComponent(JSON.stringify(ledger || []));
+            const rejectedJson = encodeURIComponent(JSON.stringify(rejected || []));
+            return `<div onclick="openLedgerModal('${symbol}', '${ledgerJson}', '${rejectedJson}')" title="${tooltipText.replace(/"/g, '&quot;')}" style="font-family: var(--font-mono); color: ${color}; font-size: 11px; font-weight: 800; text-align: center; cursor: pointer; text-shadow: 0 0 4px ${color}33;">
+                ${pct}% <span style="color: #ffffff; font-weight: 600; text-shadow: none;">(</span>${avgRr.toFixed(1)}<span style="color: #ffffff; font-weight: 600; text-shadow: none;">)</span>
+            </div>`;
+        }
+
+        function drawPnlCell(res, ledger) {
+            let successCount = 0;
+            let failCount = 0;
+            if (ledger && ledger.length > 0) {
+                successCount = ledger.filter(t => t.outcome === 'Success').length;
+                failCount = ledger.length - successCount;
+            } else if (res) {
+                successCount = res.success;
+                failCount = res.fail;
+            }
+            const total = successCount + failCount;
+            if (total === 0 || !ledger || ledger.length === 0) {
+                return `<div style="font-family: var(--font-mono); color: var(--text-muted); font-size: 11px; font-weight: 700; text-align: center;">-</div>`;
+            }
+            const netPnlPercent = ledger.reduce((acc, t) => acc + (t.pnl_percent || 0.0), 0.0);
+            const inProfit = netPnlPercent > 0.0;
+            const color = inProfit ? '#00ff66' : (netPnlPercent < 0.0 ? '#ff6b6b' : '#888888');
+            const sign = netPnlPercent > 0.0 ? '+' : '';
+            const days = getDaysSinceFirstTrade(ledger);
+            const daysText = days !== null ? `\n• Days Accumulating: ${days}` : '';
+            const tooltipText = `NET PNL (%):\n\n• Cumulative PnL: ${sign}${netPnlPercent.toFixed(2)}%\n• Trade Count: ${total}${daysText}\n• Success / Failure: ${successCount} / ${failCount}`;
+            return `<div title="${tooltipText.replace(/"/g, '&quot;')}" style="font-family: var(--font-mono); color: ${color}; font-size: 11px; font-weight: 800; text-align: center; text-shadow: 0 0 4px ${color}33; cursor: help;">
+                ${sign}${netPnlPercent.toFixed(2)}%
+            </div>`;
+        }
+
+        function drawPnlDollarCell(res, ledger) {
+            let successCount = 0;
+            let failCount = 0;
+            if (ledger && ledger.length > 0) {
+                successCount = ledger.filter(t => t.outcome === 'Success').length;
+                failCount = ledger.length - successCount;
+            } else if (res) {
+                successCount = res.success;
+                failCount = res.fail;
+            }
+            const total = successCount + failCount;
+            if (total === 0 || !ledger || ledger.length === 0) {
+                return `<div style="font-family: var(--font-mono); color: var(--text-muted); font-size: 11px; font-weight: 700; text-align: center;">-</div>`;
+            }
+            const netPnlDollar = ledger.reduce((acc, t) => acc + (t.pnl || 0.0), 0.0);
+            const inProfit = netPnlDollar > 0.0;
+            const color = inProfit ? '#00ff66' : (netPnlDollar < 0.0 ? '#ff6b6b' : '#888888');
+            const sign = netPnlDollar > 0.0 ? '+' : '';
+            let displayVal = `${sign}$${Math.abs(netPnlDollar).toFixed(2)}`;
+            if (netPnlDollar < 0.0) {
+                displayVal = `-$${Math.abs(netPnlDollar).toFixed(2)}`;
+            }
+            const days = getDaysSinceFirstTrade(ledger);
+            const daysText = days !== null ? `\n• Days Accumulating: ${days}` : '';
+            const tooltipText = `NET PNL ($):\n\n• Cumulative PnL: ${displayVal}\n• Trade Count: ${total}${daysText}\n• Success / Failure: ${successCount} / ${failCount}`;
+            return `<div title="${tooltipText.replace(/"/g, '&quot;')}" style="font-family: var(--font-mono); color: ${color}; font-size: 11px; font-weight: 800; text-align: center; text-shadow: 0 0 4px ${color}33; cursor: help;">
+                ${displayVal}
             </div>`;
         }
 
@@ -4373,7 +4928,28 @@
             if (card.trendValues && c.symbol in card.trendValues) {
                 return parseFloat(card.trendValues[c.symbol]);
             }
-            const timeframe = card.dataset.trendTimeframe || '1d';
+            const duration = card.dataset.activeDuration || 'SWING_MED';
+            let timeframe = '1d';
+            if (duration === 'DAY') {
+                timeframe = '1h';
+            } else if (duration === 'SWING_LOW') {
+                timeframe = '4h';
+            } else if (duration === 'SWING_MED') {
+                timeframe = '1d';
+            } else if (duration === 'HOLD') {
+                timeframe = '1w';
+            }
+            
+            if (c.trends && (!c.trends[timeframe] || c.trends[timeframe] === 'No Data')) {
+                if (timeframe === '1w') {
+                    timeframe = '1d';
+                }
+            }
+            
+            if (card.dataset.trendTimeframe) {
+                timeframe = card.dataset.trendTimeframe;
+            }
+            
             if (c.trends && timeframe in c.trends) {
                 const tStr = c.trends[timeframe];
                 if (tStr === 'Strong Bullish') return 1.0;
@@ -4536,11 +5112,6 @@
                         })()}
                     </div>
                 </td>
-                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                     <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.trendRecalculating === 'true' || card.dataset.zoneRecalculating === 'true' || card.dataset.rrRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
-                         ${confidenceHtml}
-                     </div>
-                 </td>
                  <td class="crt-15m-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
                     <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
                         ${drawCrtBarIndicator(c.crt_15m, c.symbol, '15m')}
@@ -4556,56 +5127,71 @@
                         ${drawCrtBarIndicator(c.crt_4h, c.symbol, '4h')}
                     </div>
                 </td>
-                <td class="crt-conf-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                <td class="win-rr-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
                     <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                        ${drawCrtConfidenceCell(calculateCrtConfidence(c, card))}
+                        ${drawWinRrCell(calculateCrtConfidence(c, card), c.trade_ledger, c.symbol, c.rejected_trades)}
                     </div>
                 </td>
-                <td class="smc-trigger-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                <td class="pnl-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawPnlCell(calculateCrtConfidence(c, card), c.trade_ledger)}
+                    </div>
+                </td>
+                <td class="pnl-dollar-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawPnlDollarCell(calculateCrtConfidence(c, card), c.trade_ledger)}
+                    </div>
+                </td>
+                <td class="structure-event-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
                      <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
                          ${(() => {
-                             const rawTrigger = c.smc_trigger || 'WAIT';
-                             let displayVal = 'WAIT';
+                             // Map activeDuration (DAY, SWING_LOW, SWING_MED, HOLD) to structural timeframes (5m, 15m, 1h, 1d)
+                             let targetTf = '1h';
+                             if (duration === 'DAY') {
+                                 targetTf = '5m';
+                             } else if (duration === 'SWING_LOW') {
+                                 targetTf = '15m';
+                             } else if (duration === 'SWING_MED') {
+                                 targetTf = '1h';
+                             } else if (duration === 'HOLD') {
+                                 targetTf = '1d';
+                             }
+                             
+                             const events = c.structure_events || {};
+                             const structRaw = events[targetTf] || c.structure_event || 'STABLE';
+                             
+                             const parts = structRaw.split(':');
+                             const struct = parts[0];
+                             const candlesAgo = parts.length > 1 ? parseInt(parts[1]) : 999;
+                             
+                             let displayVal = struct.replace('BULLISH ', '').replace('BEARISH ', '');
                              let color = 'rgba(255,255,255,0.2)';
                              let bg = 'rgba(255,255,255,0.05)';
                              let border = '1px solid rgba(255,255,255,0.1)';
+                             let extraClass = '';
                              
-                             if (rawTrigger !== 'WAIT') {
-                                 const cardIsBullish = isBullish;
-                                 if (cardIsBullish) {
-                                     if (rawTrigger === 'BUY') {
-                                         displayVal = 'ENTRY';
-                                         color = 'var(--emerald-green)';
-                                         bg = 'rgba(0, 200, 83, 0.1)';
-                                         border = '1px solid rgba(0, 200, 83, 0.3)';
-                                     } else if (rawTrigger === 'SELL') {
-                                         displayVal = 'EXIT';
-                                         color = 'var(--price-down)';
-                                         bg = 'rgba(229, 115, 115, 0.1)';
-                                         border = '1px solid rgba(229, 115, 115, 0.3)';
-                                     }
-                                 } else {
-                                     if (rawTrigger === 'SELL') {
-                                         displayVal = 'ENTRY';
-                                         color = 'var(--price-down)';
-                                         bg = 'rgba(229, 115, 115, 0.1)';
-                                         border = '1px solid rgba(229, 115, 115, 0.3)';
-                                     } else if (rawTrigger === 'BUY') {
-                                         displayVal = 'EXIT';
-                                         color = 'var(--emerald-green)';
-                                         bg = 'rgba(0, 200, 83, 0.1)';
-                                         border = '1px solid rgba(0, 200, 83, 0.3)';
-                                     }
-                                 }
-                             }
-                             return `<span style="color: ${color}; background: ${bg}; border: ${border}; padding: 2px 6px; border-radius: 3px; font-weight: 700; font-size: 9px; letter-spacing: 0.5px;">${displayVal}</span>`;
+                             if (struct.includes('BULLISH')) {
+                                  color = '#00ff66';
+                                  bg = 'rgba(0, 255, 102, 0.12)';
+                                  border = '1px solid rgba(0, 255, 102, 0.35)';
+                                  if (candlesAgo < 5) {
+                                      extraClass = 'vli-structure-flash';
+                                  }
+                              } else if (struct.includes('BEARISH')) {
+                                  color = '#ff4d4d';
+                                  bg = 'rgba(255, 77, 77, 0.12)';
+                                  border = '1px solid rgba(255, 77, 77, 0.35)';
+                                  if (candlesAgo < 5) {
+                                      extraClass = 'vli-structure-flash';
+                                  }
+                              }
+                             return `<span class="${extraClass}" style="color: ${color}; background: ${bg}; border: ${border}; padding: 3px 8px; border-radius: 3px; font-weight: 700; font-size: 10px; letter-spacing: 0.5px; display: inline-block;">${displayVal}</span>`;
                          })()}
                      </div>
                  </td>
-                 <td class="structure-event-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                      <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                          ${(() => {
-                              // Map activeDuration (DAY, SWING_LOW, SWING_MED, HOLD) to structural timeframes (5m, 15m, 1h, 1d)
+                <td class="smc-trigger-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                     <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                         ${(() => {
                               let targetTf = '1h';
                               if (duration === 'DAY') {
                                   targetTf = '5m';
@@ -4617,27 +5203,181 @@
                                   targetTf = '1d';
                               }
                               
-                              const events = c.structure_events || {};
-                              const struct = events[targetTf] || c.structure_event || 'STABLE';
+                              const triggers = c.smc_triggers || {};
+                              const rawTrigger = triggers[targetTf] || c.smc_trigger || 'WAIT';
                               
-                              let displayVal = struct.replace('BULLISH ', '').replace('BEARISH ', '');
-                              let color = 'rgba(255,255,255,0.2)';
-                              let bg = 'rgba(255,255,255,0.05)';
-                              let border = '1px solid rgba(255,255,255,0.1)';
-                              if (struct.includes('BULLISH')) {
-                                  color = 'var(--emerald-green)';
-                                  bg = 'rgba(0, 200, 83, 0.1)';
-                                  border = '1px solid rgba(0, 200, 83, 0.3)';
-                              } else if (struct.includes('BEARISH')) {
-                                  color = 'var(--price-down)';
-                                  bg = 'rgba(229, 115, 115, 0.1)';
-                                  border = '1px solid rgba(229, 115, 115, 0.3)';
+                              let displayVal = 'WAIT';
+                              let color = 'rgba(158, 158, 158, 0.9)';
+                              let bg = 'rgba(158, 158, 158, 0.1)';
+                              let border = '1px solid rgba(158, 158, 158, 0.25)';
+                              
+                              const isHeld = !!c.is_held;
+                              const posType = c.position_type || 'NONE';
+                              const avgCost = parseFloat(c.average_cost || '0.0');
+                              const currentPrice = parseFloat(c.price || '0.0');
+                              const pdVal = parseFloat(c.pd_zone || '0.0');
+                              
+                              if (isHeld) {
+                                  if (rawTrigger === 'WAIT') {
+                                      displayVal = 'HOLD';
+                                      let inProfit = false;
+                                      if (posType === 'LONG') {
+                                          inProfit = currentPrice > avgCost;
+                                      } else if (posType === 'SHORT') {
+                                          inProfit = currentPrice < avgCost;
+                                      }
+                                      
+                                      if (inProfit) {
+                                          color = 'rgba(255, 255, 255, 0.9)';
+                                          bg = 'rgba(255, 255, 255, 0.1)';
+                                          border = '1px solid rgba(255, 255, 255, 0.3)';
+                                      } else {
+                                          color = '#00c853';
+                                          bg = 'rgba(0, 200, 83, 0.1)';
+                                          border = '1px solid rgba(0, 200, 83, 0.3)';
+                                      }
+                                  } else {
+                                      displayVal = 'EXIT';
+                                      if (posType === 'LONG') {
+                                          color = '#ff4d4d';
+                                          bg = 'rgba(255, 77, 77, 0.1)';
+                                          border = '1px solid rgba(255, 77, 77, 0.3)';
+                                      } else if (posType === 'SHORT') {
+                                          color = '#00c853';
+                                          bg = 'rgba(0, 200, 83, 0.1)';
+                                          border = '1px solid rgba(0, 200, 83, 0.3)';
+                                      } else {
+                                          color = '#ff4d4d';
+                                          bg = 'rgba(255, 77, 77, 0.1)';
+                                          border = '1px solid rgba(255, 77, 77, 0.3)';
+                                      }
+                                  }
+                              } else {
+                                  if (rawTrigger !== 'WAIT') {
+                                      displayVal = 'ENTRY';
+                                      if (rawTrigger === 'BUY') {
+                                          if (pdVal <= -0.2) {
+                                              color = '#00c853';
+                                              bg = 'rgba(0, 200, 83, 0.1)';
+                                              border = '1px solid rgba(0, 200, 83, 0.3)';
+                                          } else if (pdVal <= 0.0) {
+                                              color = '#ffeb3b';
+                                              bg = 'rgba(255, 235, 59, 0.1)';
+                                              border = '1px solid rgba(255, 235, 59, 0.3)';
+                                          } else if (pdVal < 0.2) {
+                                              color = '#ff9800';
+                                              bg = 'rgba(255, 152, 0, 0.1)';
+                                              border = '1px solid rgba(255, 152, 0, 0.3)';
+                                          } else {
+                                              color = '#ff4d4d';
+                                              bg = 'rgba(255, 77, 77, 0.1)';
+                                              border = '1px solid rgba(255, 77, 77, 0.3)';
+                                          }
+                                      } else if (rawTrigger === 'SELL') {
+                                          if (pdVal >= 0.2) {
+                                              color = '#00c853';
+                                              bg = 'rgba(0, 200, 83, 0.1)';
+                                              border = '1px solid rgba(0, 200, 83, 0.3)';
+                                          } else if (pdVal >= 0.0) {
+                                              color = '#ffeb3b';
+                                              bg = 'rgba(255, 235, 59, 0.1)';
+                                              border = '1px solid rgba(255, 235, 59, 0.3)';
+                                          } else if (pdVal > -0.2) {
+                                              color = '#ff9800';
+                                              bg = 'rgba(255, 152, 0, 0.1)';
+                                              border = '1px solid rgba(255, 152, 0, 0.3)';
+                                          } else {
+                                              color = '#ff4d4d';
+                                              bg = 'rgba(255, 77, 77, 0.1)';
+                                              border = '1px solid rgba(255, 77, 77, 0.3)';
+                                          }
+                                      }
+                                  }
                               }
-                              return `<span style="color: ${color}; background: ${bg}; border: ${border}; padding: 3px 8px; border-radius: 3px; font-weight: 700; font-size: 10px; letter-spacing: 0.5px;">${displayVal}</span>`;
+                               let animClass = '';
+                               if (displayVal === 'ENTRY' || displayVal === 'EXIT') {
+                                   if (color === '#00c853') {
+                                       animClass = 'flash-badge-green';
+                                   } else if (color === '#ffeb3b') {
+                                       animClass = 'flash-badge-yellow';
+                                   } else if (color === '#ff9800') {
+                                       animClass = 'flash-badge-orange';
+                                   } else if (color === '#ff4d4d') {
+                                       animClass = 'flash-badge-red';
+                                   } else {
+                                       animClass = 'flash-badge-blue';
+                                   }
+                               }
+                               const badgeId = `smc-trigger-badge-${card.dataset.instanceGuid}-${c.symbol}`;
+                               window.vliLiveBadgeDefs = window.vliLiveBadgeDefs || {};
+                               window.vliLiveBadgeDefs[badgeId] = { color, bg, border, displayVal, animClass };
+                               return `<span id="smc-trigger-badge-placeholder-${card.dataset.instanceGuid}-${c.symbol}"></span>`;
                           })()}
+                     </div>
+                 </td>
+                  <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                      <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.trendRecalculating === 'true' || card.dataset.zoneRecalculating === 'true' || card.dataset.rrRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
+                          ${confidenceHtml}
                       </div>
                   </td>
             `;
+        };
+        window.resolveWatchlistRowPlaceholders = function(tr, card) {
+            const placeholder = tr.querySelector(`[id^="smc-trigger-badge-placeholder-"]`);
+            if (!placeholder) return;
+            const badgeId = placeholder.id.replace('smc-trigger-badge-placeholder-', 'smc-trigger-badge-');
+            const def = window.vliLiveBadgeDefs ? window.vliLiveBadgeDefs[badgeId] : null;
+            if (!def) return;
+            
+            let badge = window.vliLiveBadges ? window.vliLiveBadges[badgeId] : null;
+            if (badge) {
+                const lastState = badge.dataset.lastState ? JSON.parse(badge.dataset.lastState) : {};
+                if (JSON.stringify(def) !== JSON.stringify(lastState)) {
+                    if (!lastState.animClass || !def.animClass) {
+                        badge.innerText = def.displayVal;
+                        badge.style.color = def.color;
+                        badge.style.background = def.bg;
+                        badge.style.border = def.border;
+                        badge.className = def.animClass;
+                        badge.dataset.lastState = JSON.stringify(def);
+                        delete badge.dataset.pendingUpdate;
+                    } else {
+                        badge.dataset.pendingUpdate = JSON.stringify(def);
+                    }
+                }
+            } else {
+                badge = document.createElement('span');
+                badge.id = badgeId;
+                badge.className = def.animClass;
+                badge.style.color = def.color;
+                badge.style.background = def.bg;
+                badge.style.border = def.border;
+                badge.style.padding = '2px 6px';
+                badge.style.borderRadius = '3px';
+                badge.style.fontWeight = '700';
+                badge.style.fontSize = '9px';
+                badge.style.letterSpacing = '0.5px';
+                badge.style.display = 'inline-block';
+                badge.innerText = def.displayVal;
+                badge.dataset.lastState = JSON.stringify(def);
+                
+                badge.addEventListener('animationiteration', () => {
+                    if (badge.dataset.pendingUpdate) {
+                        const update = JSON.parse(badge.dataset.pendingUpdate);
+                        badge.innerText = update.displayVal;
+                        badge.style.color = update.color;
+                        badge.style.background = update.bg;
+                        badge.style.border = update.border;
+                        badge.className = update.animClass;
+                        badge.dataset.lastState = badge.dataset.pendingUpdate;
+                        delete badge.dataset.pendingUpdate;
+                    }
+                });
+                
+                window.vliLiveBadges = window.vliLiveBadges || {};
+                window.vliLiveBadges[badgeId] = badge;
+            }
+            placeholder.replaceWith(badge);
         };
 
         function drawSweepIndicator(info) {
@@ -5383,13 +6123,15 @@
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Discount, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="CRT Expected Reversal/Breakout Confidence in the Trend Direction"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT CONF</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="SMC Trigger Signal: Bullish Sweep + HTF Discount (Buy) or Bearish Sweep + HTF Premium (Sell)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SMC TRIGGER</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Success rate and average realized risk-to-reward ratio from backtesting"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">WIN/RR</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit as percentage"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit in dollars"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL ($)</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Recent Daily Structural Events: Daily BOS or CHoCH"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">STRUCTURE</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="SMC Trigger Signal: Bullish Sweep + HTF Discount (Buy) or Bearish Sweep + HTF Premium (Sell)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SMC TRIGGER</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Quality Score based on: Trend, Discount, RVOL, VWAP, Sortino, CRT, SMC, and Structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">QUALITY</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -5483,10 +6225,19 @@
 
                 if (window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) {
                     window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
-                    filteredCandidates = filteredCandidates.filter(c => {
+                    const checkFiltered = filteredCandidates.filter(c => {
                         const symKey = `${card.dataset.instanceGuid}_${c.symbol}`;
                         return window.vliHighlightedSymbols.has(symKey);
                     });
+                    if (checkFiltered.length === 0 && filteredCandidates.length > 0) {
+                        window.vliOnlyHighlightedFilters[card.dataset.instanceGuid] = false;
+                        localStorage.setItem('vliOnlyHighlightedFilters', JSON.stringify(window.vliOnlyHighlightedFilters));
+                        const showSelCb = body.querySelector('.show-selected-cb');
+                        if (showSelCb) showSelCb.checked = false;
+                        console.log(`[VLI_UX] Automatically disabling 'Show Selected' filter on ${card.dataset.instanceGuid} because no highlighted results match.`);
+                    } else {
+                        filteredCandidates = checkFiltered;
+                    }
                 }
                 
                 if (filteredCandidates.length === 0) {
@@ -5499,64 +6250,71 @@
                 
                 // Calculate confidence scores first for sorting
                 filteredCandidates.forEach(c => {
-                    c.confScore = calculateConfidenceScore(c, card).total;
+                    try {
+                        c.confScore = calculateConfidenceScore(c, card).total;
+                    } catch (scoreErr) {
+                        console.error(`Failed to calculate score for ${c.symbol}:`, scoreErr);
+                        c.confScore = 0.0;
+                    }
                 });
 
                 // Sort candidates by decreasing confidence score, falling back to heat score
                 filteredCandidates.sort((a, b) => (b.confScore - a.confScore) || ((b.heat_score || 0) - (a.heat_score || 0)));
                 
                 filteredCandidates.forEach(c => {
-                    const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
-                    
-                    const tr = document.createElement('tr');
-                    tr.style.cursor = 'pointer';
-                    
-                    window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
-                    const symKey = `${card.dataset.instanceGuid}_${c.symbol}`;
-                    const isOnlySelectedFiltered = window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid];
-                    const isHighlighted = window.vliHighlightedSymbols.has(symKey) && !isOnlySelectedFiltered;
-                    
-                    tr.className = isHighlighted ? 'scanner-res-row vli-row-highlighted' : 'scanner-res-row';
-                    tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
-                    
-                    if (isRefreshing) {
-                        tr.style.pointerEvents = 'none';
-                    }
-                    
-                    tr.onclick = (e) => {
+                    try {
+                        const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
+                        
+                        const tr = document.createElement('tr');
+                        tr.style.cursor = 'pointer';
+                        
                         window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
-                        if (window.vliHighlightedSymbols.has(symKey)) {
-                            window.vliHighlightedSymbols.delete(symKey);
-                            tr.classList.remove('vli-row-highlighted');
-                        } else {
-                            window.vliHighlightedSymbols.add(symKey);
-                            tr.classList.add('vli-row-highlighted');
+                        const symKey = `${card.dataset.instanceGuid}_${c.symbol}`;
+                        const isOnlySelectedFiltered = window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid];
+                        const isHighlighted = window.vliHighlightedSymbols.has(symKey) && !isOnlySelectedFiltered;
+                        
+                        tr.className = isHighlighted ? 'scanner-res-row vli-row-highlighted' : 'scanner-res-row';
+                        tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
+                        
+                        if (isRefreshing) {
+                            tr.style.pointerEvents = 'none';
                         }
-                        window.saveHighlightedSymbols();
-                        insertCardIdIntoChat(`analyze ${c.symbol}`);
-                        if (window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) {
-                            renderWatchlist(window.lastMacroWatchlistData);
-                        }
-                    };
-                    
-                    // Track watchlist price state (stored uniquely for macro list blinking)
-                    if (window.lastMacroWatchlistState[c.symbol]) {
-                        // Note: updated inside generateCandidateRowInnerHTML, but we keep the track state here too for continuity
-                    }
-                    window.lastMacroWatchlistState[c.symbol] = { price: c.price };
-
-                    tr.innerHTML = generateCandidateRowInnerHTML(c, card);
-                    
-                    if (isRefreshing) {
-                        Array.from(tr.children).forEach((td, idx) => {
-                            if (idx !== 1) {
-                                td.style.opacity = '0.3';
-                                td.style.filter = 'grayscale(1)';
+                        
+                        tr.onclick = (e) => {
+                            window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
+                            if (window.vliHighlightedSymbols.has(symKey)) {
+                                window.vliHighlightedSymbols.delete(symKey);
+                                tr.classList.remove('vli-row-highlighted');
+                            } else {
+                                window.vliHighlightedSymbols.add(symKey);
+                                tr.classList.add('vli-row-highlighted');
                             }
-                        });
+                            window.saveHighlightedSymbols();
+                            insertCardIdIntoChat(`analyze ${c.symbol}`);
+                            if (window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) {
+                                renderWatchlist(window.lastMacroWatchlistData);
+                            }
+                        };
+                        
+                        // Track watchlist price state (stored uniquely for macro list blinking)
+                        window.lastMacroWatchlistState[c.symbol] = { price: c.price };
+
+                        tr.innerHTML = generateCandidateRowInnerHTML(c, card);
+                        resolveWatchlistRowPlaceholders(tr, card);
+                        
+                        if (isRefreshing) {
+                            Array.from(tr.children).forEach((td, idx) => {
+                                if (idx !== 1) {
+                                    td.style.opacity = '0.3';
+                                    td.style.filter = 'grayscale(1)';
+                                }
+                            });
+                        }
+                        
+                        tbody.appendChild(tr);
+                    } catch (rowErr) {
+                        console.error(`Failed to render watchlist row for ${c.symbol}:`, rowErr);
                     }
-                    
-                    tbody.appendChild(tr);
                 });
                 makeTableResizable(table);
             });
@@ -6323,13 +7081,15 @@
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Confidence Score based on: Trend, Discount, RVOL, VWAP, and Sortino"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CONF %</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="CRT Expected Reversal/Breakout Confidence in the Trend Direction"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT CONF</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="SMC Trigger Signal: Bullish Sweep + HTF Discount (Buy) or Bearish Sweep + HTF Premium (Sell)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SMC TRIGGER</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Success rate and average realized risk-to-reward ratio from backtesting"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">WIN/RR</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit as percentage"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit in dollars"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL ($)</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Recent Daily Structural Events: Daily BOS or CHoCH"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">STRUCTURE</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="SMC Trigger Signal: Bullish Sweep + HTF Discount (Buy) or Bearish Sweep + HTF Premium (Sell)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SMC TRIGGER</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Quality Score based on: Trend, Discount, RVOL, VWAP, Sortino, CRT, SMC, and Structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">QUALITY</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -6389,10 +7149,19 @@
 
                 if (window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) {
                     window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
-                    filteredCandidates = filteredCandidates.filter(c => {
+                    const checkFiltered = filteredCandidates.filter(c => {
                         const symKey = `${card.dataset.instanceGuid}_${c.symbol}`;
                         return window.vliHighlightedSymbols.has(symKey);
                     });
+                    if (checkFiltered.length === 0 && filteredCandidates.length > 0) {
+                        window.vliOnlyHighlightedFilters[card.dataset.instanceGuid] = false;
+                        localStorage.setItem('vliOnlyHighlightedFilters', JSON.stringify(window.vliOnlyHighlightedFilters));
+                        const showSelCb = body.querySelector('.show-selected-cb');
+                        if (showSelCb) showSelCb.checked = false;
+                        console.log(`[VLI_UX] Automatically disabling 'Show Selected' filter on ${card.dataset.instanceGuid} because no highlighted results match.`);
+                    } else {
+                        filteredCandidates = checkFiltered;
+                    }
                 }
                 
                 if (filteredCandidates.length === 0) {
@@ -6409,89 +7178,99 @@
 
                 // Calculate confidence scores first for sorting
                 filteredCandidates.forEach(c => {
-                    c.confScore = calculateConfidenceScore(c, card).total;
+                    try {
+                        c.confScore = calculateConfidenceScore(c, card).total;
+                    } catch (scoreErr) {
+                        console.error(`Failed to calculate score for ${c.symbol}:`, scoreErr);
+                        c.confScore = 0.0;
+                    }
                 });
 
                 // Autonomously sort candidates by decreasing confidence score, falling back to heat score
                 filteredCandidates.sort((a, b) => (b.confScore - a.confScore) || ((b.heat_score || 0) - (a.heat_score || 0)));
 
                 filteredCandidates.forEach(c => {
-                    c.isNew = window.vliNewSymbols.has(c.symbol);
-                    const tr = document.createElement('tr');
-                    tr.style.cursor = 'pointer';
-                    
-                    window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
-                    const symKey = `${card.dataset.instanceGuid}_${c.symbol}`;
-                    const isOnlySelectedFiltered = window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid];
-                    const isHighlighted = window.vliHighlightedSymbols.has(symKey) && !isOnlySelectedFiltered;
-                    
-                    let classes = ['scanner-res-row'];
-                    if (c.isNew) classes.push('new-candidate-highlight');
-                    if (isHighlighted) classes.push('vli-row-highlighted');
-                    tr.className = classes.join(' ');
-                    tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
-                    
-                    // [UX: TEMPORAL VERIFICATION] 
-                    // Auto-restore ONLY if we see a timestamp that is newer than our request time.
-                    const requestTime = window.vliRefreshingSymbols.get(c.symbol);
-                    if (requestTime) {
-                        const dataTime = c.updated_at ? new Date(c.updated_at).getTime() : 0;
-                        if (dataTime > requestTime) {
-                            console.log(`[VLI_UX] Symbol ${c.symbol} refetched and verified fresh. Restoring formatting.`);
-                            window.vliRefreshingSymbols.delete(c.symbol);
-                        } else if (Date.now() - requestTime > 60000) {
-                            console.log(`[VLI_UX] Symbol ${c.symbol} refresh cancelled or interrupted.`);
-                            window.vliRefreshingSymbols.delete(c.symbol);
-                        }
-                    }
-
-                    const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
-                    if (isRefreshing) {
-                        tr.style.pointerEvents = 'none';
-                    } else {
-                        tr.style.pointerEvents = 'auto';
-                    }
-                    
-                    tr.style.opacity = '1.0';
-                    tr.style.filter = 'none';
-                    
-                    tr.onmouseenter = () => {
-                        if (window.vliNewSymbols.has(c.symbol)) {
-                            tr.classList.remove('new-candidate-highlight');
-                            window.vliNewSymbols.delete(c.symbol);
-                            c.isNew = false;
-                        }
-                    };
-                    tr.onmouseleave = () => {};
-                    
-                    tr.onclick = (e) => {
+                    try {
+                        c.isNew = window.vliNewSymbols.has(c.symbol);
+                        const tr = document.createElement('tr');
+                        tr.style.cursor = 'pointer';
+                        
                         window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
-                        if (window.vliHighlightedSymbols.has(symKey)) {
-                            window.vliHighlightedSymbols.delete(symKey);
-                            tr.classList.remove('vli-row-highlighted');
-                        } else {
-                            window.vliHighlightedSymbols.add(symKey);
-                            tr.classList.add('vli-row-highlighted');
-                        }
-                        window.saveHighlightedSymbols();
-                        insertCardIdIntoChat(`analyze ${c.symbol}`);
-                        if (window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) {
-                            updateScannerResultsUI();
-                        }
-                    };
-                    
-                    tr.innerHTML = generateCandidateRowInnerHTML(c, card);
-                    
-                    if (isRefreshing) {
-                        Array.from(tr.children).forEach((td, idx) => {
-                            if (idx !== 1) {
-                                td.style.opacity = '0.3';
-                                td.style.filter = 'grayscale(1)';
+                        const symKey = `${card.dataset.instanceGuid}_${c.symbol}`;
+                        const isOnlySelectedFiltered = window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid];
+                        const isHighlighted = window.vliHighlightedSymbols.has(symKey) && !isOnlySelectedFiltered;
+                        
+                        let classes = ['scanner-res-row'];
+                        if (c.isNew) classes.push('new-candidate-highlight');
+                        if (isHighlighted) classes.push('vli-row-highlighted');
+                        tr.className = classes.join(' ');
+                        tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
+                        
+                        // [UX: TEMPORAL VERIFICATION] 
+                        // Auto-restore ONLY if we see a timestamp that is newer than our request time.
+                        const requestTime = window.vliRefreshingSymbols.get(c.symbol);
+                        if (requestTime) {
+                            const dataTime = c.updated_at ? new Date(c.updated_at).getTime() : 0;
+                            if (dataTime > requestTime) {
+                                console.log(`[VLI_UX] Symbol ${c.symbol} refetched and verified fresh. Restoring formatting.`);
+                                window.vliRefreshingSymbols.delete(c.symbol);
+                            } else if (Date.now() - requestTime > 60000) {
+                                console.log(`[VLI_UX] Symbol ${c.symbol} refresh cancelled or interrupted.`);
+                                window.vliRefreshingSymbols.delete(c.symbol);
                             }
-                        });
+                        }
+
+                        const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
+                        if (isRefreshing) {
+                            tr.style.pointerEvents = 'none';
+                        } else {
+                            tr.style.pointerEvents = 'auto';
+                        }
+                        
+                        tr.style.opacity = '1.0';
+                        tr.style.filter = 'none';
+                        
+                        tr.onmouseenter = () => {
+                            if (window.vliNewSymbols.has(c.symbol)) {
+                                tr.classList.remove('new-candidate-highlight');
+                                window.vliNewSymbols.delete(c.symbol);
+                                c.isNew = false;
+                            }
+                        };
+                        tr.onmouseleave = () => {};
+                        
+                        tr.onclick = (e) => {
+                            window.vliHighlightedSymbols = window.vliHighlightedSymbols || new Set();
+                            if (window.vliHighlightedSymbols.has(symKey)) {
+                                window.vliHighlightedSymbols.delete(symKey);
+                                tr.classList.remove('vli-row-highlighted');
+                            } else {
+                                window.vliHighlightedSymbols.add(symKey);
+                                tr.classList.add('vli-row-highlighted');
+                            }
+                            window.saveHighlightedSymbols();
+                            insertCardIdIntoChat(`analyze ${c.symbol}`);
+                            if (window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) {
+                                updateScannerResultsUI();
+                            }
+                        };
+                        
+                        tr.innerHTML = generateCandidateRowInnerHTML(c, card);
+                        resolveWatchlistRowPlaceholders(tr, card);
+                        
+                        if (isRefreshing) {
+                            Array.from(tr.children).forEach((td, idx) => {
+                                if (idx !== 1) {
+                                    td.style.opacity = '0.3';
+                                    td.style.filter = 'grayscale(1)';
+                                }
+                            });
+                        }
+                        
+                        tbody.appendChild(tr);
+                    } catch (rowErr) {
+                        console.error(`Failed to render scanner row for ${c.symbol}:`, rowErr);
                     }
-                    
-                    tbody.appendChild(tr);
                 });
                 makeTableResizable(table);
             });
@@ -7372,7 +8151,7 @@
                                     <th style="padding: 8px 4px; text-align: right;">PRICE</th>
                                     <th style="padding: 8px 4px; text-align: right;">CHANGE</th>
                                     <th style="padding: 8px 4px; text-align: right;">SORTINO</th>
-                                    <th style="padding: 8px 4px; text-align: center;" title="Setup Confidence">CONF %</th>
+                                    <th style="padding: 8px 4px; text-align: center;" title="Setup Quality">QUALITY</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -7397,75 +8176,79 @@
                 res.candidates.sort((a, b) => (b.heat_score || 0) - (a.heat_score || 0));
 
                 res.candidates.forEach(c => {
-                    const scoreObj = calculateConfidenceScore(c, card);
-                    const confidenceHtml = drawConfidenceEQBar(scoreObj);
-                    
-                    c.isNew = window.vliNewShieldSymbols.has(c.symbol);
-                    const tr = document.createElement('tr');
-                    tr.style.cursor = 'pointer';
-                    tr.className = c.isNew ? 'scanner-res-row new-candidate-highlight' : 'scanner-res-row';
-                    tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
-                    
-                    // [UX: TEMPORAL VERIFICATION]
-                    const requestTime = window.vliRefreshingSymbols.get(c.symbol);
-                    if (requestTime) {
-                        const dataTime = c.updated_at ? new Date(c.updated_at).getTime() : 0;
-                        if (dataTime > requestTime) {
-                            console.log(`[VLI_UX] Shield Symbol ${c.symbol} refetched and verified fresh. Restoring formatting.`);
-                            window.vliRefreshingSymbols.delete(c.symbol);
-                        } else if (Date.now() - requestTime > 60000) {
-                            console.log(`[VLI_UX] Shield Symbol ${c.symbol} refresh cancelled or interrupted.`);
-                            window.vliRefreshingSymbols.delete(c.symbol);
+                    try {
+                        const scoreObj = calculateConfidenceScore(c, card);
+                        const confidenceHtml = drawConfidenceEQBar(scoreObj);
+                        
+                        c.isNew = window.vliNewShieldSymbols.has(c.symbol);
+                        const tr = document.createElement('tr');
+                        tr.style.cursor = 'pointer';
+                        tr.className = c.isNew ? 'scanner-res-row new-candidate-highlight' : 'scanner-res-row';
+                        tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
+                        
+                        // [UX: TEMPORAL VERIFICATION]
+                        const requestTime = window.vliRefreshingSymbols.get(c.symbol);
+                        if (requestTime) {
+                            const dataTime = c.updated_at ? new Date(c.updated_at).getTime() : 0;
+                            if (dataTime > requestTime) {
+                                console.log(`[VLI_UX] Shield Symbol ${c.symbol} refetched and verified fresh. Restoring formatting.`);
+                                window.vliRefreshingSymbols.delete(c.symbol);
+                            } else if (Date.now() - requestTime > 60000) {
+                                console.log(`[VLI_UX] Shield Symbol ${c.symbol} refresh cancelled or interrupted.`);
+                                window.vliRefreshingSymbols.delete(c.symbol);
+                            }
                         }
-                    }
 
-                    const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
-                    if (isRefreshing) {
-                        tr.style.opacity = '1';
-                        tr.style.filter = 'none';
-                        tr.style.pointerEvents = 'none';
-                    } else {
-                        tr.style.opacity = '1';
-                        tr.style.filter = 'none';
-                        tr.style.pointerEvents = 'auto';
-                    }
-                    
-                    tr.onmouseenter = () => {
-                        if (window.vliNewShieldSymbols.has(c.symbol)) {
-                            tr.classList.remove('new-candidate-highlight');
-                            window.vliNewShieldSymbols.delete(c.symbol);
-                            c.isNew = false;
+                        const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
+                        if (isRefreshing) {
+                            tr.style.opacity = '1';
+                            tr.style.filter = 'none';
+                            tr.style.pointerEvents = 'none';
+                        } else {
+                            tr.style.opacity = '1';
+                            tr.style.filter = 'none';
+                            tr.style.pointerEvents = 'auto';
                         }
-                        tr.style.background = 'rgba(255,255,255,0.02)';
-                    };
-                    tr.onmouseleave = () => {
-                        tr.style.background = 'transparent';
-                    };
-                    
-                    // We keep the original onclick structure that existed in the core scanner
-                    tr.onclick = () => { document.getElementById('cli-input').value = 'analyze ' + c.symbol; document.getElementById('rt-btn').click(); };
-                    
-                    const changeVal = parseFloat(c.change || c.gap || 0);
-                    const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
-                    
-                    tr.innerHTML = `
-                        <td style="padding: 10px 4px; color: #fff; font-weight: 700;">${c.symbol}</td>
-                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</td>
-                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
-                        <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
-                        <td style="padding: 10px 4px;">
-                            <div style="display: flex; align-items: center; justify-content: flex-end;">
-                                ${confidenceHtml}
-                                <div style="width: 24px; display: flex; justify-content: flex-end;">
-                                    ${isRefreshing ? 
-                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
-                                    : 
-                                    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.handleReportIconClick(event, '${c.symbol}', ${c.has_report}, this.closest('tr'))" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
+                        
+                        tr.onmouseenter = () => {
+                            if (window.vliNewShieldSymbols.has(c.symbol)) {
+                                tr.classList.remove('new-candidate-highlight');
+                                window.vliNewShieldSymbols.delete(c.symbol);
+                                c.isNew = false;
+                            }
+                            tr.style.background = 'rgba(255,255,255,0.02)';
+                        };
+                        tr.onmouseleave = () => {
+                            tr.style.background = 'transparent';
+                        };
+                        
+                        // We keep the original onclick structure that existed in the core scanner
+                        tr.onclick = () => { document.getElementById('cli-input').value = 'analyze ' + c.symbol; document.getElementById('rt-btn').click(); };
+                        
+                        const changeVal = parseFloat(c.change || c.gap || 0);
+                        const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
+                        
+                        tr.innerHTML = `
+                            <td style="padding: 10px 4px; color: #fff; font-weight: 700;">${c.symbol}</td>
+                            <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: #fff;">$${parseFloat(c.price || 0).toFixed(2)}</td>
+                            <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${changeColor};">${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}%</td>
+                            <td style="padding: 10px 4px; text-align: right; font-family: var(--font-mono); color: ${(parseFloat(c.sortino || c.score || 0) < 0) ? 'var(--ruby-red)' : 'var(--emerald-green)'}; font-weight: 800;">${parseFloat(c.sortino || c.score || 0).toFixed(2)}</td>
+                            <td style="padding: 10px 4px;">
+                                <div style="display: flex; align-items: center; justify-content: flex-end;">
+                                    ${confidenceHtml}
+                                    <div style="width: 24px; display: flex; justify-content: flex-end;">
+                                        ${isRefreshing ? 
+                                        `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Retrieval in Progress"><circle cx="12" cy="14" r="8"></circle><polyline points="12 10 12 14 14 16"></polyline><line x1="10" y1="2" x2="14" y2="2"></line><line x1="12" y1="2" x2="12" y2="6"></line></svg>` 
+                                        : 
+                                        `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: ${c.has_report ? 'var(--emerald-green)' : 'rgba(255,255,255,0.2)'}; cursor: pointer;" onclick="event.stopPropagation(); window.handleReportIconClick(event, '${c.symbol}', ${c.has_report}, this.closest('tr'))" title="Structural Analysis"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`}
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    } catch (rowErr) {
+                        console.error(`Failed to render shield row for ${c.symbol}:`, rowErr);
+                    }
                 });
                 
                 const matchCountEl = document.getElementById('sh-match-count');

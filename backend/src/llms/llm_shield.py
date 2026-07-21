@@ -90,11 +90,13 @@ class QuotaProtectedLLM(Runnable):
         # Check user-enforced synthesis ban
         _check_synthesis_ban()
 
-        # Check daily quota of 10M tokens
+        # Check daily quota limit
+        from src.utils.quota_shield import get_daily_token_cap
+        daily_cap = get_daily_token_cap()
         from src.utils.token_tracker import token_tracker
         total_used = token_tracker.get_total_daily_tokens()
-        if total_used > 10000000:
-            fail_msg = f"[QUOTA_SHIELD] Daily token quota limit of 10,000,000 exceeded. Used today: {total_used}."
+        if total_used > daily_cap:
+            fail_msg = f"[QUOTA_SHIELD] Daily token quota limit of {daily_cap:,} exceeded. Used today: {total_used}."
             logger.error(fail_msg)
             raise VLIQuotaExhaustedError(fail_msg)
 
@@ -178,11 +180,13 @@ class QuotaProtectedLLM(Runnable):
         # Check user-enforced synthesis ban
         _check_synthesis_ban()
 
-        # Check daily quota of 10M tokens
+        # Check daily quota limit
+        from src.utils.quota_shield import get_daily_token_cap
+        daily_cap = get_daily_token_cap()
         from src.utils.token_tracker import token_tracker
         total_used = token_tracker.get_total_daily_tokens()
-        if total_used > 10000000:
-            fail_msg = f"[QUOTA_SHIELD] Daily token quota limit of 10,000,000 exceeded. Used today: {total_used}."
+        if total_used > daily_cap:
+            fail_msg = f"[QUOTA_SHIELD] Daily token quota limit of {daily_cap:,} exceeded. Used today: {total_used}."
             logger.error(fail_msg)
             raise VLIQuotaExhaustedError(fail_msg)
 

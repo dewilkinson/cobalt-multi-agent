@@ -1487,7 +1487,13 @@ async def run_tv_sync():
         if result.returncode != 0:
             logger.error(f"[TV SYNC] Sync returned non-zero code. Error output: {result.stderr}")
         else:
-            asyncio.create_task(run_idle_analysis(manual_trigger=False))
+            import threading
+            def bg_analysis():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(run_idle_analysis(manual_trigger=False))
+                loop.close()
+            threading.Thread(target=bg_analysis, daemon=True).start()
 
     except Exception as e:
         logger.error(f"[TV SYNC] Synchronization failed: {e}")
@@ -1956,9 +1962,13 @@ async def run_meta_analysis(manual_trigger: bool = False):
         if missing_reports:
             logger.warning(f"[META_ANALYST] Missing valid reports for macro: {missing_reports}. Triggering background generation.")
             
-            import asyncio
-            # Trigger background generation
-            asyncio.create_task(run_idle_analysis(manual_trigger=True))
+            import threading
+            def bg_analysis():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(run_idle_analysis(manual_trigger=True))
+                loop.close()
+            threading.Thread(target=bg_analysis, daemon=True).start()
             
             if manual_trigger:
                 return f"Missing valid reports for {len(missing_reports)} macro assets. Initiating background generation... You will be notified with a UX card when the Executive Briefing is ready."

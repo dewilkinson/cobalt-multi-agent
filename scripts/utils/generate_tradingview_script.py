@@ -67,6 +67,15 @@ def format_price(val):
 
 def main():
     import sys
+    
+    # Check for custom date override
+    custom_date_str = None
+    for arg in sys.argv:
+        if arg.startswith("--date="):
+            custom_date_str = arg.split("=")[1]
+        elif arg == "--date" and len(sys.argv) > sys.argv.index(arg) + 1:
+            custom_date_str = sys.argv[sys.argv.index(arg) + 1]
+
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     sys.path.append(os.path.abspath(os.path.join(project_root, "backend")))
     
@@ -266,7 +275,14 @@ def main():
         date_range_str = f" ({start_date} to {end_date})"
         
     # Get today's start timestamp in Eastern Time, then get its UTC timestamp
-    today_start = datetime.now(eastern_tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    if custom_date_str:
+        try:
+            today_start = datetime.strptime(custom_date_str, "%Y-%m-%d").replace(tzinfo=eastern_tz)
+        except Exception as e:
+            print(f"Warning: Failed to parse custom date '{custom_date_str}': {e}. Using current time instead.")
+            today_start = datetime.now(eastern_tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    else:
+        today_start = datetime.now(eastern_tz).replace(hour=0, minute=0, second=0, microsecond=0)
     today_start_ms = int(today_start.timestamp() * 1000)
     
     # Generate Pine Script

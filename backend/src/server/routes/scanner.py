@@ -134,14 +134,47 @@ _CACHE_DIRTY = False
 _SAVE_TASK = None
 
 def save_trends_cache():
+    global TRENDS_CACHE
     with _SAVE_THREAD_LOCK:
         try:
+            # 1. Load current cache from disk if it exists to merge external updates
+            disk_cache = {}
+            if os.path.exists(TRENDS_CACHE_PATH):
+                try:
+                    with open(TRENDS_CACHE_PATH, "r", encoding="utf-8") as f:
+                        disk_cache = json.load(f)
+                except Exception:
+                    pass
+            
+            # 2. Merge: Keep the entries with the higher timestamp
+            for sym, disk_val in disk_cache.items():
+                if not isinstance(disk_val, dict):
+                    continue
+                in_mem_val = TRENDS_CACHE.get(sym)
+                if not in_mem_val or not isinstance(in_mem_val, dict):
+                    TRENDS_CACHE[sym] = disk_val
+                else:
+                    disk_ts = disk_val.get("timestamp", 0.0)
+                    in_mem_ts = in_mem_val.get("timestamp", 0.0)
+                    if disk_ts > in_mem_ts:
+                        TRENDS_CACHE[sym] = disk_val
+            
+            # 3. Save to disk with atomic replacement and retry loop for Windows file locking
             os.makedirs(os.path.dirname(TRENDS_CACHE_PATH), exist_ok=True)
             temp_path = TRENDS_CACHE_PATH + ".tmp"
             with open(temp_path, "w", encoding="utf-8") as f:
                 json.dump(TRENDS_CACHE, f, default=str)
-            if os.path.exists(temp_path):
-                os.replace(temp_path, TRENDS_CACHE_PATH)
+                
+            max_retries = 5
+            for attempt in range(max_retries):
+                try:
+                    if os.path.exists(temp_path):
+                        os.replace(temp_path, TRENDS_CACHE_PATH)
+                    break
+                except OSError as e:
+                    if attempt == max_retries - 1:
+                        raise e
+                    time.sleep(0.1 * (2 ** attempt))
         except Exception as e:
             logger.error(f"Failed to save TRENDS_CACHE to disk: {e}")
 
@@ -630,6 +663,470 @@ def align_forming_candle(df, tf_name, live_price, now_time, is_future=False):
 
 PENDING_FETCH = set()
 
+PENDING_BACKTESTS = set()
+
+def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
+    if df_5m is None or df_5m.empty or len(df_5m) < 15:
+        return {"success": 0, "fail": 0}
+        
+    col_map = {str(c).lower(): c for c in df_5m.columns}
+    high_col = col_map.get("high", "High")
+    low_col = col_map.get("low", "Low")
+    close_col = col_map.get("close", "Close")
+    open_col = col_map.get("open", "Open")
+    vol_col = col_map.get("volume", "Volume")
+    
+    import pytz
+    est = pytz.timezone('America/New_York')
+    try:
+        if df_5m.index.tz is not None:
+            df_5m_est = df_5m.tz_convert(est)
+        else:
+            df_5m_est = df_5m.tz_localize("UTC").tz_convert(est)
+    except Exception:
+        df_5m_est = df_5m
+        
+    if not is_future:
+        df_5m_est = df_5m_est[df_5m_est.index.weekday < 5]
+        df_5m_est = df_5m_est[(df_5m_est.index.hour >= 9) & (df_5m_est.index.hour <= 16)]
+        df_5m_est = df_5m_est[~((df_5m_est.index.hour == 9) & (df_5m_est.index.minute < 30))]
+        df_5m_est = df_5m_est[~((df_5m_est.index.hour == 16) & (df_5m_est.index.minute > 0))]
+        
+    if len(df_5m_est) < 10:
+        return {"success": 0, "fail": 0}
+        
+    pd_zone_series = {}
+    if df_1d is not None and not df_1d.empty:
+        high_col_d = "High" if "High" in df_1d.columns else "high"
+        low_col_d = "Low" if "Low" in df_1d.columns else "low"
+        close_col_d = "Close" if "Close" in df_1d.columns else "close"
+        try:
+            for i in range(20, len(df_1d)):
+                df_20 = df_1d.iloc[i-20:i]
+                high_range = float(df_20[high_col_d].max())
+                low_range = float(df_20[low_col_d].min())
+                close_latest = float(df_1d.iloc[i-1][close_col_d])
+                if high_range > low_range:
+                    raw_pd = 2.0 * (close_latest - low_range) / (high_range - low_range) - 1.0
+                    date_str = df_1d.index[i].strftime("%Y-%m-%d") if hasattr(df_1d.index[i], "strftime") else str(df_1d.index[i])[:10]
+                    pd_zone_series[date_str] = round(raw_pd, 1)
+        except Exception:
+            pass
+
+    from src.tools.macros import calculate_trend_alignment
+    trend_series = {}
+    if df_1h is not None and not df_1h.empty:
+        try:
+            try:
+                if df_1h.index.tz is not None:
+                    df_1h_est = df_1h.tz_convert(est)
+                else:
+                    df_1h_est = df_1h.tz_localize("UTC").tz_convert(est)
+            except Exception:
+                df_1h_est = df_1h
+                
+            for i in range(10, len(df_1h_est)):
+                df_slice = df_1h_est.iloc[:i]
+                t_align = calculate_trend_alignment(df_slice)
+                t_bias = "NONE"
+                if t_align in ["Bullish", "Strong Bullish", "Weak Bullish"]:
+                    t_bias = "BULLISH"
+                elif t_align in ["Bearish", "Strong Bearish", "Weak Bearish"]:
+                    t_bias = "BEARISH"
+                hour_str = df_1h_est.index[i].strftime("%Y-%m-%d %H:00")
+                trend_series[hour_str] = t_bias
+        except Exception:
+            pass
+
+    closes = df_5m_est[close_col].astype(float).values
+    highs = df_5m_est[high_col].astype(float).values
+    lows = df_5m_est[low_col].astype(float).values
+    opens = df_5m_est[open_col].astype(float).values
+    vols = df_5m_est[vol_col].astype(float).values
+    times = df_5m_est.index
+    
+    tr = []
+    for i in range(len(df_5m_est)):
+        if i == 0:
+            tr.append(highs[i] - lows[i])
+        else:
+            tr.append(max(highs[i] - lows[i], abs(highs[i] - closes[i-1]), abs(lows[i] - closes[i-1])))
+    import pandas as pd
+    tr_series = pd.Series(tr)
+    atr_series = tr_series.rolling(14).mean().bfill().values
+    
+    vol_series = pd.Series(vols)
+    avg_vol_series = vol_series.rolling(20).mean().bfill().values
+    rvol_values = (vol_series / avg_vol_series).fillna(1.0).values
+    
+    low_series = pd.Series(lows)
+    high_series = pd.Series(highs)
+    swing_lows = low_series.rolling(5).min().bfill().values
+    swing_highs = high_series.rolling(5).max().bfill().values
+    
+    # Calculate EMA indicators
+    close_series = pd.Series(closes)
+    ema_9 = close_series.ewm(span=9, adjust=False).mean().values
+    ema_21 = close_series.ewm(span=21, adjust=False).mean().values
+    ema_50 = close_series.ewm(span=50, adjust=False).mean().values
+    ema_200 = close_series.ewm(span=200, adjust=False).mean().values
+    
+    # Calculate Session VWAP
+    typical_price = (highs + lows + closes) / 3.0
+    vwap_values = []
+    last_date = None
+    curr_pv_sum = 0.0
+    curr_vol_sum = 0.0
+    for i in range(len(closes)):
+        d = times[i].date()
+        if last_date is None or d != last_date:
+            curr_pv_sum = 0.0
+            curr_vol_sum = 0.0
+            last_date = d
+        curr_pv_sum += typical_price[i] * vols[i]
+        curr_vol_sum += vols[i]
+        if curr_vol_sum == 0:
+            vwap_values.append(closes[i])
+        else:
+            vwap_values.append(curr_pv_sum / curr_vol_sum)
+    vwap_values = np.array(vwap_values)
+
+    ob_df = None
+    fvg_df = None
+    try:
+        from smartmoneyconcepts import smc as smc_lib
+        df_calc = df_5m_est.copy()
+        df_calc.columns = [c.lower() for c in df_calc.columns]
+        swings_df = smc_lib.swing_highs_lows(df_calc, swing_length=5)
+        ob_df = smc_lib.ob(df_calc, swings_df)
+        fvg_df = smc_lib.fvg(df_calc)
+    except Exception as e:
+        logger.warning(f"VLI Backtest: smartmoneyconcepts calculation failed for {sym}: {e}")
+
+    success_count = 0
+    fail_count = 0
+    trades_ledger = []
+    rejected_trades = []
+    
+    active_bullish_obs = [] # list of (bottom, top)
+    active_bearish_obs = [] # list of (bottom, top)
+    active_bullish_fvgs = [] # list of (bottom, top)
+    active_bearish_fvgs = [] # list of (bottom, top)
+    
+    t = 20
+    n = len(df_5m_est)
+    
+    while t < n:
+        dt = times[t]
+        date_str = dt.strftime("%Y-%m-%d")
+        hour_str = dt.strftime("%Y-%m-%d %H:00")
+        
+        # Update active order blocks dynamically at current bar t
+        if ob_df is not None:
+            ob_val = ob_df["OB"].values[t]
+            bottom_val = ob_df["Bottom"].values[t]
+            top_val = ob_df["Top"].values[t]
+            if ob_val == 1 and not pd.isna(bottom_val) and not pd.isna(top_val):
+                active_bullish_obs.append((float(bottom_val), float(top_val)))
+            elif ob_val == -1 and not pd.isna(bottom_val) and not pd.isna(top_val):
+                active_bearish_obs.append((float(bottom_val), float(top_val)))
+            
+            # Filter out mitigated/invalidated order blocks
+            active_bullish_obs = [ob for ob in active_bullish_obs if lows[t] >= ob[0]]
+            active_bearish_obs = [ob for ob in active_bearish_obs if highs[t] <= ob[1]]
+            
+        # Update active Fair Value Gaps dynamically at current bar t
+        if fvg_df is not None and "FVG" in fvg_df.columns:
+            fvg_val = fvg_df["FVG"].values[t]
+            bottom_val = fvg_df["Bottom"].values[t]
+            top_val = fvg_df["Top"].values[t]
+            if fvg_val == 1 and not pd.isna(bottom_val) and not pd.isna(top_val):
+                active_bullish_fvgs.append((float(bottom_val), float(top_val)))
+            elif fvg_val == -1 and not pd.isna(bottom_val) and not pd.isna(top_val):
+                active_bearish_fvgs.append((float(bottom_val), float(top_val)))
+                
+            # Filter out mitigated/invalidated FVGs
+            active_bullish_fvgs = [fvg for fvg in active_bullish_fvgs if lows[t] >= fvg[0]]
+            active_bearish_fvgs = [fvg for fvg in active_bearish_fvgs if highs[t] <= fvg[1]]
+            
+        pd_val = pd_zone_series.get(date_str, 0.0)
+        tf_trend_bias = trend_series.get(hour_str, "NONE")
+        
+        has_bull_sweep = lows[t] < lows[t-1] and closes[t] > lows[t-1]
+        has_bear_sweep = highs[t] > highs[t-1] and closes[t] < highs[t-1]
+        rvol_val = rvol_values[t]
+        
+        is_market_open_safe = (dt.hour > 10 or (dt.hour == 10 and dt.minute >= 30)) and (dt.hour < 14 or (dt.hour == 14 and dt.minute <= 45))
+        is_candidate_setup = is_market_open_safe and tf_trend_bias == "BULLISH" and has_bull_sweep and rvol_val >= 1.1
+        
+        if is_candidate_setup:
+            is_long = True
+            avg_cost = closes[t]
+            atr_val = atr_series[t]
+            
+            # Step 1: P&D Zone Filter
+            if pd_val >= 0.5:
+                rejected_trades.append({
+                    "type": "Long",
+                    "time": dt.strftime("%Y-%m-%d %H:%M"),
+                    "price": float(round(avg_cost, 2)),
+                    "step": "P&D Filter",
+                    "reason": f"P&D zone value ({pd_val:.1f}) is in Premium (>= 0.5)"
+                })
+                t += 1
+                continue
+                
+            target_rr = 3.0
+            target_offset = target_rr * atr_val
+            if pd_val > 0.0:
+                target_offset = target_offset * (1.0 - (pd_val * 0.5))
+                
+            # Step 2: Yield Filter
+            if target_offset < 1.4 * atr_val:
+                rejected_trades.append({
+                    "type": "Long",
+                    "time": dt.strftime("%Y-%m-%d %H:%M"),
+                    "price": float(round(avg_cost, 2)),
+                    "step": "Yield Filter",
+                    "reason": f"Target offset ({target_offset:.2f}) < 1.4 * ATR ({1.4 * atr_val:.2f})"
+                })
+                t += 1
+                continue
+                
+            # Step 3: Obstacle Blocker Filter
+            entry_swing_low = swing_lows[t]
+            sl_dist = abs(avg_cost - entry_swing_low)
+            if sl_dist == 0: sl_dist = 1e-5
+            
+            blockers = []  # list of (bottom_price, description)
+            target_price = avg_cost + target_offset
+            
+            # Check Bearish OBs
+            for bottom, top in active_bearish_obs:
+                if bottom <= target_price and top >= avg_cost:
+                    blockers.append((bottom, f"Bearish Order Block ({bottom:.2f} - {top:.2f})"))
+                    
+            # Check EMAs
+            for name, ema_arr in [("EMA 50", ema_50), ("EMA 200", ema_200)]:
+                ema_val = ema_arr[t]
+                if avg_cost < ema_val <= target_price:
+                    blockers.append((ema_val, f"{name} ({ema_val:.2f})"))
+                    
+            # Check VWAP
+            vwap_val = vwap_values[t]
+            if avg_cost < vwap_val <= target_price:
+                blockers.append((vwap_val, f"VWAP ({vwap_val:.2f})"))
+                
+            if blockers:
+                blockers.sort(key=lambda x: x[0])
+                min_block_bottom, blocker_reason = blockers[0]
+                
+                # Check if distance to blocker bottom yields at least 1:1 RR
+                if min_block_bottom - avg_cost >= sl_dist:
+                    # Truncate target to exit right before the blocker
+                    target_offset = min_block_bottom - avg_cost
+                else:
+                    # Reject trade
+                    rejected_trades.append({
+                        "type": "Long",
+                        "time": dt.strftime("%Y-%m-%d %H:%M"),
+                        "price": float(round(avg_cost, 2)),
+                        "step": "Blocker Filter",
+                        "reason": f"{blocker_reason} in path prevents 1:1 RR (dist {(min_block_bottom - avg_cost):.2f} < SL {sl_dist:.2f})"
+                    })
+                    t += 1
+                    continue
+                
+            entry_swing_high = swing_highs[t]
+            
+            k = t + 1
+            trade_closed = False
+            while k < n:
+                curr_high = highs[k]
+                curr_low = lows[k]
+                curr_close = closes[k]
+                
+                tp_triggered = False
+                if is_long:
+                    if curr_high >= avg_cost + target_offset:
+                        tp_triggered = True
+                else:
+                    if curr_low <= avg_cost - target_offset:
+                        tp_triggered = True
+                        
+                sl_triggered = False
+                if is_long:
+                    if curr_low < entry_swing_low:
+                        sl_triggered = True
+                else:
+                    if curr_high > entry_swing_high:
+                        sl_triggered = True
+                        
+                reversal_triggered = False
+                if is_long:
+                    is_bear_sweep_k = highs[k] > highs[k-1] and closes[k] < highs[k-1]
+                    if curr_close < swing_lows[k] or is_bear_sweep_k:
+                        reversal_triggered = True
+                else:
+                    is_bull_sweep_k = lows[k] < lows[k-1] and closes[k] > lows[k-1]
+                    if curr_close > swing_highs[k] or is_bull_sweep_k:
+                        reversal_triggered = True
+                        
+                time_limit_reached = times[k].hour > 14 or (times[k].hour == 14 and times[k].minute >= 45)
+                if tp_triggered:
+                    exit_price = avg_cost + target_offset if is_long else avg_cost - target_offset
+                    pnl = (exit_price - avg_cost) if is_long else (avg_cost - exit_price)
+                    pnl_pct = (pnl / avg_cost) * 100
+                    sl_dist = abs(avg_cost - entry_swing_low) if is_long else abs(entry_swing_high - avg_cost)
+                    if sl_dist == 0: sl_dist = 1e-5
+                    realized_rr = float(round(pnl / sl_dist, 2))
+                    
+                    # Scale trade size to match max loss per trade of $250
+                    scaled_pnl = float(round(pnl * (250.0 / sl_dist), 2))
+                    
+                    trades_ledger.append({
+                        "type": "Long" if is_long else "Short",
+                        "entry_time": times[t].strftime("%Y-%m-%d %H:%M"),
+                        "exit_time": times[k].strftime("%Y-%m-%d %H:%M"),
+                        "entry_price": float(round(avg_cost, 2)),
+                        "exit_price": float(round(exit_price, 2)),
+                        "quantity": float(round(250.0 / sl_dist, 2)),
+                        "outcome": "Success",
+                        "pnl": scaled_pnl,
+                        "pnl_percent": float(round(pnl_pct, 2)),
+                        "rr": realized_rr,
+                        "source": "Backtest"
+                    })
+                    success_count += 1
+                    trade_closed = True
+                    t = k
+                    break
+                elif sl_triggered or reversal_triggered or time_limit_reached:
+                    exit_price = curr_close
+                    if sl_triggered:
+                        exit_price = entry_swing_low if is_long else entry_swing_high
+                    pnl = (exit_price - avg_cost) if is_long else (avg_cost - exit_price)
+                    pnl_pct = (pnl / avg_cost) * 100
+                    sl_dist = abs(avg_cost - entry_swing_low) if is_long else abs(entry_swing_high - avg_cost)
+                    if sl_dist == 0: sl_dist = 1e-5
+                    realized_rr = float(round(pnl / sl_dist, 2))
+                    
+                    # Scale trade size to match max loss per trade of $250
+                    scaled_pnl = float(round(pnl * (250.0 / sl_dist), 2))
+                    
+                    is_win = pnl > 0.0
+                    outcome_val = "Success" if is_win else "Fail"
+                    
+                    trades_ledger.append({
+                        "type": "Long" if is_long else "Short",
+                        "entry_time": times[t].strftime("%Y-%m-%d %H:%M"),
+                        "exit_time": times[k].strftime("%Y-%m-%d %H:%M"),
+                        "entry_price": float(round(avg_cost, 2)),
+                        "exit_price": float(round(exit_price, 2)),
+                        "quantity": float(round(250.0 / sl_dist, 2)),
+                        "outcome": outcome_val,
+                        "pnl": scaled_pnl,
+                        "pnl_percent": float(round(pnl_pct, 2)),
+                        "rr": realized_rr,
+                        "source": "Backtest"
+                    })
+                    if is_win:
+                        success_count += 1
+                    else:
+                        fail_count += 1
+                    trade_closed = True
+                    t = k
+                    break
+                
+                k += 1
+                    
+                    
+        else:
+            t += 1
+            
+    return {"success": success_count, "fail": fail_count, "ledger": trades_ledger, "rejected_trades": rejected_trades}
+
+async def run_weekly_backtest_low_priority(sym, is_future=False):
+    if sym in PENDING_BACKTESTS:
+        return
+    PENDING_BACKTESTS.add(sym)
+    start_time = time.time()
+    try:
+        import yfinance as yf
+        
+        norm_sym = _normalize_ticker(sym)
+        logger.info(f"VLI: Low-priority backtest started for {sym} (mapped to {norm_sym})")
+        
+        ticker_obj = yf.Ticker(norm_sym)
+        prepost = is_future
+        
+        df_5m_clean = await asyncio.to_thread(
+            ticker_obj.history, period="30d", interval="5m", prepost=prepost, actions=False
+        )
+        df_1h_clean = await asyncio.to_thread(
+            ticker_obj.history, period="3mo", interval="1h", prepost=prepost, actions=False
+        )
+        df_1d_clean = await asyncio.to_thread(
+            ticker_obj.history, period="2y", interval="1d", actions=False
+        )
+        
+        if df_5m_clean is None or df_5m_clean.empty:
+            logger.warning(f"VLI: Backtest yfinance download empty for {sym} ({norm_sym})")
+            return
+            
+        stats = run_weekly_5m_replay_backtest(df_5m_clean, df_1h_clean, df_1d_clean, sym, is_future=is_future)
+        logger.info(f"VLI: Backtest completed for {sym}: {stats}")
+        
+        if sym not in TRENDS_CACHE:
+            TRENDS_CACHE[sym] = {}
+            
+        TRENDS_CACHE[sym]["crt_15m_stats"] = {"success": stats["success"], "fail": stats["fail"]}
+        TRENDS_CACHE[sym]["crt_1h_stats"] = {"success": stats["success"], "fail": stats["fail"]}
+        TRENDS_CACHE[sym]["crt_4h_stats"] = {"success": stats["success"], "fail": stats["fail"]}
+        TRENDS_CACHE[sym]["trade_ledger"] = stats["ledger"]
+        TRENDS_CACHE[sym]["rejected_trades"] = stats.get("rejected_trades", [])
+        TRENDS_CACHE[sym]["timestamp"] = time.time()
+        
+        history_item = {
+            "timestamp": int(time.time()),
+            "success": stats["success"],
+            "fail": stats["fail"],
+            "accuracy": round(stats["success"] / (stats["success"] + stats["fail"]) * 100, 1) if (stats["success"] + stats["fail"]) > 0 else 0.0
+        }
+        TRENDS_CACHE[sym]["crt_conf_history"] = [history_item]
+        
+        # Log telemetry to VLI_Raw_Telemetry.md
+        try:
+            from src.config.vli import get_vli_path
+            telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
+            accuracy = round(stats["success"] / (stats["success"] + stats["fail"]) * 100, 1) if (stats["success"] + stats["fail"]) > 0 else 0.0
+            total_trades = stats["success"] + stats["fail"]
+            cum_pnl = sum(t.get("pnl_percent", 0.0) for t in stats["ledger"])
+            execution_time = time.time() - start_time
+            
+            with open(telemetry_file, "a", encoding="utf-8") as tf:
+                tf.write(
+                    f"### [{datetime.now().strftime('%H:%M:%S')}] VLI BACKTEST TELEMETRY: {sym}\n"
+                    f"- **Ticker**: `{sym}`\n"
+                    f"- **Simulation Period**: 30 days (5m intervals)\n"
+                    f"- **Total Candles Processed**: {len(df_5m_clean)}\n"
+                    f"- **Total Simulated Trades**: {total_trades}\n"
+                    f"- **Success Rate / Accuracy**: `{accuracy}%`\n"
+                    f"- **Tally (Success / Fail)**: `{stats['success']} wins` / `{stats['fail']} losses`\n"
+                    f"- **Cumulative Return**: `{cum_pnl:+.2f}%`\n"
+                    f"- **Execution Time**: `{execution_time:.3f} seconds`\n"
+                    f"---\n"
+                )
+        except Exception as tel_e:
+            logger.error(f"VLI: Failed to write backtest telemetry for {sym}: {tel_e}")
+            
+        await async_save_trends_cache()
+    except Exception as e:
+        logger.error(f"VLI: Low-priority backtest failed for {sym}: {e}")
+    finally:
+        if sym in PENDING_BACKTESTS:
+            PENDING_BACKTESTS.remove(sym)
+
 async def bulk_fetch_trends_and_sparklines(symbols):
     # Filter out symbols that are already being fetched
     to_fetch = [s for s in symbols if s not in PENDING_FETCH]
@@ -1048,23 +1545,39 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                 crt_4h = get_valid_crt_segments(df_4h, "crt_4h")
                 
                 # Calculate Structural Events (BOS/CHoCH) for multiple timeframes using smartmoneyconcepts
-                structure_events = {
-                    "5m": "STABLE",
-                    "15m": "STABLE",
-                    "1h": "STABLE",
-                    "1d": "STABLE"
-                }
-                
                 def calculate_single_tf_structure(df_tf, swing_len=5):
+                    res = {"structure": "STABLE", "swing_high": None, "swing_low": None}
                     if df_tf is None or df_tf.empty:
-                        return "STABLE"
+                        return res
                     try:
                         from smartmoneyconcepts import smc as smc_lib
                         df_calc = df_tf.copy()
                         df_calc.columns = [col.lower() for col in df_calc.columns]
                         swings = smc_lib.swing_highs_lows(df_calc, swing_length=swing_len)
-                        struct = smc_lib.bos_choch(df_calc, swings)
                         
+                        if not swings.empty:
+                            if "HighLow" in swings.columns and "Level" in swings.columns:
+                                valid_shs = swings[swings["HighLow"] == 1.0]["Level"].dropna()
+                                if not valid_shs.empty:
+                                    res["swing_high"] = float(valid_shs.iloc[-1])
+                                valid_sls = swings[swings["HighLow"] == -1.0]["Level"].dropna()
+                                if not valid_sls.empty:
+                                    res["swing_low"] = float(valid_sls.iloc[-1])
+                            else:
+                                sh_col = "Highs" if "Highs" in swings.columns else "highs"
+                                sl_col = "Lows" if "Lows" in swings.columns else "lows"
+                                if sh_col in swings.columns:
+                                    valid_shs = swings[sh_col].dropna()
+                                    valid_shs = valid_shs[valid_shs != 0]
+                                    if not valid_shs.empty:
+                                        res["swing_high"] = float(valid_shs.iloc[-1])
+                                if sl_col in swings.columns:
+                                    valid_sls = swings[sl_col].dropna()
+                                    valid_sls = valid_sls[valid_sls != 0]
+                                    if not valid_sls.empty:
+                                        res["swing_low"] = float(valid_sls.iloc[-1])
+                                
+                        struct = smc_lib.bos_choch(df_calc, swings)
                         valid_events = struct[(struct["BOS"].fillna(0) != 0) | (struct["CHOCH"].fillna(0) != 0)]
                         if not valid_events.empty:
                             last_row = valid_events.iloc[-1]
@@ -1072,21 +1585,74 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                             val = last_row.get("CHOCH", 0) if is_choch else last_row.get("BOS", 0)
                             event_name = "CHoCH" if is_choch else "BOS"
                             direction = "BULLISH" if val == 1 else "BEARISH"
-                            return f"{direction} {event_name}"
+                            res["structure"] = f"{direction} {event_name}"
                     except Exception as e:
-                        logger.error(f"Failed to calculate structure for df of len {len(df_tf)}: {e}")
-                    return "STABLE"
+                        logger.error(f"Failed to calculate structure: {e}")
+                    return res
+
+                res_5m = calculate_single_tf_structure(c_timeframes.get("5m"))
+                res_15m = calculate_single_tf_structure(c_timeframes.get("15m"))
+                res_1h = calculate_single_tf_structure(c_timeframes.get("1h"))
+                res_1d = calculate_single_tf_structure(c_timeframes.get("1d"))
                 
-                structure_events["5m"] = calculate_single_tf_structure(c_timeframes.get("5m"))
-                structure_events["15m"] = calculate_single_tf_structure(c_timeframes.get("15m"))
-                structure_events["1h"] = calculate_single_tf_structure(c_timeframes.get("1h"))
-                structure_events["1d"] = calculate_single_tf_structure(c_timeframes.get("1d"))
+                structure_events = {
+                    "5m": res_5m["structure"],
+                    "15m": res_15m["structure"],
+                    "1h": res_1h["structure"],
+                    "1d": res_1d["structure"]
+                }
                 
+                swing_lows = {
+                    "5m": res_5m["swing_low"],
+                    "15m": res_15m["swing_low"],
+                    "1h": res_1h["swing_low"],
+                    "1d": res_1d["swing_low"]
+                }
+                swing_highs = {
+                    "5m": res_5m["swing_high"],
+                    "15m": res_15m["swing_high"],
+                    "1h": res_1h["swing_high"],
+                    "1d": res_1d["swing_high"]
+                }
+                atrs = {
+                    "5m": calculate_atr_14(c_timeframes["5m"]),
+                    "15m": calculate_atr_14(c_timeframes["15m"]),
+                    "1h": calculate_atr_14(c_timeframes["1h"]),
+                    "1d": atr_val
+                }
+                
+                cached_stats_15m = cached.get("crt_15m_stats") if cached else None
+                cached_stats_1h = cached.get("crt_1h_stats") if cached else None
+                cached_stats_4h = cached.get("crt_4h_stats") if cached else None
+                cached_ledger = cached.get("trade_ledger") if cached else None
+                
+                has_cached_tally = False
+                if cached_stats_15m and (cached_stats_15m.get("success", 0) + cached_stats_15m.get("fail", 0)) > 0:
+                    if cached_ledger and len(cached_ledger) > 0:
+                        has_cached_tally = True
+                    
+                if not has_cached_tally:
+                    if sym not in PENDING_BACKTESTS:
+                        asyncio.create_task(run_weekly_backtest_low_priority(sym, is_future=is_future))
+                    crt_15m_stats_val = {"success": 0, "fail": 0}
+                    crt_1h_stats_val = {"success": 0, "fail": 0}
+                    crt_4h_stats_val = {"success": 0, "fail": 0}
+                    crt_ledger_val = []
+                else:
+                    crt_15m_stats_val = cached_stats_15m
+                    crt_1h_stats_val = cached_stats_1h
+                    crt_4h_stats_val = cached_stats_4h
+                    crt_ledger_val = cached_ledger
+
                 if sym not in TRENDS_CACHE:
                     TRENDS_CACHE[sym] = {}
                 TRENDS_CACHE[sym].update({
                     "structure_event": structure_events["1d"],
                     "structure_events": structure_events,
+                    "swing_lows": swing_lows,
+                    "swing_highs": swing_highs,
+                    "atr": atr_val,
+                    "atrs": atrs,
                     "trends": trends if (trends and any(v != "No Data" for v in trends.values())) else (existing_trends or {}),
                     "sparkline_1m": spark_1m if spark_1m else (existing_spark_1m or []),
                     "sparkline_5m": spark_5m if spark_5m else (existing_spark_5m or []),
@@ -1102,9 +1668,10 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     "crt_15m": crt_15m,
                     "crt_1h": crt_1h,
                     "crt_4h": crt_4h,
-                    "crt_15m_stats": backtest_timeframe_setups(df_15m),
-                    "crt_1h_stats": backtest_timeframe_setups(df_1h),
-                    "crt_4h_stats": backtest_timeframe_setups(df_4h),
+                    "crt_15m_stats": crt_15m_stats_val,
+                    "crt_1h_stats": crt_1h_stats_val,
+                    "crt_4h_stats": crt_4h_stats_val,
+                    "trade_ledger": crt_ledger_val,
                     "timestamp": now
                 })
             
@@ -1171,6 +1738,7 @@ async def enrich_candidates_with_trends(candidates):
             mock_4h = make_mock_spark(base_val * 1.04, interval_mins=240)
             mock_1d = make_mock_spark(base_val * 1.05, interval_mins=1440)
                 
+                
             TRENDS_CACHE[sym] = {
                 "trends": sample_trends,
                 "structure_event": "STABLE",
@@ -1180,6 +1748,19 @@ async def enrich_candidates_with_trends(candidates):
                     "1h": "STABLE",
                     "1d": "STABLE"
                 },
+                "swing_lows": {
+                    "5m": None,
+                    "15m": None,
+                    "1h": None,
+                    "1d": None
+                },
+                "swing_highs": {
+                    "5m": None,
+                    "15m": None,
+                    "1h": None,
+                    "1d": None
+                },
+                "atr": 1.0,
                 "sparkline_1m": mock_1m,
                 "sparkline_5m": mock_5m,
                 "sparkline_15m": mock_15m,
@@ -1207,6 +1788,13 @@ async def enrich_candidates_with_trends(candidates):
                     "sparkline_4h": c.get("sparkline_4h", []),
                     "sparkline_1d": c.get("sparkline_1d", []),
                     "vwap_state": c.get("vwap_state", 0.0),
+                    "swing_lows": {
+                        "5m": None, "15m": None, "1h": None, "1d": None
+                    },
+                    "swing_highs": {
+                        "5m": None, "15m": None, "1h": None, "1d": None
+                    },
+                    "atr": 1.0,
                     "crt_15m": c.get("crt_15m", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)]),
                     "crt_1h": c.get("crt_1h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)]),
                     "crt_4h": c.get("crt_4h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)]),
@@ -1217,9 +1805,10 @@ async def enrich_candidates_with_trends(candidates):
                 }
             
         cached = TRENDS_CACHE.get(sym)
-        if not cached or (now - cached["timestamp"] > TRENDS_CACHE_EXPIRY) or not cached.get("sparkline_1m"):
+        if not cached or (now - cached["timestamp"] > TRENDS_CACHE_EXPIRY) or not cached.get("sparkline_1m") or not cached.get("trade_ledger"):
             if sym not in PENDING_FETCH and sym not in symbols_to_fetch:
                 symbols_to_fetch.append(sym)
+            
             
     if symbols_to_fetch:
         # Prioritize top 25 symbols to prevent yfinance rate limits
@@ -1246,6 +1835,16 @@ async def enrich_candidates_with_trends(candidates):
             c["structure_events"] = TRENDS_CACHE[sym].get("structure_events", {
                 "5m": "STABLE", "15m": "STABLE", "1h": "STABLE", "1d": "STABLE"
             })
+            c["swing_lows"] = TRENDS_CACHE[sym].get("swing_lows", {
+                "5m": None, "15m": None, "1h": None, "1d": None
+            })
+            c["swing_highs"] = TRENDS_CACHE[sym].get("swing_highs", {
+                "5m": None, "15m": None, "1h": None, "1d": None
+            })
+            c["atr"] = TRENDS_CACHE[sym].get("atr", 1.0)
+            c["atrs"] = TRENDS_CACHE[sym].get("atrs", {
+                "5m": 1.0, "15m": 1.0, "1h": 1.0, "1d": 1.0
+            })
             
             c["crt_15m"] = TRENDS_CACHE[sym].get("crt_15m", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
             c["crt_1h"] = TRENDS_CACHE[sym].get("crt_1h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
@@ -1253,6 +1852,9 @@ async def enrich_candidates_with_trends(candidates):
             c["crt_15m_stats"] = TRENDS_CACHE[sym].get("crt_15m_stats", {"success": 0, "fail": 0})
             c["crt_1h_stats"] = TRENDS_CACHE[sym].get("crt_1h_stats", {"success": 0, "fail": 0})
             c["crt_4h_stats"] = TRENDS_CACHE[sym].get("crt_4h_stats", {"success": 0, "fail": 0})
+            c["crt_conf_history"] = TRENDS_CACHE[sym].get("crt_conf_history", [])
+            c["trade_ledger"] = TRENDS_CACHE[sym].get("trade_ledger", [])
+            c["rejected_trades"] = TRENDS_CACHE[sym].get("rejected_trades", [])
             
              # Update live stats dynamically
             cached_price = TRENDS_CACHE[sym].get("price")
@@ -1279,6 +1881,7 @@ async def enrich_candidates_with_trends(candidates):
             c["sparkline_15m"] = c.get("sparkline_15m", [])
             c["sparkline_1h"] = c.get("sparkline_1h", [])
             c["sparkline_4h"] = c.get("sparkline_4h", [])
+            c["sparkline_4h"] = c.get("sparkline_4h", [])
             c["sparkline_1d"] = c.get("sparkline_1d", [])
             c["vwap_state"] = c.get("vwap_state", 0.0)
             c["rvol"] = c.get("rvol", 1.0)
@@ -1287,12 +1890,25 @@ async def enrich_candidates_with_trends(candidates):
             c["structure_events"] = c.get("structure_events", {
                 "5m": "STABLE", "15m": "STABLE", "1h": "STABLE", "1d": "STABLE"
             })
+            c["swing_lows"] = c.get("swing_lows", {
+                "5m": None, "15m": None, "1h": None, "1d": None
+            })
+            c["swing_highs"] = c.get("swing_highs", {
+                "5m": None, "15m": None, "1h": None, "1d": None
+            })
+            c["atr"] = c.get("atr", 1.0)
+            c["atrs"] = c.get("atrs", {
+                "5m": 1.0, "15m": 1.0, "1h": 1.0, "1d": 1.0
+            })
             c["crt_15m"] = c.get("crt_15m", [])
             c["crt_1h"] = c.get("crt_1h", [])
             c["crt_4h"] = c.get("crt_4h", [])
             c["crt_15m_stats"] = c.get("crt_15m_stats", {"success": 0, "fail": 0})
             c["crt_1h_stats"] = c.get("crt_1h_stats", {"success": 0, "fail": 0})
             c["crt_4h_stats"] = c.get("crt_4h_stats", {"success": 0, "fail": 0})
+            c["crt_conf_history"] = c.get("crt_conf_history", [])
+            c["trade_ledger"] = c.get("trade_ledger", [])
+            c["rejected_trades"] = c.get("rejected_trades", [])
     # Enforce Rule: If a setup formation is detected on multiple timeframes, only the lowest timeframe must indicate it.
     for c in candidates:
         crt_15m = c.get("crt_15m", [])
@@ -1337,6 +1953,7 @@ async def enrich_candidates_with_trends(candidates):
                     s["potential_setup"] = "NONE"
                     
         active_15m = has_active_setup(crt_15m)
+        active_15m = has_active_setup(crt_15m)
         active_1h = has_active_setup(crt_1h)
         active_4h = has_active_setup(crt_4h)
         
@@ -1349,11 +1966,11 @@ async def enrich_candidates_with_trends(candidates):
             if active_4h:
                 clear_forming_setup(crt_4h)
                 
-        # Compute SMC Trigger (BUY, SELL, or WAIT)
+        # Compute SMC Trigger (BUY, SELL, or WAIT) for each timeframe
         trends = c.get("trends", {})
         trend_bias = "NONE"
-        for tf in ["1d", "4h", "1h", "15m"]:
-            t_val = trends.get(tf)
+        for tf_bias in ["1d", "4h", "1h", "15m"]:
+            t_val = trends.get(tf_bias)
             if t_val in ["Bullish", "Strong Bullish", "Weak Bullish"]:
                 trend_bias = "BULLISH"
                 break
@@ -1380,12 +1997,214 @@ async def enrich_candidates_with_trends(candidates):
                 elif "BEAR_SWEEP" in state or "BEAR_OUTSIDE" in state:
                     has_bear_sweep = True
         
-        if trend_bias == "BULLISH" and pd_val <= -0.2 and has_bull_sweep and rvol_val >= 1.1:
-            c["smc_trigger"] = "BUY"
-        elif trend_bias == "BEARISH" and pd_val >= 0.2 and has_bear_sweep and rvol_val >= 1.1:
-            c["smc_trigger"] = "SELL"
-        else:
-            c["smc_trigger"] = "WAIT"
+        # 1. Fetch positions from BrokerageCache
+        from src.services.brokerage_cache import BrokerageCache
+        open_positions = []
+        for acct_id in ["TradingView Paper Stocks", "TradingView Paper Futures"]:
+            try:
+                positions = BrokerageCache.get_positions(acct_id) or []
+                open_positions.extend(positions)
+            except Exception as ex:
+                logger.error(f"Error fetching positions for {acct_id}: {ex}")
+                
+        matching_position = None
+        for pos in open_positions:
+            pos_symbol = pos.get("symbol", "").strip().upper()
+            cand_symbol = sym.strip().upper()
+            if pos_symbol == cand_symbol or pos_symbol.replace("/", "") == cand_symbol.replace("/", ""):
+                matching_position = pos
+                break
+                
+        is_held = False
+        is_long = False
+        is_short = False
+        if matching_position:
+            try:
+                units = matching_position.get("units")
+                units_val = float(units) if units is not None else 0.0
+                if units_val > 0:
+                    is_held = True
+                    is_held = True
+                    is_long = True
+                elif units_val < 0:
+                    is_held = True
+                    is_short = True
+            except (ValueError, TypeError):
+                pass
+                
+        c["is_held"] = is_held
+        c["position_type"] = "LONG" if is_long else ("SHORT" if is_short else "NONE")
+        c["average_cost"] = float(matching_position.get("average_cost", 0.0)) if matching_position else 0.0
+        
+        target_rr = 3.0
+        if is_held:
+            # Load user specified target_rr from default_layout.json (fallback 3.0)
+            try:
+                import os
+                import json
+                layout_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "default_layout.json"))
+                if os.path.exists(layout_path):
+                    with open(layout_path, "r", encoding="utf-8") as lf:
+                        layout_data = json.load(lf)
+                        macro_wl = layout_data.get("MACRO_WL", {})
+                        target_rr = float(macro_wl.get("activeTargetRr", 3.0))
+            except Exception as e:
+                logger.error(f"Error loading target_rr: {e}")
+
+        c["smc_triggers"] = {}
+        for tf in ["5m", "15m", "1h", "1d"]:
+            if is_held:
+                avg_cost = float(matching_position.get("average_cost", 0.0))
+                current_price = float(c.get("price")) if c.get("price") is not None else avg_cost
+                
+                # Risk/Reward offset based on this timeframe's ATR
+                tf_atr = float(c.get("atrs", {}).get(tf, 1.0))
+                risk_dist = 1.4 * tf_atr
+                base_target_offset = target_rr * risk_dist
+                target_offset = min(base_target_offset, 1.2 * tf_atr)
+                
+                # Premium/Discount scaling
+                dynamic_target_offset = target_offset
+                if is_long and pd_val > 0.0:
+                    dynamic_target_offset = target_offset * (1.0 - (pd_val * 0.5))
+                elif is_short and pd_val < 0.0:
+                    dynamic_target_offset = target_offset * (1.0 - (abs(pd_val) * 0.5))
+                    
+                tp_triggered = False
+                sl_triggered = False
+                reversal_triggered = False
+                
+                # 1. Take Profit
+                if is_long:
+                    if current_price >= avg_cost + dynamic_target_offset or pd_val >= 0.8:
+                        tp_triggered = True
+                else:
+                    if current_price <= avg_cost - dynamic_target_offset or pd_val <= -0.8:
+                        tp_triggered = True
+                        
+                # 2. Invalidation / Stop Loss
+                if is_long:
+                    swing_low = c.get("swing_lows", {}).get(tf)
+                    sl_level = float(swing_low) if swing_low is not None else (avg_cost - risk_dist)
+                    if current_price < sl_level:
+                        sl_triggered = True
+                else:
+                    swing_high = c.get("swing_highs", {}).get(tf)
+                    sl_level = float(swing_high) if swing_high is not None else (avg_cost + risk_dist)
+                    if current_price > sl_level:
+                        sl_triggered = True
+                        
+                # 3. Reversal
+                # 3. Reversal
+                def is_reversal_event(event_str, target_dir):
+                    if not event_str or event_str == "STABLE":
+                        return False
+                    parts = event_str.split(" ")
+                    if len(parts) >= 2:
+                        direction = parts[0]
+                        try:
+                            candles_ago = int(parts[1].split(":")[1])
+                            if direction == target_dir and candles_ago <= 5:
+                                return True
+                        except (IndexError, ValueError):
+                            pass
+                    return False
+                    
+                struct_tf = c.get("structure_events", {}).get(tf, "STABLE")
+                struct_15m = c.get("structure_events", {}).get("15m", "STABLE")
+                
+                if is_long:
+                    if is_reversal_event(struct_tf, "BEARISH") or is_reversal_event(struct_15m, "BEARISH") or has_bear_sweep:
+                        reversal_triggered = True
+                else:
+                    if is_reversal_event(struct_tf, "BULLISH") or is_reversal_event(struct_15m, "BULLISH") or has_bull_sweep:
+                        reversal_triggered = True
+                        
+                import pytz
+                est_tz = pytz.timezone('America/New_York')
+                now_est = datetime.now(est_tz)
+                time_limit_reached = now_est.hour > 14 or (now_est.hour == 14 and now_est.minute >= 45)
+                
+                if tp_triggered or sl_triggered or reversal_triggered or time_limit_reached:
+                    c["smc_triggers"][tf] = "SELL" if is_long else "BUY"
+                    
+                    trade_id = f"{sym}_{is_long}_{avg_cost}"
+                    if sym in TRENDS_CACHE:
+                        counted_trades = TRENDS_CACHE[sym].get("counted_trades", [])
+                        if trade_id not in counted_trades:
+                            is_success = tp_triggered
+                            for sk in ["crt_15m_stats", "crt_1h_stats", "crt_4h_stats"]:
+                                if sk not in TRENDS_CACHE[sym] or not TRENDS_CACHE[sym][sk]:
+                                    TRENDS_CACHE[sym][sk] = {"success": 0, "fail": 0}
+                                if is_success:
+                                    TRENDS_CACHE[sym][sk]["success"] = TRENDS_CACHE[sym][sk].get("success", 0) + 1
+                                else:
+                                    TRENDS_CACHE[sym][sk]["fail"] = TRENDS_CACHE[sym][sk].get("fail", 0) + 1
+                                    
+                            counted_trades.append(trade_id)
+                            TRENDS_CACHE[sym]["counted_trades"] = counted_trades
+                            
+                            succ = TRENDS_CACHE[sym]["crt_15m_stats"].get("success", 0)
+                            fail = TRENDS_CACHE[sym]["crt_15m_stats"].get("fail", 0)
+                            history_snap = {
+                                "timestamp": int(time.time()),
+                                "success": succ,
+                                "fail": fail,
+                                "accuracy": round(succ / (succ + fail) * 100, 1) if (succ + fail) > 0 else 0.0
+                            }
+                            history_list = TRENDS_CACHE[sym].get("crt_conf_history", [])
+                            history_list.append(history_snap)
+                            TRENDS_CACHE[sym]["crt_conf_history"] = history_list[-100:]
+                            
+                            ledger = TRENDS_CACHE[sym].get("trade_ledger", [])
+                            entry_time_str = matching_position.get("date") or datetime.now().strftime("%Y-%m-%d %H:%M")
+                            pnl = (current_price - avg_cost) if is_long else (avg_cost - current_price)
+                            pnl_pct = (pnl / avg_cost) * 100
+                            sl_level = float(swing_low) if swing_low is not None else (avg_cost - risk_dist) if is_long else float(swing_high) if swing_high is not None else (avg_cost + risk_dist)
+                            sl_dist = abs(avg_cost - sl_level)
+                            qty = float(round(250.0 / sl_dist, 2)) if sl_dist > 0 else 1.0
+                            
+                            ledger.append({
+                                "type": "Long" if is_long else "Short",
+                                "entry_time": entry_time_str,
+                                "exit_time": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                                "entry_price": round(avg_cost, 2),
+                                "exit_price": round(current_price, 2),
+                                "quantity": qty,
+                                "outcome": "Success" if is_success else "Fail",
+                                "pnl": round(pnl, 2),
+                                "pnl_percent": round(pnl_pct, 2),
+                                "source": "Live"
+                            })
+                            TRENDS_CACHE[sym]["trade_ledger"] = ledger[-50:]
+                            
+                            logger.info(f"VLI: Live trade outcome logged for {sym}. ID: {trade_id}. Success: {is_success}. Stats: {succ}/{fail}")
+                            
+                            asyncio.create_task(async_save_trends_cache())
+                else:
+                    c["smc_triggers"][tf] = "WAIT"
+            else:
+                tf_trend = trends.get(tf, "NONE")
+                tf_trend_bias = "NONE"
+                if tf_trend in ["Bullish", "Strong Bullish", "Weak Bullish"]:
+                    tf_trend_bias = "BULLISH"
+                elif tf_trend in ["Bearish", "Strong Bearish", "Weak Bearish"]:
+                    tf_trend_bias = "BEARISH"
+                    
+                if tf_trend_bias == "NONE":
+                    tf_trend_bias = trend_bias
+                    
+                import pytz
+                est_tz = pytz.timezone('America/New_York')
+                now_est = datetime.now(est_tz)
+                is_market_open_safe = (now_est.hour > 10 or (now_est.hour == 10 and now_est.minute >= 30)) and (now_est.hour < 14 or (now_est.hour == 14 and now_est.minute <= 45))
+                
+                if is_market_open_safe and tf_trend_bias == "BULLISH" and pd_val < 0.5 and has_bull_sweep and rvol_val >= 1.1:
+                    c["smc_triggers"][tf] = "BUY"
+                elif is_market_open_safe and tf_trend_bias == "BEARISH" and pd_val > -0.5 and has_bear_sweep and rvol_val >= 1.1:
+                    c["smc_triggers"][tf] = "SELL"
+                else:
+                    c["smc_triggers"][tf] = "WAIT"
                             
     return candidates
 
