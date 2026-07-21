@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0241";
+        const VLI_CLIENT_VERSION = "00.000.0242";
     </script>
     
     <link
@@ -2587,7 +2587,14 @@
                     height: card.style.height,
                     zIndex: card.style.zIndex,
                     display: card.style.display,
-                    collapsed: card.classList.contains('collapsed')
+                    collapsed: card.classList.contains('collapsed'),
+                    activeDuration: card.dataset.activeDuration,
+                    activeSide: card.dataset.activeSide,
+                    activeTargetRr: card.dataset.activeTargetRr,
+                    trendTimeframe: card.dataset.trendTimeframe,
+                    zoneLookback: card.dataset.zoneLookback,
+                    activeFilter: card.dataset.activeFilter,
+                    trackSpy: window.vliScannerTrackSpy ? !!window.vliScannerTrackSpy[card.dataset.instanceGuid] : false
                 };
             });
             localStorage.setItem('vli_wm_layout', JSON.stringify(layout));
@@ -2656,6 +2663,14 @@
                         card = UXManager.createCard(state.typeGuid, state, state.instanceGuid);
                     }
                     if (card) {
+                        // Restore custom settings
+                        if (state.activeDuration) card.dataset.activeDuration = state.activeDuration;
+                        if (state.activeSide) card.dataset.activeSide = state.activeSide;
+                        if (state.activeTargetRr) card.dataset.activeTargetRr = state.activeTargetRr;
+                        if (state.trendTimeframe) card.dataset.trendTimeframe = state.trendTimeframe;
+                        if (state.zoneLookback) card.dataset.zoneLookback = state.zoneLookback;
+                        if (state.activeFilter) card.dataset.activeFilter = state.activeFilter;
+                        
                         // Restore artifact content if present
                         if (state.artifactPath) {
                             card.dataset.artifactPath = state.artifactPath;
@@ -5206,6 +5221,11 @@
         window.lastMacroWatchlistData = null;
         
         function handleMacroFilterChange(selectElement) {
+            const card = selectElement.closest('.card');
+            if (card) {
+                card.dataset.activeFilter = selectElement.value;
+                saveLayout();
+            }
             if (window.lastMacroWatchlistData) {
                 renderWatchlist(window.lastMacroWatchlistData);
             }
@@ -5725,6 +5745,8 @@
             card.dataset.trendTimeframe = trendTf;
             card.dataset.zoneLookback = zoneLb;
             
+            saveLayout();
+            
             let symbols = [];
             if (card.dataset.typeGuid === 'SCAN_RES') {
                 const filterEl = card.querySelector('#scan-filter-' + card.dataset.instanceGuid);
@@ -5909,6 +5931,8 @@
             card.dataset.activeSide = newSide;
             console.log(`[VLI_PROFILE] Side selection updated to: ${newSide}`);
             
+            saveLayout();
+            
             // Dim RR cells only
             card.querySelectorAll('.rr-column-cell div').forEach(div => {
                 div.style.opacity = '0.3';
@@ -6006,6 +6030,8 @@
             card.dataset.activeTargetRr = selectEl.value;
             console.log(`[VLI_PROFILE] Target RR updated to: ${selectEl.value}`);
             
+            saveLayout();
+            
             if (card.dataset.typeGuid === 'SCAN_RES') {
                 renderScannerResults({
                     scanner_results: {
@@ -6028,8 +6054,25 @@
             if (!window.vliScannerTrackSpy) window.vliScannerTrackSpy = {};
             window.vliScannerTrackSpy[instanceGuid] = cb.checked;
             
+            saveLayout();
             // Force re-render of local scanner results without refetching from backend
             updateScannerResultsUI();
+        }
+
+        try {
+            window.vliScannerTrackSpy = {};
+            const savedLayout = localStorage.getItem('vli_wm_layout');
+            if (savedLayout) {
+                const layout = JSON.parse(savedLayout);
+                for (const id in layout) {
+                    const state = layout[id];
+                    if (state && state.instanceGuid && state.trackSpy !== undefined) {
+                        window.vliScannerTrackSpy[state.instanceGuid] = state.trackSpy;
+                    }
+                }
+            }
+        } catch (e) {
+            window.vliScannerTrackSpy = {};
         }
 
         try {
@@ -6062,6 +6105,11 @@
         }
 
         function handleScannerTierChange(selectElement) {
+            const card = selectElement.closest('.card');
+            if (card) {
+                card.dataset.activeFilter = selectElement.value;
+                saveLayout();
+            }
             // Decoupled: Only refilter locally, do not trigger global backend rescans
             updateScannerResultsUI();
         }
