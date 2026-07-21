@@ -1581,24 +1581,24 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                         struct = smc_lib.bos_choch(df_calc, swings)
                         valid_events = struct[(struct["BOS"].fillna(0) != 0) | (struct["CHOCH"].fillna(0) != 0)]
                         if not valid_events.empty:
-                            last_idx = valid_events.index[-1]
-                            total_bars = len(df_calc)
-                            if isinstance(last_idx, (int, np.integer)):
-                                bar_dist = total_bars - last_idx - 1
-                            else:
-                                try:
-                                    bar_dist = total_bars - df_calc.index.get_loc(last_idx) - 1
-                                except Exception:
-                                    bar_dist = 999
+                            last_row = valid_events.iloc[-1]
+                            is_choch = last_row.get("CHOCH", 0) != 0
+                            val = last_row.get("CHOCH", 0) if is_choch else last_row.get("BOS", 0)
+                            event_name = "CHoCH" if is_choch else "BOS"
+                            direction = "BULLISH" if val == 1 else "BEARISH"
                             
-                            # Require event to be within the last 5 bars, otherwise STABLE
-                            if bar_dist <= 5:
-                                last_row = valid_events.iloc[-1]
-                                is_choch = last_row.get("CHOCH", 0) != 0
-                                val = last_row.get("CHOCH", 0) if is_choch else last_row.get("BOS", 0)
-                                event_name = "CHoCH" if is_choch else "BOS"
-                                direction = "BULLISH" if val == 1 else "BEARISH"
-                                res["structure"] = f"{direction} {event_name}"
+                            current_close = float(df_calc["close"].iloc[-1])
+                            # Option B: Persist structure state until invalidated by breaching Swing Low (Bullish) or Swing High (Bearish)
+                            if val == 1:
+                                if res["swing_low"] is not None and current_close < res["swing_low"]:
+                                    res["structure"] = "STABLE"
+                                else:
+                                    res["structure"] = f"{direction} {event_name}"
+                            elif val == -1:
+                                if res["swing_high"] is not None and current_close > res["swing_high"]:
+                                    res["structure"] = "STABLE"
+                                else:
+                                    res["structure"] = f"{direction} {event_name}"
                     except Exception as e:
                         logger.error(f"Failed to calculate structure: {e}")
                     return res
