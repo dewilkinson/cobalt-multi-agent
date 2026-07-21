@@ -856,7 +856,7 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
         has_bear_sweep = highs[t] > highs[t-1] and closes[t] < highs[t-1]
         rvol_val = rvol_values[t]
         
-        is_market_open_safe = (dt.hour > 10 or (dt.hour == 10 and dt.minute >= 30)) and (dt.hour < 14 or (dt.hour == 14 and dt.minute <= 45))
+        is_market_open_safe = (dt.hour > 10 or (dt.hour == 10 and dt.minute >= 30)) and (dt.hour < 13 or (dt.hour == 13 and dt.minute <= 30))
         is_candidate_setup = is_market_open_safe and tf_trend_bias == "BULLISH" and has_bull_sweep and rvol_val >= 1.1
         
         if is_candidate_setup:
@@ -864,14 +864,14 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
             avg_cost = closes[t]
             atr_val = atr_series[t]
             
-            # Step 1: P&D Zone Filter
-            if pd_val >= 0.5:
+            # Step 1: P&D Zone Filter (Strict Discount Requirement: pd_val <= -0.20)
+            if pd_val > -0.2:
                 rejected_trades.append({
                     "type": "Long",
                     "time": dt.strftime("%Y-%m-%d %H:%M"),
                     "price": float(round(avg_cost, 2)),
                     "step": "P&D Filter",
-                    "reason": f"P&D zone value ({pd_val:.1f}) is in Premium (>= 0.5)"
+                    "reason": f"P&D zone value ({pd_val:.1f}) is not in Deep Discount (<= -0.20)"
                 })
                 t += 1
                 continue
@@ -893,9 +893,10 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
                 t += 1
                 continue
                 
-            # Step 3: Obstacle Blocker Filter
+            # Step 3: Obstacle Blocker Filter & ATR Noise Stop Floor
             entry_swing_low = swing_lows[t]
-            sl_dist = abs(avg_cost - entry_swing_low)
+            raw_sl_dist = abs(avg_cost - entry_swing_low)
+            sl_dist = max(raw_sl_dist, 0.15 * atr_val)
             if sl_dist == 0: sl_dist = 1e-5
             
             blockers = []  # list of (bottom_price, description)
@@ -2197,11 +2198,11 @@ async def enrich_candidates_with_trends(candidates):
                 import pytz
                 est_tz = pytz.timezone('America/New_York')
                 now_est = datetime.now(est_tz)
-                is_market_open_safe = (now_est.hour > 10 or (now_est.hour == 10 and now_est.minute >= 30)) and (now_est.hour < 14 or (now_est.hour == 14 and now_est.minute <= 45))
+                is_market_open_safe = (now_est.hour > 10 or (now_est.hour == 10 and now_est.minute >= 30)) and (now_est.hour < 13 or (now_est.hour == 13 and now_est.minute <= 30))
                 
-                if is_market_open_safe and tf_trend_bias == "BULLISH" and pd_val < 0.5 and has_bull_sweep and rvol_val >= 1.1:
+                if is_market_open_safe and tf_trend_bias == "BULLISH" and pd_val <= -0.2 and has_bull_sweep and rvol_val >= 1.1:
                     c["smc_triggers"][tf] = "BUY"
-                elif is_market_open_safe and tf_trend_bias == "BEARISH" and pd_val > -0.5 and has_bear_sweep and rvol_val >= 1.1:
+                elif is_market_open_safe and tf_trend_bias == "BEARISH" and pd_val >= 0.2 and has_bear_sweep and rvol_val >= 1.1:
                     c["smc_triggers"][tf] = "SELL"
                 else:
                     c["smc_triggers"][tf] = "WAIT"
