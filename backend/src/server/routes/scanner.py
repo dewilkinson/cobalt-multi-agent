@@ -1047,14 +1047,22 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                 crt_1h = get_valid_crt_segments(df_1h, "crt_1h")
                 crt_4h = get_valid_crt_segments(df_4h, "crt_4h")
                 
-                # Calculate Daily Structural Event (BOS/CHoCH) using smartmoneyconcepts
-                structure_event = "STABLE"
-                if df_1d is not None and not df_1d.empty:
+                # Calculate Structural Events (BOS/CHoCH) for multiple timeframes using smartmoneyconcepts
+                structure_events = {
+                    "5m": "STABLE",
+                    "15m": "STABLE",
+                    "1h": "STABLE",
+                    "1d": "STABLE"
+                }
+                
+                def calculate_single_tf_structure(df_tf, swing_len=5):
+                    if df_tf is None or df_tf.empty:
+                        return "STABLE"
                     try:
                         from smartmoneyconcepts import smc as smc_lib
-                        df_calc = df_1d.copy()
+                        df_calc = df_tf.copy()
                         df_calc.columns = [col.lower() for col in df_calc.columns]
-                        swings = smc_lib.swing_highs_lows(df_calc, swing_length=5)
+                        swings = smc_lib.swing_highs_lows(df_calc, swing_length=swing_len)
                         struct = smc_lib.bos_choch(df_calc, swings)
                         
                         valid_events = struct[(struct["BOS"].fillna(0) != 0) | (struct["CHOCH"].fillna(0) != 0)]
@@ -1064,14 +1072,21 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                             val = last_row.get("CHOCH", 0) if is_choch else last_row.get("BOS", 0)
                             event_name = "CHoCH" if is_choch else "BOS"
                             direction = "BULLISH" if val == 1 else "BEARISH"
-                            structure_event = f"{direction} {event_name}"
-                    except Exception as struct_e:
-                        logger.error(f"Failed to calculate structural event for {sym}: {struct_e}")
+                            return f"{direction} {event_name}"
+                    except Exception as e:
+                        logger.error(f"Failed to calculate structure for df of len {len(df_tf)}: {e}")
+                    return "STABLE"
+                
+                structure_events["5m"] = calculate_single_tf_structure(c_timeframes.get("5m"))
+                structure_events["15m"] = calculate_single_tf_structure(c_timeframes.get("15m"))
+                structure_events["1h"] = calculate_single_tf_structure(c_timeframes.get("1h"))
+                structure_events["1d"] = calculate_single_tf_structure(c_timeframes.get("1d"))
                 
                 if sym not in TRENDS_CACHE:
                     TRENDS_CACHE[sym] = {}
                 TRENDS_CACHE[sym].update({
-                    "structure_event": structure_event,
+                    "structure_event": structure_events["1d"],
+                    "structure_events": structure_events,
                     "trends": trends if (trends and any(v != "No Data" for v in trends.values())) else (existing_trends or {}),
                     "sparkline_1m": spark_1m if spark_1m else (existing_spark_1m or []),
                     "sparkline_5m": spark_5m if spark_5m else (existing_spark_5m or []),
@@ -1159,6 +1174,12 @@ async def enrich_candidates_with_trends(candidates):
             TRENDS_CACHE[sym] = {
                 "trends": sample_trends,
                 "structure_event": "STABLE",
+                "structure_events": {
+                    "5m": "STABLE",
+                    "15m": "STABLE",
+                    "1h": "STABLE",
+                    "1d": "STABLE"
+                },
                 "sparkline_1m": mock_1m,
                 "sparkline_5m": mock_5m,
                 "sparkline_15m": mock_15m,
@@ -1222,6 +1243,9 @@ async def enrich_candidates_with_trends(candidates):
             c["sparkline_1d"] = TRENDS_CACHE[sym].get("sparkline_1d", [])
             c["vwap_state"] = TRENDS_CACHE[sym].get("vwap_state", 0.0)
             c["structure_event"] = TRENDS_CACHE[sym].get("structure_event", "STABLE")
+            c["structure_events"] = TRENDS_CACHE[sym].get("structure_events", {
+                "5m": "STABLE", "15m": "STABLE", "1h": "STABLE", "1d": "STABLE"
+            })
             
             c["crt_15m"] = TRENDS_CACHE[sym].get("crt_15m", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
             c["crt_1h"] = TRENDS_CACHE[sym].get("crt_1h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
@@ -1260,6 +1284,9 @@ async def enrich_candidates_with_trends(candidates):
             c["rvol"] = c.get("rvol", 1.0)
             c["pd_zone"] = c.get("pd_zone", 0.0)
             c["structure_event"] = c.get("structure_event", "STABLE")
+            c["structure_events"] = c.get("structure_events", {
+                "5m": "STABLE", "15m": "STABLE", "1h": "STABLE", "1d": "STABLE"
+            })
             c["crt_15m"] = c.get("crt_15m", [])
             c["crt_1h"] = c.get("crt_1h", [])
             c["crt_4h"] = c.get("crt_4h", [])

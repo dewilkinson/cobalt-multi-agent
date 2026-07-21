@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0240";
+        const VLI_CLIENT_VERSION = "00.000.0241";
     </script>
     
     <link
@@ -4590,7 +4590,21 @@
                  <td class="structure-event-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
                       <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
                           ${(() => {
-                              const struct = c.structure_event || 'STABLE';
+                              // Map activeDuration (DAY, SWING_LOW, SWING_MED, HOLD) to structural timeframes (5m, 15m, 1h, 1d)
+                              let targetTf = '1h';
+                              if (duration === 'DAY') {
+                                  targetTf = '5m';
+                              } else if (duration === 'SWING_LOW') {
+                                  targetTf = '15m';
+                              } else if (duration === 'SWING_MED') {
+                                  targetTf = '1h';
+                              } else if (duration === 'HOLD') {
+                                  targetTf = '1d';
+                              }
+                              
+                              const events = c.structure_events || {};
+                              const struct = events[targetTf] || c.structure_event || 'STABLE';
+                              
                               let displayVal = struct.replace('BULLISH ', '').replace('BEARISH ', '');
                               let color = 'rgba(255,255,255,0.2)';
                               let bg = 'rgba(255,255,255,0.05)';
