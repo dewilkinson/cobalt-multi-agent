@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0249";
+        const VLI_CLIENT_VERSION = "00.000.0250";
     </script>
     
     <link
@@ -1707,9 +1707,11 @@
                     <div class="dropdown-submenu">
                         <div class="dropdown-item" style="cursor: default;"><span><u>N</u>ew Window</span> <span style="font-size: 10px; color: var(--text-muted); margin-left:25px;"></span></div>
                         <div class="menu-dropdown">
-                            <div class="dropdown-item" onclick="UXManager.createCard('MACRO_WL')">Macro Watchlist Node</div>
+                            <div class="dropdown-item" onclick="UXManager.createCard('MACRO_WL', {}, 'watchlist')">Macro Watchlist Node</div>
+                            <div class="dropdown-item" onclick="UXManager.createCard('MACRO_WL', {}, 'futures_watchlist')">Futures Watchlist Node</div>
+                            <div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES', {}, 'scanner')">Market Scan Node</div>
                             <div class="dropdown-item" onclick="UXManager.createCard('STRUCTURAL_ANALY')">Structural Analysis Node</div>
-                            <div class="dropdown-item" onclick="UXManager.createCard('ORDER_HIST')">Portfolio Node</div>
+                            <div class="dropdown-item" onclick="UXManager.createCard('ORDER_HIST', {}, 'order_history')">Portfolio Node</div>
                         </div>
                     </div>
                     <div class="dropdown-divider"></div>
