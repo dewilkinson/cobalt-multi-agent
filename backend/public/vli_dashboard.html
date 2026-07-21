@@ -9265,16 +9265,8 @@
             if (inputElement && typeof handleChatInputKeyDown === 'function') {
                 inputElement.addEventListener('keydown', handleChatInputKeyDown);
             }
-            // Initialize with Coordinator active in the integrated panel
-            switchSidebarTab('coordinator');
-
-            // [NEW] Proactively suppress floating coordinator card to favor integrated sidebar
-            setTimeout(() => {
-                if (typeof UXManager !== 'undefined') {
-                    console.log("[VLI_SYSTEM] Suppressing floating coordinator card on startup...");
-                    UXManager.closeCard('CI');
-                }
-            }, 1500);
+            // Launch dashboard with chat panel closed by default
+            // Users can click the right 'COORDINATOR' tab to open chat panel when needed
         });
 
         window.vliTabWidths = { coordinator: 380, artifacts: 380, strategy: 450 };
