@@ -1591,8 +1591,8 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                         logger.error(f"Failed to calculate structure: {e}")
                     return res
 
-                res_5m = calculate_single_tf_structure(c_timeframes.get("5m"), swing_len=3)
-                res_15m = calculate_single_tf_structure(c_timeframes.get("15m"), swing_len=3)
+                res_5m = calculate_single_tf_structure(c_timeframes.get("5m"), swing_len=5)
+                res_15m = calculate_single_tf_structure(c_timeframes.get("15m"), swing_len=5)
                 res_1h = calculate_single_tf_structure(c_timeframes.get("1h"), swing_len=5)
                 res_1d = calculate_single_tf_structure(c_timeframes.get("1d"), swing_len=5)
                 
