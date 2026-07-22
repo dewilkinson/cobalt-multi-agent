@@ -926,17 +926,27 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
             if pd_val > 0.0:
                 target_offset = target_offset * (1.0 - (pd_val * 0.5))
                 
-            # Step 2: Realistic Target Attainment Filter (Rule 8: Target offset must be within 1.4 * ATR)
+            # Step 2: Realistic Target Attainment Filter (Rule 8: Target offset within 1.4 * ATR unless profit ratio > 1.1)
+            est_sl_dist = max(1.0 * atr_val, 0.10)
+            profit_ratio = target_offset / est_sl_dist if est_sl_dist > 0 else 0.0
+            
             if target_offset > 1.4 * atr_val:
-                rejected_trades.append({
-                    "type": "Long",
-                    "time": dt.strftime("%Y-%m-%d %H:%M"),
-                    "price": float(round(avg_cost, 2)),
-                    "step": "Target Reachability Filter",
-                    "reason": f"Target offset ({target_offset:.2f}) exceeds max single-session reachability threshold (1.4 * ATR = {1.4 * atr_val:.2f})"
-                })
-                t += 1
-                continue
+                capped_target_offset = 1.4 * atr_val
+                capped_profit_ratio = capped_target_offset / est_sl_dist if est_sl_dist > 0 else 0.0
+                
+                # Rule 8 Exception: If profit target is outside 1.4 ATR BUT could still yield profit ratio > 1.1, proceed with trade
+                if profit_ratio > 1.1 or capped_profit_ratio > 1.1:
+                    target_offset = capped_target_offset
+                else:
+                    rejected_trades.append({
+                        "type": "Long",
+                        "time": dt.strftime("%Y-%m-%d %H:%M"),
+                        "price": float(round(avg_cost, 2)),
+                        "step": "Target Reachability Filter",
+                        "reason": f"Target offset ({target_offset:.2f}) > 1.4x ATR and profit ratio ({profit_ratio:.2f}) <= 1.1 threshold"
+                    })
+                    t += 1
+                    continue
                 
             # Step 3: Hybrid Support Structure Stop Placement & 100k Account Risk Qualification
             # Hybrid Stop: Place Stop Loss at 0.50x ATR buffer below NEAREST support structure (EMA 9/21, VWAP, OB, FVG, Swing Low)
