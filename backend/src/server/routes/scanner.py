@@ -926,14 +926,14 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
             if pd_val > 0.0:
                 target_offset = target_offset * (1.0 - (pd_val * 0.5))
                 
-            # Step 2: Yield Filter
-            if target_offset < 1.4 * atr_val:
+            # Step 2: Realistic Target Attainment Filter (Rule 8: Target offset must be within 1.4 * ATR)
+            if target_offset > 1.4 * atr_val:
                 rejected_trades.append({
                     "type": "Long",
                     "time": dt.strftime("%Y-%m-%d %H:%M"),
                     "price": float(round(avg_cost, 2)),
-                    "step": "Yield Filter",
-                    "reason": f"Target offset ({target_offset:.2f}) < 1.4 * ATR ({1.4 * atr_val:.2f})"
+                    "step": "Target Reachability Filter",
+                    "reason": f"Target offset ({target_offset:.2f}) exceeds max single-session reachability threshold (1.4 * ATR = {1.4 * atr_val:.2f})"
                 })
                 t += 1
                 continue
