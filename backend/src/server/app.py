@@ -3506,11 +3506,12 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                 if cached and (time.time() - cached[0] < 15.0):
                     data = cached[1]
                 else:
-                    import asyncio
-                    def fetch_yf():
-                        return yf.download(yf_tickers, period="5d", group_by='ticker', threads=True, progress=False, timeout=3.0)
-                    data = await asyncio.to_thread(fetch_yf)
-                    _YF_HISTORY_CACHE[cache_key] = (time.time(), data)
+                    try:
+                        data = await asyncio.wait_for(asyncio.to_thread(fetch_yf), timeout=3.5)
+                        _YF_HISTORY_CACHE[cache_key] = (time.time(), data)
+                    except Exception as yf_err:
+                        logger.warning(f"yfinance download fallback triggered: {yf_err}")
+                        data = None
                 for yf_sym, sym in yf_to_raw.items():
                     pdata = open_positions[sym]
                     try:
@@ -3601,8 +3602,10 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
         realized_pnl = 0.0
         closed_positions = []
         today_realized_pnl = 0.0
+        import datetime
         from datetime import timedelta
-        today_dt = datetime.now(ZoneInfo("America/New_York"))
+        from zoneinfo import ZoneInfo
+        today_dt = datetime.datetime.now(ZoneInfo("America/New_York"))
         today_str = today_dt.strftime("%Y-%m-%d")
         tomorrow_str = (today_dt + timedelta(days=1)).strftime("%Y-%m-%d")
         

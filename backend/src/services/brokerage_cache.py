@@ -732,11 +732,7 @@ class BrokerageCache:
         positions = cls.get_positions(account_id) or []
         
         for act in chronological_acts:
-            # Check if we should clear orphaned trades from before this month
             trade_time = cls._parse_time(act)
-            if not cleared_orphans and trade_time >= cutoff_date:
-                tax_lots.clear()
-                cleared_orphans = True
                 
             action = act.get('type', act.get('action', 'N/A')).upper()
             if action not in ["BUY", "SELL", "BOUGHT", "SOLD", "BTO", "STC", "BTC", "STO", "REINVEST", "DIVIDEND"]:
@@ -765,7 +761,14 @@ class BrokerageCache:
             
             utc_date_only = trade_date_str[:10] if "T" in trade_date_str else date_only
 
-            in_range = (start_date <= date_only <= end_date) or (start_date <= utc_date_only <= end_date) or (date_only == "Unknown")
+            try:
+                from datetime import datetime as dt_cls, timedelta as td_cls
+                end_dt = dt_cls.strptime(end_date, "%Y-%m-%d")
+                end_utc_extended = (end_dt + td_cls(days=1)).strftime("%Y-%m-%d")
+            except Exception:
+                end_utc_extended = end_date
+
+            in_range = (start_date <= date_only <= end_date) or (start_date <= utc_date_only <= end_utc_extended) or (date_only == "Unknown")
             
             if sym_raw not in tax_lots:
                 tax_lots[sym_raw] = {"type": "flat", "lots": []}
