@@ -116,6 +116,42 @@ def extract_trades(target_date_str="2026-07-21"):
                     "Commission": float(activity.get("fee", 0) or 0)
                 })
 
+    # Filter out unclosed / open trade quantities per symbol so only fully closed trade legs are exported
+    symbol_closed_trades = []
+    from collections import defaultdict
+    sym_groups = defaultdict(list)
+    for t in trades_to_export:
+        sym_groups[t["Symbol"]].append(t)
+        
+    for sym, t_list in sym_groups.items():
+        total_buy = sum(t["Quantity"] for t in t_list if t["Side"] in ["BUY", "BTO", "BTC"])
+        total_sell = sum(t["Quantity"] for t in t_list if t["Side"] in ["SELL", "STC", "STO"])
+        matched_qty = min(total_buy, total_sell)
+        
+        if matched_qty == 0:
+            continue
+            
+        cur_buy = 0.0
+        cur_sell = 0.0
+        for t in t_list:
+            q = t["Quantity"]
+            if t["Side"] in ["BUY", "BTO", "BTC"]:
+                if cur_buy < matched_qty:
+                    allowed = min(q, matched_qty - cur_buy)
+                    cur_buy += allowed
+                    t_copy = dict(t)
+                    t_copy["Quantity"] = allowed
+                    symbol_closed_trades.append(t_copy)
+            else:
+                if cur_sell < matched_qty:
+                    allowed = min(q, matched_qty - cur_sell)
+                    cur_sell += allowed
+                    t_copy = dict(t)
+                    t_copy["Quantity"] = allowed
+                    symbol_closed_trades.append(t_copy)
+
+    trades_to_export = symbol_closed_trades
+
     # Sort chronological: Date / Time -> Symbol -> Side (BUY before SELL)
     trades_to_export.sort(key=lambda x: (x["Date / Time"], x["Symbol"], 0 if x["Side"] == "BUY" else 1))
     
