@@ -864,13 +864,37 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
         rvol_val = rvol_values[t]
         
         is_market_open_safe = (dt.hour > 10 or (dt.hour == 10 and dt.minute >= 30)) and (dt.hour < 13 or (dt.hour == 13 and dt.minute <= 30))
-        is_candidate_setup = is_market_open_safe and tf_trend_bias == "BULLISH" and has_bull_sweep and rvol_val >= 1.1
+        is_candidate_setup = is_market_open_safe and tf_trend_bias == "BULLISH" and has_bull_sweep
         
         if is_candidate_setup:
             is_long = True
             avg_cost = closes[t]
             atr_val = atr_series[t]
             
+            # Step 0a: Strength Filter (Require green bullish entry candle: close > open)
+            if closes[t] <= opens[t]:
+                rejected_trades.append({
+                    "type": "Long",
+                    "time": dt.strftime("%Y-%m-%d %H:%M"),
+                    "price": float(round(avg_cost, 2)),
+                    "step": "Strength Filter",
+                    "reason": f"Entry candle closed weak/red (Close {closes[t]:.2f} <= Open {opens[t]:.2f})"
+                })
+                t += 1
+                continue
+
+            # Step 0b: Volume Filter (Require solid volume: RVOL >= 1.25)
+            if rvol_val < 1.25:
+                rejected_trades.append({
+                    "type": "Long",
+                    "time": dt.strftime("%Y-%m-%d %H:%M"),
+                    "price": float(round(avg_cost, 2)),
+                    "step": "Volume Filter",
+                    "reason": f"Relative volume ({rvol_val:.2f}) < 1.25 threshold"
+                })
+                t += 1
+                continue
+
             # Step 1: P&D Zone Filter (Reject Deep Premium: pd_val >= 0.5)
             if pd_val >= 0.5:
                 rejected_trades.append({
