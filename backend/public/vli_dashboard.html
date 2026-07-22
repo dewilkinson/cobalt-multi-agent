@@ -6361,7 +6361,7 @@
                 tfoot.style.bottom = '0';
                 tfoot.style.background = '#080b11';
                 tfoot.style.zIndex = '20';
-                tfoot.style.borderTop = '1px solid rgba(255, 255, 255, 0.12)';
+                tfoot.style.borderTop = '1px solid rgba(255, 255, 255, 0.20)';
                 table.appendChild(tfoot);
             }
             
@@ -6379,8 +6379,8 @@
             });
 
             // Darker shades of green and red for footer totals
-            const pnlPctColor = totalNetPnlPercent > 0 ? '#00aa44' : (totalNetPnlPercent < 0 ? '#cc3333' : '#666666');
-            const pnlDolColor = totalNetPnlDollar > 0 ? '#00aa44' : (totalNetPnlDollar < 0 ? '#cc3333' : '#666666');
+            const pnlPctColor = totalNetPnlPercent > 0 ? '#00cc55' : (totalNetPnlPercent < 0 ? '#dd3333' : '#666666');
+            const pnlDolColor = totalNetPnlDollar > 0 ? '#00cc55' : (totalNetPnlDollar < 0 ? '#dd3333' : '#666666');
 
             const signPct = totalNetPnlPercent > 0 ? '+' : '';
             const signDol = totalNetPnlDollar > 0 ? '+' : '';
@@ -6388,15 +6388,31 @@
             if (totalNetPnlDollar < 0) displayDol = `-$${Math.abs(totalNetPnlDollar).toFixed(2)}`;
 
             tfoot.innerHTML = `
-                <tr style="background: rgba(8, 11, 17, 0.96); backdrop-filter: blur(4px);">
-                    <td colspan="15" style="padding: 4px 16px;"></td>
-                    <td class="pnl-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; color: ${pnlPctColor}; font-family: var(--font-mono); font-size: 11px; font-weight: 800; white-space: nowrap; box-sizing: border-box;">
+                <tr style="background: rgba(8, 11, 17, 0.98); backdrop-filter: blur(6px); height: 28px;">
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td style="width: 320px; min-width: 320px; max-width: 320px;"></td>
+                    <td class="trend-column-cell" style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td class="zone-column-cell" style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td class="sortino-column-cell" style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td class="rr-column-cell" style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td class="crt-15m-column-cell" style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td class="crt-1h-column-cell" style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td class="crt-4h-column-cell" style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td class="win-rr-column-cell" style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td class="pnl-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; color: ${pnlPctColor}; font-family: var(--font-mono); font-size: 13px; font-weight: 800; white-space: nowrap; box-sizing: border-box;">
                         ${signPct}${totalNetPnlPercent.toFixed(2)}%
                     </td>
-                    <td class="pnl-dollar-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; color: ${pnlDolColor}; font-family: var(--font-mono); font-size: 11px; font-weight: 800; white-space: nowrap; box-sizing: border-box;">
+                    <td class="pnl-dollar-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; color: ${pnlDolColor}; font-family: var(--font-mono); font-size: 13px; font-weight: 800; white-space: nowrap; box-sizing: border-box;">
                         ${displayDol}
                     </td>
-                    <td colspan="3" style="padding: 4px 16px;"></td>
+                    <td class="structure-event-column-cell" style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td style="width: 84px; min-width: 84px; max-width: 84px;"></td>
                 </tr>
             `;
         };
