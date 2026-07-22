@@ -5131,30 +5131,30 @@
                         ${drawVWAPIndicator(c.vwap_state)}
                     </div>
                 </td>
-                <td class="sortino-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.sortinoRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
-                        ${drawSortinoIndicator(sortinoVal, isSortinoEnabled)}
-                    </div>
-                </td>
-                <td class="rr-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.rrRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
-                        ${(() => {
-                            let maxRrVal = (card.rrValues && c.symbol in card.rrValues) ? card.rrValues[c.symbol] : undefined;
-                            if (maxRrVal === undefined) {
-                                const sumChars = str => str.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-                                const h = sumChars(c.symbol || '') + sumChars(card.dataset.trendTimeframe || '4h');
-                                maxRrVal = 0.5 + (h % 50) / 10.0;
-                            }
-                            const targetRrVal = parseFloat(card.dataset.activeTargetRr || '3');
-                            return drawRrEQBar(maxRrVal, targetRrVal);
-                        })()}
-                    </div>
-                </td>
                  ${(() => {
-                     const isBtPending = !!(c.backtest_pending || c.is_backtest_pending || (!c.trade_ledger || c.trade_ledger.length === 0));
+                     const isBtPending = !!(c.backtest_pending || c.is_backtest_pending || (card.dataset.backtestRecalculating === 'true') || (!c.trade_ledger || c.trade_ledger.length === 0));
                      const btDimStyle = isBtPending ? 'opacity: 0.35; filter: grayscale(70%); cursor: wait; transition: opacity 0.4s ease, filter 0.4s ease;' : 'transition: opacity 0.4s ease, filter 0.4s ease;';
+                     
+                     let maxRrVal = (card.rrValues && c.symbol in card.rrValues) ? card.rrValues[c.symbol] : undefined;
+                     if (maxRrVal === undefined) {
+                         const sumChars = str => str.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+                         const h = sumChars(c.symbol || '') + sumChars(card.dataset.trendTimeframe || '4h');
+                         maxRrVal = 0.5 + (h % 50) / 10.0;
+                     }
+                     const targetRrVal = parseFloat(card.dataset.activeTargetRr || '3');
+                     
                      return `
-                         <td class="crt-15m-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                        <td class="sortino-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; ${(card.dataset.sortinoRecalculating === 'true' || isBtPending) ? 'opacity: 0.35; filter: blur(0.5px); cursor: wait;' : ''}">
+                                ${drawSortinoIndicator(sortinoVal, isSortinoEnabled)}
+                            </div>
+                        </td>
+                        <td class="rr-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; ${(card.dataset.rrRecalculating === 'true' || isBtPending) ? 'opacity: 0.35; filter: blur(0.5px); cursor: wait;' : ''}">
+                                ${drawRrEQBar(maxRrVal, targetRrVal)}
+                            </div>
+                        </td>
+                        <td class="crt-15m-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
                             <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; ${btDimStyle}">
                                 ${drawCrtBarIndicator(c.crt_15m, c.symbol, '15m')}
                             </div>
