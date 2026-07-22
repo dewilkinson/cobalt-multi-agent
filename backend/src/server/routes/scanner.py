@@ -863,13 +863,27 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
         has_bear_sweep = highs[t] > highs[t-1] and closes[t] < highs[t-1]
         rvol_val = rvol_values[t]
         
-        is_market_open_safe = (dt.hour > 10 or (dt.hour == 10 and dt.minute >= 30)) and (dt.hour < 13 or (dt.hour == 13 and dt.minute <= 30))
-        is_candidate_setup = is_market_open_safe and tf_trend_bias == "BULLISH" and has_bull_sweep
+        is_market_open_safe = (dt.hour > 10 or (dt.hour == 10 and dt.minute >= 30)) and (dt.hour < 16)
+        is_midday_lull = (dt.hour == 11 and dt.minute >= 30) or (dt.hour == 12) or (dt.hour == 13 and dt.minute < 30)
+        
+        is_candidate_setup = is_market_open_safe and not is_midday_lull and tf_trend_bias == "BULLISH" and has_bull_sweep
         
         if is_candidate_setup:
             is_long = True
             avg_cost = closes[t]
             atr_val = atr_series[t]
+
+            # Step 0: Midday Lull Filter
+            if is_midday_lull:
+                rejected_trades.append({
+                    "type": "Long",
+                    "time": dt.strftime("%Y-%m-%d %H:%M"),
+                    "price": float(round(avg_cost, 2)),
+                    "step": "Midday Filter",
+                    "reason": f"Entry time ({dt.strftime('%H:%M')}) is during low-volume midday chop window (11:30 - 13:30 EDT)"
+                })
+                t += 1
+                continue
             
             # Step 0a: Strength Filter (Require green bullish entry candle: close > open)
             if closes[t] <= opens[t]:
@@ -927,7 +941,7 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
             # Step 3: Hybrid Support Structure Stop Placement & 100k Account Risk Qualification
             # Hybrid Stop: Place Stop Loss at 0.50x ATR buffer below NEAREST support structure (EMA 9/21, VWAP, OB, FVG, Swing Low)
             max_allowed_sl = 1.50 * atr_val # Max Hybrid SL Ceiling (1.5x ATR)
-            min_sl_dist = max(0.50 * atr_val, 0.10) # Minimum SL Floor ($0.10 or 0.5x ATR)
+            min_sl_dist = max(1.25 * atr_val, avg_cost * 0.0035) # Minimum ATR Noise Protection SL Floor
             support_candidates = []
             
             if ema_9[t] < avg_cost: support_candidates.append((ema_9[t], "EMA 9"))
@@ -957,8 +971,17 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
             hybrid_sl_price = nearest_support[0] - (0.50 * atr_val)
             sl_dist = avg_cost - hybrid_sl_price
             
-            # Enforce Minimum SL Floor and Max SL Ceiling
+            # Enforce Minimum ATR Noise Protection SL Floor and Max SL Ceiling
             if sl_dist < min_sl_dist:
+                rejected_trades.append({
+                    "type": "Long",
+                    "time": dt.strftime("%Y-%m-%d %H:%M"),
+                    "price": float(round(avg_cost, 2)),
+                    "step": "ATR Stop Floor Filter",
+                    "reason": f"Stop distance (${sl_dist:.2f}) is below noise floor threshold (min 1.25x ATR / 0.35% = ${min_sl_dist:.2f})"
+                })
+                t += 1
+                continue
                 sl_dist = min_sl_dist
                 sl_price = avg_cost - sl_dist
             elif sl_dist > max_allowed_sl:
