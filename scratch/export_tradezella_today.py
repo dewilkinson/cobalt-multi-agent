@@ -95,16 +95,20 @@ def extract_trades(target_date_str="2026-07-21"):
                 if units == 0:
                     continue
 
+                is_future = sym.startswith("/") or "future" in account_name.lower() or sym.upper().lstrip("/") in ["MGC", "M2K", "MNK", "MCL", "MYM", "MES", "MNQ", "RTY", "ES", "NQ", "YM", "CL", "GC", "SI", "SIL"]
+                clean_sym = sym.lstrip("/").upper()
+                spread_type = "Future" if is_future else "Stock"
+
                 trades_to_export.append({
                     "Account Name": account_name,
                     "Date&Time": f"{tz_date} {tz_time}",
                     "Date": tz_date,
                     "Time": tz_time,
-                    "Symbol": sym.upper(),
+                    "Symbol": clean_sym,
                     "Buy/Sell": action,
                     "Quantity": units,
                     "Price": price,
-                    "Spread": "Stock",
+                    "Spread": spread_type,
                     "Expiration": "",
                     "Strike": "",
                     "Call/Put": "",
