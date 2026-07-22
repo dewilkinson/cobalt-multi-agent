@@ -101,6 +101,10 @@ def extract_trades(target_date_str="2026-07-21"):
                 clean_sym = sym.lstrip("/").upper()
                 spread_type = "Future" if is_future else "Stock"
 
+                # TradeZella defaults unmapped futures like MNK to $1.00/pt instead of CME $0.50/pt.
+                # Scale quantity by 0.5 for MNK so TradeZella computes exact CME PnL (-$330 instead of -$660).
+                export_units = units * 0.5 if clean_sym == "MNK" else units
+
                 action_upper = action.upper()
 
                 trades_to_export.append({
@@ -112,7 +116,7 @@ def extract_trades(target_date_str="2026-07-21"):
                     "Date": tz_date,
                     "Symbol": clean_sym,
                     "raw_action": action_upper,
-                    "Quantity": units,
+                    "Quantity": export_units,
                     "Price": price,
                     "Spread": spread_type,
                     "Commission": float(activity.get("fee", 0) or 0)
