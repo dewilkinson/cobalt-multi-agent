@@ -74,7 +74,7 @@ def extract_trades(target_date_str="2026-07-21"):
                 if target_date_str and trade_date_est != target_date_str:
                     continue
                     
-                tz_date = dt_est.strftime("%m/%d/%Y")
+                tz_date = dt_est.strftime("%Y-%m-%d")
                 tz_time = dt_est.strftime("%H:%M:%S")
                 
                 action = str(activity.get("type", "")).capitalize()
@@ -104,28 +104,21 @@ def extract_trades(target_date_str="2026-07-21"):
 
                 trades_to_export.append({
                     "Account Name": account_name,
-                    "Date&Time": f"{tz_date} {tz_time}",
                     "Date": tz_date,
                     "Time": tz_time,
                     "Symbol": clean_sym,
-                    "Action": action_upper,
                     "Side": action_upper,
-                    "Buy/Sell": action.capitalize(),
                     "Quantity": units,
                     "Price": price,
                     "Spread": spread_type,
-                    "Expiration": "",
-                    "Strike": "",
-                    "Call/Put": "",
-                    "Commission": float(activity.get("fee", 0) or 0),
-                    "Fees": 0
+                    "Commission": float(activity.get("fee", 0) or 0)
                 })
 
-    # Sort chronological: Date -> Time -> Symbol -> Action (Buy before Sell)
-    trades_to_export.sort(key=lambda x: (x["Date"], x["Time"], x["Symbol"], 0 if x["Action"] == "BUY" else 1))
+    # Sort chronological: Date -> Time -> Symbol -> Side (BUY before SELL)
+    trades_to_export.sort(key=lambda x: (x["Date"], x["Time"], x["Symbol"], 0 if x["Side"] == "BUY" else 1))
     
     # Write to CSV files (Combined, Futures-only, Stocks-only)
-    tz_headers = ["Account Name", "Date&Time", "Date", "Time", "Symbol", "Action", "Side", "Buy/Sell", "Quantity", "Price", "Spread", "Expiration", "Strike", "Call/Put", "Commission", "Fees"]
+    tz_headers = ["Account Name", "Date", "Time", "Symbol", "Side", "Quantity", "Price", "Spread", "Commission"]
     
     futures_trades = [t for t in trades_to_export if t["Spread"] == "Future"]
     stocks_trades = [t for t in trades_to_export if t["Spread"] == "Stock"]
