@@ -1165,6 +1165,7 @@ async def run_weekly_backtest_low_priority(sym, is_future=False):
         TRENDS_CACHE[sym]["crt_4h_stats"] = {"success": stats["success"], "fail": stats["fail"]}
         TRENDS_CACHE[sym]["trade_ledger"] = stats["ledger"]
         TRENDS_CACHE[sym]["rejected_trades"] = stats.get("rejected_trades", [])
+        TRENDS_CACHE[sym]["backtest_pending"] = False
         TRENDS_CACHE[sym]["timestamp"] = time.time()
         
         history_item = {
@@ -1715,6 +1716,7 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     if cached_ledger and len(cached_ledger) > 0:
                         has_cached_tally = True
                     
+                is_backtest_pending = (sym in PENDING_BACKTESTS) or (not has_cached_tally)
                 if not has_cached_tally:
                     if sym not in PENDING_BACKTESTS:
                         asyncio.create_task(run_weekly_backtest_low_priority(sym, is_future=is_future))
@@ -1756,6 +1758,7 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     "crt_1h_stats": crt_1h_stats_val,
                     "crt_4h_stats": crt_4h_stats_val,
                     "trade_ledger": crt_ledger_val,
+                    "backtest_pending": is_backtest_pending,
                     "timestamp": now
                 })
             
@@ -1939,6 +1942,7 @@ async def enrich_candidates_with_trends(candidates):
             c["crt_conf_history"] = TRENDS_CACHE[sym].get("crt_conf_history", [])
             c["trade_ledger"] = TRENDS_CACHE[sym].get("trade_ledger", [])
             c["rejected_trades"] = TRENDS_CACHE[sym].get("rejected_trades", [])
+            c["backtest_pending"] = TRENDS_CACHE[sym].get("backtest_pending", (sym in PENDING_BACKTESTS or len(c.get("trade_ledger", [])) == 0))
             
              # Update live stats dynamically
             cached_price = TRENDS_CACHE[sym].get("price")
@@ -1993,6 +1997,12 @@ async def enrich_candidates_with_trends(candidates):
             c["crt_conf_history"] = c.get("crt_conf_history", [])
             c["trade_ledger"] = c.get("trade_ledger", [])
             c["rejected_trades"] = c.get("rejected_trades", [])
+            c["backtest_pending"] = True
+            
+            # Automatically trigger 7-day replay backtest for new un-cached symbol
+            if sym and sym not in PENDING_BACKTESTS:
+                is_fut = sym.startswith("/") or sym.upper() in ["MGC", "M2K", "MNK", "MCL", "MYM", "MES", "MNQ"]
+                asyncio.create_task(run_weekly_backtest_low_priority(sym, is_future=is_fut))
     # Enforce Rule: If a setup formation is detected on multiple timeframes, only the lowest timeframe must indicate it.
     for c in candidates:
         crt_15m = c.get("crt_15m", [])

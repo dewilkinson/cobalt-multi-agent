@@ -4797,7 +4797,10 @@
             return Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
         }
 
-        function drawWinRrCell(res, ledger, symbol, rejected) {
+        function drawWinRrCell(res, ledger, symbol, rejected, isPending = false) {
+            if (isPending) {
+                return `<div style="font-family: var(--font-mono); color: var(--text-muted); font-size: 10px; font-weight: 600; text-align: center; opacity: 0.4; filter: grayscale(70%); cursor: wait;" title="7-Day Replay Backtest Calculating...">Calculating...</div>`;
+            }
             let successCount = 0;
             let failCount = 0;
             if (ledger && ledger.length > 0) {
@@ -4844,7 +4847,10 @@
             </div>`;
         }
 
-        function drawPnlCell(res, ledger) {
+        function drawPnlCell(res, ledger, isPending = false) {
+            if (isPending) {
+                return `<div style="font-family: var(--font-mono); color: var(--text-muted); font-size: 10px; font-weight: 600; text-align: center; opacity: 0.4; filter: grayscale(70%); cursor: wait;" title="7-Day Replay Backtest Calculating...">Calculating...</div>`;
+            }
             let successCount = 0;
             let failCount = 0;
             if (ledger && ledger.length > 0) {
@@ -4870,7 +4876,10 @@
             </div>`;
         }
 
-        function drawPnlDollarCell(res, ledger) {
+        function drawPnlDollarCell(res, ledger, isPending = false) {
+            if (isPending) {
+                return `<div style="font-family: var(--font-mono); color: var(--text-muted); font-size: 10px; font-weight: 600; text-align: center; opacity: 0.4; filter: grayscale(70%); cursor: wait;" title="7-Day Replay Backtest Calculating...">Calculating...</div>`;
+            }
             let successCount = 0;
             let failCount = 0;
             if (ledger && ledger.length > 0) {
@@ -5141,36 +5150,42 @@
                         })()}
                     </div>
                 </td>
-                 <td class="crt-15m-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                        ${drawCrtBarIndicator(c.crt_15m, c.symbol, '15m')}
-                    </div>
-                </td>
-                <td class="crt-1h-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                        ${drawCrtBarIndicator(c.crt_1h, c.symbol, '1h')}
-                    </div>
-                </td>
-                <td class="crt-4h-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                        ${drawCrtBarIndicator(c.crt_4h, c.symbol, '4h')}
-                    </div>
-                </td>
-                <td class="win-rr-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                        ${drawWinRrCell(calculateCrtConfidence(c, card), c.trade_ledger, c.symbol, c.rejected_trades)}
-                    </div>
-                </td>
-                <td class="pnl-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                        ${drawPnlCell(calculateCrtConfidence(c, card), c.trade_ledger)}
-                    </div>
-                </td>
-                <td class="pnl-dollar-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                        ${drawPnlDollarCell(calculateCrtConfidence(c, card), c.trade_ledger)}
-                    </div>
-                </td>
+                 ${(() => {
+                     const isBtPending = !!(c.backtest_pending || c.is_backtest_pending || (!c.trade_ledger || c.trade_ledger.length === 0));
+                     const btDimStyle = isBtPending ? 'opacity: 0.35; filter: grayscale(70%); cursor: wait; transition: opacity 0.4s ease, filter 0.4s ease;' : 'transition: opacity 0.4s ease, filter 0.4s ease;';
+                     return `
+                         <td class="crt-15m-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; ${btDimStyle}">
+                                ${drawCrtBarIndicator(c.crt_15m, c.symbol, '15m')}
+                            </div>
+                        </td>
+                        <td class="crt-1h-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; ${btDimStyle}">
+                                ${drawCrtBarIndicator(c.crt_1h, c.symbol, '1h')}
+                            </div>
+                        </td>
+                        <td class="crt-4h-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; ${btDimStyle}">
+                                ${drawCrtBarIndicator(c.crt_4h, c.symbol, '4h')}
+                            </div>
+                        </td>
+                        <td class="win-rr-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; ${btDimStyle}">
+                                ${drawWinRrCell(calculateCrtConfidence(c, card), c.trade_ledger, c.symbol, c.rejected_trades, isBtPending)}
+                            </div>
+                        </td>
+                        <td class="pnl-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; ${btDimStyle}">
+                                ${drawPnlCell(calculateCrtConfidence(c, card), c.trade_ledger, isBtPending)}
+                            </div>
+                        </td>
+                        <td class="pnl-dollar-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; ${btDimStyle}">
+                                ${drawPnlDollarCell(calculateCrtConfidence(c, card), c.trade_ledger, isBtPending)}
+                            </div>
+                        </td>
+                     `;
+                 })()}
                 <td class="structure-event-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
                      <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
                          ${(() => {
