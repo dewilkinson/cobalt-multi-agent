@@ -26,8 +26,13 @@ class BrokerageCache:
         
         # Strip Z or timezone offset if present, to treat the hours as Eastern Time
         t_str_clean = str(t_str)
-        if t_str_clean.endswith('Z'):
-            t_str_clean = t_str_clean[:-1]
+        if t_str_clean.endswith('Z') or '+00:00' in t_str_clean:
+            try:
+                dt_utc = datetime.fromisoformat(t_str_clean.replace('Z', '+00:00'))
+                return dt_utc.astimezone(eastern_tz)
+            except Exception:
+                pass
+
         if '+' in t_str_clean:
             t_str_clean = t_str_clean.split('+')[0]
             
@@ -750,10 +755,17 @@ class BrokerageCache:
             qty = float(act.get('units', 0))
             price = float(act.get('price', 0))
             
+            trade_time = cls._parse_time(act)
             trade_date_str = str(act.get('trade_date', act.get('time_placed', '')) or '')
-            date_only = trade_date_str[:10] if trade_date_str else "Unknown"
             
-            in_range = start_date <= date_only <= end_date or date_only == "Unknown"
+            if trade_time and hasattr(trade_time, 'strftime') and trade_time != datetime.min:
+                date_only = trade_time.strftime("%Y-%m-%d")
+            else:
+                date_only = trade_date_str[:10] if trade_date_str else "Unknown"
+            
+            utc_date_only = trade_date_str[:10] if "T" in trade_date_str else date_only
+
+            in_range = (start_date <= date_only <= end_date) or (start_date <= utc_date_only <= end_date) or (date_only == "Unknown")
             
             if sym_raw not in tax_lots:
                 tax_lots[sym_raw] = {"type": "flat", "lots": []}

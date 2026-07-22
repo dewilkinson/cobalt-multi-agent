@@ -171,6 +171,11 @@ def save_trends_cache():
                     if os.path.exists(temp_path):
                         os.replace(temp_path, TRENDS_CACHE_PATH)
                     break
+                except OSError as e:
+                    if attempt == max_retries - 1:
+                        raise e
+                    time.sleep(0.1 * (2 ** attempt))
+
             # 4. Trigger daily backup rotation for backtest database
             try:
                 from src.services.backtest_backup_service import backup_backtest_db

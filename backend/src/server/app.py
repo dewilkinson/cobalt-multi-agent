@@ -3601,13 +3601,17 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
         realized_pnl = 0.0
         closed_positions = []
         today_realized_pnl = 0.0
+        from datetime import timedelta
+        today_dt = datetime.now(ZoneInfo("America/New_York"))
+        today_str = today_dt.strftime("%Y-%m-%d")
+        tomorrow_str = (today_dt + timedelta(days=1)).strftime("%Y-%m-%d")
         
         for acct in accounts:
             realized_pnl_data = BrokerageCache.calculate_realized_pnl(acct, start_date, end_date)
             realized_pnl += realized_pnl_data.get("total_pnl", 0.0)
             closed_positions.extend(realized_pnl_data.get("closed_trades", []))
             
-            today_realized_pnl_data = BrokerageCache.calculate_realized_pnl(acct, today_str, today_str)
+            today_realized_pnl_data = BrokerageCache.calculate_realized_pnl(acct, today_str, tomorrow_str)
             today_realized_pnl += today_realized_pnl_data.get("total_pnl", 0.0)
         
         return JSONResponse({
