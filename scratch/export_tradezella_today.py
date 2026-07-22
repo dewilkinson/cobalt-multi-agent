@@ -107,6 +107,11 @@ def extract_trades(target_date_str="2026-07-21"):
                 clean_sym = sym.lstrip("/").upper()
                 spread_type = "Future" if is_future else "Stock"
 
+                # Scale Quantity by CME futures contract multiplier (MGC=10, MCL=100, M2K=5, MYM=0.5, MNK=0.5)
+                # so TradeZella's default 1.00 custom CSV parser calculates exact dollar PnL automatically.
+                mults = {"MGC": 10.0, "M2K": 5.0, "MYM": 0.5, "MCL": 100.0, "MNK": 0.5, "MES": 5.0, "MNQ": 2.0, "ES": 50.0, "NQ": 20.0, "YM": 5.0, "RTY": 50.0, "GC": 100.0, "CL": 1000.0}
+                export_units = units * mults.get(clean_sym, 1.0) if is_future else units
+
                 action_upper = action.upper()
 
                 trades_to_export.append({
@@ -118,7 +123,7 @@ def extract_trades(target_date_str="2026-07-21"):
                     "Date": tz_date,
                     "Symbol": clean_sym,
                     "raw_action": action_upper,
-                    "Quantity": units,
+                    "Quantity": export_units,
                     "Price": price,
                     "Spread": spread_type,
                     "Commission": float(activity.get("fee", 0) or 0)
