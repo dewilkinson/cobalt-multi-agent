@@ -1,6 +1,7 @@
 import json
 import csv
 import sys
+from collections import defaultdict
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import os
@@ -104,28 +105,52 @@ def extract_trades(target_date_str="2026-07-21"):
 
                 trades_to_export.append({
                     "Account Name": account_name,
+                    "dt": dt_est,
                     "Date / Time": f"{tz_date} {tz_time}",
                     "Date/Time": f"{tz_date} {tz_time}",
                     "Time": f"{tz_date} {tz_time}",
                     "Date": tz_date,
                     "Symbol": clean_sym,
-                    "Side": action_upper,
+                    "raw_action": action_upper,
                     "Quantity": units,
                     "Price": price,
                     "Spread": spread_type,
                     "Commission": float(activity.get("fee", 0) or 0)
                 })
 
+    # Sort strictly chronological by datetime and symbol
+    trades_to_export.sort(key=lambda x: (x["dt"], x["Symbol"]))
+    
+    # Calculate position state tracking per symbol to assign exact TradeZella Side (BUY, SELL, SHORT, COVER)
+    pos_state = defaultdict(float)
+    for t in trades_to_export:
+        sym = t["Symbol"]
+        q = t["Quantity"]
+        is_buy_act = t["raw_action"] in ["BUY", "BTO", "BTC"]
+        cur_pos = pos_state[sym]
+        
+        if is_buy_act:
+            if cur_pos < -1e-5:
+                t["Side"] = "COVER"
+            else:
+                t["Side"] = "BUY"
+            pos_state[sym] += q
+        else: # SELL
+            if cur_pos <= 1e-5:
+                t["Side"] = "SHORT"
+            else:
+                t["Side"] = "SELL"
+            pos_state[sym] -= q
+
     # Filter out unclosed / open trade quantities per symbol so only fully closed trade legs are exported
     symbol_closed_trades = []
-    from collections import defaultdict
     sym_groups = defaultdict(list)
     for t in trades_to_export:
         sym_groups[t["Symbol"]].append(t)
         
     for sym, t_list in sym_groups.items():
-        total_buy = sum(t["Quantity"] for t in t_list if t["Side"] in ["BUY", "BTO", "BTC"])
-        total_sell = sum(t["Quantity"] for t in t_list if t["Side"] in ["SELL", "STC", "STO"])
+        total_buy = sum(t["Quantity"] for t in t_list if t["Side"] in ["BUY", "COVER"])
+        total_sell = sum(t["Quantity"] for t in t_list if t["Side"] in ["SELL", "SHORT"])
         matched_qty = min(total_buy, total_sell)
         
         if matched_qty == 0:
@@ -135,7 +160,7 @@ def extract_trades(target_date_str="2026-07-21"):
         cur_sell = 0.0
         for t in t_list:
             q = t["Quantity"]
-            if t["Side"] in ["BUY", "BTO", "BTC"]:
+            if t["Side"] in ["BUY", "COVER"]:
                 if cur_buy < matched_qty:
                     allowed = min(q, matched_qty - cur_buy)
                     cur_buy += allowed
@@ -152,8 +177,13 @@ def extract_trades(target_date_str="2026-07-21"):
 
     trades_to_export = symbol_closed_trades
 
-    # Sort chronological: Date / Time -> Symbol -> Side (BUY before SELL)
-    trades_to_export.sort(key=lambda x: (x["Date / Time"], x["Symbol"], 0 if x["Side"] == "BUY" else 1))
+    # Final sort chronological
+    trades_to_export.sort(key=lambda x: (x["dt"], x["Symbol"]))
+    
+    # Strip temporary helper keys before writing CSV
+    for t in trades_to_export:
+        t.pop("dt", None)
+        t.pop("raw_action", None)
     
     # Write to CSV files (Combined, Futures-only, Stocks-only)
     tz_headers = ["Account Name", "Date / Time", "Date/Time", "Time", "Date", "Symbol", "Side", "Quantity", "Price", "Spread", "Commission"]
