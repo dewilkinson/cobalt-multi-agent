@@ -100,13 +100,17 @@ def extract_trades(target_date_str="2026-07-21"):
                 clean_sym = sym.lstrip("/").upper()
                 spread_type = "Future" if is_future else "Stock"
 
+                action_upper = action.upper()
+
                 trades_to_export.append({
                     "Account Name": account_name,
                     "Date&Time": f"{tz_date} {tz_time}",
                     "Date": tz_date,
                     "Time": tz_time,
                     "Symbol": clean_sym,
-                    "Buy/Sell": action,
+                    "Action": action_upper,
+                    "Side": action_upper,
+                    "Buy/Sell": action.capitalize(),
                     "Quantity": units,
                     "Price": price,
                     "Spread": spread_type,
@@ -118,10 +122,10 @@ def extract_trades(target_date_str="2026-07-21"):
                 })
 
     # Sort chronological: Date -> Time -> Symbol -> Action (Buy before Sell)
-    trades_to_export.sort(key=lambda x: (x["Date"], x["Time"], x["Symbol"], 0 if x["Buy/Sell"].lower() == "buy" else 1))
+    trades_to_export.sort(key=lambda x: (x["Date"], x["Time"], x["Symbol"], 0 if x["Action"] == "BUY" else 1))
     
     # Write to CSV files (Combined, Futures-only, Stocks-only)
-    tz_headers = ["Account Name", "Date&Time", "Date", "Time", "Symbol", "Buy/Sell", "Quantity", "Price", "Spread", "Expiration", "Strike", "Call/Put", "Commission", "Fees"]
+    tz_headers = ["Account Name", "Date&Time", "Date", "Time", "Symbol", "Action", "Side", "Buy/Sell", "Quantity", "Price", "Spread", "Expiration", "Strike", "Call/Put", "Commission", "Fees"]
     
     futures_trades = [t for t in trades_to_export if t["Spread"] == "Future"]
     stocks_trades = [t for t in trades_to_export if t["Spread"] == "Stock"]
