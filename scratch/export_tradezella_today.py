@@ -74,7 +74,7 @@ def extract_trades(target_date_str="2026-07-21"):
                 if target_date_str and trade_date_est != target_date_str:
                     continue
                     
-                tz_date = dt_est.strftime("%Y-%m-%d")
+                tz_date = dt_est.strftime("%m/%d/%Y")
                 tz_time = dt_est.strftime("%H:%M:%S")
                 
                 action = str(activity.get("type", "")).capitalize()
