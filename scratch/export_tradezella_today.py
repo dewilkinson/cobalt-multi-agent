@@ -1,16 +1,17 @@
 import json
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import os
 import glob
-import logging
-
-logger = logging.getLogger(__name__)
 
 PRIMARY_CACHE = "backend/data/brokerage_cache.json"
 SECONDARY_CACHE = "data/brokerage_cache.json"
 ARCHIVE_PATTERN = "data/archive/BrokerageCacheDailyBackup_*.json"
 OUTPUT_PATH = "data/exports/tradezella-import.csv"
+
+eastern = ZoneInfo("America/New_York")
+utc = timezone.utc
 
 def get_best_cache_path():
     if os.path.exists(PRIMARY_CACHE):
@@ -20,9 +21,9 @@ def get_best_cache_path():
     archive_files = sorted(glob.glob(ARCHIVE_PATTERN))
     if archive_files:
         return archive_files[-1]
-    raise FileNotFoundError("No brokerage cache file found in backend/data/, data/, or data/archive/")
+    raise FileNotFoundError("No brokerage cache file found")
 
-def extract_trades(target_date_str=None):
+def extract_trades(target_date_str="2026-07-21"):
     cache_path = get_best_cache_path()
     print(f"Reading trades from: {cache_path}...")
     
@@ -31,11 +32,6 @@ def extract_trades(target_date_str=None):
         
     trades_to_export = []
     
-    if not target_date_str:
-        target_date_str = datetime.now().strftime("%Y-%m-%d")
-        
-    print(f"Filtering trades for date: {target_date_str} (or exporting latest executed)...")
-    
     for account_name, account_data in data.items():
         if isinstance(account_data, dict) and "activities" in account_data:
             for activity in account_data["activities"]:
@@ -43,39 +39,47 @@ def extract_trades(target_date_str=None):
                 if status and status != "Executed":
                     continue
                 
-                trade_date_str = activity.get("trade_date", "") or activity.get("time_placed", "")
-                if not trade_date_str:
+                raw_time = activity.get("trade_date", "") or activity.get("time_placed", "")
+                if not raw_time:
                     continue
                 
-                # Check date match if target_date_str specified; if no matches found on target date, fallback to all executed
-                clean_str = str(trade_date_str).replace("Z", "")
+                clean_str = str(raw_time).replace("Z", "")
                 if "+" in clean_str:
                     clean_str = clean_str.split("+")[0]
                     
-                dt = None
+                dt_est = None
                 try:
-                    if "." in clean_str:
-                        parts = clean_str.split(".")
-                        clean_str = parts[0] + "." + parts[1][:6]
-                        dt = datetime.strptime(clean_str, "%Y-%m-%dT%H:%M:%S.%f")
-                    elif "T" in clean_str:
-                        dt = datetime.strptime(clean_str, "%Y-%m-%dT%H:%M:%S")
-                    elif "-" in clean_str:
-                        dt = datetime.strptime(clean_str, "%Y-%m-%d")
+                    if "T" in clean_str:
+                        if "." in clean_str:
+                            parts = clean_str.split(".")
+                            clean_str = parts[0] + "." + parts[1][:6]
+                            dt = datetime.strptime(clean_str, "%Y-%m-%dT%H:%M:%S.%f")
+                        else:
+                            dt = datetime.strptime(clean_str, "%Y-%m-%dT%H:%M:%S")
+                        dt_utc = dt.replace(tzinfo=utc)
+                        dt_est = dt_utc.astimezone(eastern)
+                    else:
+                        dt = datetime.strptime(clean_str, "%Y-%m-%d %H:%M:%S")
+                        dt_est = dt.replace(tzinfo=eastern)
                 except Exception:
                     pass
                     
-                if not dt:
+                if not dt_est:
                     continue
                     
-                tz_date = dt.strftime("%m/%d/%Y")
-                tz_time = dt.strftime("%H:%M:%S")
+                trade_date_est = dt_est.strftime("%Y-%m-%d")
+                
+                # If target_date_str provided, filter for that Eastern date
+                if target_date_str and trade_date_est != target_date_str:
+                    continue
+                    
+                tz_date = dt_est.strftime("%m/%d/%Y")
+                tz_time = dt_est.strftime("%H:%M:%S")
                 
                 action = str(activity.get("type", "")).capitalize()
                 if not action or action.lower() not in ["buy", "sell"]:
                     action = "Buy" if float(activity.get("units", 0)) > 0 else "Sell"
                 
-                # Resolve symbol
                 sym_data = activity.get("symbol", {})
                 if isinstance(sym_data, dict):
                     sym = sym_data.get("symbol", "")
@@ -120,20 +124,16 @@ def extract_trades(target_date_str=None):
         writer.writeheader()
         writer.writerows(trades_to_export)
         
-    print(f"Success! {len(trades_to_export)} trades exported to {OUTPUT_PATH}")
+    print(f"Success! {len(trades_to_export)} trades exported to {OUTPUT_PATH} for Eastern Date {target_date_str}")
     
-    # Sync to Google Drive if available
+    # Sync to Google Drive
     try:
         from backend.src.services.gdrive_backup_service import sync_file_to_gdrive
         sync_file_to_gdrive(OUTPUT_PATH, "exports/tradezella-import.csv")
     except Exception:
-        try:
-            from src.services.gdrive_backup_service import sync_file_to_gdrive
-            sync_file_to_gdrive(OUTPUT_PATH, "exports/tradezella-import.csv")
-        except Exception:
-            pass
+        pass
 
-    return OUTPUT_PATH
+    return trades_to_export
 
 if __name__ == "__main__":
-    extract_trades()
+    trades = extract_trades("2026-07-21")
