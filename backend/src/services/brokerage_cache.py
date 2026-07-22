@@ -817,6 +817,8 @@ class BrokerageCache:
                             
                     if qty_matched > 0.0001:
                         if in_range:
+                            act_fee = float(act.get("fee", 0.0) or 0.0)
+                            trade_pnl -= act_fee
                             realized_pnl += trade_pnl
                             closed_trades.append({
                                 "symbol": sym_raw,
@@ -875,6 +877,8 @@ class BrokerageCache:
                             
                     if qty_matched > 0.0001:
                         if in_range:
+                            act_fee = float(act.get("fee", 0.0) or 0.0)
+                            trade_pnl -= act_fee
                             realized_pnl += trade_pnl
                             closed_trades.append({
                                 "symbol": sym_raw,
@@ -892,6 +896,28 @@ class BrokerageCache:
                     elif len(lot_info["lots"]) == 0:
                         lot_info["type"] = "flat"
                         
+        # Deduct total activity fees across transactions in range
+        total_fees = 0.0
+        for act in chronological_acts:
+            trade_time = cls._parse_time(act)
+            trade_date_str = str(act.get('trade_date', act.get('time_placed', '')) or '')
+            if trade_time and hasattr(trade_time, 'strftime') and trade_time != datetime.min:
+                date_only = trade_time.strftime("%Y-%m-%d")
+            else:
+                date_only = trade_date_str[:10] if trade_date_str else "Unknown"
+            utc_date_only = trade_date_str[:10] if "T" in trade_date_str else date_only
+            
+            try:
+                from datetime import datetime as dt_cls, timedelta as td_cls
+                end_dt = dt_cls.strptime(end_date, "%Y-%m-%d")
+                end_utc_extended = (end_dt + td_cls(days=1)).strftime("%Y-%m-%d")
+            except Exception:
+                end_utc_extended = end_date
+
+            if (start_date <= date_only <= end_date) or (start_date <= utc_date_only <= end_utc_extended):
+                total_fees += float(act.get("fee", 0.0) or 0.0)
+
+        realized_pnl -= total_fees
         return {"total_pnl": realized_pnl, "closed_trades": closed_trades}
 
 
