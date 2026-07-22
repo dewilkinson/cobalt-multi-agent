@@ -71,9 +71,15 @@ def extract_trades(target_date_str="2026-07-21"):
                     
                 trade_date_est = dt_est.strftime("%Y-%m-%d")
                 
-                # If target_date_str provided, filter for that Eastern date
-                if target_date_str and trade_date_est != target_date_str:
-                    continue
+                # If target_date_str provided, include target date and preceding evening session (after 20:00 EDT)
+                if target_date_str:
+                    from datetime import datetime as dt_cls, timedelta as td_cls
+                    t_dt = dt_cls.strptime(target_date_str, "%Y-%m-%d")
+                    prev_date_str = (t_dt - td_cls(days=1)).strftime("%Y-%m-%d")
+                    
+                    is_valid_date = (trade_date_est == target_date_str) or (trade_date_est == prev_date_str and dt_est.hour >= 20)
+                    if not is_valid_date:
+                        continue
                     
                 tz_date = dt_est.strftime("%m/%d/%Y")
                 tz_time = dt_est.strftime("%H:%M:%S")
