@@ -42,6 +42,15 @@ def backup_backtest_db(force=False):
             os.makedirs(os.path.dirname(SECONDARY_CACHE_PATH), exist_ok=True)
             shutil.copy2(PRIMARY_CACHE_PATH, SECONDARY_CACHE_PATH)
             
+        # Mirror to Google Drive G:\My Drive\Cobalt_Backups\
+        try:
+            from src.services.gdrive_backup_service import sync_file_to_gdrive, sync_entire_archive_to_gdrive
+            sync_file_to_gdrive(backup_path, f"archive/{backup_filename}")
+            sync_file_to_gdrive(src_path, "trends_cache.json")
+            sync_entire_archive_to_gdrive(ARCHIVE_DIR)
+        except Exception as g_err:
+            logger.debug(f"Google Drive sync skipped: {g_err}")
+
         # Clean up backups older than 30 days
         cleanup_old_backtest_backups(days=30)
         return True
