@@ -8659,7 +8659,10 @@
                 window.setOrderHistoryRange(rangeSelect.value, instanceGuid, true);
             }
             
-            const accountId = window.getSelectedAccounts(instanceGuid);
+            let accountId = window.getSelectedAccounts(instanceGuid);
+            if (!accountId) {
+                accountId = 'TradingView Paper Futures,TradingView Paper Stocks,Rollover IRA *5513,Health Savings Account *6937';
+            }
             
             const startVal = document.getElementById(`order-hist-start-${instanceGuid}`).value;
             const endVal = document.getElementById(`order-hist-end-${instanceGuid}`).value;
@@ -8709,10 +8712,10 @@
                 const elReal = document.getElementById(`pnl-realized-${instanceGuid}`);
                 const elTot = document.getElementById(`pnl-total-${instanceGuid}`);
                 
-                if (elDay) elDay.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
-                if (elUnr) elUnr.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
-                if (elReal) elReal.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
-                if (elTot) elTot.innerHTML = '<span style="color:var(--text-muted); font-weight:bold;">$0.00</span>';
+                if (elDay && !elDay.textContent.trim()) elDay.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
+                if (elUnr && !elUnr.textContent.trim()) elUnr.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
+                if (elReal && !elReal.textContent.trim()) elReal.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
+                if (elTot && !elTot.textContent.trim()) elTot.innerHTML = '<span style="color:var(--text-muted); font-weight:bold;">$0.00</span>';
 
                 const processingHtml = (colspan) => `
                     <tr>
