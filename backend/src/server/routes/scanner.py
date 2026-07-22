@@ -893,11 +893,61 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
                 t += 1
                 continue
                 
-            # Step 3: Obstacle Blocker Filter & ATR Noise Stop Floor
-            entry_swing_low = swing_lows[t]
-            raw_sl_dist = abs(avg_cost - entry_swing_low)
-            sl_dist = max(raw_sl_dist, 0.15 * atr_val)
-            if sl_dist == 0: sl_dist = 1e-5
+            # Step 3: Hybrid Support Structure Stop Placement & 100k Account Risk Qualification
+            # Hybrid Stop: Place Stop Loss at 0.50x ATR buffer below NEAREST support structure (EMA 9/21, VWAP, OB, FVG, Swing Low)
+            max_allowed_sl = 1.50 * atr_val # Max Hybrid SL Ceiling (1.5x ATR)
+            min_sl_dist = max(0.50 * atr_val, 0.10) # Minimum SL Floor ($0.10 or 0.5x ATR)
+            support_candidates = []
+            
+            if ema_9[t] < avg_cost: support_candidates.append((ema_9[t], "EMA 9"))
+            if ema_21[t] < avg_cost: support_candidates.append((ema_21[t], "EMA 21"))
+            if vwap_values[t] < avg_cost: support_candidates.append((vwap_values[t], "VWAP"))
+            for ob in active_bullish_obs:
+                if ob[0] < avg_cost: support_candidates.append((ob[0], "Bullish OB"))
+            for fvg in active_bullish_fvgs:
+                if fvg[0] < avg_cost: support_candidates.append((fvg[0], "Bullish FVG"))
+            if swing_lows[t] < avg_cost: support_candidates.append((swing_lows[t], "Swing Low"))
+            
+            # Filter support structures within max hybrid SL distance
+            valid_supports = [s for s in support_candidates if (avg_cost - s[0]) <= max_allowed_sl]
+            if not valid_supports:
+                rejected_trades.append({
+                    "type": "Long",
+                    "time": dt.strftime("%Y-%m-%d %H:%M"),
+                    "price": float(round(avg_cost, 2)),
+                    "step": "Support Structure Filter",
+                    "reason": f"No valid support structure (EMA 9/21, VWAP, OB, FVG, Swing Low) within max 1.5x ATR ({max_allowed_sl:.2f})"
+                })
+                t += 1
+                continue
+                
+            # Place Hybrid Stop Loss 0.50x ATR below NEAREST support structure
+            nearest_support = max(valid_supports, key=lambda x: x[0])
+            hybrid_sl_price = nearest_support[0] - (0.50 * atr_val)
+            sl_dist = avg_cost - hybrid_sl_price
+            
+            # Enforce Minimum SL Floor and Max SL Ceiling
+            if sl_dist < min_sl_dist:
+                sl_dist = min_sl_dist
+                sl_price = avg_cost - sl_dist
+            elif sl_dist > max_allowed_sl:
+                rejected_trades.append({
+                    "type": "Long",
+                    "time": dt.strftime("%Y-%m-%d %H:%M"),
+                    "price": float(round(avg_cost, 2)),
+                    "step": "Max Risk Filter",
+                    "reason": f"Hybrid SL distance ({sl_dist:.2f}) exceeds max allowed 1.5x ATR ({max_allowed_sl:.2f})"
+                })
+                t += 1
+                continue
+            else:
+                sl_price = hybrid_sl_price
+            
+            # Position Sizing: 100k Account, 0.5% Risk ($500 per trade), $50,000 Max Position Cap
+            risk_per_trade = 500.0 # $500 per trade (0.5% of $100k Account)
+            raw_shares = risk_per_trade / sl_dist
+            max_pos_shares = 50000.0 / avg_cost
+            position_shares = min(raw_shares, max_pos_shares)
             
             blockers = []  # list of (bottom_price, description)
             target_price = avg_cost + target_offset
@@ -957,20 +1007,20 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
                         
                 sl_triggered = False
                 if is_long:
-                    if curr_low < entry_swing_low:
+                    if curr_low <= sl_price:
                         sl_triggered = True
                 else:
-                    if curr_high > entry_swing_high:
+                    if curr_high >= sl_price:
                         sl_triggered = True
                         
                 reversal_triggered = False
                 if is_long:
                     is_bear_sweep_k = highs[k] > highs[k-1] and closes[k] < highs[k-1]
-                    if curr_close < swing_lows[k] or is_bear_sweep_k:
+                    if curr_close < sl_price or is_bear_sweep_k:
                         reversal_triggered = True
                 else:
                     is_bull_sweep_k = lows[k] < lows[k-1] and closes[k] > lows[k-1]
-                    if curr_close > swing_highs[k] or is_bull_sweep_k:
+                    if curr_close > sl_price or is_bull_sweep_k:
                         reversal_triggered = True
                         
                 time_limit_reached = times[k].hour > 14 or (times[k].hour == 14 and times[k].minute >= 45)
@@ -978,12 +1028,11 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
                     exit_price = avg_cost + target_offset if is_long else avg_cost - target_offset
                     pnl = (exit_price - avg_cost) if is_long else (avg_cost - exit_price)
                     pnl_pct = (pnl / avg_cost) * 100
-                    sl_dist = abs(avg_cost - entry_swing_low) if is_long else abs(entry_swing_high - avg_cost)
                     if sl_dist == 0: sl_dist = 1e-5
                     realized_rr = float(round(pnl / sl_dist, 2))
                     
-                    # Scale trade size to match max loss per trade of $250
-                    scaled_pnl = float(round(pnl * (250.0 / sl_dist), 2))
+                    # Scale trade size with max $50k position cap
+                    scaled_pnl = float(round(pnl * position_shares, 2))
                     
                     trades_ledger.append({
                         "type": "Long" if is_long else "Short",
@@ -991,7 +1040,7 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
                         "exit_time": times[k].strftime("%Y-%m-%d %H:%M"),
                         "entry_price": float(round(avg_cost, 2)),
                         "exit_price": float(round(exit_price, 2)),
-                        "quantity": float(round(250.0 / sl_dist, 2)),
+                        "quantity": float(round(position_shares, 2)),
                         "outcome": "Success",
                         "pnl": scaled_pnl,
                         "pnl_percent": float(round(pnl_pct, 2)),
@@ -1005,15 +1054,14 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
                 elif sl_triggered or reversal_triggered or time_limit_reached:
                     exit_price = curr_close
                     if sl_triggered:
-                        exit_price = entry_swing_low if is_long else entry_swing_high
+                        exit_price = sl_price
                     pnl = (exit_price - avg_cost) if is_long else (avg_cost - exit_price)
                     pnl_pct = (pnl / avg_cost) * 100
-                    sl_dist = abs(avg_cost - entry_swing_low) if is_long else abs(entry_swing_high - avg_cost)
                     if sl_dist == 0: sl_dist = 1e-5
                     realized_rr = float(round(pnl / sl_dist, 2))
                     
-                    # Scale trade size to match max loss per trade of $250
-                    scaled_pnl = float(round(pnl * (250.0 / sl_dist), 2))
+                    # Scale trade size with max $50k position cap
+                    scaled_pnl = float(round(pnl * position_shares, 2))
                     
                     is_win = pnl > 0.0
                     outcome_val = "Success" if is_win else "Fail"
@@ -1024,7 +1072,7 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
                         "exit_time": times[k].strftime("%Y-%m-%d %H:%M"),
                         "entry_price": float(round(avg_cost, 2)),
                         "exit_price": float(round(exit_price, 2)),
-                        "quantity": float(round(250.0 / sl_dist, 2)),
+                        "quantity": float(round(position_shares, 2)),
                         "outcome": outcome_val,
                         "pnl": scaled_pnl,
                         "pnl_percent": float(round(pnl_pct, 2)),
@@ -1582,11 +1630,15 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                         valid_events = struct[(struct["BOS"].fillna(0) != 0) | (struct["CHOCH"].fillna(0) != 0)]
                         if not valid_events.empty:
                             last_row = valid_events.iloc[-1]
-                            is_choch = last_row.get("CHOCH", 0) != 0
-                            val = last_row.get("CHOCH", 0) if is_choch else last_row.get("BOS", 0)
-                            event_name = "CHoCH" if is_choch else "BOS"
-                            direction = "BULLISH" if val == 1 else "BEARISH"
-                            res["structure"] = f"{direction} {event_name}"
+                            broken_idx = last_row.get("BrokenIndex")
+                            total_bars = len(df_calc)
+                            
+                            if pd.notna(broken_idx) and (total_bars - int(broken_idx)) <= 20:
+                                is_choch = pd.notna(last_row.get("CHOCH")) and last_row.get("CHOCH") != 0
+                                val = last_row.get("CHOCH") if is_choch else last_row.get("BOS")
+                                event_name = "CHoCH" if is_choch else "BOS"
+                                direction = "BULLISH" if val == 1 else "BEARISH"
+                                res["structure"] = f"{direction} {event_name}"
                     except Exception as e:
                         logger.error(f"Failed to calculate structure: {e}")
                     return res
@@ -2162,8 +2214,10 @@ async def enrich_candidates_with_trends(candidates):
                             pnl = (current_price - avg_cost) if is_long else (avg_cost - current_price)
                             pnl_pct = (pnl / avg_cost) * 100
                             sl_level = float(swing_low) if swing_low is not None else (avg_cost - risk_dist) if is_long else float(swing_high) if swing_high is not None else (avg_cost + risk_dist)
-                            sl_dist = abs(avg_cost - sl_level)
-                            qty = float(round(250.0 / sl_dist, 2)) if sl_dist > 0 else 1.0
+                            risk_per_trade = 500.0
+                            raw_qty = float(round(risk_per_trade / sl_dist, 2)) if sl_dist > 0 else 1.0
+                            max_qty = float(round(50000.0 / avg_cost, 2)) if avg_cost > 0 else raw_qty
+                            qty = min(raw_qty, max_qty)
                             
                             ledger.append({
                                 "type": "Long" if is_long else "Short",

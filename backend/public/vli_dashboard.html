@@ -6346,8 +6346,73 @@
                     }
                 });
                 makeTableResizable(table);
+                updateTableFixedFooter(table, card, filteredCandidates);
             });
         }
+
+        window.updateTableFixedFooter = function(table, card, filteredCandidates) {
+            if (!table || !filteredCandidates) return;
+            
+            let tfoot = table.querySelector('tfoot');
+            if (!tfoot) {
+                tfoot = document.createElement('tfoot');
+                tfoot.id = `tfoot-${card.dataset.instanceGuid}`;
+                tfoot.style.position = 'sticky';
+                tfoot.style.bottom = '0';
+                tfoot.style.background = '#090d14';
+                tfoot.style.zIndex = '20';
+                tfoot.style.borderTop = '2px solid var(--cobalt-blue)';
+                table.appendChild(tfoot);
+            }
+            
+            let totalNetPnlDollar = 0.0;
+            let totalNetPnlPercent = 0.0;
+            let totalBacktestWins = 0;
+            let totalBacktestLosses = 0;
+            let totalBacktestTrades = 0;
+
+            filteredCandidates.forEach(c => {
+                const ledger = c.trade_ledger || [];
+                if (ledger.length > 0) {
+                    ledger.forEach(t => {
+                        totalNetPnlDollar += (t.pnl || 0.0);
+                        totalNetPnlPercent += (t.pnl_percent || 0.0);
+                        if (t.outcome === 'Success' || t.pnl > 0) totalBacktestWins++;
+                        else totalBacktestLosses++;
+                        totalBacktestTrades++;
+                    });
+                } else if (c.crt_15m_stats) {
+                    totalBacktestWins += (c.crt_15m_stats.success || 0);
+                    totalBacktestLosses += (c.crt_15m_stats.fail || 0);
+                    totalBacktestTrades += (c.crt_15m_stats.success || 0) + (c.crt_15m_stats.fail || 0);
+                }
+            });
+
+            const pnlPctColor = totalNetPnlPercent > 0 ? '#00ff66' : (totalNetPnlPercent < 0 ? '#ff4d4d' : '#888888');
+            const pnlDolColor = totalNetPnlDollar > 0 ? '#00ff66' : (totalNetPnlDollar < 0 ? '#ff4d4d' : '#888888');
+
+            const signPct = totalNetPnlPercent > 0 ? '+' : '';
+            const signDol = totalNetPnlDollar > 0 ? '+' : '';
+            let displayDol = `${signDol}$${Math.abs(totalNetPnlDollar).toFixed(2)}`;
+            if (totalNetPnlDollar < 0) displayDol = `-$${Math.abs(totalNetPnlDollar).toFixed(2)}`;
+
+            const overallWr = totalBacktestTrades > 0 ? ((totalBacktestWins / totalBacktestTrades) * 100).toFixed(1) : '0.0';
+
+            tfoot.innerHTML = `
+                <tr style="background: rgba(10, 14, 22, 0.95); backdrop-filter: blur(6px); font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 800;">
+                    <td colspan="15" style="padding: 6px 16px; text-align: right; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase;">
+                        TOTALS (<span style="color:#fff;">${filteredCandidates.length} ROWS</span> | <span style="color:#fff;">${totalBacktestTrades} TRADES</span> | <span style="color:var(--emerald-green);">${totalBacktestWins}W</span> / <span style="color:var(--ruby-red);">${totalBacktestLosses}L</span> - <span style="color:var(--amber-gold);">${overallWr}% WR</span>):
+                    </td>
+                    <td class="pnl-column-cell" style="padding: 6px 16px; text-align: center; color: ${pnlPctColor}; font-family: var(--font-mono); font-size: 11px; font-weight: 800; text-shadow: 0 0 4px ${pnlPctColor}33;">
+                        ${signPct}${totalNetPnlPercent.toFixed(2)}%
+                    </td>
+                    <td class="pnl-dollar-column-cell" style="padding: 6px 16px; text-align: center; color: ${pnlDolColor}; font-family: var(--font-mono); font-size: 11px; font-weight: 800; text-shadow: 0 0 4px ${pnlDolColor}33;">
+                        ${displayDol}
+                    </td>
+                    <td colspan="3" style="padding: 6px 16px;"></td>
+                </tr>
+            `;
+        };
 
         // 1c. Scanner State & SSE Logic
         let scannerEventSource = null;
@@ -7303,6 +7368,7 @@
                     }
                 });
                 makeTableResizable(table);
+                updateTableFixedFooter(table, card, filteredCandidates);
             });
         }
 
