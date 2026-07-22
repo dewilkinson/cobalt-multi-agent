@@ -132,7 +132,9 @@ def extract_trades(target_date_str="2026-07-21"):
     # Sort strictly chronological by datetime and symbol
     trades_to_export.sort(key=lambda x: (x["dt"], x["Symbol"]))
     
-    # Calculate position state tracking per symbol to assign exact TradeZella Side (BUY, SELL, SHORT, COVER)
+    # Process position flip splitting so single execution rows like BUY 2 that cover 1 short & open 1 long
+    # are split into two separate 1-contract rows for TradeZella auto-matching
+    split_trades = []
     pos_state = defaultdict(float)
     for t in trades_to_export:
         sym = t["Symbol"]
@@ -141,11 +143,51 @@ def extract_trades(target_date_str="2026-07-21"):
         cur_pos = pos_state[sym]
         
         if is_buy_act:
-            t["Side"] = "BUY"
-            pos_state[sym] += q
+            if cur_pos < -1e-5:
+                cover_qty = min(q, abs(cur_pos))
+                open_qty = q - cover_qty
+                
+                t_leg1 = dict(t)
+                t_leg1["Quantity"] = cover_qty
+                t_leg1["Side"] = "BUY"
+                split_trades.append(t_leg1)
+                pos_state[sym] += cover_qty
+                
+                if open_qty > 1e-5:
+                    t_leg2 = dict(t)
+                    t_leg2["Quantity"] = open_qty
+                    t_leg2["Side"] = "BUY"
+                    split_trades.append(t_leg2)
+                    pos_state[sym] += open_qty
+            else:
+                t_copy = dict(t)
+                t_copy["Side"] = "BUY"
+                split_trades.append(t_copy)
+                pos_state[sym] += q
         else: # SELL
-            t["Side"] = "SELL"
-            pos_state[sym] -= q
+            if cur_pos > 1e-5:
+                close_qty = min(q, cur_pos)
+                short_qty = q - close_qty
+                
+                t_leg1 = dict(t)
+                t_leg1["Quantity"] = close_qty
+                t_leg1["Side"] = "SELL"
+                split_trades.append(t_leg1)
+                pos_state[sym] -= close_qty
+                
+                if short_qty > 1e-5:
+                    t_leg2 = dict(t)
+                    t_leg2["Quantity"] = short_qty
+                    t_leg2["Side"] = "SELL"
+                    split_trades.append(t_leg2)
+                    pos_state[sym] -= short_qty
+            else:
+                t_copy = dict(t)
+                t_copy["Side"] = "SELL"
+                split_trades.append(t_copy)
+                pos_state[sym] -= q
+
+    trades_to_export = split_trades
 
     # Filter out unclosed / open trade quantities per symbol so only fully closed trade legs are exported
     symbol_closed_trades = []
