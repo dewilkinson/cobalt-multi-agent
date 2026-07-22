@@ -130,16 +130,10 @@ def extract_trades(target_date_str="2026-07-21"):
         cur_pos = pos_state[sym]
         
         if is_buy_act:
-            if cur_pos < -1e-5:
-                t["Side"] = "COVER"
-            else:
-                t["Side"] = "BUY"
+            t["Side"] = "BUY"
             pos_state[sym] += q
         else: # SELL
-            if cur_pos <= 1e-5:
-                t["Side"] = "SHORT"
-            else:
-                t["Side"] = "SELL"
+            t["Side"] = "SELL"
             pos_state[sym] -= q
 
     # Filter out unclosed / open trade quantities per symbol so only fully closed trade legs are exported
@@ -149,8 +143,8 @@ def extract_trades(target_date_str="2026-07-21"):
         sym_groups[t["Symbol"]].append(t)
         
     for sym, t_list in sym_groups.items():
-        total_buy = sum(t["Quantity"] for t in t_list if t["Side"] in ["BUY", "COVER"])
-        total_sell = sum(t["Quantity"] for t in t_list if t["Side"] in ["SELL", "SHORT"])
+        total_buy = sum(t["Quantity"] for t in t_list if t["Side"] == "BUY")
+        total_sell = sum(t["Quantity"] for t in t_list if t["Side"] == "SELL")
         matched_qty = min(total_buy, total_sell)
         
         if matched_qty == 0:
@@ -160,7 +154,7 @@ def extract_trades(target_date_str="2026-07-21"):
         cur_sell = 0.0
         for t in t_list:
             q = t["Quantity"]
-            if t["Side"] in ["BUY", "COVER"]:
+            if t["Side"] == "BUY":
                 if cur_buy < matched_qty:
                     allowed = min(q, matched_qty - cur_buy)
                     cur_buy += allowed
