@@ -1,5 +1,6 @@
 import json
 import csv
+import sys
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import os
@@ -119,23 +120,49 @@ def extract_trades(target_date_str="2026-07-21"):
     # Sort chronological: Date -> Time -> Symbol -> Action (Buy before Sell)
     trades_to_export.sort(key=lambda x: (x["Date"], x["Time"], x["Symbol"], 0 if x["Buy/Sell"].lower() == "buy" else 1))
     
-    # Write to CSV
+    # Write to CSV files (Combined, Futures-only, Stocks-only)
     tz_headers = ["Account Name", "Date&Time", "Date", "Time", "Symbol", "Buy/Sell", "Quantity", "Price", "Spread", "Expiration", "Strike", "Call/Put", "Commission", "Fees"]
     
+    futures_trades = [t for t in trades_to_export if t["Spread"] == "Future"]
+    stocks_trades = [t for t in trades_to_export if t["Spread"] == "Stock"]
+
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
+    
+    futures_path = "data/exports/tradezella-import-futures.csv"
+    stocks_path = "data/exports/tradezella-import-stocks.csv"
+
+    # Write combined CSV
     with open(OUTPUT_PATH, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=tz_headers)
         writer.writeheader()
         writer.writerows(trades_to_export)
-        
-    print(f"Success! {len(trades_to_export)} trades exported to {OUTPUT_PATH} for Eastern Date {target_date_str}")
+
+    # Write Futures CSV
+    with open(futures_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=tz_headers)
+        writer.writeheader()
+        writer.writerows(futures_trades)
+
+    # Write Stocks CSV
+    with open(stocks_path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=tz_headers)
+        writer.writeheader()
+        writer.writerows(stocks_trades)
+
+    print(f"Success! Exported for Eastern Date {target_date_str}:")
+    print(f"  - Combined: {len(trades_to_export)} trades -> {OUTPUT_PATH}")
+    print(f"  - Futures:  {len(futures_trades)} trades -> {futures_path}")
+    print(f"  - Stocks:   {len(stocks_trades)} trades -> {stocks_path}")
     
     # Sync to Google Drive
     try:
-        from backend.src.services.gdrive_backup_service import sync_file_to_gdrive
+        sys.path.insert(0, os.path.abspath("backend"))
+        from src.services.gdrive_backup_service import sync_file_to_gdrive
         sync_file_to_gdrive(OUTPUT_PATH, "exports/tradezella-import.csv")
-    except Exception:
-        pass
+        sync_file_to_gdrive(futures_path, "exports/tradezella-import-futures.csv")
+        sync_file_to_gdrive(stocks_path, "exports/tradezella-import-stocks.csv")
+    except Exception as e:
+        print(f"Google Drive sync warning: {e}")
 
     return trades_to_export
 
