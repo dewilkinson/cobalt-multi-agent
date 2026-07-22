@@ -119,7 +119,7 @@ def extract_trades(target_date_str="2026-07-21"):
                     "dt": dt_est,
                     "Date / Time": f"{tz_date} {tz_time}",
                     "Date/Time": f"{tz_date} {tz_time}",
-                    "Time": f"{tz_date} {tz_time}",
+                    "Time": tz_time,
                     "Date": tz_date,
                     "Symbol": clean_sym,
                     "raw_action": action_upper,
@@ -185,13 +185,29 @@ def extract_trades(target_date_str="2026-07-21"):
     # Final sort chronological
     trades_to_export.sort(key=lambda x: (x["dt"], x["Symbol"]))
     
-    # Strip temporary helper keys before writing CSV
+    # Strip temporary helper keys and format to match official TradeZella template
+    formatted_rows = []
     for t in trades_to_export:
-        t.pop("dt", None)
-        t.pop("raw_action", None)
+        side_val = "Buy" if t["Side"] == "BUY" else "Sell"
+        formatted_rows.append({
+            "Date&Time": f"{t['Date']} {t['Time']}",
+            "Date": t["Date"],
+            "Time": t["Time"],
+            "Symbol": t["Symbol"],
+            "Buy/Sell": side_val,
+            "Quantity": t["Quantity"],
+            "Price": t["Price"],
+            "Spread": t["Spread"],
+            "Expiration": "",
+            "Strike": "",
+            "Call/Put": "",
+            "Commission": t["Commission"],
+            "Fees": t["Commission"]
+        })
+    trades_to_export = formatted_rows
     
     # Write to CSV files (Combined, Futures-only, Stocks-only)
-    tz_headers = ["Account Name", "Date / Time", "Date/Time", "Time", "Date", "Symbol", "Side", "Quantity", "Price", "Spread", "Commission"]
+    tz_headers = ["Date&Time", "Date", "Time", "Symbol", "Buy/Sell", "Quantity", "Price", "Spread", "Expiration", "Strike", "Call/Put", "Commission", "Fees"]
     
     futures_trades = [t for t in trades_to_export if t["Spread"] == "Future"]
     stocks_trades = [t for t in trades_to_export if t["Spread"] == "Stock"]
