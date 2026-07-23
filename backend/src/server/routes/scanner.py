@@ -137,29 +137,7 @@ def save_trends_cache():
     global TRENDS_CACHE
     with _SAVE_THREAD_LOCK:
         try:
-            # 1. Load current cache from disk if it exists to merge external updates
-            disk_cache = {}
-            if os.path.exists(TRENDS_CACHE_PATH):
-                try:
-                    with open(TRENDS_CACHE_PATH, "r", encoding="utf-8") as f:
-                        disk_cache = json.load(f)
-                except Exception:
-                    pass
-            
-            # 2. Merge: Keep the entries with the higher timestamp
-            for sym, disk_val in disk_cache.items():
-                if not isinstance(disk_val, dict):
-                    continue
-                in_mem_val = TRENDS_CACHE.get(sym)
-                if not in_mem_val or not isinstance(in_mem_val, dict):
-                    TRENDS_CACHE[sym] = disk_val
-                else:
-                    disk_ts = disk_val.get("timestamp", 0.0)
-                    in_mem_ts = in_mem_val.get("timestamp", 0.0)
-                    if disk_ts > in_mem_ts:
-                        TRENDS_CACHE[sym] = disk_val
-            
-            # 3. Save to disk with atomic replacement and retry loop for Windows file locking
+            # 2. Save to disk with atomic replacement and retry loop for Windows file locking
             os.makedirs(os.path.dirname(TRENDS_CACHE_PATH), exist_ok=True)
             temp_path = TRENDS_CACHE_PATH + ".tmp"
             with open(temp_path, "w", encoding="utf-8") as f:
@@ -672,10 +650,11 @@ PENDING_FETCH = set()
 
 PENDING_BACKTESTS = set()
 
-def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
+def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False, target_window=None):
     if df_5m is None or df_5m.empty or len(df_5m) < 15:
-        return {"success": 0, "fail": 0}
+        return {"success": 0, "fail": 0, "ledger": [], "rejected_trades": []}
         
+    import pandas as pd
     col_map = {str(c).lower(): c for c in df_5m.columns}
     high_col = col_map.get("high", "High")
     low_col = col_map.get("low", "Low")
@@ -698,9 +677,20 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
         df_5m_est = df_5m_est[(df_5m_est.index.hour >= 9) & (df_5m_est.index.hour <= 16)]
         df_5m_est = df_5m_est[~((df_5m_est.index.hour == 9) & (df_5m_est.index.minute < 30))]
         df_5m_est = df_5m_est[~((df_5m_est.index.hour == 16) & (df_5m_est.index.minute > 0))]
+
+    # If target_window is set, slice df_5m_est back to start of current session (or last 24h for futures)
+    if target_window == "session":
+        if not df_5m_est.empty:
+            last_dt = df_5m_est.index[-1]
+            if is_future:
+                cutoff_dt = last_dt - pd.Timedelta(hours=24)
+                df_5m_est = df_5m_est[df_5m_est.index >= cutoff_dt]
+            else:
+                session_start = last_dt.replace(hour=9, minute=30, second=0, microsecond=0)
+                df_5m_est = df_5m_est[df_5m_est.index >= session_start]
         
     if len(df_5m_est) < 10:
-        return {"success": 0, "fail": 0}
+        return {"success": 0, "fail": 0, "ledger": [], "rejected_trades": []}
         
     pd_zone_series = {}
     if df_1d is not None and not df_1d.empty:
@@ -863,10 +853,11 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
         has_bear_sweep = highs[t] > highs[t-1] and closes[t] < highs[t-1]
         rvol_val = rvol_values[t]
         
-        is_market_open_safe = (dt.hour > 10 or (dt.hour == 10 and dt.minute >= 30)) and (dt.hour < 16)
+        is_market_open_safe = (dt.hour > 10 or (dt.hour == 10 and dt.minute >= 30)) and (dt.hour < 15 or (dt.hour == 15 and dt.minute < 45))
         is_midday_lull = (dt.hour == 11 and dt.minute >= 30) or (dt.hour == 12) or (dt.hour == 13 and dt.minute < 30)
+        is_eod_cutoff = (dt.hour == 15 and dt.minute >= 45)
         
-        is_candidate_setup = is_market_open_safe and not is_midday_lull and tf_trend_bias == "BULLISH" and has_bull_sweep
+        is_candidate_setup = is_market_open_safe and not is_eod_cutoff and (tf_trend_bias in ["BULLISH", "NONE"]) and has_bull_sweep
         
         if is_candidate_setup:
             is_long = True
@@ -881,6 +872,18 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False):
                     "price": float(round(avg_cost, 2)),
                     "step": "Midday Filter",
                     "reason": f"Entry time ({dt.strftime('%H:%M')}) is during low-volume midday chop window (11:30 - 13:30 EDT)"
+                })
+                t += 1
+                continue
+
+            # Step 0-Macro: 1H Macro Trend Alignment Filter
+            if tf_trend_bias == "BEARISH":
+                rejected_trades.append({
+                    "type": "Long",
+                    "time": dt.strftime("%Y-%m-%d %H:%M"),
+                    "price": float(round(avg_cost, 2)),
+                    "step": "Macro Trend Filter",
+                    "reason": "Entry against 1H Macro Bearish Trend"
                 })
                 t += 1
                 continue
@@ -1165,23 +1168,18 @@ async def run_weekly_backtest_low_priority(sym, is_future=False):
     PENDING_BACKTESTS.add(sym)
     start_time = time.time()
     try:
-        import yfinance as yf
+        from src.tools.finance import _fetch_batch_history, _extract_ticker_data
         
         norm_sym = _normalize_ticker(sym)
         logger.info(f"VLI: Low-priority backtest started for {sym} (mapped to {norm_sym})")
         
-        ticker_obj = yf.Ticker(norm_sym)
-        prepost = is_future
+        df_5m_raw = await asyncio.to_thread(_fetch_batch_history, [norm_sym], "30d", "5m")
+        df_1h_raw = await asyncio.to_thread(_fetch_batch_history, [norm_sym], "3mo", "1h")
+        df_1d_raw = await asyncio.to_thread(_fetch_batch_history, [norm_sym], "2y", "1d")
         
-        df_5m_clean = await asyncio.to_thread(
-            ticker_obj.history, period="30d", interval="5m", prepost=prepost, actions=False
-        )
-        df_1h_clean = await asyncio.to_thread(
-            ticker_obj.history, period="3mo", interval="1h", prepost=prepost, actions=False
-        )
-        df_1d_clean = await asyncio.to_thread(
-            ticker_obj.history, period="2y", interval="1d", actions=False
-        )
+        df_5m_clean = _extract_ticker_data(df_5m_raw, norm_sym)
+        df_1h_clean = _extract_ticker_data(df_1h_raw, norm_sym)
+        df_1d_clean = _extract_ticker_data(df_1d_raw, norm_sym)
         
         if df_5m_clean is None or df_5m_clean.empty:
             logger.warning(f"VLI: Backtest yfinance download empty for {sym} ({norm_sym})")
@@ -1742,11 +1740,12 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                 cached_stats_15m = cached.get("crt_15m_stats") if cached else None
                 cached_stats_1h = cached.get("crt_1h_stats") if cached else None
                 cached_stats_4h = cached.get("crt_4h_stats") if cached else None
-                cached_ledger = cached.get("trade_ledger") if cached else None
+                cached_ledger = cached.get("trade_ledger") if cached else []
+                cached_rejected = cached.get("rejected_trades") if cached else []
                 
                 has_cached_tally = False
-                if cached_stats_15m and (cached_stats_15m.get("success", 0) + cached_stats_15m.get("fail", 0)) > 0:
-                    if cached_ledger and len(cached_ledger) > 0:
+                if cached_stats_15m is not None and "success" in cached_stats_15m and "fail" in cached_stats_15m:
+                    if cached.get("backtest_pending") is False or cached_ledger is not None:
                         has_cached_tally = True
                     
                 is_backtest_pending = (sym in PENDING_BACKTESTS) or (not has_cached_tally)
@@ -1757,11 +1756,13 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     crt_1h_stats_val = {"success": 0, "fail": 0}
                     crt_4h_stats_val = {"success": 0, "fail": 0}
                     crt_ledger_val = []
+                    crt_rejected_val = []
                 else:
                     crt_15m_stats_val = cached_stats_15m
                     crt_1h_stats_val = cached_stats_1h
                     crt_4h_stats_val = cached_stats_4h
                     crt_ledger_val = cached_ledger
+                    crt_rejected_val = cached_rejected
 
                 if sym not in TRENDS_CACHE:
                     TRENDS_CACHE[sym] = {}
@@ -1791,6 +1792,7 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     "crt_1h_stats": crt_1h_stats_val,
                     "crt_4h_stats": crt_4h_stats_val,
                     "trade_ledger": crt_ledger_val,
+                    "rejected_trades": crt_rejected_val,
                     "backtest_pending": is_backtest_pending,
                     "timestamp": now
                 })
@@ -1925,7 +1927,7 @@ async def enrich_candidates_with_trends(candidates):
                 }
             
         cached = TRENDS_CACHE.get(sym)
-        if not cached or (now - cached["timestamp"] > TRENDS_CACHE_EXPIRY) or not cached.get("sparkline_1m") or not cached.get("trade_ledger"):
+        if not cached or (now - cached["timestamp"] > TRENDS_CACHE_EXPIRY) or not cached.get("sparkline_1m") or ("trade_ledger" not in cached):
             if sym not in PENDING_FETCH and sym not in symbols_to_fetch:
                 symbols_to_fetch.append(sym)
             

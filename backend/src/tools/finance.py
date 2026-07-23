@@ -515,42 +515,39 @@ def _extract_ticker_data(df: pd.DataFrame, ticker: str) -> pd.DataFrame:
 
     print(f"DEBUG _extract_ticker_data: ticker={ticker}, ticker_upper={ticker_upper}, is_multi={isinstance(df.columns, pd.MultiIndex)}, df.columns={type(df.columns)}")
 
+    res = pd.DataFrame()
     if isinstance(df.columns, pd.MultiIndex):
         # 1. Try original ticker
         if ticker_upper in df.columns.levels[0]:
             res = df[ticker_upper].dropna(how="all").copy()
-            if isinstance(res.columns, pd.MultiIndex): res.columns = [c[0] for c in res.columns]
-            return res
-        if len(df.columns.levels) > 1 and ticker_upper in df.columns.levels[1]:
+        elif len(df.columns.levels) > 1 and ticker_upper in df.columns.levels[1]:
             res = df.xs(ticker_upper, level=1, axis=1).dropna(how="all").copy()
-            if isinstance(res.columns, pd.MultiIndex): res.columns = [c[0] for c in res.columns]
-            return res
-
         # 2. Try normalized ticker (VIX -> ^VIX)
-        if norm_ticker in df.columns.levels[0]:
+        elif norm_ticker in df.columns.levels[0]:
             res = df[norm_ticker].dropna(how="all").copy()
-            if isinstance(res.columns, pd.MultiIndex): res.columns = [c[0] for c in res.columns]
-            return res
-        if len(df.columns.levels) > 1 and norm_ticker in df.columns.levels[1]:
+        elif len(df.columns.levels) > 1 and norm_ticker in df.columns.levels[1]:
             res = df.xs(norm_ticker, level=1, axis=1).dropna(how="all").copy()
-            if isinstance(res.columns, pd.MultiIndex): res.columns = [c[0] for c in res.columns]
-            return res
+        else:
+            try:
+                res = df[ticker_upper].dropna(how="all").copy()
+            except Exception:
+                try:
+                    res = df[norm_ticker].dropna(how="all").copy()
+                except Exception:
+                    res = pd.DataFrame()
+    else:
+        res = df.dropna(how="all").copy()
 
-        # 3. Fallback to direct access if columns levels are flattened
-        try:
-            return df[ticker_upper].dropna(how="all").copy()
-        except:
-            pass
-        try:
-            return df[norm_ticker].dropna(how="all").copy()
-        except:
-            pass
-            
-        # [CROSS_CONTAMINATION_GUARD] Stop matching here if MultiIndex doesn't contain ticker at all
-        return pd.DataFrame()
+    if isinstance(res, pd.DataFrame) and not res.empty:
+        new_cols = []
+        for col in res.columns:
+            if isinstance(col, tuple):
+                new_cols.append(col[-1])
+            else:
+                new_cols.append(col)
+        res.columns = new_cols
 
-    # Flat Index Case
-    return df.dropna(how="all").copy()
+    return res
 
 
 def _get_ttl_seconds(interval: str) -> int:

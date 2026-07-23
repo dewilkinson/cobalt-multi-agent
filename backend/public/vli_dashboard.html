@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0250";
+        const VLI_CLIENT_VERSION = "00.000.0251";
     </script>
     
     <link
@@ -4803,12 +4803,12 @@
             }
             let successCount = 0;
             let failCount = 0;
-            if (ledger && ledger.length > 0) {
+            if (Array.isArray(ledger)) {
                 successCount = ledger.filter(t => t.outcome === 'Success').length;
                 failCount = ledger.length - successCount;
             } else if (res) {
-                successCount = res.success;
-                failCount = res.fail;
+                successCount = res.success || 0;
+                failCount = res.fail || 0;
             }
             
             const total = successCount + failCount;
@@ -5026,7 +5026,7 @@
                 trendVal = 0.0;
             }
             const activeSide = card.dataset.activeSide || 'TREND';
-            const duration = card.dataset.activeDuration || 'SWING_MED';
+            const duration = card.dataset.activeDuration || 'DAY';
             const isSortinoEnabled = (duration !== 'DAY' && duration !== 'SWING_LOW');
             let isBullish = trendVal >= 0.0;
             if (activeSide === 'LONG') {
@@ -5132,7 +5132,7 @@
                     </div>
                 </td>
                  ${(() => {
-                     const isBtPending = !!(c.backtest_pending || c.is_backtest_pending || (card.dataset.backtestRecalculating === 'true') || (!c.trade_ledger || c.trade_ledger.length === 0));
+                     const isBtPending = !!(c.backtest_pending || c.is_backtest_pending || (card.dataset.backtestRecalculating === 'true'));
                      const btDimStyle = isBtPending ? 'opacity: 0.35; filter: grayscale(70%); cursor: wait; transition: opacity 0.4s ease, filter 0.4s ease;' : 'transition: opacity 0.4s ease, filter 0.4s ease;';
                      
                      let maxRrVal = (card.rrValues && c.symbol in card.rrValues) ? card.rrValues[c.symbol] : undefined;
@@ -6071,7 +6071,7 @@
             if (!window.lastMacroWatchlistState) window.lastMacroWatchlistState = {};
 
             document.querySelectorAll('.card[data-type-guid="MACRO_WL"]').forEach(card => {
-                if (!card.dataset.activeDuration) card.dataset.activeDuration = 'SWING_MED';
+                if (!card.dataset.activeDuration) card.dataset.activeDuration = 'DAY';
                 if (!card.dataset.activeSide) card.dataset.activeSide = 'TREND';
                 if (!card.dataset.activeTargetRr) card.dataset.activeTargetRr = '3';
                 if (!card.dataset.trendTimeframe) card.dataset.trendTimeframe = '4h';
@@ -6149,6 +6149,9 @@
                                 <label style="display: flex; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 600; text-transform: uppercase; user-select: none;" title="Show only selected/highlighted rows">
                                     <input type="checkbox" class="show-selected-cb" onchange="window.toggleOnlyHighlighted('${card.dataset.instanceGuid}', this.checked)" style="accent-color: var(--emerald-green); cursor: pointer;" ${(window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) ? 'checked' : ''}> Show Selected
                                 </label>
+                                <label style="display: flex; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 600; text-transform: uppercase; user-select: none;" title="Toggle visibility of backtest metrics columns (WIN/RR, PNL, PNL $)">
+                                    <input type="checkbox" class="show-backtest-cb" onchange="window.toggleShowBacktest('${card.dataset.instanceGuid}', this.checked)" style="accent-color: var(--emerald-green); cursor: pointer;" ${(window.vliShowBacktestFilters && window.vliShowBacktestFilters[card.dataset.instanceGuid] !== false) ? 'checked' : ''}> Show Backtest
+                                </label>
                                 <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="mw-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                             </div>
                         </div>
@@ -6170,9 +6173,9 @@
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Success rate and average realized risk-to-reward ratio from backtesting"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">WIN/RR</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit as percentage"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit in dollars"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL ($)</div></th>
+                                        <th class="win-rr-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Success rate and average realized risk-to-reward ratio from backtesting"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">WIN/RR</div></th>
+                                        <th class="pnl-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit as percentage"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL</div></th>
+                                        <th class="pnl-dollar-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit in dollars"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL ($)</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Recent Daily Structural Events: Daily BOS or CHoCH"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">STRUCTURE</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="SMC Trigger Signal: Bullish Sweep + HTF Discount (Buy) or Bearish Sweep + HTF Premium (Sell)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SMC TRIGGER</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Quality Score based on: Trend, Discount, RVOL, VWAP, Sortino, CRT, SMC, and Structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">QUALITY</div></th>
@@ -6430,6 +6433,7 @@
                     <td style="width: 84px; min-width: 84px; max-width: 84px;"></td>
                 </tr>
             `;
+            window.updateTableBacktestVisibility(card.dataset.instanceGuid);
         };
 
         // 1c. Scanner State & SSE Logic
@@ -6950,6 +6954,13 @@
         } catch (e) {
             window.vliOnlyHighlightedFilters = {};
         }
+
+        try {
+            window.vliShowBacktestFilters = JSON.parse(localStorage.getItem('vliShowBacktestFilters')) || {};
+        } catch (e) {
+            window.vliShowBacktestFilters = {};
+        }
+
         window.toggleOnlyHighlighted = function(instanceGuid, checked) {
             window.vliOnlyHighlightedFilters[instanceGuid] = checked;
             localStorage.setItem('vliOnlyHighlightedFilters', JSON.stringify(window.vliOnlyHighlightedFilters));
@@ -6973,6 +6984,33 @@
                     updateScannerResultsUI();
                 }
             }
+        }
+
+        window.toggleShowBacktest = function(instanceGuid, checked) {
+            window.vliShowBacktestFilters[instanceGuid] = checked;
+            localStorage.setItem('vliShowBacktestFilters', JSON.stringify(window.vliShowBacktestFilters));
+            saveLayout();
+            
+            // Synchronize checkbox state in any mirrors
+            document.querySelectorAll('.show-backtest-cb').forEach(cb => {
+                const card = cb.closest('.card');
+                if (card && card.dataset.instanceGuid === instanceGuid) {
+                    cb.checked = checked;
+                }
+            });
+            
+            // Apply column visibility immediately
+            window.updateTableBacktestVisibility(instanceGuid);
+        }
+
+        window.updateTableBacktestVisibility = function(instanceGuid) {
+            const card = document.getElementById('win-' + instanceGuid);
+            if (!card) return;
+            const isVisible = (window.vliShowBacktestFilters && window.vliShowBacktestFilters[instanceGuid] !== false);
+            const displayVal = isVisible ? '' : 'none';
+            card.querySelectorAll('.win-rr-column-cell, .pnl-column-cell, .pnl-dollar-column-cell, .win-rr-column-header, .pnl-column-header, .pnl-dollar-column-header').forEach(el => {
+                el.style.display = displayVal;
+            });
         }
 
         function handleScannerTierChange(selectElement) {
@@ -7104,7 +7142,7 @@
             const res = { ...data.scanner_results, candidates: allCandidates };
             
             document.querySelectorAll('.card[data-type-guid="SCAN_RES"]').forEach(card => {
-                if (!card.dataset.activeDuration) card.dataset.activeDuration = 'SWING_MED';
+                if (!card.dataset.activeDuration) card.dataset.activeDuration = 'DAY';
                 if (!card.dataset.activeSide) card.dataset.activeSide = 'TREND';
                 if (!card.dataset.activeTargetRr) card.dataset.activeTargetRr = '3';
                 if (!card.dataset.trendTimeframe) card.dataset.trendTimeframe = '4h';
@@ -7176,6 +7214,9 @@
                                 <label style="display: flex; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 600; text-transform: uppercase; user-select: none;" title="Show only selected/highlighted rows">
                                     <input type="checkbox" class="show-selected-cb" onchange="window.toggleOnlyHighlighted('${card.dataset.instanceGuid}', this.checked)" style="accent-color: var(--emerald-green); cursor: pointer;" ${(window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid]) ? 'checked' : ''}> Show Selected
                                 </label>
+                                <label style="display: flex; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 600; text-transform: uppercase; user-select: none;" title="Toggle visibility of backtest metrics columns (WIN/RR, PNL, PNL $)">
+                                    <input type="checkbox" class="show-backtest-cb" onchange="window.toggleShowBacktest('${card.dataset.instanceGuid}', this.checked)" style="accent-color: var(--emerald-green); cursor: pointer;" ${(window.vliShowBacktestFilters && window.vliShowBacktestFilters[card.dataset.instanceGuid] !== false) ? 'checked' : ''}> Show Backtest
+                                </label>
                                 <div style="font-family: var(--font-mono); font-size: 10px;">Updated: <span id="sr-updated-at" style="color: var(--emerald-green); font-weight: 800;">${new Date().toLocaleTimeString()}</span></div>
                             </div>
                         </div>
@@ -7197,9 +7238,9 @@
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="1h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 1H</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="4h Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 4H</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Success rate and average realized risk-to-reward ratio from backtesting"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">WIN/RR</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit as percentage"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit in dollars"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL ($)</div></th>
+                                        <th class="win-rr-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Success rate and average realized risk-to-reward ratio from backtesting"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">WIN/RR</div></th>
+                                        <th class="pnl-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit as percentage"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL</div></th>
+                                        <th class="pnl-dollar-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit in dollars"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL ($)</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Recent Daily Structural Events: Daily BOS or CHoCH"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">STRUCTURE</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="SMC Trigger Signal: Bullish Sweep + HTF Discount (Buy) or Bearish Sweep + HTF Premium (Sell)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SMC TRIGGER</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Quality Score based on: Trend, Discount, RVOL, VWAP, Sortino, CRT, SMC, and Structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">QUALITY</div></th>
@@ -7387,6 +7428,7 @@
                 });
                 makeTableResizable(table);
                 updateTableFixedFooter(table, card, filteredCandidates);
+                window.updateTableBacktestVisibility(card.dataset.instanceGuid);
             });
         }
 
