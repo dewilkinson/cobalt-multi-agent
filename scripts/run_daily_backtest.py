@@ -10,8 +10,8 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 os.chdir(project_root)
 sys.path.insert(0, "backend")
 
-from src.server.routes.scanner import run_weekly_5m_replay_backtest, TRENDS_CACHE, save_trends_cache
-from src.tools.finance import _fetch_batch_history, _extract_ticker_data
+from src.server.routes.scanner import run_weekly_5m_replay_backtest, TRENDS_CACHE, save_trends_cache, fill_futures_gaps
+from src.tools.finance import _fetch_batch_history, _extract_ticker_data, _normalize_ticker
 
 import sqlite3
 
@@ -78,38 +78,44 @@ def main():
         batch = symbols[i:i+batch_size]
         print(f"\n[Batch {i//batch_size + 1}/{(len(symbols) + batch_size - 1)//batch_size}] Processing: {', '.join(batch)}")
         
+        mapped_batch = [_normalize_ticker(s) for s in batch]
         try:
-            raw5 = _fetch_batch_history(batch, "30d", "5m")
-            raw1h = _fetch_batch_history(batch, "3mo", "1h")
-            raw1d = _fetch_batch_history(batch, "2y", "1d")
+            raw5 = _fetch_batch_history(mapped_batch, "30d", "5m")
+            raw1h = _fetch_batch_history(mapped_batch, "3mo", "1h")
+            raw1d = _fetch_batch_history(mapped_batch, "2y", "1d")
         except Exception as batch_err:
             print(f"Batch fetch error: {batch_err}")
             continue
 
         for sym in batch:
             try:
-                df5 = _extract_ticker_data(raw5, sym)
-                df1h = _extract_ticker_data(raw1h, sym)
-                df1d = _extract_ticker_data(raw1d, sym)
+                norm_sym = _normalize_ticker(sym)
+                df5 = _extract_ticker_data(raw5, norm_sym)
+                df1h = _extract_ticker_data(raw1h, norm_sym)
+                df1d = _extract_ticker_data(raw1d, norm_sym)
                 
                 if df5 is None or df5.empty:
-                    print(f"  [{sym:<6}] No 5m market data returned, skipping.")
+                    print(f"  [{sym:<6}] No 5m market data returned for {norm_sym}, skipping.")
                     continue
                     
                 clean_sym = sym.lstrip("/^").upper()
                 is_future = sym in FUTURES_SYMBOLS or sym.endswith("=F") or sym.startswith("/") or clean_sym in ["ES", "MES", "NQ", "MNQ", "YM", "MYM", "RTY", "M2K", "CL", "MCL", "GC", "MGC", "NKD", "MNK"]
+                if is_future:
+                    df5 = fill_futures_gaps(df5, "5min")
+
                 stats = run_weekly_5m_replay_backtest(df5, df1h, df1d, sym, is_future=is_future, target_window="session")
                 
-                if sym not in TRENDS_CACHE:
-                    TRENDS_CACHE[sym] = {}
-                    
-                TRENDS_CACHE[sym]["crt_15m_stats"] = {"success": stats["success"], "fail": stats["fail"]}
-                TRENDS_CACHE[sym]["crt_1h_stats"] = {"success": stats["success"], "fail": stats["fail"]}
-                TRENDS_CACHE[sym]["crt_4h_stats"] = {"success": stats["success"], "fail": stats["fail"]}
-                TRENDS_CACHE[sym]["trade_ledger"] = stats["ledger"]
-                TRENDS_CACHE[sym]["rejected_trades"] = stats.get("rejected_trades", [])
-                TRENDS_CACHE[sym]["backtest_pending"] = False
-                TRENDS_CACHE[sym]["timestamp"] = time.time()
+                for key_to_update in set([sym, norm_sym, "/" + clean_sym if is_future else sym]):
+                    if key_to_update not in TRENDS_CACHE:
+                        TRENDS_CACHE[key_to_update] = {}
+                        
+                    TRENDS_CACHE[key_to_update]["crt_15m_stats"] = {"success": stats["success"], "fail": stats["fail"]}
+                    TRENDS_CACHE[key_to_update]["crt_1h_stats"] = {"success": stats["success"], "fail": stats["fail"]}
+                    TRENDS_CACHE[key_to_update]["crt_4h_stats"] = {"success": stats["success"], "fail": stats["fail"]}
+                    TRENDS_CACHE[key_to_update]["trade_ledger"] = stats["ledger"]
+                    TRENDS_CACHE[key_to_update]["rejected_trades"] = stats.get("rejected_trades", [])
+                    TRENDS_CACHE[key_to_update]["backtest_pending"] = False
+                    TRENDS_CACHE[key_to_update]["timestamp"] = time.time()
                 
                 updated_count += 1
                 total_trades += len(stats["ledger"])

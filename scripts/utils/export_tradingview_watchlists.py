@@ -34,8 +34,6 @@ def main():
         strike_list_path = os.path.join(base_dir, "data", "STRIKE_LIST.json")
         
     trends_cache_path = os.path.join(base_dir, "backend", "data", "trends_cache.json")
-    if not os.path.exists(trends_cache_path):
-        trends_cache_path = os.path.join(base_dir, "data", "trends_cache.json")
         
     # Always output to root data/exports/ folder
     exports_dir = os.path.join(base_dir, "data", "exports")

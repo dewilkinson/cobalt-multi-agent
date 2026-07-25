@@ -300,4 +300,5 @@ def extract_trades(target_date_str="2026-07-21"):
     return trades_to_export
 
 if __name__ == "__main__":
-    trades = extract_trades("2026-07-21")
+    target_date = sys.argv[1] if len(sys.argv) > 1 else datetime.now(eastern).strftime("%Y-%m-%d")
+    trades = extract_trades(target_date)

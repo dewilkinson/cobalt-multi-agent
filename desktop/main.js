@@ -165,7 +165,8 @@ function createWindow() {
         autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: false,
-            contextIsolation: true
+            contextIsolation: true,
+            zoomFactor: 0.8
         }
     });
     // We start loading the URL only after the Python server confirms it is alive
@@ -214,6 +215,31 @@ app.whenReady().then(async () => {
     globalShortcut.register('CommandOrControl+Shift+I', () => {
         if (mainWindow) {
             mainWindow.webContents.toggleDevTools();
+        }
+    });
+    
+    // Zoom controls
+    globalShortcut.register('CommandOrControl+=', () => {
+        if (mainWindow) {
+            const factor = mainWindow.webContents.getZoomFactor();
+            mainWindow.webContents.setZoomFactor(Math.min(factor + 0.05, 2.0));
+        }
+    });
+    globalShortcut.register('CommandOrControl+Shift+=', () => {
+        if (mainWindow) {
+            const factor = mainWindow.webContents.getZoomFactor();
+            mainWindow.webContents.setZoomFactor(Math.min(factor + 0.05, 2.0));
+        }
+    });
+    globalShortcut.register('CommandOrControl+-', () => {
+        if (mainWindow) {
+            const factor = mainWindow.webContents.getZoomFactor();
+            mainWindow.webContents.setZoomFactor(Math.max(factor - 0.05, 0.3));
+        }
+    });
+    globalShortcut.register('CommandOrControl+0', () => {
+        if (mainWindow) {
+            mainWindow.webContents.setZoomFactor(0.8);
         }
     });
 });

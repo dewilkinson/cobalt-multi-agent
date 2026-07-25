@@ -207,13 +207,8 @@
             width: 0%;
             background: linear-gradient(90deg, #58a6ff 0%, #388bfd 50%, #bc8cff 100%);
             border-radius: 3px;
-            animation: loadProgress 4.5s linear forwards;
+            transition: width 0.3s ease-out;
             box-shadow: 0 0 8px #388bfd;
-        }
-
-        @keyframes loadProgress {
-            0% { width: 0%; }
-            100% { width: 100%; }
         }
 
         .loader-glow {
@@ -225,6 +220,69 @@
             border-radius: 12px;
             pointer-events: none;
             box-shadow: 0 0 15px rgba(56, 139, 253, 0.1) inset;
+        }
+
+        /* Press any key button styling */
+        .continue-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 32px;
+            min-height: 48px;
+        }
+
+        .continue-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 28px;
+            background: linear-gradient(135deg, rgba(56, 139, 253, 0.18) 0%, rgba(188, 140, 255, 0.18) 100%);
+            border: 1px solid rgba(88, 166, 255, 0.4);
+            border-radius: 8px;
+            color: #e6edf3;
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 15px rgba(56, 139, 253, 0.15);
+            animation: fadeInBtn 0.4s ease-out;
+        }
+
+        .continue-btn:hover {
+            background: linear-gradient(135deg, rgba(56, 139, 253, 0.35) 0%, rgba(188, 140, 255, 0.35) 100%);
+            border-color: rgba(88, 166, 255, 0.8);
+            color: #ffffff;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5), 0 0 25px rgba(56, 139, 253, 0.35);
+            transform: translateY(-2px);
+        }
+
+        .continue-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 10px rgba(56, 139, 253, 0.2);
+        }
+
+        .kbd-badge {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-cyan);
+        }
+
+        @keyframes fadeInBtn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         @keyframes pulse {
@@ -279,17 +337,34 @@
         </div>
         
         <div class="progress-container">
-            <div class="progress-bar"></div>
+            <div class="progress-bar" id="progress-bar"></div>
         </div>
-        <div id="continue-prompt" style="display: none; margin-top: 15px; font-family: var(--font-mono); font-size: 11px; text-align: center; color: var(--text-muted); cursor: pointer; letter-spacing: 1px; text-transform: uppercase;">
-            Press any key or click here to continue
+
+        <div class="continue-container">
+            <button id="continue-prompt" class="continue-btn" style="display: none;">
+                Press Any Key to Continue <span class="kbd-badge">↵</span>
+            </button>
         </div>
     </div>
 
     <script>
         const terminal = document.getElementById("terminal");
+        const progressBar = document.getElementById("progress-bar");
+        const promptEl = document.getElementById("continue-prompt");
 
-        function addLog(text, delay = 0) {
+        let currentStep = 0;
+        let totalSteps = 20;
+
+        function updateProgress(step, total) {
+            currentStep = step;
+            if (total) totalSteps = total;
+            const percentage = Math.min(100, Math.round((currentStep / totalSteps) * 100));
+            if (progressBar) {
+                progressBar.style.width = percentage + "%";
+            }
+        }
+
+        function addLog(text, delay = 0, isOperation = true) {
             return new Promise((resolve) => {
                 setTimeout(() => {
                     const el = document.createElement("div");
@@ -297,6 +372,10 @@
                     el.innerHTML = text;
                     terminal.appendChild(el);
                     terminal.scrollTop = terminal.scrollHeight;
+                    if (isOperation) {
+                        currentStep++;
+                        updateProgress(currentStep, totalSteps);
+                    }
                     resolve();
                 }, delay);
             });
@@ -315,6 +394,8 @@
         }
 
         async function bootSequence() {
+            updateProgress(0, totalSteps);
+
             await addLog("<span class='status-info'>Loading configuration profiles...</span>", 400);
             await addLog("<span class='status-info'>Connecting to local Python core backend...</span>", 400);
             await addLog("<span class='status-info'>Starting 3rd party connection diagnostics...</span>", 400);
@@ -329,34 +410,44 @@
 
             if (!data) {
                 await addLog("<span class='status-error'>[ ERROR ] Failed to contact VLI service backend.</span>", 200);
+                updateProgress(totalSteps, totalSteps);
+                if (promptEl) promptEl.style.display = "inline-flex";
                 return;
             }
+
+            const services = data.services || [];
+            const offlineServices = services.filter(s => !s.connected);
+            const hasWarnings = offlineServices.length > 0;
+
+            // Calculate exact total operations
+            totalSteps = 3 + 1 + services.length + 1 + 1 + 4 + services.length + (hasWarnings ? (1 + offlineServices.length) : 0) + 1;
+            updateProgress(currentStep, totalSteps);
 
             await addLog("<span class='status-highlight'>Core backend online! Running subscription API diagnostics...</span>", 300);
 
             // Sequentially print the status of each service from the JSON response
-            for (const svc of data.services) {
-                await addLog(`[ <span class='status-info'>CHECKING</span> ] ${svc.service}...`, 400);
-                 if (svc.connected) {
-                    await addLog(`[ <span class='status-ok'>OK</span> ] <span class='status-info'>Connected:</span> <span class='status-ok'>${svc.details}</span>`, 150);
+            for (const svc of services) {
+                await addLog(`[ <span class='status-info'>CHECKING</span> ] ${svc.service}...`, 300);
+                if (svc.connected) {
+                    await addLog(`[ <span class='status-ok'>OK</span> ] <span class='status-info'>Connected:</span> <span class='status-ok'>${svc.details}</span>`, 150, false);
                 } else {
-                    await addLog(`[ <span class='status-warn'>WARN</span> ] <span class='status-info'>Preferred key missing: Using fallback</span>`, 150);
-                    await addLog(`           <span class='status-info'>Fallback path:</span> <span class='status-warn'>${svc.fallback}</span>`, 100);
+                    await addLog(`[ <span class='status-warn'>WARN</span> ] <span class='status-info'>Preferred key missing: Using fallback</span>`, 150, false);
+                    await addLog(`           <span class='status-info'>Fallback path:</span> <span class='status-warn'>${svc.fallback}</span>`, 100, false);
                 }
             }
 
-            await addLog("--------------------------------------------------", 300);
+            await addLog("--------------------------------------------------", 200, false);
             await addLog("<span class='status-highlight'>API verification complete. Core initialization finalized.</span>", 200);
-            await addLog("<span class='status-highlight'>BOOT COMPLETED. REDIRECTING TO WORKSPACE...</span>", 200);
+            await addLog("<span class='status-highlight'>BOOT COMPLETED. REDIRECTING TO WORKSPACE...</span>", 200, false);
             
-            await addLog("<br><span class='status-ok'>[ CORE LOAD REPORT ]</span>", 300);
+            await addLog("<br><span class='status-ok'>[ CORE LOAD REPORT ]</span>", 250);
             await addLog(" * Configuration Profile Subsystem .................. <span class='status-ok'>[ LOADED ]</span>", 100);
             await addLog(" * Local Python Core Service Engine ................. <span class='status-ok'>[ LOADED ]</span>", 100);
             await addLog(" * Watchlist Analyzer & Scanner Module .............. <span class='status-ok'>[ LOADED ]</span>", 100);
             await addLog(" * FIFO Trades Plotter Script Generator ............. <span class='status-ok'>[ LOADED ]</span>", 100);
             
             // Dynamically list each third-party subscription API service status
-            for (const svc of data.services) {
+            for (const svc of services) {
                 let statusStr = "";
                 if (svc.connected) {
                     statusStr = "<span class='status-ok'>[ LOADED ]</span>";
@@ -364,7 +455,7 @@
                     const shortFallback = svc.fallback.split(" (")[0].split(" / ")[0];
                     statusStr = `<span class='status-warn'>[ OFFLINE -> ${shortFallback} ]</span>`;
                 }
-                 const paddedName = svc.service.padEnd(42, '.');
+                const paddedName = svc.service.padEnd(42, '.');
                 await addLog(` * <span class='status-info'>${paddedName}</span> ${statusStr}`, 100);
             }
             
@@ -376,24 +467,27 @@
                 "Ngrok Tunneling Service": "External TradingView alert webhooks (webhook ingestion disabled; localhost-only)"
             };
             
-            let hasWarnings = false;
-            for (const svc of data.services) {
+            let loggedWarningHeader = false;
+            for (const svc of services) {
                 if (!svc.connected) {
-                     if (!hasWarnings) {
+                    if (!loggedWarningHeader) {
                         await addLog("<br><span class='status-warn'>[ DIAGNOSTIC WARNINGS & LOGS ]</span>", 150);
-                        hasWarnings = true;
+                        loggedWarningHeader = true;
                     }
                     await addLog(` * <span class='status-warn'>${svc.service}</span>: <span class='status-error'>KEY MISSING</span>`, 100);
                     const affected = affectedFuncs[svc.service] || "None";
-                    await addLog(`   <span class='status-effected'>- EFFECTED:</span> <span class='status-warn'>${affected}</span>`, 100);
+                    await addLog(`   <span class='status-effected'>- EFFECTED:</span> <span class='status-warn'>${affected}</span>`, 100, false);
                 }
             }
 
-            // Display interactive press any key prompt
+            // Final operation step: progress reaches 100% (right edge) as all modules are initialized
+            currentStep = totalSteps;
+            updateProgress(totalSteps, totalSteps);
+
+            // Display interactive press any key button
             setTimeout(() => {
-                const promptEl = document.getElementById("continue-prompt");
                 if (promptEl) {
-                    promptEl.style.display = "block";
+                    promptEl.style.display = "inline-flex";
                 }
                 
                 let navigated = false;
