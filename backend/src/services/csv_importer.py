@@ -311,14 +311,18 @@ def parse_tradingview_paper_trading(csv_path: str):
     if not os.path.exists(csv_path):
         return {}
         
-    activities = []
+    stock_activities = []
+    futures_activities = []
     
     with open(csv_path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            status = row.get("Status") or ""
-            if status != "Filled":
-                continue
+            if "Status" in row:
+                if row.get("Status") != "Filled":
+                    continue
+            else:
+                if not row.get("Fill price"):
+                    continue
                 
             symbol_raw = row.get("Symbol") or ""
             
@@ -367,8 +371,12 @@ def parse_tradingview_paper_trading(csv_path: str):
             
             # Format closing time to ISO string
             try:
-                dt_obj = datetime.datetime.strptime(closing_time, "%Y-%m-%d %H:%M:%S")
-                iso_time = dt_obj.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+                from zoneinfo import ZoneInfo
+                eastern = ZoneInfo("America/New_York")
+                utc = ZoneInfo("UTC")
+                dt_obj = datetime.datetime.strptime(closing_time, "%Y-%m-%d %H:%M:%S").replace(tzinfo=eastern)
+                dt_utc = dt_obj.astimezone(utc)
+                iso_time = dt_utc.strftime("%Y-%m-%dT%H:%M:%S.000Z")
             except Exception:
                 iso_time = closing_time
                 
@@ -386,29 +394,123 @@ def parse_tradingview_paper_trading(csv_path: str):
                     "symbol": sym
                 }
             }
-            activities.append(activity)
-            
-    # Try to determine target account from DROPZONE_ACCOUNTS config mapping
-    target_account = "TradingView Paper Stocks"  # default fallback
-    try:
-        config = get_config()
-        dropzone_accounts = config.get("DROPZONE_ACCOUNTS", {})
-        filename = os.path.basename(csv_path)
-        for acct, pattern in dropzone_accounts.items():
-            if "paper" in acct.lower() and re.match(pattern, filename):
-                target_account = acct
-                break
+            if is_futures:
+                futures_activities.append(activity)
+            else:
+                stock_activities.append(activity)
                 
-        # Perform dynamic mapping along with the dropzone folder scan/parsing rules!
-        asset_type = get_tradingview_csv_asset_type(csv_path)
-        if asset_type == "STOCKS":
-            target_account = "TradingView Paper Stocks"
-        elif asset_type == "FUTURES":
-            target_account = "TradingView Paper Futures"
-    except Exception as e:
-        logger.error(f"Error resolving target account in parse_tradingview_paper_trading: {e}")
-        
-    return {target_account: activities}
+    res = {}
+    if stock_activities:
+        res["TradingView Paper Stocks"] = stock_activities
+    if futures_activities:
+        res["TradingView Paper Futures"] = futures_activities
+    return res
+
+
+def parse_topstepx_trades(csv_path: str):
+    if not os.path.exists(csv_path):
+        return {}
+
+    activities = []
+    with open(csv_path, "r", encoding="utf-8-sig") as f:
+        reader = list(csv.DictReader(f))
+
+    for row in reader:
+            trade_id = (row.get("Id") or "").strip()
+            raw_sym = (row.get("ContractName") or "").strip().upper()
+            if not raw_sym:
+                continue
+
+            clean_sym = re.sub(r'[FGHJKMNQUVXZ]\d{1,2}$', '', raw_sym)
+            if not clean_sym:
+                clean_sym = raw_sym
+            if not clean_sym.startswith("/"):
+                sym = f"/{clean_sym}"
+            else:
+                sym = clean_sym
+
+            trade_type = (row.get("Type") or "").strip().lower()
+            qty_str = (row.get("Size") or "0").replace(',', '')
+            try:
+                qty = float(qty_str)
+            except Exception:
+                qty = 0.0
+
+            if qty <= 0:
+                continue
+
+            entry_price_str = (row.get("EntryPrice") or "0").replace(',', '')
+            exit_price_str = (row.get("ExitPrice") or "0").replace(',', '')
+            try:
+                entry_price = float(entry_price_str)
+                exit_price = float(exit_price_str)
+            except Exception:
+                continue
+
+            entered_at = (row.get("EnteredAt") or "").strip()
+            exited_at = (row.get("ExitedAt") or "").strip()
+
+            def parse_topstep_time(t_str):
+                if not t_str:
+                    return ""
+                try:
+                    parts = t_str.split(" ")
+                    dt_part = f"{parts[0]} {parts[1]}"
+                    dt_obj = datetime.datetime.strptime(dt_part, "%m/%d/%Y %H:%M:%S")
+                    
+                    from zoneinfo import ZoneInfo
+                    eastern = ZoneInfo("America/New_York")
+                    utc = ZoneInfo("UTC")
+                    dt_est = dt_obj.replace(tzinfo=eastern)
+                    dt_utc = dt_est.astimezone(utc)
+                    return dt_utc.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+                except Exception:
+                    return t_str
+
+            entry_iso = parse_topstep_time(entered_at)
+            exit_iso = parse_topstep_time(exited_at)
+
+            if trade_type == "short":
+                entry_action = "SELL"
+                exit_action = "BUY"
+            else:
+                entry_action = "BUY"
+                exit_action = "SELL"
+
+            fees_str = (row.get("Fees") or "0").replace(',', '')
+            comm_str = (row.get("Commissions") or "0").replace(',', '')
+            try:
+                trade_fee = float(fees_str) + float(comm_str)
+            except Exception:
+                trade_fee = 0.0
+            fill_fee = round(trade_fee / 2.0, 4)
+
+            entry_act_id = f"TOPSTEP-ENTRY-{sym}-{entry_iso}-{qty}-{entry_action}-{trade_id}".replace(":", "").replace(" ", "-")
+            exit_act_id = f"TOPSTEP-EXIT-{sym}-{exit_iso}-{qty}-{exit_action}-{trade_id}".replace(":", "").replace(" ", "-")
+
+            activities.append({
+                "id": entry_act_id,
+                "type": entry_action,
+                "units": qty,
+                "price": entry_price,
+                "trade_date": entry_iso,
+                "fee": fill_fee,
+                "status": "Executed",
+                "symbol": {"symbol": sym}
+            })
+
+            activities.append({
+                "id": exit_act_id,
+                "type": exit_action,
+                "units": qty,
+                "price": exit_price,
+                "trade_date": exit_iso,
+                "fee": fill_fee,
+                "status": "Executed",
+                "symbol": {"symbol": sym}
+            })
+
+    return {"TopStepX Futures": activities} if activities else {}
 
 
 def get_dropzone_csvs(optional_path=None):
@@ -456,9 +558,12 @@ def get_tradingview_csv_asset_type(csv_path: str) -> str:
             if not reader or not reader.fieldnames:
                 return ""
             for row in reader:
-                status = row.get("Status") or ""
-                if status != "Filled":
-                    continue
+                if "Status" in row:
+                    if row.get("Status") != "Filled":
+                        continue
+                else:
+                    if not row.get("Fill price"):
+                        continue
                 symbol_raw = row.get("Symbol") or ""
                 if not symbol_raw:
                     continue
@@ -497,7 +602,7 @@ def check_and_backup_dropzone_file(csv_path: str, prefix: str = ""):
     try:
         with open(csv_path, 'r', encoding='utf-8-sig', errors='ignore') as f:
             first_lines = "".join([f.readline() for _ in range(50)])
-            if "Order Time" in first_lines or ("Date" in first_lines and "Time" in first_lines) or "Closing time" in first_lines:
+            if "Order Time" in first_lines or ("Date" in first_lines and "Time" in first_lines) or "Closing time" in first_lines or "EnteredAt" in first_lines or "ExitedAt" in first_lines:
                 contains_date_time = True
     except Exception as e:
         logger.error(f"Error checking headers of {csv_path}: {e}")
@@ -526,19 +631,22 @@ def process_dropzone_files(optional_path=None):
     from src.services.brokerage_cache import BrokerageCache
     
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-    dropzone_dir = optional_path if optional_path else os.path.join(project_root, "data", "dropzone")
+    target_path = optional_path if optional_path else os.path.join(project_root, "data", "dropzone")
+    
+    if os.path.isfile(target_path):
+        all_files = [target_path]
+        dropzone_dir = os.path.dirname(target_path)
+    else:
+        dropzone_dir = target_path
+        all_files = glob.glob(os.path.join(dropzone_dir, "*.csv")) + glob.glob(os.path.join(dropzone_dir, "*.txt"))
+        all_files.sort(key=os.path.getctime, reverse=True)
+
     archive_dir = os.path.join(dropzone_dir, "archive")
     os.makedirs(archive_dir, exist_ok=True)
     
     # Load central configuration regexes
     config = get_config()
     dropzone_accounts = config.get("DROPZONE_ACCOUNTS", {})
-    
-    if os.path.isfile(dropzone_dir):
-        all_files = [dropzone_dir]
-    else:
-        all_files = glob.glob(os.path.join(dropzone_dir, "*.csv")) + glob.glob(os.path.join(dropzone_dir, "*.txt"))
-        all_files.sort(key=os.path.getctime, reverse=True)
         
     updates_made = False
     messages = []
@@ -547,6 +655,21 @@ def process_dropzone_files(optional_path=None):
         filename = os.path.basename(file_path)
         lower_name = filename.lower()
         
+        # Intercept empty 0-byte files
+        if os.path.isfile(file_path) and os.path.getsize(file_path) == 0:
+            dest_path = os.path.join(archive_dir, filename)
+            try:
+                shutil.copy2(file_path, dest_path)
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+                messages.append(f"Archived empty dropzone file: {filename}")
+                updates_made = True
+            except Exception as e:
+                logger.error(f"Failed to archive empty file {file_path}: {e}")
+            continue
+            
         # Intercept color-coded watchlist files
         if "watchlist" in lower_name:
             from src.services.watchlist_db import (
@@ -582,13 +705,23 @@ def process_dropzone_files(optional_path=None):
         target_account = None
         for acct, pattern in dropzone_accounts.items():
             try:
-                if re.match(pattern, filename):
+                if re.match(pattern, filename, re.IGNORECASE) or re.search(pattern, filename, re.IGNORECASE):
                     target_account = acct
                     break
             except Exception as e:
                 logger.error(f"Invalid regex '{pattern}' for account '{acct}': {e}")
                 
-        # If no regex match is found, the file is unrecognized. Do not process it.
+        # Header fallback for TopStepX CSV exports
+        if not target_account and os.path.isfile(file_path):
+            try:
+                with open(file_path, "r", encoding="utf-8-sig", errors="ignore") as header_f:
+                    first_line = header_f.readline()
+                    if "ContractName" in first_line and "EnteredAt" in first_line and "ExitedAt" in first_line:
+                        target_account = "TopStepX Futures"
+            except Exception:
+                pass
+
+        # If no regex match or header fallback is found, the file is unrecognized. Do not process it.
         if not target_account:
             logger.info(f"File {filename} does not match any regex mapping in DROPZONE_ACCOUNTS. Skipping.")
             continue
@@ -598,7 +731,12 @@ def process_dropzone_files(optional_path=None):
         file_type_label = ""
         paper_prefix = ""
         
-        if "paper" in target_account.lower():
+        if "topstep" in target_account.lower() or "topstep" in lower_name:
+            paper_prefix = "TOPSTEP_"
+            check_and_backup_dropzone_file(file_path, prefix=paper_prefix)
+            parsed_data = parse_topstepx_trades(file_path)
+            file_type_label = "TopStepX Futures"
+        elif "paper" in target_account.lower():
             # TradingView Paper Trading export
             asset_type = get_tradingview_csv_asset_type(file_path)
             if asset_type:
@@ -612,9 +750,7 @@ def process_dropzone_files(optional_path=None):
                 
             check_and_backup_dropzone_file(file_path, prefix=paper_prefix)
             parsed_data = parse_tradingview_paper_trading(file_path)
-            if parsed_data:
-                parsed_data = {target_account: list(parsed_data.values())[0]}
-            file_type_label = target_account
+            file_type_label = ", ".join(parsed_data.keys()) if parsed_data else target_account
         else:
             # Fidelity export. Determine specific Fidelity export type from filename.
             if "closed_positions" in lower_name or "closed-positions" in lower_name:
@@ -660,7 +796,7 @@ def process_dropzone_files(optional_path=None):
         for account, data in parsed_data.items():
             if not data:
                 continue
-            if "paper" in file_type_label.lower() or file_type_label in ["Orders", "History"]:
+            if "paper" in file_type_label.lower() or "topstep" in file_type_label.lower() or file_type_label in ["Orders", "History"]:
                 BrokerageCache.merge_activities(account, data)
                 file_updated = True
                 updates_made = True
@@ -673,14 +809,20 @@ def process_dropzone_files(optional_path=None):
                 file_updated = True
                 updates_made = True
                 
-        if file_updated:
+        if file_updated or (target_account and "paper" in target_account.lower()):
+            dest_filename = f"{paper_prefix}{filename}" if (paper_prefix and not filename.startswith(paper_prefix)) else filename
+            dest_path = os.path.join(archive_dir, dest_filename)
             try:
-                dest_filename = f"{paper_prefix}{filename}" if paper_prefix else filename
-                shutil.move(file_path, os.path.join(archive_dir, dest_filename))
-                messages.append(f"Imported {file_type_label}: {dest_filename}")
+                shutil.copy2(file_path, dest_path)
+                try:
+                    os.remove(file_path)
+                except Exception as rem_err:
+                    logger.warning(f"Copied dropzone file {filename} to archive, but could not remove original: {rem_err}")
+                messages.append(f"Imported {file_type_label or target_account}: {dest_filename}")
+                updates_made = True
             except Exception as e:
                 logger.error(f"Failed to archive {file_path}: {e}")
-                messages.append(f"Imported {file_type_label} (failed to archive): {filename}")
+                messages.append(f"Imported {file_type_label or target_account} (failed to archive): {filename}")
                 
     if updates_made:
         from src.tools.broker import export_to_tradezella
@@ -715,33 +857,23 @@ parse_atp_closed_positions = parse_fidelity_closed_positions
 _last_dropzone_files = None
 
 def watch_dropzone_and_process(optional_path=None):
-    global _last_dropzone_files
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
     dropzone_dir = optional_path if optional_path else os.path.join(project_root, "data", "dropzone")
     
     if not os.path.exists(dropzone_dir):
         return "Dropzone directory not found."
-        
+
     try:
         if os.path.isfile(dropzone_dir):
-            current_files = {os.path.basename(dropzone_dir)}
+            current_files = [dropzone_dir]
         else:
-            current_files = {os.path.basename(f) for f in glob.glob(os.path.join(dropzone_dir, "*.csv")) + glob.glob(os.path.join(dropzone_dir, "*.txt"))}
+            current_files = glob.glob(os.path.join(dropzone_dir, "*.csv")) + glob.glob(os.path.join(dropzone_dir, "*.txt"))
             
-        if _last_dropzone_files is None:
-            # Initialize on first run
-            _last_dropzone_files = current_files
-            # Run once to process any existing files
-            if current_files:
-                return process_dropzone_files(optional_path)
-            return "No files to process on initial run."
-            
-        if current_files != _last_dropzone_files:
-            logger.info(f"Dropzone directory change detected. Files changed from {_last_dropzone_files} to {current_files}. Processing.")
-            _last_dropzone_files = current_files
+        if current_files:
+            logger.info(f"Dropzone files detected: {[os.path.basename(f) for f in current_files]}. Processing.")
             return process_dropzone_files(optional_path)
             
-        return "No changes in dropzone folder."
+        return "No files to process in dropzone folder."
     except Exception as e:
         logger.error(f"Error in watch_dropzone_and_process: {e}")
         return f"Error: {e}"

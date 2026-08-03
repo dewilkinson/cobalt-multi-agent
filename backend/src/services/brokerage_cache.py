@@ -818,16 +818,17 @@ class BrokerageCache:
                     if qty_matched > 0.0001:
                         if in_range:
                             act_fee = float(act.get("fee", 0.0) or 0.0)
-                            trade_pnl -= act_fee
-                            realized_pnl += trade_pnl
+                            net_trade_pnl = trade_pnl - act_fee
+                            realized_pnl += trade_pnl # Add gross trade PnL
                             closed_trades.append({
                                 "symbol": sym_raw,
                                 "close_date": trade_date_str,
                                 "qty": qty_matched,
                                 "buy_price": price,
                                 "sell_price": total_entry_value / (qty_matched * multiplier),
-                                "pnl": trade_pnl,
-                                "pnl_pct": (trade_pnl / total_entry_value * 100) if total_entry_value > 0 else 0.0
+                                "pnl": net_trade_pnl,
+                                "pnl_pct": (net_trade_pnl / total_entry_value * 100) if total_entry_value > 0 else 0.0,
+                                "fees": act_fee
                             })
                             
                     if buy_qty_remaining > 0.0001:
@@ -878,16 +879,17 @@ class BrokerageCache:
                     if qty_matched > 0.0001:
                         if in_range:
                             act_fee = float(act.get("fee", 0.0) or 0.0)
-                            trade_pnl -= act_fee
-                            realized_pnl += trade_pnl
+                            net_trade_pnl = trade_pnl - act_fee
+                            realized_pnl += trade_pnl # Add gross trade PnL
                             closed_trades.append({
                                 "symbol": sym_raw,
                                 "close_date": trade_date_str,
                                 "qty": qty_matched,
                                 "sell_price": price,
                                 "buy_price": total_cost_basis / (qty_matched * multiplier),
-                                "pnl": trade_pnl,
-                                "pnl_pct": (trade_pnl / total_cost_basis * 100) if total_cost_basis > 0 else 0.0
+                                "pnl": net_trade_pnl,
+                                "pnl_pct": (net_trade_pnl / total_cost_basis * 100) if total_cost_basis > 0 else 0.0,
+                                "fees": act_fee
                             })
                             
                     if sell_qty_remaining > 0.0001:
@@ -918,6 +920,6 @@ class BrokerageCache:
                 total_fees += float(act.get("fee", 0.0) or 0.0)
 
         realized_pnl -= total_fees
-        return {"total_pnl": realized_pnl, "closed_trades": closed_trades}
+        return {"total_pnl": realized_pnl, "closed_trades": closed_trades, "total_fees": total_fees}
 
 

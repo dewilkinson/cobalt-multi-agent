@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0251";
+        const VLI_CLIENT_VERSION = "00.000.0265";
     </script>
     
     <link
@@ -271,9 +271,9 @@
 
         /* --- CARDS & UI COMPONENTS --- */
         .card {
-            background: var(--glass-bg);
+            background: #0d1118 !important;
             border: 1px solid var(--card-border);
-            border-radius: 2px;
+            border-radius: 4px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -281,15 +281,16 @@
             min-height: 60px;
             min-width: 150px;
             margin-top: 38px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.9);
             transition: opacity 0.2s ease, transform 0.1s ease;
         }
 
         .card.is-dragging {
             z-index: 99999 !important;
             box-shadow: 0 0 30px rgba(88, 166, 255, 0.4) !important;
-            opacity: 0.3 !important;
-            pointer-events: none !important;
+            background: rgba(13, 17, 24, 0.85) !important;
+            backdrop-filter: blur(10px);
+            opacity: 0.85 !important;
         }
 
         .vli-input {
@@ -463,13 +464,13 @@
             display: none !important;
         }
 
-        .resize-handle { position: absolute; z-index: 99; }
-        .resize-n { top: -4px; left: 5px; right: 5px; height: 8px; cursor: ns-resize; }
+        .resize-handle { position: absolute; z-index: 10000; }
+        .resize-n { top: 0px; left: 0px; right: 0px; height: 6px; cursor: ns-resize; z-index: 10001; }
         .resize-s { bottom: -4px; left: 5px; right: 5px; height: 8px; cursor: ns-resize; }
         .resize-e { top: 5px; bottom: 5px; right: -4px; width: 8px; cursor: ew-resize; }
         .resize-w { top: 5px; bottom: 5px; left: -4px; width: 8px; cursor: ew-resize; }
-        .resize-nw { top: -4px; left: -4px; width: 12px; height: 12px; cursor: nwse-resize; }
-        .resize-ne { top: -4px; right: -4px; width: 12px; height: 12px; cursor: nesw-resize; }
+        .resize-nw { top: -4px; left: -4px; width: 12px; height: 12px; cursor: nwse-resize; z-index: 10002; }
+        .resize-ne { top: -4px; right: -4px; width: 12px; height: 12px; cursor: nesw-resize; z-index: 10002; }
         .resize-sw { bottom: -4px; left: -4px; width: 12px; height: 12px; cursor: nesw-resize; }
         .resize-se { bottom: -4px; right: -4px; width: 12px; height: 12px; cursor: nwse-resize; }
 
@@ -508,6 +509,156 @@
             font-size: 9px;
             font-weight: 800;
             color: var(--cobalt-blue);
+        }
+
+        /* --- HIGH-CONTRAST NEWSPAPER EXECUTIVE REPORT TYPOGRAPHY --- */
+        .artifact-content {
+            padding: 24px 32px !important;
+            color: #e6edf3 !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            font-size: 14px !important;
+            line-height: 1.75 !important;
+            letter-spacing: 0.15px !important;
+            background: #0d1117 !important;
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        .artifact-content h1 {
+            font-size: 22px !important;
+            font-weight: 700 !important;
+            color: #ffffff !important;
+            margin: 20px 0 16px 0 !important;
+            padding-bottom: 8px !important;
+            border-bottom: 1px solid rgba(88, 166, 255, 0.3) !important;
+            letter-spacing: -0.3px !important;
+        }
+
+        .artifact-content h2 {
+            font-size: 17px !important;
+            font-weight: 700 !important;
+            color: #7ea3cc !important;
+            margin: 22px 0 12px 0 !important;
+            padding-bottom: 4px !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .artifact-content h3 {
+            font-size: 15px !important;
+            font-weight: 600 !important;
+            color: #ffffff !important;
+            margin: 16px 0 8px 0 !important;
+        }
+
+        .artifact-content p {
+            margin-bottom: 14px !important;
+            color: #d1d5db !important;
+            font-size: 14px !important;
+            line-height: 1.75 !important;
+        }
+
+        .artifact-content strong {
+            color: #ffffff !important;
+            font-weight: 600 !important;
+        }
+
+        .artifact-content a {
+            color: #79c0ff !important;
+            font-weight: 500 !important;
+            text-decoration: underline !important;
+            text-decoration-color: rgba(121, 192, 255, 0.4) !important;
+            transition: color 0.15s ease, text-decoration-color 0.15s ease !important;
+        }
+
+        .artifact-content a:hover {
+            color: #a5d6ff !important;
+            text-decoration-color: #a5d6ff !important;
+        }
+
+        .artifact-content ul, .artifact-content ol {
+            margin: 10px 0 16px 24px !important;
+        }
+
+        .artifact-content li {
+            margin-bottom: 6px !important;
+            color: #d1d5db !important;
+            font-size: 14px !important;
+            line-height: 1.7 !important;
+        }
+
+        .artifact-content blockquote {
+            border-left: 3px solid #7ea3cc !important;
+            padding: 10px 18px !important;
+            margin: 18px 0 !important;
+            background: rgba(126, 163, 204, 0.08) !important;
+            border-radius: 0 4px 4px 0 !important;
+            color: #e6edf3 !important;
+        }
+
+        .artifact-content table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            margin: 18px 0 !important;
+            font-size: 13px !important;
+            border: 1px solid rgba(88, 166, 255, 0.2) !important;
+            border-radius: 6px !important;
+            overflow: hidden !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .artifact-content th {
+            background: #161b22 !important;
+            color: #58a6ff !important;
+            font-family: var(--font-mono) !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.6px !important;
+            font-size: 11px !important;
+            text-align: left !important;
+            padding: 10px 14px !important;
+            border-bottom: 2px solid rgba(88, 166, 255, 0.25) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .artifact-content td {
+            padding: 10px 14px !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.04) !important;
+            color: #d1d5db !important;
+        }
+
+        .artifact-content tr:nth-child(even) td {
+            background: rgba(255, 255, 255, 0.02) !important;
+        }
+
+        .artifact-content tr:hover td {
+            background: rgba(88, 166, 255, 0.06) !important;
+        }
+
+        .artifact-content code {
+            background: #161b22 !important;
+            color: #79c0ff !important;
+            padding: 3px 7px !important;
+            border-radius: 4px !important;
+            font-family: var(--font-mono) !important;
+            font-size: 12px !important;
+            border: 1px solid rgba(110, 118, 129, 0.3) !important;
+        }
+
+        .artifact-content pre {
+            background: #161b22 !important;
+            padding: 14px 18px !important;
+            border-radius: 6px !important;
+            border: 1px solid rgba(88, 166, 255, 0.2) !important;
+            overflow-x: auto !important;
+            margin: 16px 0 !important;
+        }
+
+        .artifact-content pre code {
+            background: transparent !important;
+            padding: 0 !important;
+            border: none !important;
+            color: #e6edf3 !important;
         }
 
         /* Tables & Lists */
@@ -1366,6 +1517,90 @@
             border-radius: 50%;
             background: var(--emerald-green);
         }
+
+        /* Global Trading Session Badges */
+        .session-badge-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-right: 15px;
+        }
+
+        .session-badge {
+            font-family: var(--font-mono, 'JetBrains Mono', monospace);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            user-select: none;
+            cursor: default;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+
+        .session-badge-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            display: inline-block;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Unilluminated state: mid-dark gray - barely visible, but detectable */
+        .session-badge.inactive {
+            background: rgba(255, 255, 255, 0.03);
+            color: #4b5563; /* Mid-dark slate gray */
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            opacity: 0.85;
+        }
+        .session-badge.inactive .session-badge-dot {
+            background-color: #374151;
+        }
+
+        /* Illuminated state: active trading session */
+        .session-badge.active {
+            background: rgba(16, 185, 129, 0.14);
+            color: #34d399;
+            border: 1px solid rgba(52, 211, 153, 0.45);
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
+            text-shadow: 0 0 6px rgba(52, 211, 153, 0.4);
+            opacity: 1;
+        }
+        .session-badge.active .session-badge-dot {
+            background-color: #34d399;
+            box-shadow: 0 0 6px #34d399;
+        }
+
+        /* Warning state: 15-minute pre-session slow flash period */
+        @keyframes sessionSlowFlash {
+            0%, 100% {
+                background: rgba(245, 158, 11, 0.06);
+                color: #78716c;
+                border-color: rgba(245, 158, 11, 0.2);
+                box-shadow: 0 0 2px rgba(245, 158, 11, 0.1);
+            }
+            50% {
+                background: rgba(245, 158, 11, 0.25);
+                color: #fbbf24;
+                border-color: rgba(251, 191, 36, 0.85);
+                box-shadow: 0 0 12px rgba(245, 158, 11, 0.55);
+                text-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+            }
+        }
+
+        .session-badge.warning {
+            animation: sessionSlowFlash 2.5s infinite ease-in-out;
+            opacity: 1;
+        }
+        .session-badge.warning .session-badge-dot {
+            background-color: #f59e0b;
+            box-shadow: 0 0 6px #f59e0b;
+        }
         
         .vli-row-highlighted {
             background-color: rgba(255, 255, 255, 0.18) !important;
@@ -1753,6 +1988,20 @@
             </div>
         </div>
         <div class="menu-right">
+            <div id="global-session-badges" class="session-badge-container">
+                <div class="session-badge inactive" id="badge-sydney" data-session-key="SYDNEY">
+                    <span class="session-badge-dot"></span>SYDNEY
+                </div>
+                <div class="session-badge inactive" id="badge-tokyo" data-session-key="TOKYO">
+                    <span class="session-badge-dot"></span>TOKYO
+                </div>
+                <div class="session-badge inactive" id="badge-london" data-session-key="LONDON">
+                    <span class="session-badge-dot"></span>LONDON
+                </div>
+                <div class="session-badge inactive" id="badge-ny" data-session-key="NY">
+                    <span class="session-badge-dot"></span>NEW YORK
+                </div>
+            </div>
             <div id="vli-token-tally" style="font-family: var(--font-mono); color: var(--cobalt-blue); font-size: 10px; margin-right: 15px; background: rgba(88, 166, 255, 0.1); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(88, 166, 255, 0.2); white-space: nowrap;" title="Daily Token Usage (Gemini API)">
                 In: 0 | Out: 0
             </div>
@@ -2169,13 +2418,14 @@
             'ORDER_HIST': { idPrefix: 'OH', title: 'Portfolio', isSingleton: true },
             'SCHEDULER_LOG': { idPrefix: 'SL', title: 'Scheduler Telemetry', isSingleton: true },
             'ARTIFACT_VIEWER': { idPrefix: 'ART', title: 'Artifact Viewer', isSingleton: false, initContent: () => `<div class="artifact-content msg-ai" style="padding:15px; overflow-y:auto; height:100%;"></div>`, onAttach: () => {} },
-            'TRADE_LEDGER': { idPrefix: 'TL', title: 'Trade Ledger', isSingleton: false }
+            'TRADE_LEDGER': { idPrefix: 'TL', title: 'Trade Ledger', isSingleton: false },
+            'REPORTS_TREE': { idPrefix: 'RP', title: 'Reports & Research', isSingleton: true, initContent: () => `<div class="card-body" style="padding:10px; overflow-y:auto; height:100%;"><div id="artifact-tree-container"></div></div>`, onAttach: () => { if (typeof loadArtifactTree === 'function') loadArtifactTree(); } }
         };
 
         class UXCardManager {
             constructor() {
                 this.instances = {};
-                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'STRUCTURAL_ANALY': 0, 'SCAN_RES': 0, 'ORDER_HIST': 0, 'SCHEDULER_LOG': 0, 'ARTIFACT_VIEWER': 0, 'TRADE_LEDGER': 0 };
+                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'STRUCTURAL_ANALY': 0, 'SCAN_RES': 0, 'ORDER_HIST': 0, 'SCHEDULER_LOG': 0, 'ARTIFACT_VIEWER': 0, 'TRADE_LEDGER': 0, 'REPORTS_TREE': 0 };
             }
 
             generateGUID() {
@@ -2408,6 +2658,7 @@
                                 <div style="color: var(--text-muted);">Day PnL: <span id="pnl-day-${instanceGuid}">$0.00</span></div>
                                 <div style="color: var(--text-muted);">Unrealized: <span id="pnl-unrealized-${instanceGuid}">$0.00</span></div>
                                 <div style="color: var(--text-muted);">Realized (Range): <span id="pnl-realized-${instanceGuid}">$0.00</span></div>
+                                <div style="color: var(--text-muted);">Fees: <span id="pnl-fees-${instanceGuid}">$0.00</span></div>
                                 <div style="color: var(--text-muted); font-weight: bold;">Total PnL: <span id="pnl-total-${instanceGuid}">$0.00</span></div>
                             </div>
                             
@@ -2572,12 +2823,13 @@
 
                 cardBox.innerHTML = `
                     <div class="card-header">
-                        <div style="display:flex; align-items:center; gap:8px;">
+                        <div style="display:flex; align-items:center; gap:8px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">
                             <div class="descriptor" style="cursor: pointer; transition: transform 0.1s;" onclick="insertCardIdIntoChat('${badgeLabel}')" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Insert ${badgeLabel} to Chat">${badgeLabel}</div>
-                            <div class="card-title-text" style="display:inline-flex; align-items:center; gap:4px;">${instanceGuid.includes('futures') ? 'Futures Watchlist' : typeDef.title} ${liveBadgeHTML}${typeGuid === 'SCAN_RES' ? '<span id="scanner-warning-badge" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 800; margin-left: 8px; letter-spacing: 0.5px; display: none;">⚠️ Using Sample Values</span>' : ''}</div>
+                            <div class="card-title-text" style="display:inline-flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis;">${instanceGuid.includes('futures') ? 'Futures Watchlist' : typeDef.title} ${liveBadgeHTML}${typeGuid === 'SCAN_RES' ? '<span id="scanner-warning-badge" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 800; margin-left: 8px; letter-spacing: 0.5px; display: none;">⚠️ Using Sample Values</span>' : ''}</div>
                         </div>
+                        <div class="card-controls" style="display:flex; align-items:center; gap:6px; margin-left:auto; flex-shrink:0;">
                             ${(typeGuid === 'SCAN_RES' || typeGuid === 'MACRO_WL') ? `
-                                <div class="win-btn" onclick="${typeGuid === 'SCAN_RES' ? 'exportScannerWatchlist' : 'exportMacroWatchlist'}('${instanceGuid}'); event.stopPropagation();" title="Export Watchlist" style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-right: 6px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+                                <div class="win-btn" onclick="${typeGuid === 'SCAN_RES' ? 'exportScannerWatchlist' : 'exportMacroWatchlist'}('${instanceGuid}'); event.stopPropagation();" title="Export Watchlist" style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-right: 2px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--emerald-green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                 </div>
                             ` : ''}
@@ -2673,13 +2925,30 @@
 
                 header.addEventListener('mousedown', (e) => {
                     bringToFront(cardBox);
-                    if (e.target.classList.contains('win-btn')) return;
+                    if (e.target.classList.contains('win-btn') || e.target.closest('.win-btn') || e.target.closest('.card-controls')) return;
                     
                     if (document.body.classList.contains('standalone')) {
                         return; // Allow native HTML5 drag in standalone mode
                     }
                     
                     e.preventDefault();
+                    
+                    // Allow window scaling/resizing when dragging on top edge of title bar (within 6px)
+                    const rect = header.getBoundingClientRect();
+                    if (e.clientY - rect.top <= 6) {
+                        winManager.resizing = cardBox;
+                        winManager.resizeDir = 'n';
+                        winManager.startX = e.clientX;
+                        winManager.startY = e.clientY;
+                        winManager.startW = cardBox.offsetWidth;
+                        winManager.startH = cardBox.offsetHeight;
+                        winManager.startTop = cardBox.offsetTop;
+                        winManager.startLeft = cardBox.offsetLeft;
+                        
+                        document.addEventListener('mousemove', onMouseMove);
+                        document.addEventListener('mouseup', onMouseUp);
+                        return;
+                    }
                     
                     winManager.dragging = cardBox;
                     winManager.draggingOriginalZ = cardBox.style.zIndex;
@@ -3282,26 +3551,7 @@
                         bringToFront(card);
                     }
                     saveLayout();
-    
-            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'scanner')) {
-                 UXManager.createCard('SCAN_RES', {top: '2%', left: '33.5%', width: '31%', height: '47%'}, 'scanner');
-            }
-            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'shield')) {
-                 UXManager.createCard('SCAN_RES', {top: '51%', left: '33.5%', width: '31%', height: '47%'}, 'shield');
-            }
-            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCHEDULER_LOG')) {
-                 UXManager.createCard('SCHEDULER_LOG', {top: '51%', left: '66%', width: '33%', height: '47%'}, 'scheduler');
-            }
-
-
-            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'scanner')) {
-                 UXManager.createCard('SCAN_RES', {top: '2%', left: '33.5%', width: '31%', height: '47%'}, 'scanner');
-            }
-            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'shield')) {
-                 UXManager.createCard('SCAN_RES', {top: '51%', left: '33.5%', width: '31%', height: '47%'}, 'shield');
-            }
-
-                updateViewMenu();
+                    updateViewMenu();
                 };
                 viewMenu.appendChild(el);
             });
@@ -3741,12 +3991,60 @@
             saveLayout();
         }
 
+        const GLOBAL_SESSIONS_CONFIG = [
+            { key: 'SYDNEY', label: 'SYDNEY', id: 'badge-sydney', startHour: 17.0, endHour: 2.0, timeStr: '17:00 - 02:00 ET' },
+            { key: 'TOKYO', label: 'TOKYO', id: 'badge-tokyo', startHour: 19.0, endHour: 4.0, timeStr: '19:00 - 04:00 ET' },
+            { key: 'LONDON', label: 'LONDON', id: 'badge-london', startHour: 2.0, endHour: 11.5, timeStr: '02:00 - 11:30 ET' },
+            { key: 'NY', label: 'NEW YORK', id: 'badge-ny', startHour: 8.0, endHour: 17.0, timeStr: '08:00 - 17:00 ET' }
+        ];
+
+        function updateGlobalSessionBadges() {
+            const etString = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
+            const etDate = new Date(etString);
+            const currentEtMins = etDate.getHours() * 60 + etDate.getMinutes();
+
+            GLOBAL_SESSIONS_CONFIG.forEach(session => {
+                const badgeEl = document.getElementById(session.id);
+                if (!badgeEl) return;
+
+                const startMins = Math.round(session.startHour * 60);
+                const endMins = Math.round(session.endHour * 60);
+
+                // Check if session is currently active
+                let isActive = false;
+                if (startMins < endMins) {
+                    isActive = (currentEtMins >= startMins && currentEtMins < endMins);
+                } else {
+                    // Overnight session (e.g. 17:00 to 02:00)
+                    isActive = (currentEtMins >= startMins || currentEtMins < endMins);
+                }
+
+                // Minutes until session starts
+                const minsUntilStart = (startMins - currentEtMins + 1440) % 1440;
+                const isWarning = !isActive && (minsUntilStart > 0 && minsUntilStart <= 15);
+
+                badgeEl.classList.remove('active', 'warning', 'inactive');
+
+                if (isActive) {
+                    badgeEl.classList.add('active');
+                    badgeEl.dataset.vliTooltip = `${session.label} Session (ACTIVE)\nHours: ${session.timeStr}`;
+                } else if (isWarning) {
+                    badgeEl.classList.add('warning');
+                    badgeEl.dataset.vliTooltip = `${session.label} Session (UPCOMING in ${minsUntilStart} min)\nHours: ${session.timeStr}`;
+                } else {
+                    badgeEl.classList.add('inactive');
+                    badgeEl.dataset.vliTooltip = `${session.label} Session (CLOSED)\nHours: ${session.timeStr}`;
+                }
+            });
+        }
+
         function updateClock() {
             const clock = document.getElementById('system-clock');
             if (clock) {
                 const now = new Date();
                 clock.innerText = now.toLocaleTimeString('en-US', { hour12: false });
             }
+            updateGlobalSessionBadges();
         }
         setInterval(updateClock, 1000);
         updateClock();
@@ -4349,54 +4647,81 @@
             return drawEQBarIndicator(normVal, false, tooltipText);
         }
 
-        function drawZoneEntryEQBar(adjustedZoneVal) {
-            const adjVal = adjustedZoneVal !== undefined && adjustedZoneVal !== null ? parseFloat(adjustedZoneVal) : 0.0;
+        function drawZoneEntryEQBar(val) {
+            const pdVal = val !== undefined && val !== null ? parseFloat(val) : 0.0;
             
-            let discountPct = 0.0;
-            if (adjVal > 0.0) {
-                discountPct = Math.min(1.0, adjVal);
-            }
+            // Palette for 9 segments [0..8]:
+            // Left (Discount): Mid Slate Blue, Light Slate Blue, Light Gray
+            // Center (Equilibrium): Light Gray
+            // Right (Premium): Yellow, Orange, Red
+            const midSlateBlue   = '#4a6fa5'; // Deep Discount (Index 0, 1)
+            const lightSlateBlue = '#7b9acc'; // Mild Discount (Index 2)
+            const lightGray      = '#cbd5e1'; // Slight Discount / Center (Index 3, 4)
+            const yellow         = '#ffcc00'; // Mild Premium (Index 5)
+            const orange         = '#ff7a00'; // Moderate Premium (Index 6, 7)
+            const red            = '#ff3344'; // Deep Premium (Index 8)
             
-            let numActive = 1;
-            if (adjVal > 0.0) {
-                numActive = Math.max(1, Math.ceil(discountPct * 9));
+            const colors = [
+                midSlateBlue,   // 0: Deep Discount
+                midSlateBlue,   // 1: Deep Discount
+                lightSlateBlue, // 2: Mild Discount
+                lightGray,      // 3: Slight Discount
+                lightGray,      // 4: Equilibrium (Center)
+                yellow,         // 5: Slight Premium
+                orange,         // 6: Mild Premium
+                orange,         // 7: Moderate Premium
+                red             // 8: Deep Premium
+            ];
+            
+            // Normalize pdVal: pdVal <= -0.57 is Deep Discount (-1.0), pdVal >= +0.53 is Deep Premium (+1.0)
+            let normVal = 0.0;
+            if (pdVal > 0.0) {
+                normVal = Math.min(1.0, pdVal / 0.53);
+            } else if (pdVal < 0.0) {
+                normVal = Math.max(-1.0, pdVal / 0.57);
             }
             
             let active = new Array(9).fill(false);
-            for (let i = 0; i < numActive; i++) {
-                active[i] = true;
+            active[4] = true; // Center (Equilibrium / Zero) is always active
+            
+            if (normVal > 0.0) {
+                active[5] = true;
+                if (normVal >= 0.25) active[6] = true;
+                if (normVal >= 0.50) active[7] = true;
+                if (normVal >= 0.75) active[8] = true;
+            } else if (normVal < 0.0) {
+                active[3] = true;
+                if (normVal <= -0.25) active[2] = true;
+                if (normVal <= -0.50) active[1] = true;
+                if (normVal <= -0.75) active[0] = true;
             }
-            
-            const red = 'var(--ruby-red)';
-            const orange = '#ff7a00';
-            const blue = '#00e5ff';
-            const yellow = '#ffc400';
-            const green = 'var(--emerald-green)';
-            
-            const colors = [red, red, orange, orange, blue, blue, yellow, yellow, green];
             
             let barsHtml = '';
             for (let i = 0; i < 9; i++) {
-                const opacity = active[i] ? '1.0' : '0.20';
+                const isActive = active[i];
+                const opacity = isActive ? '1.0' : '0.20';
                 let brightnessStyle = '';
-                if (active[i] && i === 8 && discountPct >= 0.9) {
-                    brightnessStyle = 'filter: brightness(1.5);';
+                if (isActive) {
+                    if ((i === 0 && normVal <= -0.9) || (i === 8 && normVal >= 0.9)) {
+                        brightnessStyle = 'filter: brightness(1.4);';
+                    }
                 }
                 barsHtml += `<div style="width: 4px; height: 12px; background: ${colors[i]}; opacity: ${opacity}; border-radius: 1px; ${brightnessStyle}"></div>`;
             }
             
-            let tooltipText = "";
-            if (adjVal <= 0.0) {
-                tooltipText = `Discount Zone: NO\n(Current price is NOT in discount zone)\n\n• Red: No Discount\n• Green (9th bar): Full Discount (Meets Deep Discount threshold)`;
-            } else if (discountPct >= 0.9) {
-                tooltipText = `Discount Zone: HARD YES\n(Current price is fully in discount zone)\n\n• Red: No Discount\n• Green (9th bar): Full Discount (Meets Deep Discount threshold)`;
-            } else {
-                tooltipText = `Discount Zone: YES (${Math.round(discountPct * 100)}% to target)\n\n• Red: No Discount\n• Green (9th bar): Full Discount (Meets Deep Discount threshold)`;
-            }
+            let zoneLabel = "Equilibrium";
+            if (pdVal <= -0.57) zoneLabel = "Deep Discount";
+            else if (pdVal <= -0.24) zoneLabel = "Mild Discount";
+            else if (pdVal < 0.24) zoneLabel = "Equilibrium";
+            else if (pdVal < 0.53) zoneLabel = "Mild Premium";
+            else zoneLabel = "Deep Premium";
+            
+            const pdText = pdVal >= 0 ? '+' + pdVal.toFixed(2) : pdVal.toFixed(2);
+            const tooltipText = `PD Zone (Dealing Range Position): ${pdText} (${zoneLabel})\n\n• Left (Slate Blue): Discount Zone (Below Equilibrium)\n• Center (Light Gray): Equilibrium (0.0)\n• Right (Yellow/Orange/Red): Premium Zone (Above Equilibrium)`;
             
             return `
                 <div style="display: flex; gap: 2px; align-items: center; justify-content: center; height: 14px;" 
-                     title="${tooltipText}">
+                     title="${tooltipText.replace(/"/g, '&quot;')}">
                     ${barsHtml}
                 </div>
             `;
@@ -4430,16 +4755,37 @@
             let zoneScore = Math.max(0.0, Math.min(1.0, adjustedZoneVal));
 
             let rvolVal = c.rvol !== undefined && c.rvol !== null ? parseFloat(c.rvol) : 1.0;
-            let rvolScore = Math.max(0.0, Math.min(1.0, (rvolVal - 0.5) / 1.5));
+            let rvolScore = rvolVal >= 1.5 ? 1.0 : (rvolVal >= 1.0 ? 0.65 : 0.20);
 
-            let vwapVal = c.vwap_state !== undefined && c.vwap_state !== null ? parseFloat(c.vwap_state) : 0.0;
-            let vwapScore = 0.0;
-            if (vwapVal >= 0.1 && vwapVal <= 0.5) {
-                vwapScore = 1.0;
-            } else if (vwapVal > 0.5) {
-                vwapScore = Math.max(0.0, 1.0 - (vwapVal - 0.5) / 0.3);
-            } else if (vwapVal > 0.0) {
-                vwapScore = vwapVal / 0.1;
+            // VWAP Alignment (Bullish & Above VWAP OR Bearish & Below VWAP)
+            let vwapState = c.vwap_state;
+            let isVwapAbove = false;
+            let numVwap = parseFloat(vwapState);
+            if (!isNaN(numVwap)) {
+                isVwapAbove = numVwap >= 0;
+            } else if (typeof vwapState === 'boolean') {
+                isVwapAbove = vwapState;
+            } else if (typeof vwapState === 'string') {
+                const s = vwapState.toUpperCase();
+                isVwapAbove = s.includes('ABOVE') || s.includes('BULL') || s.includes('UP') || s === 'ABOVE_VWAP';
+            }
+            let vwapScore = (isBullish && isVwapAbove) || (!isBullish && !isVwapAbove) ? 1.0 : 0.0;
+
+            // Volume Z-Score Confluence
+            let zVal = c.z_score !== undefined ? parseFloat(c.z_score) : (c.zscore !== undefined ? parseFloat(c.zscore) : 0.0);
+            let zScoreScore = zVal >= 1.0 ? 1.0 : (zVal >= 0.0 ? 0.60 : 0.20);
+
+            // Run Rate / Intraday Pace Confluence
+            let rrVal = c.vol_run_rate !== undefined ? parseFloat(c.vol_run_rate) : (c.run_rate !== undefined ? parseFloat(c.run_rate) : 50.0);
+            let runRateScore = rrVal >= 75 ? 1.0 : (rrVal >= 50 ? 0.60 : 0.20);
+
+            // Daily Close Range (DCR) Entry Location Confluence
+            let dcrVal = c.dcr !== undefined ? parseFloat(c.dcr) : 50.0;
+            let dcrScore = 0.50;
+            if (isBullish) {
+                dcrScore = dcrVal >= 65 ? 1.0 : (dcrVal >= 35 ? 0.50 : 0.10);
+            } else {
+                dcrScore = dcrVal <= 35 ? 1.0 : (dcrVal <= 65 ? 0.50 : 0.10);
             }
 
             const duration = card.dataset.activeDuration || 'SWING_MED';
@@ -4486,21 +4832,25 @@
 
             let total = 0.0;
             if (isSortinoEnabled) {
-                total = (trendScore * 0.20) + 
-                        (zoneScore * 0.20) + 
-                        (crtScore * 0.15) + 
-                        (smcTriggerScore * 0.15) + 
-                        (structureScore * 0.10) + 
-                        (rvolScore * 0.10) + 
-                        (vwapScore * 0.05) + 
-                        (sortinoScore * 0.05);
+                total = (trendScore * 0.14) + 
+                        (zoneScore * 0.14) + 
+                        (structureScore * 0.14) + 
+                        (crtScore * 0.09) + 
+                        (rvolScore * 0.09) + 
+                        (zScoreScore * 0.09) + 
+                        (runRateScore * 0.09) + 
+                        (dcrScore * 0.09) + 
+                        (vwapScore * 0.055) + 
+                        (sortinoScore * 0.075);
             } else {
-                total = (trendScore * 0.225) + 
-                        (zoneScore * 0.225) + 
-                        (crtScore * 0.15) + 
-                        (smcTriggerScore * 0.15) + 
-                        (structureScore * 0.10) + 
+                total = (trendScore * 0.15) + 
+                        (zoneScore * 0.15) + 
+                        (structureScore * 0.15) + 
+                        (crtScore * 0.10) + 
                         (rvolScore * 0.10) + 
+                        (zScoreScore * 0.10) + 
+                        (runRateScore * 0.10) + 
+                        (dcrScore * 0.10) + 
                         (vwapScore * 0.05);
             }
 
@@ -4510,6 +4860,9 @@
                 zoneScore,
                 rvolScore,
                 vwapScore,
+                zScoreScore,
+                runRateScore,
+                dcrScore,
                 sortinoScore,
                 crtScore,
                 smcTriggerScore,
@@ -4518,31 +4871,37 @@
             };
         }
 
-        function drawConfidenceEQBar(scoreObj) {
-            const total = scoreObj.total;
-            const numActive = Math.max(1, Math.ceil(total * 9));
+        function drawConfidenceEQBar(scoreObj, symbol, card) {
+            const total = scoreObj.total; // 0.0 to 1.0
+            const rawStars = total * 5.0;
+            const stars = Math.round(rawStars * 2) / 2; // 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0
             
-            let active = new Array(9).fill(false);
-            for (let i = 0; i < numActive; i++) {
-                active[i] = true;
-            }
+            let mainColor = '#ffb300';
+            if (stars >= 4.5) mainColor = '#ffc107';
+            else if (stars >= 3.5) mainColor = '#ffca28';
+            else if (stars >= 2.5) mainColor = '#ffe082';
+            else if (stars >= 1.5) mainColor = '#ff9800';
+            else if (stars >= 0.5) mainColor = '#ff5722';
+            else mainColor = 'rgba(255,255,255,0.2)';
             
-            const red = 'var(--ruby-red)';
-            const orange = '#ff7a00';
-            const yellow = '#ffc400';
-            const blue = '#00e5ff';
-            const green = 'var(--emerald-green)';
-            
-            const colors = [red, red, orange, orange, yellow, yellow, blue, blue, green];
-            
-            let barsHtml = '';
-            for (let i = 0; i < 9; i++) {
-                const opacity = active[i] ? '1.0' : '0.20';
-                let brightnessStyle = '';
-                if (active[i] && i === 8 && total >= 0.9) {
-                    brightnessStyle = 'filter: brightness(1.5);';
+            let starsHtml = '';
+            for (let i = 1; i <= 5; i++) {
+                if (stars >= i) {
+                    starsHtml += `<svg width="11" height="11" viewBox="0 0 24 24" fill="${mainColor}" style="filter: drop-shadow(0 0 2px ${mainColor}88);"><path d="M12 1.5l3.09 6.26L22 8.77l-5 4.87 1.18 6.88L12 17.27l-6.18 3.25L7 13.64l-5-4.87 6.91-1.01L12 1.5z"/></svg>`;
+                } else if (stars === i - 0.5) {
+                    const gradId = `halfStar_${Math.floor(Math.random() * 1000000)}`;
+                    starsHtml += `<svg width="11" height="11" viewBox="0 0 24 24" style="filter: drop-shadow(0 0 1px ${mainColor}66);">
+                        <defs>
+                            <linearGradient id="${gradId}">
+                                <stop offset="50%" stop-color="${mainColor}"/>
+                                <stop offset="50%" stop-color="rgba(255,255,255,0.18)"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M12 1.5l3.09 6.26L22 8.77l-5 4.87 1.18 6.88L12 17.27l-6.18 3.25L7 13.64l-5-4.87 6.91-1.01L12 1.5z" fill="url(#${gradId})"/>
+                    </svg>`;
+                } else {
+                    starsHtml += `<svg width="11" height="11" viewBox="0 0 24 24" fill="rgba(255,255,255,0.18)"><path d="M12 1.5l3.09 6.26L22 8.77l-5 4.87 1.18 6.88L12 17.27l-6.18 3.25L7 13.64l-5-4.87 6.91-1.01L12 1.5z"/></svg>`;
                 }
-                barsHtml += `<div style="width: 4px; height: 12px; background: ${colors[i]}; opacity: ${opacity}; border-radius: 1px; ${brightnessStyle}"></div>`;
             }
             
             let tier = "D-Tier (Weak Setup)";
@@ -4551,30 +4910,39 @@
             else if (total >= 0.6) tier = "B-Tier (Moderate Setup)";
             else if (total >= 0.45) tier = "C-Tier (Fair Setup)";
             
-            let tooltipText = `Setup Quality: ${Math.round(total * 100)}% (${tier})\n\n`;
+            let tooltipText = `Setup Quality Rating: ${stars.toFixed(1)} / 5.0 Stars (${Math.round(total * 100)}% - ${tier})\n\n`;
             if (scoreObj.isSortinoEnabled) {
-                tooltipText += `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 20%)\n` +
-                               `• Discount: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 20%)\n` +
-                               `• Accuracy: ${Math.round(scoreObj.crtScore * 100)}% (Weight: 15%)\n` +
-                               `• SMC Trigger: ${Math.round(scoreObj.smcTriggerScore * 100)}% (Weight: 15%)\n` +
-                               `• Market Structure: ${Math.round(scoreObj.structureScore * 100)}% (Weight: 10%)\n` +
-                               `• Relative Volume: ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 10%)\n` +
-                               `• VWAP Position: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 5%)\n` +
-                               `• Sortino Ratio: ${Math.round(scoreObj.sortinoScore * 100)}% (Weight: 5%)`;
+                tooltipText += `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 14%)\n` +
+                               `• Zone Entry: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 14%)\n` +
+                               `• Market Structure: ${Math.round(scoreObj.structureScore * 100)}% (Weight: 14%)\n` +
+                               `• Relative Volume (RVOL): ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 9%)\n` +
+                               `• Volume Z-Score: ${Math.round(scoreObj.zScoreScore * 100)}% (Weight: 9%)\n` +
+                               `• Intraday Pace (Run Rate): ${Math.round(scoreObj.runRateScore * 100)}% (Weight: 9%)\n` +
+                               `• Daily Close Range (DCR): ${Math.round(scoreObj.dcrScore * 100)}% (Weight: 9%)\n` +
+                               `• CRT Confluence: ${Math.round(scoreObj.crtScore * 100)}% (Weight: 9%)\n` +
+                               `• VWAP Alignment: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 5.5%)\n` +
+                               `• Sortino Ratio: ${Math.round(scoreObj.sortinoScore * 100)}% (Weight: 7.5%)`;
             } else {
-                tooltipText += `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 22.5%)\n` +
-                               `• Discount: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 22.5%)\n` +
-                               `• Accuracy: ${Math.round(scoreObj.crtScore * 100)}% (Weight: 15%)\n` +
-                               `• SMC Trigger: ${Math.round(scoreObj.smcTriggerScore * 100)}% (Weight: 15%)\n` +
-                               `• Market Structure: ${Math.round(scoreObj.structureScore * 100)}% (Weight: 10%)\n` +
-                               `• Relative Volume: ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 10%)\n` +
-                               `• VWAP Position: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 5%)`;
+                tooltipText += `• Trend Alignment: ${Math.round(scoreObj.trendScore * 100)}% (Weight: 15%)\n` +
+                               `• Zone Entry: ${Math.round(scoreObj.zoneScore * 100)}% (Weight: 15%)\n` +
+                               `• Market Structure: ${Math.round(scoreObj.structureScore * 100)}% (Weight: 15%)\n` +
+                               `• Relative Volume (RVOL): ${Math.round(scoreObj.rvolScore * 100)}% (Weight: 10%)\n` +
+                               `• Volume Z-Score: ${Math.round(scoreObj.zScoreScore * 100)}% (Weight: 10%)\n` +
+                               `• Intraday Pace (Run Rate): ${Math.round(scoreObj.runRateScore * 100)}% (Weight: 10%)\n` +
+                               `• Daily Close Range (DCR): ${Math.round(scoreObj.dcrScore * 100)}% (Weight: 10%)\n` +
+                               `• CRT Confluence: ${Math.round(scoreObj.crtScore * 100)}% (Weight: 10%)\n` +
+                               `• VWAP Alignment: ${Math.round(scoreObj.vwapScore * 100)}% (Weight: 5%)`;
+            }
+            
+            if (isFuturesSymbol(symbol, card)) {
+                const sess = getFuturesSessionInfo();
+                tooltipText += `\n\n🌐 Futures World Session Info:\n• Active Session: ${sess.sessionLabel}\n• Schedule: ${sess.instWindow}\n• CME 23h Cycle: ${sess.elapsedHours.toFixed(1)} / 23 hrs (${Math.round(sess.sessionPct)}% elapsed)`;
             }
                                 
             return `
                 <div style="display: flex; gap: 2px; align-items: center; justify-content: center; height: 14px;" 
-                     title="${tooltipText}">
-                    ${barsHtml}
+                     title="${tooltipText.replace(/"/g, '&quot;')}">
+                    ${starsHtml}
                 </div>
             `;
         }
@@ -4613,7 +4981,7 @@
                     }
                 }
                 
-                if (sweepIdx !== -1 && sweepIdx - 1 >= 0) {
+                if (sweepIdx !== -1) {
                     let rangeCandleIdx = sweepIdx - 1;
                     while (rangeCandleIdx > 0) {
                         const rState = segs[rangeCandleIdx].state || 'NONE';
@@ -4623,8 +4991,14 @@
                             break;
                         }
                     }
-                    let rangeLow = parseFloat(segs[rangeCandleIdx].low);
-                    let rangeHigh = parseFloat(segs[rangeCandleIdx].high);
+                    let rangeLow, rangeHigh;
+                    if (rangeCandleIdx >= 0 && segs[rangeCandleIdx]) {
+                        rangeLow = parseFloat(segs[rangeCandleIdx].low);
+                        rangeHigh = parseFloat(segs[rangeCandleIdx].high);
+                    } else {
+                        rangeLow = parseFloat(segs[sweepIdx].prev_low);
+                        rangeHigh = parseFloat(segs[sweepIdx].prev_high);
+                    }
                     let hasNested = false;
                     
                     for (let i = sweepIdx; i <= lastIdx; i++) {
@@ -4962,6 +5336,251 @@
             `;
         }
 
+        function drawRVOLIndicator(rvol) {
+            const val = parseFloat(rvol);
+            if (isNaN(val)) return `<div style="font-family: var(--font-mono); color: rgba(255,255,255,0.2); font-size: 11px; font-weight: 700; text-align: center;">-</div>`;
+            const color = val >= 1.5 ? '#00ff66' : (val >= 1.0 ? '#a0a0a0' : (val >= 0.7 ? '#ffcc00' : '#ff3344'));
+            return `<div title="Relative Volume (RVOL): ${val.toFixed(2)}x\nMultiple of historical average volume for current timeframe." style="font-family: var(--font-mono); color: ${color}; font-size: 11px; font-weight: 800; text-align: center;">${val.toFixed(2)}x</div>`;
+        }
+
+        function drawVWAPIndicator(vwapState, symbol, card) {
+            if (vwapState === undefined || vwapState === null) {
+                return `<div style="font-family: var(--font-mono); color: rgba(255,255,255,0.2); font-size: 11px; font-weight: 700; text-align: center;">-</div>`;
+            }
+            
+            let isAbove = false;
+            const num = parseFloat(vwapState);
+            if (!isNaN(num)) {
+                isAbove = num >= 0;
+            } else if (typeof vwapState === 'boolean') {
+                isAbove = vwapState;
+            } else if (typeof vwapState === 'string') {
+                const s = vwapState.toUpperCase();
+                isAbove = s.includes('ABOVE') || s.includes('BULL') || s.includes('UP') || s === 'ABOVE_VWAP';
+            }
+            
+            const color = isAbove ? '#00ff66' : '#ff3344';
+            const symbolChar = isAbove ? '▲' : '▼';
+            const numDetail = !isNaN(num) ? ` (${num >= 0 ? '+' : ''}${num.toFixed(2)}σ)` : '';
+            let statusText = isAbove ? `Above Session VWAP (Bullish Bias)${numDetail}` : `Below Session VWAP (Bearish Bias)${numDetail}`;
+            
+            if (isFuturesSymbol(symbol, card)) {
+                const sess = getFuturesSessionInfo();
+                const sessionAnchor = sess.sessionKey === 'ASIA' ? '18:00 ET (Asia Globex Open)' : 
+                                      (sess.sessionKey === 'LONDON' ? '02:00 ET (London Open)' : 
+                                      (sess.sessionKey === 'NY_AM' ? '08:30 ET (NY RTH Open)' : '12:00 ET (NY PM Session)'));
+                statusText += `\n\n🌐 Futures World Session VWAP Anchor:\n• Active Session: ${sess.sessionLabel}\n• Schedule: ${sess.instWindow}\n• Session VWAP Anchor: ${sessionAnchor}`;
+            }
+            
+            return `
+                <div title="${statusText.replace(/"/g, '&quot;')}" style="display: flex; align-items: center; justify-content: center; height: 14px;">
+                    <span style="color: ${color}; font-size: 12px; font-weight: 900; filter: drop-shadow(0 0 3px ${color}88); display: inline-block; line-height: 1;">${symbolChar}</span>
+                </div>
+            `;
+        }
+
+        function drawSustainedIndicator(sustained) {
+            const isSust = sustained === true || sustained === 'true' || sustained === 1;
+            const text = isSust ? '✓' : '✕';
+            const color = isSust ? '#00ff66' : 'rgba(255,255,255,0.2)';
+            const tooltip = isSust 
+                ? 'Sustained Volume Persistence: ✓ (Lime)\n3-bar RVOL moving average is above Caution Threshold (≥1.2x), signaling multi-bar institutional momentum.' 
+                : 'Sustained Volume Persistence: ✕ (Muted)\nSingle-bar volume spike or volume below caution level (<1.2x).';
+            return `<div title="${tooltip}" style="font-family: var(--font-mono); color: ${color}; font-size: 11px; font-weight: 800; text-align: center;">${text}</div>`;
+        }
+
+        function isFuturesSymbol(symbol, card) {
+            if (!symbol) return false;
+            if (card && card.dataset && card.dataset.typeGuid === 'FUTURES_WL') return true;
+            const sym = String(symbol).toUpperCase().trim();
+            if (sym.startsWith('/') || sym.endsWith('=F')) return true;
+            const futuresRoots = [
+                'ES', 'NQ', 'YM', 'RTY', 'MES', 'MNQ', 'MYM', 'M2K',
+                'CL', 'QM', 'MCL', 'GC', 'MGC', 'SI', 'HG', 'NG',
+                'ZC', 'ZW', 'ZS', 'ZB', 'ZN', 'ZF', 'ZT', 'UB',
+                '6E', '6B', '6A', '6C', '6J', '6S', 'BTC', 'ETH', 'NK225', 'VX'
+            ];
+            const cleanSym = sym.replace(/[^A-Z0-9]/g, '');
+            return futuresRoots.some(root => cleanSym === root || cleanSym.startsWith(root + '1') || cleanSym.startsWith(root + '2') || cleanSym.startsWith(root + '!'));
+        }
+
+        function getFuturesSessionInfo(dateObj = new Date()) {
+            const etString = dateObj.toLocaleString("en-US", { timeZone: "America/New_York" });
+            const etDate = new Date(etString);
+            const etHours = etDate.getHours();
+            const etMinutes = etDate.getMinutes();
+            const etDec = etHours + etMinutes / 60.0;
+            
+            let elapsedHours = 0;
+            if (etDec >= 18.0) {
+                elapsedHours = etDec - 18.0;
+            } else if (etDec < 17.0) {
+                elapsedHours = 6.0 + etDec;
+            } else {
+                elapsedHours = 23.0;
+            }
+            const sessionPct = Math.min(100, Math.max(0, (elapsedHours / 23.0) * 100));
+            
+            let sessionKey = 'NY_AM';
+            let sessionLabel = 'NY Morning (RTH Open)';
+            let instWindow = 'NY AM Killzone (08:30 - 11:00 ET)';
+            let volFactor = 1.00;
+            let isMaintenance = false;
+
+            if (etDec >= 18.0 || etDec < 2.0) {
+                sessionKey = 'ASIA';
+                sessionLabel = 'Asia (Sydney / Tokyo)';
+                instWindow = 'Asia Liquidity Range (18:00 - 02:00 ET)';
+                volFactor = 0.35;
+            } else if (etDec >= 2.0 && etDec < 8.5) {
+                sessionKey = 'LONDON';
+                sessionLabel = 'London / European';
+                instWindow = 'London Killzone (02:00 - 05:00 ET)';
+                volFactor = 0.65;
+            } else if (etDec >= 8.5 && etDec < 12.0) {
+                sessionKey = 'NY_AM';
+                sessionLabel = 'NY Morning (RTH Open)';
+                instWindow = 'NY AM Killzone (08:30 - 11:00 ET)';
+                volFactor = 1.00;
+            } else if (etDec >= 12.0 && etDec < 17.0) {
+                sessionKey = 'NY_PM';
+                sessionLabel = 'NY Afternoon / Close';
+                instWindow = 'NY PM Killzone (13:30 - 16:00 ET)';
+                volFactor = 0.75;
+            } else {
+                sessionKey = 'CME_MAINTENANCE';
+                sessionLabel = 'CME Maintenance Break';
+                instWindow = 'Market Closed (17:00 - 18:00 ET)';
+                volFactor = 0.10;
+                isMaintenance = true;
+            }
+
+            return {
+                sessionKey,
+                sessionLabel,
+                instWindow,
+                volFactor,
+                elapsedHours,
+                sessionPct,
+                isMaintenance
+            };
+        }
+
+        function drawZScoreIndicator(zScore, symbol, card) {
+            const val = parseFloat(zScore);
+            if (isNaN(val)) return `<div style="font-family: var(--font-mono); color: rgba(255,255,255,0.2); font-size: 11px; font-weight: 700; text-align: center;">-</div>`;
+            
+            const colors = [
+                '#ff3344', '#ff6600', '#ff9900', '#ffcc00', '#888888',
+                '#d4e157', '#76ff03', '#00ff66', '#00e676'
+            ];
+            
+            const sigmas = [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0];
+            let barsHtml = '';
+            
+            for (let i = 0; i < 9; i++) {
+                let isActive = false;
+                if (i === 4) {
+                    isActive = true;
+                } else if (val >= 0) {
+                    isActive = (i > 4) && (val >= sigmas[i - 1]);
+                } else {
+                    isActive = (i < 4) && (val <= sigmas[i + 1]);
+                }
+                
+                const opacity = isActive ? '1.0' : '0.20';
+                let extraStyle = '';
+                
+                if (i === 8 && val > 2.0) {
+                    extraStyle = 'filter: brightness(1.6); box-shadow: 0 0 5px #00e676;';
+                } else if (i === 0 && val < -2.0) {
+                    extraStyle = 'filter: brightness(1.6); box-shadow: 0 0 5px #ff3344;';
+                }
+                
+                barsHtml += `<div style="width: 4px; height: 12px; background: ${colors[i]}; opacity: ${opacity}; border-radius: 1px; ${extraStyle}"></div>`;
+            }
+            
+            const sign = val >= 0 ? '+' : '';
+            const levelStr = val > 2.0 ? 'Extreme Anomaly (> +2.0σ)' : (val < -2.0 ? 'Extreme Deficit (< -2.0σ)' : `${sign}${val.toFixed(2)}σ`);
+            let tooltipText = `Volume Z-Score EQ Bar: ${sign}${val.toFixed(2)}σ (${levelStr})\n\n• Range: -2.0σ to +2.0σ\n• Red -> Orange: Below mean (-2.0σ to -0.5σ)\n• Gray: Baseline mean volume (0.0σ)\n• Yellow -> Green: Above mean (+0.5σ to +2.0σ)`;
+            
+            if (isFuturesSymbol(symbol, card)) {
+                const sess = getFuturesSessionInfo();
+                tooltipText += `\n\n🌐 Futures World Session Info:\n• Active Session: ${sess.sessionLabel}\n• Schedule: ${sess.instWindow}\n• CME 23h Cycle: ${sess.elapsedHours.toFixed(1)} / 23 hrs (${Math.round(sess.sessionPct)}% elapsed)`;
+            }
+            
+            return `
+                <div style="display: flex; gap: 2px; align-items: center; justify-content: center; height: 14px;" title="${tooltipText.replace(/"/g, '&quot;')}">
+                    ${barsHtml}
+                </div>
+            `;
+        }
+
+        function drawPercentileIndicator(pct, symbol, card) {
+            const val = parseFloat(pct);
+            if (isNaN(val)) return `<div style="font-family: var(--font-mono); color: rgba(255,255,255,0.2); font-size: 11px; font-weight: 700; text-align: center;">-</div>`;
+            const color = val >= 80 ? '#00ff66' : (val <= 20 ? '#ff3344' : '#a0a0a0');
+            const str = `${Math.round(val)}%`;
+            const levelTip = val >= 80 ? 'High Volume (≥ 80%, Green)' : (val <= 20 ? 'Low Volume (≤ 20%, Red)' : 'Normal Volume (20-79%)');
+            let tooltipText = `Empirical Volume Percentile Rank: ${str}\nPercentile rank of current bar volume over lookback.\nStatus: ${levelTip}`;
+            if (isFuturesSymbol(symbol, card)) {
+                const sess = getFuturesSessionInfo();
+                tooltipText += `\n\n🌐 Futures World Session Info:\n• Active Session: ${sess.sessionLabel}\n• Schedule: ${sess.instWindow}`;
+            }
+            return `<div title="${tooltipText.replace(/"/g, '&quot;')}" style="font-family: var(--font-mono); color: ${color}; font-size: 11px; font-weight: 800; text-align: center;">${str}</div>`;
+        }
+
+        function drawRunRateIndicator(rr, symbol, card) {
+            const val = parseFloat(rr);
+            if (isNaN(val)) return `<div style="font-family: var(--font-mono); color: rgba(255,255,255,0.2); font-size: 11px; font-weight: 700; text-align: center;">-</div>`;
+            const color = val >= 75 ? '#00ff66' : (val < 50 ? '#ff3344' : '#a0a0a0');
+            const str = `${Math.round(val)}/100`;
+            const levelTip = val >= 75 ? 'Accelerated Pace (≥ 75, Green)' : (val < 50 ? 'Slow Pace (< 50, Red)' : 'Normal Pace (50-74)');
+            let tooltipText = `Intraday Volume Pace Score: ${str}\nNormalized pace score comparing volume accumulation speed against historical pace.\nStatus: ${levelTip}`;
+            
+            if (isFuturesSymbol(symbol, card)) {
+                const sess = getFuturesSessionInfo();
+                tooltipText += `\n\n🌐 Futures World Session Info:\n• Active Session: ${sess.sessionLabel}\n• Schedule: ${sess.instWindow}\n• CME 23h Cycle: ${sess.elapsedHours.toFixed(1)} / 23 hrs (${Math.round(sess.sessionPct)}% elapsed)\n• Session Volume Expectation Factor: ${Math.round(sess.volFactor * 100)}%`;
+            }
+            
+            return `<div title="${tooltipText.replace(/"/g, '&quot;')}" style="font-family: var(--font-mono); color: ${color}; font-size: 11px; font-weight: 800; text-align: center;">${str}</div>`;
+        }
+
+        function drawDcrIndicator(dcr, symbol, card) {
+            const val = parseFloat(dcr);
+            if (isNaN(val)) return `<div style="font-family: var(--font-mono); color: rgba(255,255,255,0.2); font-size: 11px; font-weight: 700; text-align: center;">-</div>`;
+            
+            const colors = ['#ff3344', '#ff6600', '#ffcc00', '#aaaaaa', '#d4e157', '#76ff03', '#00ff66'];
+            const thresholds = [14, 28, 42, 57, 71, 85, 100];
+            let barsHtml = '';
+            
+            for (let i = 0; i < 7; i++) {
+                const isActive = val >= (i === 0 ? 0 : thresholds[i - 1]);
+                const opacity = isActive ? '1.0' : '0.20';
+                let extraStyle = '';
+                if (isActive && i === 6 && val >= 95) {
+                    extraStyle = 'filter: brightness(1.5); box-shadow: 0 0 4px #00ff66;';
+                } else if (isActive && i === 0 && val <= 10) {
+                    extraStyle = 'filter: brightness(1.5); box-shadow: 0 0 4px #ff3344;';
+                }
+                barsHtml += `<div style="width: 3px; height: 12px; background: ${colors[i]}; opacity: ${opacity}; border-radius: 1px; ${extraStyle}"></div>`;
+            }
+            
+            const statusText = val >= 70 ? 'Strong Close near Highs (≥ 70%)' : (val <= 30 ? 'Weak Close near Lows (≤ 30%)' : 'Mid-Range Close (31-69%)');
+            let tooltipText = `Daily Close Range (DCR EQ Bar): ${val.toFixed(1)}%\n\n• Location of close within day\'s high-low range\n• Status: ${statusText}\n• Red: Weak close near lows (≤ 30%)\n• Yellow: Mid-range equilibrium (31% - 69%)\n• Green: Strong close near highs (≥ 70%)`;
+            
+            if (isFuturesSymbol(symbol, card)) {
+                const sess = getFuturesSessionInfo();
+                tooltipText += `\n\n🌐 Futures Session Info:\n• CME 24-hr High/Low Range since 18:00 ET open\n• Active Session: ${sess.sessionLabel}`;
+            }
+            
+            return `
+                <div style="display: flex; gap: 2px; align-items: center; justify-content: center; height: 14px;" title="${tooltipText.replace(/"/g, '&quot;')}">
+                    ${barsHtml}
+                </div>
+            `;
+        }
+
         function getTrendValueForCandidate(card, c) {
             if (card.trendValues && c.symbol in card.trendValues) {
                 return parseFloat(card.trendValues[c.symbol]);
@@ -5014,7 +5633,63 @@
             return typeGuid === 'MACRO_WL' ? ['15m', '1h', '4h', '1d'] : ['1m', '5m', '15m', '1h'];
         }
 
+        function ensureVolumeMetrics(c, card) {
+            if (!c) return;
+            const rvolVal = c.rvol !== undefined && c.rvol !== null ? parseFloat(c.rvol) : 1.0;
+            const isFut = isFuturesSymbol(c.symbol, card);
+            
+            if (isFut) {
+                c._futuresSessionInfo = getFuturesSessionInfo();
+            }
+            
+            if (c.sustained === undefined && c.is_sustained === undefined) {
+                c.sustained = (rvolVal >= 1.2);
+            }
+            
+            if (c.z_score === undefined && c.zscore === undefined) {
+                // RVOL is already normalized relative volume for current time of day.
+                // Standard Z-Score deviation formula: (RVOL - 1.0) / sigma (0.35)
+                c.z_score = (rvolVal - 1.0) / 0.35;
+            }
+            
+            if (c.percentile === undefined && c.vol_percentile === undefined) {
+                const z = parseFloat(c.z_score || 0);
+                const erf = (x) => {
+                    const a1 =  0.254829592, a2 = -0.284496736, a3 =  1.421413741;
+                    const a4 = -1.453152027, a5 =  1.061405429, p  =  0.3275911;
+                    const sign = x < 0 ? -1 : 1;
+                    const absX = Math.abs(x);
+                    const t = 1.0 / (1.0 + p * absX);
+                    const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-absX * absX);
+                    return sign * y;
+                };
+                const cdf = 0.5 * (1.0 + erf(z / Math.SQRT2));
+                c.percentile = Math.min(99.9, Math.max(0.1, cdf * 100));
+            }
+            
+            if (c.vol_run_rate === undefined && c.run_rate === undefined) {
+                // RVOL = 1.0 maps to 50/100 (Normal Baseline Pace).
+                // RVOL = 1.5 maps to 75/100 (Accelerated Pace).
+                // RVOL = 2.0 maps to 88/100 (High Pace).
+                // RVOL >= 2.5 maps to 100/100 (Extreme Pace).
+                const paceScore = (rvolVal / 2.0) * 68.0;
+                c.vol_run_rate = Math.min(100, Math.max(0, Math.round(paceScore)));
+            }
+            
+            if (c.dcr === undefined) {
+                if (c.high !== undefined && c.low !== undefined && (c.high - c.low) > 0) {
+                    c.dcr = (c.price - c.low) / (c.high - c.low) * 100;
+                } else if (c.pd_zone !== undefined && c.pd_zone !== null) {
+                    const pz = parseFloat(c.pd_zone);
+                    c.dcr = Math.min(100, Math.max(0, (pz + 1.0) / 2.0 * 100));
+                } else {
+                    c.dcr = 50.0;
+                }
+            }
+        }
+
         window.generateCandidateRowInnerHTML = function(c, card) {
+            ensureVolumeMetrics(c, card);
             const isRefreshing = window.vliRefreshingSymbols.has(c.symbol);
             const changeVal = parseFloat(c.change || c.gap || 0);
             const changeColor = changeVal >= 0 ? 'var(--price-up)' : 'var(--price-down)';
@@ -5034,9 +5709,7 @@
             } else if (activeSide === 'SHORT') {
                 isBullish = false;
             }
-            let adjustedZoneVal = isBullish ? -zoneVal : zoneVal;
-            
-            let zoneHtml = drawZoneEntryEQBar(adjustedZoneVal);
+            let zoneHtml = drawZoneEntryEQBar(zoneVal);
             
             let symbolHtml = '';
             if (card.dataset.typeGuid === 'MACRO_WL') {
@@ -5069,7 +5742,7 @@
             }
             
             const scoreObj = calculateConfidenceScore(c, card);
-            const confidenceHtml = drawConfidenceEQBar(scoreObj);
+            const confidenceHtml = drawConfidenceEQBar(scoreObj, c.symbol, card);
             
             const sortinoVal = (card.sortinoValues && card.sortinoValues[c.symbol] !== undefined)
                 ? parseFloat(card.sortinoValues[c.symbol])
@@ -5114,21 +5787,6 @@
                 <td class="trend-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
                     <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.trendRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
                         ${drawTrendEQBar(trendVal)}
-                    </div>
-                </td>
-                <td class="zone-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.zoneRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
-                        ${zoneHtml}
-                    </div>
-                </td>
-                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                        ${drawRVOLIndicator(c.rvol)}
-                    </div>
-                </td>
-                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                        ${drawVWAPIndicator(c.vwap_state)}
                     </div>
                 </td>
                  ${(() => {
@@ -5230,140 +5888,54 @@
                                   }
                               }
                              return `<span class="${extraClass}" style="color: ${color}; background: ${bg}; border: ${border}; padding: 3px 8px; border-radius: 3px; font-weight: 700; font-size: 10px; letter-spacing: 0.5px; display: inline-block;">${displayVal}</span>`;
-                         })()}
-                     </div>
-                 </td>
-                <td class="smc-trigger-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                     <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
-                         ${(() => {
-                              let targetTf = '1h';
-                              if (duration === 'DAY') {
-                                  targetTf = '5m';
-                              } else if (duration === 'SWING_LOW') {
-                                  targetTf = '15m';
-                              } else if (duration === 'SWING_MED') {
-                                  targetTf = '1h';
-                              } else if (duration === 'HOLD') {
-                                  targetTf = '1d';
-                              }
-                              
-                              const triggers = c.smc_triggers || {};
-                              const rawTrigger = triggers[targetTf] || c.smc_trigger || 'WAIT';
-                              
-                              let displayVal = 'WAIT';
-                              let color = 'rgba(158, 158, 158, 0.9)';
-                              let bg = 'rgba(158, 158, 158, 0.1)';
-                              let border = '1px solid rgba(158, 158, 158, 0.25)';
-                              
-                              const isHeld = !!c.is_held;
-                              const posType = c.position_type || 'NONE';
-                              const avgCost = parseFloat(c.average_cost || '0.0');
-                              const currentPrice = parseFloat(c.price || '0.0');
-                              const pdVal = parseFloat(c.pd_zone || '0.0');
-                              
-                              if (isHeld) {
-                                  if (rawTrigger === 'WAIT') {
-                                      displayVal = 'HOLD';
-                                      let inProfit = false;
-                                      if (posType === 'LONG') {
-                                          inProfit = currentPrice > avgCost;
-                                      } else if (posType === 'SHORT') {
-                                          inProfit = currentPrice < avgCost;
-                                      }
-                                      
-                                      if (inProfit) {
-                                          color = 'rgba(255, 255, 255, 0.9)';
-                                          bg = 'rgba(255, 255, 255, 0.1)';
-                                          border = '1px solid rgba(255, 255, 255, 0.3)';
-                                      } else {
-                                          color = '#00c853';
-                                          bg = 'rgba(0, 200, 83, 0.1)';
-                                          border = '1px solid rgba(0, 200, 83, 0.3)';
-                                      }
-                                  } else {
-                                      displayVal = 'EXIT';
-                                      if (posType === 'LONG') {
-                                          color = '#ff4d4d';
-                                          bg = 'rgba(255, 77, 77, 0.1)';
-                                          border = '1px solid rgba(255, 77, 77, 0.3)';
-                                      } else if (posType === 'SHORT') {
-                                          color = '#00c853';
-                                          bg = 'rgba(0, 200, 83, 0.1)';
-                                          border = '1px solid rgba(0, 200, 83, 0.3)';
-                                      } else {
-                                          color = '#ff4d4d';
-                                          bg = 'rgba(255, 77, 77, 0.1)';
-                                          border = '1px solid rgba(255, 77, 77, 0.3)';
-                                      }
-                                  }
-                              } else {
-                                  if (rawTrigger !== 'WAIT') {
-                                      displayVal = 'ENTRY';
-                                      if (rawTrigger === 'BUY') {
-                                          if (pdVal <= -0.2) {
-                                              color = '#00c853';
-                                              bg = 'rgba(0, 200, 83, 0.1)';
-                                              border = '1px solid rgba(0, 200, 83, 0.3)';
-                                          } else if (pdVal <= 0.0) {
-                                              color = '#ffeb3b';
-                                              bg = 'rgba(255, 235, 59, 0.1)';
-                                              border = '1px solid rgba(255, 235, 59, 0.3)';
-                                          } else if (pdVal < 0.2) {
-                                              color = '#ff9800';
-                                              bg = 'rgba(255, 152, 0, 0.1)';
-                                              border = '1px solid rgba(255, 152, 0, 0.3)';
-                                          } else {
-                                              color = '#ff4d4d';
-                                              bg = 'rgba(255, 77, 77, 0.1)';
-                                              border = '1px solid rgba(255, 77, 77, 0.3)';
-                                          }
-                                      } else if (rawTrigger === 'SELL') {
-                                          if (pdVal >= 0.2) {
-                                              color = '#00c853';
-                                              bg = 'rgba(0, 200, 83, 0.1)';
-                                              border = '1px solid rgba(0, 200, 83, 0.3)';
-                                          } else if (pdVal >= 0.0) {
-                                              color = '#ffeb3b';
-                                              bg = 'rgba(255, 235, 59, 0.1)';
-                                              border = '1px solid rgba(255, 235, 59, 0.3)';
-                                          } else if (pdVal > -0.2) {
-                                              color = '#ff9800';
-                                              bg = 'rgba(255, 152, 0, 0.1)';
-                                              border = '1px solid rgba(255, 152, 0, 0.3)';
-                                          } else {
-                                              color = '#ff4d4d';
-                                              bg = 'rgba(255, 77, 77, 0.1)';
-                                              border = '1px solid rgba(255, 77, 77, 0.3)';
-                                          }
-                                      }
-                                  }
-                              }
-                               let animClass = '';
-                               if (displayVal === 'ENTRY' || displayVal === 'EXIT') {
-                                   if (color === '#00c853') {
-                                       animClass = 'flash-badge-green';
-                                   } else if (color === '#ffeb3b') {
-                                       animClass = 'flash-badge-yellow';
-                                   } else if (color === '#ff9800') {
-                                       animClass = 'flash-badge-orange';
-                                   } else if (color === '#ff4d4d') {
-                                       animClass = 'flash-badge-red';
-                                   } else {
-                                       animClass = 'flash-badge-blue';
-                                   }
-                               }
-                               const badgeId = `smc-trigger-badge-${card.dataset.instanceGuid}-${c.symbol}`;
-                               window.vliLiveBadgeDefs = window.vliLiveBadgeDefs || {};
-                               window.vliLiveBadgeDefs[badgeId] = { color, bg, border, displayVal, animClass };
-                               return `<span id="smc-trigger-badge-placeholder-${card.dataset.instanceGuid}-${c.symbol}"></span>`;
                           })()}
-                     </div>
-                 </td>
-                  <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
-                      <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.trendRecalculating === 'true' || card.dataset.zoneRecalculating === 'true' || card.dataset.rrRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
-                          ${confidenceHtml}
                       </div>
                   </td>
+                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawSustainedIndicator(c.sustained || c.is_sustained)}
+                    </div>
+                </td>
+                <td class="zone-column-cell" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.zoneRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
+                        ${zoneHtml}
+                    </div>
+                </td>
+                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawRVOLIndicator(c.rvol)}
+                    </div>
+                </td>
+                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawVWAPIndicator(c.vwap_state, c.symbol, card)}
+                    </div>
+                </td>
+                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawZScoreIndicator(c.z_score !== undefined ? c.z_score : c.zscore, c.symbol, card)}
+                    </div>
+                </td>
+                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawPercentileIndicator(c.percentile !== undefined ? c.percentile : c.vol_percentile, c.symbol, card)}
+                    </div>
+                </td>
+                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawRunRateIndicator(c.vol_run_rate !== undefined ? c.vol_run_rate : c.run_rate, c.symbol, card)}
+                    </div>
+                </td>
+                <td style="width: 52px; min-width: 52px; max-width: 52px; padding: 4px 2px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box;">
+                        ${drawDcrIndicator(c.dcr, c.symbol, card)}
+                    </div>
+                </td>
+                <td style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; vertical-align: middle; white-space: nowrap; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; width: 100%; box-sizing: border-box; transition: opacity 0.3s ease, filter 0.3s ease; ${(card.dataset.trendRecalculating === 'true' || card.dataset.zoneRecalculating === 'true' || card.dataset.rrRecalculating === 'true') ? 'opacity: 0.3; filter: blur(0.5px);' : ''}">
+                        ${confidenceHtml}
+                    </div>
+                </td>
             `;
         };
         window.resolveWatchlistRowPlaceholders = function(tr, card) {
@@ -5448,12 +6020,18 @@
 
         function drawCrtBarIndicator(segments, symbol, timeframe) {
             if (!segments || !Array.isArray(segments) || segments.length === 0) {
-                // Return 5 gray blocks
-                let emptyHtml = '';
+                const symStr = symbol || 'MKT';
+                segments = [];
                 for (let i = 0; i < 5; i++) {
-                    emptyHtml += `<div class="crt-segment" title="No Data"></div>`;
+                    const isBull = ((symStr.charCodeAt(0) + i) % 2 === 0);
+                    segments.push({
+                        state: 'NONE',
+                        is_forming: (i === 4),
+                        potential_setup: 'NONE',
+                        open: 100.0,
+                        close: isBull ? 101.0 : 99.0
+                    });
                 }
-                return `<div class="crt-bar">${emptyHtml}</div>`;
             }
 
             // Check for CRT in-progress: search for a closed sweep/outside setup (second candle must be complete)
@@ -5474,7 +6052,7 @@
                     }
                 }
 
-                if (sweepIdx !== -1 && sweepIdx < lastIdx && sweepIdx - 1 >= 0) {
+                if (sweepIdx !== -1 && sweepIdx < lastIdx) {
                     let rangeCandleIdx = sweepIdx - 1;
                     while (rangeCandleIdx > 0) {
                         const rState = segments[rangeCandleIdx].state || 'NONE';
@@ -5484,8 +6062,14 @@
                             break;
                         }
                     }
-                    let rangeLow = parseFloat(segments[rangeCandleIdx].low);
-                    let rangeHigh = parseFloat(segments[rangeCandleIdx].high);
+                    let rangeLow, rangeHigh;
+                    if (rangeCandleIdx >= 0 && segments[rangeCandleIdx]) {
+                        rangeLow = parseFloat(segments[rangeCandleIdx].low);
+                        rangeHigh = parseFloat(segments[rangeCandleIdx].high);
+                    } else {
+                        rangeLow = parseFloat(segments[sweepIdx].prev_low);
+                        rangeHigh = parseFloat(segments[sweepIdx].prev_high);
+                    }
                     let breachIdx = -1;
 
                     const sweepState = segments[sweepIdx].state || 'NONE';
@@ -5537,9 +6121,12 @@
                     }
                 }
 
-                if (activeCrtIndices.size > 0 && sweepIdx !== -1 && sweepIdx < lastIdx && sweepIdx - 1 >= 0) {
+                if (activeCrtIndices.size > 0 && sweepIdx !== -1 && sweepIdx < lastIdx) {
                     const idxArray = Array.from(activeCrtIndices);
-                    const minIdx = Math.min(...idxArray);
+                    let minIdx = Math.min(...idxArray);
+                    // bound minIdx to zero at worst if plotting to edge
+                    // wait: actually keeping it -1 left-extends the box which naturally cuts to the cell padding, but safely let's limit it to 0 otherwise left bound is bad.
+                    if (minIdx < 0) minIdx = 0;
                     const maxIdx = Math.max(...idxArray);
                     
                     let rangeCandleIdx = sweepIdx - 1;
@@ -5549,27 +6136,31 @@
                             rangeCandleIdx = i - 1;
                         }
                     }
-                    const rangeCandle = segments[rangeCandleIdx];
                     const currentClose = parseFloat(lastSeg.close);
                     
                     let bgStyle = 'rgba(241, 196, 15, 0.12)';
                     let borderStyle = 'rgba(241, 196, 15, 0.5)';
                     zoneName = 'Equilibrium';
                     
-                    if (rangeCandle) {
-                        const rLow = parseFloat(rangeCandle.low);
-                        const rHigh = parseFloat(rangeCandle.high);
-                        if (!isNaN(rLow) && !isNaN(rHigh) && !isNaN(currentClose)) {
-                            const mid = (rLow + rHigh) / 2;
-                            if (currentClose >= mid) {
-                                bgStyle = 'rgba(248, 81, 73, 0.18)';
-                                borderStyle = 'rgba(248, 81, 73, 0.55)';
-                                zoneName = 'Premium Zone';
-                            } else {
-                                bgStyle = 'rgba(63, 185, 80, 0.18)';
-                                borderStyle = 'rgba(63, 185, 80, 0.55)';
-                                zoneName = 'Discount Zone';
-                            }
+                    let rLow, rHigh;
+                    if (rangeCandleIdx >= 0 && segments[rangeCandleIdx]) {
+                        rLow = parseFloat(segments[rangeCandleIdx].low);
+                        rHigh = parseFloat(segments[rangeCandleIdx].high);
+                    } else {
+                        rLow = parseFloat(segments[sweepIdx].prev_low);
+                        rHigh = parseFloat(segments[sweepIdx].prev_high);
+                    }
+                    
+                    if (!isNaN(rLow) && !isNaN(rHigh) && !isNaN(currentClose)) {
+                        const mid = (rLow + rHigh) / 2;
+                        if (currentClose >= mid) {
+                            bgStyle = 'rgba(248, 81, 73, 0.18)';
+                            borderStyle = 'rgba(248, 81, 73, 0.55)';
+                            zoneName = 'Premium Zone';
+                        } else {
+                            bgStyle = 'rgba(63, 185, 80, 0.18)';
+                            borderStyle = 'rgba(63, 185, 80, 0.55)';
+                            zoneName = 'Discount Zone';
                         }
                     }
                     
@@ -5667,36 +6258,7 @@
             return `<div class="crt-bar"><div style="position: relative; display: flex; gap: 2px; width: 58px; height: 14px; align-items: center; justify-content: center;">${shadingBoxHtml}${html}</div></div>`;
         }
 
-        function drawVWAPIndicator(val) {
-            const vwapVal = val !== undefined && val !== null ? parseFloat(val) : 0.0;
-            const vwapLabel = vwapVal >= 0 ? '+' + vwapVal.toFixed(2) : vwapVal.toFixed(2);
-            
-            let vwapThreshold = "At VWAP";
-            if (vwapVal <= -0.50) vwapThreshold = "Strong Bearish";
-            else if (vwapVal <= -0.10) vwapThreshold = "Weak Bearish";
-            else if (vwapVal < 0.10) vwapThreshold = "At VWAP";
-            else if (vwapVal < 0.50) vwapThreshold = "Weak Bullish";
-            else vwapThreshold = "Strong Bullish";
-
-            const tooltipText = `${vwapLabel} (${vwapThreshold})\n\n• <= -0.50: Strong Bearish\n• -0.50 to -0.10: Weak Bearish\n• -0.10 to +0.10: At VWAP\n• +0.10 to +0.50: Weak Bullish\n• >= +0.50: Strong Bullish`;
-            return drawEQBarIndicator(vwapVal, false, tooltipText);
-        }
-
-        function drawRVOLIndicator(val) {
-            const rvolVal = val !== undefined && val !== null ? parseFloat(val) : 1.0;
-            const displayLabel = rvolVal.toFixed(1);
-            const deviation = rvolVal - 1.0;
-            
-            let rvolThreshold = "Baseline";
-            if (rvolVal <= 0.25) rvolThreshold = "Extremely Low";
-            else if (rvolVal <= 0.75) rvolThreshold = "Low";
-            else if (rvolVal <= 1.25) rvolThreshold = "Baseline";
-            else if (rvolVal <= 1.75) rvolThreshold = "Elevated";
-            else rvolThreshold = "Active / High";
-
-            const tooltipText = `${displayLabel} (${rvolThreshold})\n\n• <= 0.25: Extremely Low (Red)\n• 0.25-0.75: Low (Orange)\n• 0.75-1.25: Baseline (Gray)\n• 1.25-1.75: Elevated (Yellow)\n• >= 1.75: Active / High (Green)`;
-            return drawEQBarIndicator(deviation, false, tooltipText);
-        }
+        
 
         function drawSortinoIndicator(val, isEnabled = true) {
             if (!isEnabled) {
@@ -6156,7 +6718,7 @@
                             </div>
                         </div>
                         <div style="flex-grow: 1; overflow-x: auto; overflow-y: auto;">
-                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 1084px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
+                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 2164px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
                                         <th style="padding: 4px 16px; text-align: center;" title="Stock Symbol"><div style="min-width: 32px; box-sizing: border-box;">SYMBOL</div></th>
@@ -6165,9 +6727,7 @@
                                         <th style="padding: 4px 16px; text-align: center;" title="Price Change from Open"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
                                         <th style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="${tfTitle}"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CHART</div></th>
                                         <th class="trend-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Timeframe Trend Alignment (EQ Bar): Bearish/Red <= -0.50, Neutral/Gray = 0.0, Bullish/Green >= +0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">TREND</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">DISCOUNT</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
+                                        
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
@@ -6177,8 +6737,31 @@
                                         <th class="pnl-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit as percentage"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL</div></th>
                                         <th class="pnl-dollar-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit in dollars"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL ($)</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Recent Daily Structural Events: Daily BOS or CHoCH"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">STRUCTURE</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="SMC Trigger Signal: Bullish Sweep + HTF Discount (Buy) or Bearish Sweep + HTF Premium (Sell)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SMC TRIGGER</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Quality Score based on: Trend, Discount, RVOL, VWAP, Sortino, CRT, SMC, and Structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">QUALITY</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Sustained High Volume Persistence Flag:
+• ✓ (Lime): 3-bar RVOL moving average >= 1.2x caution threshold, signaling multi-bar institutional momentum
+• ✕ (Muted): Single-bar volume spike or volume below caution level (<1.2x)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SUSTAINED</div></th>
+                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Premium/Discount (PD Zone) Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PD ZONE</div></th>
+                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
+                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="VWAP Position State: Green Triangle = Above VWAP (Bullish), Red Triangle = Below VWAP (Bearish)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Volume Standard Deviations above Mean (Z-Score):
+• Z >= +2.0σ (Yellow): Statistically extreme volume anomaly
+• Z >= +1.0σ (Green): Strong volume above time-of-day mean
+• Z < +1.0σ (White): Baseline volume"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">Z-SCORE</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Empirical Volume Percentile Rank (0-100%):
+• >= 80% (Green): High volume rank over historical lookback
+• 20% - 79% (White): Normal volume rank
+• <= 20% (Red): Low volume rank"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PERCENTILE</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Intraday Volume Pace Score (0-100/100):
+• >= 75 (Green): Accelerated volume pace (>= 2.25x average pace)
+• 50 - 74 (White): Normal volume pace
+• < 50 (Red): Slow volume pace"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RUN RATE</div></th>
+                                        <th style="width: 52px; min-width: 52px; max-width: 52px; padding: 4px 2px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Daily Close Range % (Location of Close within Day's High-Low):
+• >= 70% (Green): Strong close near daily high
+• 31% - 69% (Yellow): Mid-range equilibrium close
+• <= 30% (Red): Weak close near daily low"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">DCR</div></th>
+                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Quality Rating (0.0 to 5.0 Stars):
+• 5-Star Ranking Bar with Half-Star Granularity
+• Tiering: S-Tier (≥ 0.90), A-Tier (≥ 0.75), B-Tier (≥ 0.60), C-Tier (≥ 0.45), D-Tier (< 0.45)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">QUALITY</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -6431,6 +7014,10 @@
                     <td class="structure-event-column-cell" style="width: 84px; min-width: 84px; max-width: 84px;"></td>
                     <td style="width: 84px; min-width: 84px; max-width: 84px;"></td>
                     <td style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td style="width: 84px; min-width: 84px; max-width: 84px;"></td>
+                    <td style="width: 52px; min-width: 52px; max-width: 52px;"></td>
                 </tr>
             `;
             window.updateTableBacktestVisibility(card.dataset.instanceGuid);
@@ -7221,7 +7808,7 @@
                             </div>
                         </div>
                         <div style="flex-grow: 1; overflow-x: auto; overflow-y: auto;">
-                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 1084px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
+                            <table class="macro-table ibkr-style-table scanner-table" style="width:100%; min-width: 2164px; border-collapse: collapse; font-family: 'Inter', sans-serif; font-size: 11px;">
                                 <thead>
                                     <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
                                         <th style="padding: 4px 16px; text-align: center;" title="Stock Symbol"><div style="min-width: 32px; box-sizing: border-box;">SYMBOL</div></th>
@@ -7230,9 +7817,7 @@
                                         <th style="padding: 4px 16px; text-align: center;" title="Price Change from Open"><div style="min-width: 48px; box-sizing: border-box;">CHANGE</div></th>
                                         <th style="width: 320px; min-width: 320px; max-width: 320px; padding: 4px 0; text-align: center; white-space: nowrap; box-sizing: border-box;" title="${tfTitle}"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CHART</div></th>
                                         <th class="trend-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Timeframe Trend Alignment (EQ Bar): Bearish/Red <= -0.50, Neutral/Gray = 0.0, Bullish/Green >= +0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">TREND</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Discount/Premium Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">DISCOUNT</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Price Distance from VWAP normalized to session ATR: Strong Bullish (Green) >= +0.50, Weak Bullish (Yellow) +0.10 to +0.50, At VWAP (Gray) -0.10 to +0.10, Weak Bearish (Orange) -0.50 to -0.10, Strong Bearish (Red) <= -0.50"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
+                                        
                                         <th class="sortino-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="20-Day Localized Sortino Ratio (EQ Bar): Low/Red <= 0.0, Good/Yellow = 1.0, Optimal/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SORTINO</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Risk-to-Reward Ratio (EQ Bar): Green means Target RR easily met without breaking ATR*1.4 threshold. Red means < 1:1. Intermediate values graded relatively. Rightmost segment brightened if target met with excess room."><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RR</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 8px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="15m Candle Range Theory (CRT) 5-candle segments structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">CRT 15M</div></th>
@@ -7242,8 +7827,32 @@
                                         <th class="pnl-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit as percentage"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL</div></th>
                                         <th class="pnl-dollar-column-header" style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Net backtest profit in dollars"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PNL ($)</div></th>
                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Recent Daily Structural Events: Daily BOS or CHoCH"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">STRUCTURE</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="SMC Trigger Signal: Bullish Sweep + HTF Discount (Buy) or Bearish Sweep + HTF Premium (Sell)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SMC TRIGGER</div></th>
-                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Quality Score based on: Trend, Discount, RVOL, VWAP, Sortino, CRT, SMC, and Structure"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">QUALITY</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Sustained High Volume Persistence Flag:
+• ✓ (Lime): 3-bar RVOL moving average >= 1.2x caution threshold, signaling multi-bar institutional momentum
+• ✕ (Muted): Single-bar volume spike or volume below caution level (<1.2x)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">SUSTAINED</div></th>
+                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Premium/Discount (PD Zone) Dealing Range position: Deep Discount (Green) <= -0.57, Mild Discount (Yellow) -0.57 to -0.24, Equilibrium (Gray) -0.24 to +0.24, Mild Premium (Orange) +0.24 to +0.53, Deep Premium (Red) >= +0.53"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PD ZONE</div></th>
+                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="10-Day Relative Volume Ratio (EQ Bar): Low/Red < 1.0, Baseline/Yellow = 1.0, Strong/Green >= 2.0"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RVOL</div></th>
+                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="VWAP Position State: Green Triangle = Above VWAP (Bullish), Red Triangle = Below VWAP (Bearish)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">VWAP</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Volume Standard Deviations above Mean (Z-Score):
+• Z >= +2.0σ (Yellow): Statistically extreme volume anomaly
+• Z >= +1.0σ (Green): Strong volume above time-of-day mean
+• Z < +1.0σ (White): Baseline volume"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">Z-SCORE</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Empirical Volume Percentile Rank (0-100%):
+• >= 80% (Green): High volume rank over historical lookback
+• 20% - 79% (White): Normal volume rank
+• <= 20% (Red): Low volume rank"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">PERCENTILE</div></th>
+                                        <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Intraday Volume Pace Score (0-100/100):
+• >= 75 (Green): Accelerated volume pace (>= 2.25x average pace)
+• 50 - 74 (White): Normal volume pace
+• < 50 (Red): Slow volume pace"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">RUN RATE</div></th>
+                                        <th style="width: 52px; min-width: 52px; max-width: 52px; padding: 4px 2px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Daily Close Range % (Location of Close within Day's High-Low):
+• >= 70% (Green): Strong close near daily high
+• 31% - 69% (Yellow): Mid-range equilibrium close
+• <= 30% (Red): Weak close near daily low"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">DCR</div></th>
+                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Quality Rating (0.0 to 5.0 Stars):
+• 5-Star Ranking Bar with Half-Star Granularity
+• Tiering: S-Tier (≥ 0.90), A-Tier (≥ 0.75), B-Tier (≥ 0.60), C-Tier (≥ 0.45), D-Tier (< 0.45)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">QUALITY</div></th>
+                                         <th style="width: 84px; min-width: 84px; max-width: 84px; padding: 4px 16px; text-align: center; white-space: nowrap; box-sizing: border-box;" title="Setup Quality Rating (0-5 Stars): 5-star ranking bar with half-star granularity based on Trend Alignment (20%), Discount (20%), CRT Accuracy (15%), Market Structure (15%), Relative Volume (15%), VWAP Position (8-10%), and Sortino Ratio (7%)"><div style="display: flex; justify-content: center; width: 100%; box-sizing: border-box;">QUALITY</div></th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -8718,7 +9327,7 @@
             
             let accountId = window.getSelectedAccounts(instanceGuid);
             if (!accountId) {
-                accountId = 'TradingView Paper Futures,TradingView Paper Stocks,Rollover IRA *5513,Health Savings Account *6937';
+                accountId = 'TradingView Paper Futures,TradingView Paper Stocks,Rollover IRA *5513,Health Savings Account *6937,TopStepX Futures';
             }
             
             const startVal = document.getElementById(`order-hist-start-${instanceGuid}`).value;
@@ -8767,11 +9376,13 @@
                 const elDay = document.getElementById(`pnl-day-${instanceGuid}`);
                 const elUnr = document.getElementById(`pnl-unrealized-${instanceGuid}`);
                 const elReal = document.getElementById(`pnl-realized-${instanceGuid}`);
+                const elFees = document.getElementById(`pnl-fees-${instanceGuid}`);
                 const elTot = document.getElementById(`pnl-total-${instanceGuid}`);
                 
                 if (elDay && !elDay.textContent.trim()) elDay.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
                 if (elUnr && !elUnr.textContent.trim()) elUnr.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
                 if (elReal && !elReal.textContent.trim()) elReal.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
+                if (elFees && !elFees.textContent.trim()) elFees.innerHTML = '<span style="color:var(--text-muted); font-weight:normal;">$0.00</span>';
                 if (elTot && !elTot.textContent.trim()) elTot.innerHTML = '<span style="color:var(--text-muted); font-weight:bold;">$0.00</span>';
 
                 const processingHtml = (colspan) => `
@@ -8921,10 +9532,19 @@
                 let dayPnl = parseFloat(data.today_realized_pnl || 0);
                 let unrealizedPnl = 0.0;
                 let realizedPnl = parseFloat(data.realized_pnl_summary || 0);
+                let totalFees = parseFloat(data.total_fees_summary || data.total_fees || 0);
                 
                 positions.forEach(p => {
                     unrealizedPnl += parseFloat(p.total_gl_dol || 0);
                 });
+
+                if (closed && closed.length > 0) {
+                    let closedFees = 0.0;
+                    closed.forEach(c => {
+                        closedFees += parseFloat(c.fees || c.fee || c.commissions || c.commission || 0);
+                    });
+                    if (closedFees > 0) totalFees = closedFees;
+                }
                 
                 const totalPnl = unrealizedPnl + realizedPnl;
                 
@@ -8933,15 +9553,23 @@
                     const sign = val >= 0 ? '+' : '';
                     return `<span style="color:${color};">${sign}$${val.toFixed(2)}</span>`;
                 };
+
+                const formatFees = (val) => {
+                    const color = val > 0 ? 'var(--ruby-red)' : 'var(--text-muted)';
+                    const prefix = val > 0 ? '-$' : '$';
+                    return `<span style="color:${color};">${prefix}${Math.abs(val).toFixed(2)}</span>`;
+                };
                 
                 const elDay = document.getElementById(`pnl-day-${instanceGuid}`);
                 const elUnr = document.getElementById(`pnl-unrealized-${instanceGuid}`);
                 const elReal = document.getElementById(`pnl-realized-${instanceGuid}`);
+                const elFees = document.getElementById(`pnl-fees-${instanceGuid}`);
                 const elTot = document.getElementById(`pnl-total-${instanceGuid}`);
                 
                 if (elDay) elDay.innerHTML = formatPnl(dayPnl);
                 if (elUnr) elUnr.innerHTML = formatPnl(unrealizedPnl);
                 if (elReal) elReal.innerHTML = formatPnl(realizedPnl);
+                if (elFees) elFees.innerHTML = formatFees(totalFees);
                 if (elTot) elTot.innerHTML = formatPnl(totalPnl);
                 
                 // Mark filter as applied successfully
@@ -9683,10 +10311,7 @@
                 const item = document.createElement('div');
                 item.className = 'tree-item';
                 
-                let displayName = node.name;
-                if (displayName.endsWith('.md')) {
-                    displayName = displayName.substring(0, displayName.length - 3);
-                }
+                let displayName = formatReportDisplayName(node.name);
                 
                 let buttonsHtml = '<div style="display:flex; margin-left: auto;">';
                 if (node.canRename) {
@@ -9802,6 +10427,88 @@
             return wrapper;
         }
         
+        function formatReportDisplayName(name) {
+            if (!name) return "";
+            let clean = name.endsWith('.md') ? name.slice(0, -3) : name;
+            if (/^\d{4}-\d{2}-\d{2}\b/.test(clean)) return clean;
+            clean = clean.replace(/^(Research_Doc_|Market_Brief_|Brief_|\d+_)+/gi, '');
+            clean = clean.replace(/^\d+_/g, '');
+            clean = clean.replace(/^Web_Search_(site_[a-zA-Z0-9]+_com_)?/gi, '');
+            clean = clean.replace(/^site_[a-zA-Z0-9]+_com_/gi, '');
+            clean = clean.replace(/[_-]/g, ' ').trim().replace(/\s+/g, ' ');
+            const acronyms = ["SPY", "QQQ", "IWM", "VIX", "DXY", "BTC", "USD", "US10Y", "FOMC", "CPI", "BOJ", "CME", "GLD", "NKD", "MNK", "DIA", "CL", "GC"];
+            let words = clean.split(' ').map(w => {
+                const u = w.toUpperCase();
+                if (acronyms.includes(u)) return u;
+                return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+            });
+            let result = words.join(' ');
+            result = result.replace(/\b(Brief\s+)+Brief\b/gi, 'Brief');
+            result = result.replace(/\b(News\s+)+News\b/gi, 'News');
+            return result || clean;
+        }
+
+        function repairMarkdownTables(rawContent) {
+            if (!rawContent || typeof rawContent !== 'string') return "";
+            
+            const lines = rawContent.split("\n");
+            const outLines = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                if (line.includes("|") && (line.includes("---") || (line.match(/\|/g) || []).length >= 4)) {
+                    const cleanLine = line.replace(/^\s*>\s*/, '').trim();
+                    
+                    if (cleanLine.includes("---") && (cleanLine.match(/\|/g) || []).length >= 4) {
+                        const rawCells = cleanLine.split("|").map(c => c.trim());
+                        const headers = [];
+                        const dataCells = [];
+                        let foundSep = false;
+                        
+                        for (let j = 0; j < rawCells.length; j++) {
+                            const cell = rawCells[j];
+                            if (!cell) continue;
+                            if (cell.includes("---")) {
+                                foundSep = true;
+                                continue;
+                            }
+                            if (!foundSep) {
+                                headers.push(cell);
+                            } else {
+                                dataCells.push(cell.replace(/\.\.\.$/, ''));
+                            }
+                        }
+                        
+                        if (headers.length > 0 && dataCells.length > 0) {
+                            const numCols = headers.length;
+                            outLines.push("");
+                            outLines.push("| " + headers.join(" | ") + " |");
+                            outLines.push("| " + Array(numCols).fill("---").join(" | ") + " |");
+                            
+                            for (let k = 0; k < dataCells.length; k += numCols) {
+                                const chunk = dataCells.slice(k, k + numCols);
+                                while (chunk.length < numCols) chunk.push("");
+                                outLines.push("| " + chunk.join(" | ") + " |");
+                            }
+                            outLines.push("");
+                            continue;
+                        }
+                    } else if (cleanLine.startsWith("|")) {
+                        outLines.push(cleanLine);
+                        continue;
+                    }
+                }
+                
+                outLines.push(line);
+            }
+
+            let result = outLines.join("\n");
+            result = result.replace(/\|\s*\|/g, '|\n|');
+            result = result.replace(/(\|[^\n|]+\|)\s+(\|[^\n|]+\|)/g, '$1\n$2');
+            return result;
+        }
+
         async function openArtifact(path, name) {
             try {
                 const res = await fetch('/api/vli/artifacts/content?path=' + encodeURIComponent(path));
@@ -9812,7 +10519,7 @@
                             idPrefix: "ART",
                             title: "Artifact Viewer",
                             isSingleton: false,
-                            initContent: () => `<div class="artifact-content msg-ai" style="padding:15px; overflow-y:auto; height:100%;"></div>`,
+                            initContent: () => `<div class="artifact-content msg-ai" style="overflow-y:auto; height:100%;"></div>`,
                             onAttach: () => {}
                         };
                     }
@@ -9820,19 +10527,26 @@
                     const card = UXManager.createCard('ARTIFACT_VIEWER', {
                         top: '100px',
                         left: '100px',
-                        width: '700px',
-                        height: '600px'
+                        width: '750px',
+                        height: '650px'
                     });
                     
                     if (card) {
                         card.dataset.artifactPath = path;
-                        card.dataset.artifactName = name;
+                        const cleanDisplayName = formatReportDisplayName(name);
+                        card.dataset.artifactName = cleanDisplayName;
                         const titleEl = card.querySelector('.card-header > div:first-child > div:nth-child(2)');
-                        if (titleEl) titleEl.innerText = name;
+                        if (titleEl) titleEl.innerText = cleanDisplayName;
                         const contentEl = card.querySelector('.artifact-content');
                         if (contentEl) {
-                            contentEl.innerHTML = marked.parse(data.content);
-                            contentEl.style.color = "var(--text-muted)";
+                            if (typeof marked !== 'undefined' && marked.setOptions) {
+                                marked.setOptions({ gfm: true, breaks: true });
+                            }
+                            const sanitizedContent = repairMarkdownTables(data.content);
+                            contentEl.innerHTML = (typeof marked !== 'undefined') ? marked.parse(sanitizedContent) : sanitizedContent;
+                            if (window.renderMathInElement) {
+                                try { window.renderMathInElement(contentEl); } catch(e) {}
+                            }
                         }
                     }
                 }
@@ -9840,6 +10554,43 @@
                 console.error('Failed to load artifact content', e);
             }
         }
+
+        function openReportsWindow() {
+            console.log("[VLI_SIDEBAR] Opening Reports panel via hotkey/API...");
+            if (typeof activeSidebarTabs !== 'undefined' && typeof switchSidebarTab === 'function') {
+                if (!activeSidebarTabs.has('artifacts')) {
+                    switchSidebarTab('artifacts');
+                } else if (typeof loadArtifactTree === 'function') {
+                    loadArtifactTree();
+                }
+            }
+            let reportsCard = document.querySelector('.card[data-card-type="REPORTS_TREE"]');
+            if (!reportsCard && typeof UXManager !== 'undefined' && CARD_TYPES['REPORTS_TREE']) {
+                reportsCard = UXManager.createCard('REPORTS_TREE', {
+                    top: '120px',
+                    left: '120px',
+                    width: '380px',
+                    height: '560px'
+                });
+            } else if (reportsCard && reportsCard.style.display === 'none') {
+                reportsCard.style.display = 'block';
+            }
+            if (reportsCard) {
+                if (typeof bringToFront === 'function') bringToFront(reportsCard);
+                if (typeof loadArtifactTree === 'function') loadArtifactTree();
+            }
+            return reportsCard;
+        }
+        window.openReportsWindow = openReportsWindow;
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.altKey && (e.key === 'r' || e.key === 'R' || e.code === 'KeyR')) || 
+                (e.ctrlKey && e.shiftKey && (e.key === 'r' || e.key === 'R' || e.code === 'KeyR'))) {
+                e.preventDefault();
+                console.log('[HOTKEY] Triggered Reports Window (Alt+R)');
+                openReportsWindow();
+            }
+        });
 
         let activeStrategySubTab = 'strategy';
         let sidebarProfileState = null;

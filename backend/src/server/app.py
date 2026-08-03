@@ -987,57 +987,109 @@ def build_file_tree(dir_path: str):
 
 def _build_artifacts_tree_sync(reports_dir: str):
     import os
-    tree = []
     
-    for root_item in os.listdir(reports_dir):
-        # Ignore system legacy/cache folders
-        if root_item in ["history", "performance", "vli_cache", "artifacts"]:
+    sources = [
+        reports_dir,
+        os.path.join(os.getcwd(), "backend", "data", "reports"),
+        r"C:\github\obsidian-vault\_cobalt\research",
+        r"C:\github\obsidian-vault\_cobalt",
+        r"C:\github\obsidian-vault\_cobalt\Reports"
+    ]
+    
+    folders_map = {}
+    ignored = {"history", "performance", "vli_cache", "artifacts", "reports", "templates", "inbox", "action_plans", "_memory", "archives", "analyze_"}
+
+    for sdir in sources:
+        if not os.path.exists(sdir):
             continue
-            
-        root_path = os.path.join(reports_dir, root_item)
-        if not os.path.isdir(root_path):
-            continue
-            
-        node_name = root_item
-        
-        children = []
-        for child_item in os.listdir(root_path):
-            child_path = os.path.join(root_path, child_item)
-            if os.path.isfile(child_path) and child_item.endswith(".md"):
-                is_system_file = ("Daily Briefing" in child_item) or ("Daily Journal" in child_item)
-                children.append({
-                    "name": child_item,
-                    "type": "file",
-                    "path": child_path.replace("\\", "/"),
-                    "canRename": not is_system_file,
-                    "canDelete": not is_system_file
-                })
-            elif os.path.isdir(child_path):
-                inner_children = []
-                for inner_item in os.listdir(child_path):
-                    inner_path = os.path.join(child_path, inner_item)
-                    if os.path.isfile(inner_path) and inner_item.endswith(".md"):
-                        inner_children.append({
-                            "name": inner_item,
-                            "type": "file",
-                            "path": inner_path.replace("\\", "/"),
-                            "canRename": True,
-                            "canDelete": True
-                        })
-                children.append({
-                    "name": child_item,
-                    "type": "folder",
-                    "path": child_path.replace("\\", "/"),
-                    "children": sorted(inner_children, key=lambda x: x["name"])
-                })
+        for root_item in os.listdir(sdir):
+            if root_item.lower() in ignored:
+                continue
                 
+            root_path = os.path.join(sdir, root_item)
+            if not os.path.isdir(root_path):
+                continue
+                
+            folder_key = root_item.lower()
+            if folder_key not in folders_map:
+                display_name = "Research" if folder_key == "research" else root_item
+                folders_map[folder_key] = {
+                    "name": display_name,
+                    "files": {},
+                    "subfolders": {}
+                }
+            
+            f_node = folders_map[folder_key]
+            
+            try:
+                for child_item in os.listdir(root_path):
+                    child_path = os.path.join(root_path, child_item)
+                    if os.path.isfile(child_path) and child_item.endswith(".md"):
+                        if "smc_analysis" in child_item.lower():
+                            continue
+                        if child_item not in f_node["files"]:
+                            is_system_file = ("Daily Briefing" in child_item) or ("Daily Journal" in child_item)
+                            mtime = os.path.getmtime(child_path) if os.path.exists(child_path) else 0
+                            f_node["files"][child_item] = ({
+                                "name": child_item,
+                                "type": "file",
+                                "path": child_path.replace("\\", "/"),
+                                "canRename": not is_system_file,
+                                "canDelete": not is_system_file
+                            }, mtime)
+                    elif os.path.isdir(child_path):
+                        sub_key = child_item.lower()
+                        if sub_key not in f_node["subfolders"]:
+                            f_node["subfolders"][sub_key] = {
+                                "name": child_item,
+                                "path": child_path.replace("\\", "/"),
+                                "files": {}
+                            }
+                        sub_node = f_node["subfolders"][sub_key]
+                        for inner_item in os.listdir(child_path):
+                            inner_path = os.path.join(child_path, inner_item)
+                            if os.path.isfile(inner_path) and inner_item.endswith(".md"):
+                                if "smc_analysis" in inner_item.lower():
+                                    continue
+                                if inner_item not in sub_node["files"]:
+                                    sub_node["files"][inner_item] = {
+                                        "name": inner_item,
+                                        "type": "file",
+                                        "path": inner_path.replace("\\", "/"),
+                                        "canRename": True,
+                                        "canDelete": True
+                                    }
+            except Exception:
+                pass
+
+    tree = []
+    for f_key, f_node in folders_map.items():
+        children = []
+        
+        # Add subfolders
+        for sub_key, sub_node in f_node["subfolders"].items():
+            sorted_inner = sorted(list(sub_node["files"].values()), key=lambda x: x["name"])
+            children.append({
+                "name": sub_node["name"],
+                "type": "folder",
+                "path": sub_node["path"],
+                "children": sorted_inner
+            })
+            
+        # Add files
+        file_list = list(f_node["files"].values())
+        if len(file_list) > 150:
+            file_list.sort(key=lambda x: x[1], reverse=True)
+            file_list = file_list[:150]
+            
+        children.extend([f[0] for f in file_list])
+        
         tree.append({
-            "name": node_name,
+            "name": f_node["name"],
             "type": "folder",
             "children": sorted(children, key=lambda x: (x["type"] == "folder", x["name"]))
         })
-        
-    # Sort tree reverse chronological
+
     tree.sort(key=lambda x: x["name"], reverse=True)
     return tree
 
@@ -1396,6 +1448,10 @@ async def poll_5m_patterns():
 def run_tv_watchlist_export_task():
     """Scheduled task to execute the TradingView watchlist export."""
     try:
+        import sys, os
+        proj_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        if proj_root not in sys.path:
+            sys.path.insert(0, proj_root)
         from scripts.utils.export_tradingview_watchlists import main as run_export
         logger.info("Executing periodic TradingView watchlist export...")
         run_export()
@@ -1590,7 +1646,7 @@ async def _run_idle_analysis_impl(manual_trigger: bool = False):
     skipped_symbols = []
     added_trace = []
     skipped_trace = []
-    logger.info(f"DEBUG: candidates count: {len(candidates)}")
+    logger.debug(f"DEBUG: candidates count: {len(candidates)}")
     for c in candidates:
         sym = c.get("symbol") if isinstance(c, dict) else c
         if not sym: continue
@@ -1611,7 +1667,7 @@ async def _run_idle_analysis_impl(manual_trigger: bool = False):
             if mtime.date() == datetime.now().date() and os.path.getsize(active_path) > 100:
                 needs_report = False
                 
-        logger.info(f"DEBUG: {sym} needs_report: {needs_report}")
+        logger.debug(f"DEBUG: {sym} needs_report: {needs_report}")
         if needs_report:
             grade = c.get("grade", "F") if isinstance(c, dict) else "F"
             if grade not in ["S", "A+", "A", "A-"]:
@@ -3412,6 +3468,14 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
             placed_time = act.get('trade_date') or act.get('time_placed') or ''
             date_only = str(placed_time)[:10] if placed_time else "Unknown"
             
+            act_id_str = str(act.get('id', ''))
+            alt_date_only = None
+            if 'T' in act_id_str:
+                import re
+                iso_match = re.search(r'(\d{4}-\d{2}-\d{2})T', act_id_str)
+                if iso_match:
+                    alt_date_only = iso_match.group(1)
+            
             real_time = None
             placed_time_str = str(placed_time) if placed_time else ""
             if placed_time_str:
@@ -3423,7 +3487,8 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
             if real_time and (real_time.startswith('00:00') or real_time.startswith('04:00') or real_time.startswith('05:00')):
                 real_time = None
             
-            if start_date <= date_only <= end_date or date_only == "Unknown":
+            in_range = (start_date <= date_only <= end_date) or (alt_date_only and start_date <= alt_date_only <= end_date) or (date_only == "Unknown")
+            if in_range:
                 if real_time:
                     fmt_time = f"{date_only} {real_time}"
                 else:
@@ -3609,9 +3674,11 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
         today_str = today_dt.strftime("%Y-%m-%d")
         tomorrow_str = (today_dt + timedelta(days=1)).strftime("%Y-%m-%d")
         
+        total_fees_summary = 0.0
         for acct in accounts:
             realized_pnl_data = BrokerageCache.calculate_realized_pnl(acct, start_date, end_date)
             realized_pnl += realized_pnl_data.get("total_pnl", 0.0)
+            total_fees_summary += realized_pnl_data.get("total_fees", 0.0)
             closed_positions.extend(realized_pnl_data.get("closed_trades", []))
             
             today_realized_pnl_data = BrokerageCache.calculate_realized_pnl(acct, today_str, tomorrow_str)
@@ -3622,7 +3689,8 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
             "positions": positions_payload,
             "closed_positions": closed_positions,
             "realized_pnl_summary": realized_pnl,
-            "today_realized_pnl": today_realized_pnl
+            "today_realized_pnl": today_realized_pnl,
+            "total_fees_summary": total_fees_summary
         })
     except Exception as e:
         import traceback
@@ -5936,12 +6004,41 @@ from src.server.routes.scanner import router as scanner_router
 app.include_router(scanner_router, prefix="/api/scanner", tags=["scanner"])
 
 
-# Trigger Telemetry Purge on Server Startup
+# # Trigger Telemetry Purge on Server Startup
 try:
     from src.config.vli import purge_stale_vli_sessions
     purge_stale_vli_sessions()
 except Exception:
     pass
+
+# --- DROPZONE WATCHER BACKGROUND SERVICE & ENDPOINTS ---
+@app.api_route("/api/v1/dropzone/check", methods=["GET", "POST"])
+@app.api_route("/api/vli/dropzone/check", methods=["GET", "POST"])
+async def trigger_dropzone_check():
+    """Triggers immediate ingestion and archiving of files in data/dropzone."""
+    try:
+        from src.services.csv_importer import watch_dropzone_and_process
+        res = await asyncio.to_thread(watch_dropzone_and_process)
+        return {"status": "success", "message": res}
+    except Exception as e:
+        logger.error(f"Dropzone check API error: {e}")
+        return {"status": "error", "message": str(e)}
+
+async def _bg_dropzone_watcher_loop():
+    """Background task to continuously poll and ingest files from data/dropzone."""
+    while True:
+        try:
+            from src.services.csv_importer import watch_dropzone_and_process
+            res = await asyncio.to_thread(watch_dropzone_and_process)
+            if res and "No files to process" not in res:
+                logger.info(f"VLI_SYSTEM Dropzone Auto-Ingest: {res}")
+        except Exception as e:
+            logger.error(f"VLI_SYSTEM Dropzone Watcher error: {e}")
+        await asyncio.sleep(3.0)
+
+@app.on_event("startup")
+async def start_dropzone_watcher():
+    asyncio.create_task(_bg_dropzone_watcher_loop())
 
 @app.post("/api/system/restart")
 async def restart_server(request: Request):
