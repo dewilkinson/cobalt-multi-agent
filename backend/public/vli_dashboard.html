@@ -2955,9 +2955,6 @@
                             <div class="card-title-text" style="display:inline-flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis;">${instanceGuid.includes('futures') ? 'Futures Watchlist' : typeDef.title} ${liveBadgeHTML}${typeGuid === 'SCAN_RES' ? '<span id="scanner-warning-badge" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 800; margin-left: 8px; letter-spacing: 0.5px; display: none;">⚠️ Using Sample Values</span>' : ''}</div>
                         </div>
                         <div class="card-controls" style="display:flex; align-items:center; gap:6px; margin-left:auto; flex-shrink:0;">
-                            ${(typeGuid === 'CUSTOM_WL' || typeGuid === 'MACRO_WL') ? `
-                                <div class="win-btn" onclick="window.promptAddCustomWatchlistSymbol('${instanceGuid}'); event.stopPropagation();" title="Add Symbol to Watchlist" style="display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-right: 2px; cursor: pointer; color: var(--emerald-green); font-weight: bold; font-size: 15px; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">+</div>
-                            ` : ''}
                             ${(typeGuid === 'SCAN_RES' || typeGuid === 'MACRO_WL' || typeGuid === 'CUSTOM_WL') ? `
                                 <div class="win-btn" onclick="${typeGuid === 'SCAN_RES' ? 'exportScannerWatchlist' : 'exportMacroWatchlist'}('${instanceGuid}'); event.stopPropagation();" title="Export Watchlist" style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-right: 2px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--emerald-green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -8062,12 +8059,12 @@
                 let table = body.querySelector('table');
                 if (!table) {
                     body.innerHTML = `
-                        <div style="font-size: 11px; margin-bottom: 10px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size: 11px; margin-bottom: 10px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 6px;">
                             <div style="display:flex; gap: 8px; align-items: center;">
                                 <span style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--cobalt-blue);">Custom Watchlist</span>
-                                <button class="vli-input" style="padding: 2px 8px; border: 1px solid var(--emerald-green); background: rgba(16,185,129,0.15); color: #10b981; font-weight: 600; cursor: pointer; border-radius: 3px; font-size: 10px;" onclick="window.promptAddCustomWatchlistSymbol('${guid}')">+ Add Symbol</button>
+                                <span style="font-size: 10px; color: var(--text-muted); opacity: 0.7; font-style: italic;">(Right-click row to manage)</span>
                             </div>
-                            <div style="font-size: 10px; color: var(--text-muted); opacity: 0.8;">Right-click row to manage</div>
+                            <div class="win-btn" onclick="window.promptAddCustomWatchlistSymbol('${guid}'); event.stopPropagation();" title="Add Ticker Symbol to Custom Watchlist" style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 4px; border: 1px solid var(--emerald-green); background: rgba(16,185,129,0.15); color: #10b981; font-weight: bold; font-size: 15px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(16,185,129,0.35)'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='rgba(16,185,129,0.15)'; this.style.transform='scale(1)';">+</div>
                         </div>
                         <div class="scanner-table-container" style="flex-grow: 1; overflow-y: auto;">
                             <table class="macro-table scanner-table" style="width: 100%; border-collapse: collapse; font-size: 11px;">
