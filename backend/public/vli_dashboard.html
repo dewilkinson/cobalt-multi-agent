@@ -222,6 +222,36 @@
             0%, 100% { opacity: 0.5; }
             50% { opacity: 1; }
         }
+        .bouncing-dots-loader {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .bouncing-dots-loader div {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background-color: var(--cobalt-blue);
+            animation: bouncing-dot 1.4s infinite ease-in-out both;
+            box-shadow: 0 0 8px rgba(88, 166, 255, 0.6);
+        }
+        .bouncing-dots-loader div:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        .bouncing-dots-loader div:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        @keyframes bouncing-dot {
+            0%, 80%, 100% {
+                transform: scale(0.3);
+                opacity: 0.3;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
 
 
 
@@ -2668,12 +2698,12 @@
                 } else if (typeGuid === 'MACRO_WL') {
                     bodyContent = `
                         <div class="card-body" style="overflow-y: auto; padding: 10px; display: flex; flex-direction: column;">
-                            <div class="card-initializing-loader" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; min-height: 180px; margin: auto; gap: 12px; color: var(--text-muted); user-select: none;">
-                                <svg class="loading-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--cobalt-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="10" style="opacity: 0.15;"></circle>
-                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
-                                </svg>
-                                <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; animation: vli-pulse-anim 1.5s infinite ease-in-out;" class="pulse-anim">Initializing Watchlist...</div>
+                            <div class="card-initializing-loader" style="display: flex; align-items: center; justify-content: center; height: 100%; width: 100%; min-height: 180px; margin: auto; user-select: none;">
+                                <div class="bouncing-dots-loader">
+                                    <div></div>
+                                    <div></div>
+                                    <div></div>
+                                </div>
                             </div>
                         </div>`;
                 } else if (typeGuid === 'STRUCTURAL_ANALY') {
