@@ -490,19 +490,138 @@ class BrokerageCache:
         cls.backup_cache(is_weekly=True)
 
     @classmethod
+    def _resolve_account_id(cls, account_id: str) -> str:
+        if not account_id:
+            return account_id
+        if account_id.strip() in ["TopStepX Futures", "TopStepX", "TopStepX Express"]:
+            return "TopStepX Express *7328"
+        if account_id.strip() in ["TopStepX Combine"]:
+            return "TopStepX Combine *4889"
+        return account_id
+
+    @classmethod
     def get_activities(cls, account_id: str) -> List[Dict[str, Any]]:
         """Returns all cached activities for the given account ID."""
+        resolved_id = cls._resolve_account_id(account_id)
         cache = cls._load_cache()
-        acct_data = cache.get(account_id, {})
+        acct_data = cache.get(resolved_id, {})
         if isinstance(acct_data, list):
             return acct_data
         return acct_data.get("activities", [])
 
     @classmethod
+    def group_trade_activities(
+        cls, 
+        activities: List[Dict[str, Any]], 
+        max_time_gap_seconds: int = 30,
+        price_tolerance: float = 0.50
+    ) -> List[Dict[str, Any]]:
+        """
+        Groups sequential execution activities for the same account, symbol, side,
+        and equivalent price (within price_tolerance, e.g. $0.50 / 1-2 ticks) executed within 
+        max_time_gap_seconds (default 30s) into consolidated contract chunks (e.g. 5, 10 contract batches).
+        
+        Prevents clutter from rapid single-contract button presses while preserving multi-stage scaled entries.
+        """
+        if not activities:
+            return []
+            
+        def get_symbol(act):
+            sym_field = act.get('symbol') or act.get('universal_symbol') or {}
+            if isinstance(sym_field, dict):
+                return (sym_field.get('symbol') or sym_field.get('raw_symbol', '')).upper()
+            return str(sym_field).upper()
+            
+        def get_action(act):
+            action = act.get('action', act.get('type', '')).upper()
+            if action in ["BUY", "BOUGHT", "BTO", "BTC", "REINVEST", "DIVIDEND"]:
+                return "BUY"
+            elif action in ["SELL", "SOLD", "STC", "STO"]:
+                return "SELL"
+            return action
+            
+        def get_price(act):
+            try:
+                return float(act.get('price', act.get('execution_price', 0)) or 0)
+            except (ValueError, TypeError):
+                return 0.0
+
+        # Sort activities chronologically by parsed timestamp
+        sorted_acts = sorted(activities, key=cls._parse_time)
+        grouped_activities = []
+        current_batch = []
+        
+        for act in sorted_acts:
+            action = get_action(act)
+            if action not in ["BUY", "SELL"]:
+                if current_batch:
+                    grouped_activities.append(cls._consolidate_batch(current_batch))
+                    current_batch = []
+                grouped_activities.append(act)
+                continue
+
+            if not current_batch:
+                current_batch.append(act)
+            else:
+                prev_act = current_batch[-1]
+                prev_sym = get_symbol(prev_act)
+                curr_sym = get_symbol(act)
+                prev_act_side = get_action(prev_act)
+                prev_price = get_price(prev_act)
+                curr_price = get_price(act)
+                
+                prev_time = cls._parse_time(prev_act)
+                curr_time = cls._parse_time(act)
+                
+                time_delta = abs((curr_time - prev_time).total_seconds()) if (curr_time.year > 1900 and prev_time.year > 1900) else 0
+                
+                same_symbol = (prev_sym == curr_sym)
+                same_side = (prev_act_side == action)
+                close_price = (abs(prev_price - curr_price) <= price_tolerance)
+                close_time = (time_delta <= max_time_gap_seconds)
+                
+                if same_symbol and same_side and close_price and close_time:
+                    current_batch.append(act)
+                else:
+                    grouped_activities.append(cls._consolidate_batch(current_batch))
+                    current_batch = [act]
+                    
+        if current_batch:
+            grouped_activities.append(cls._consolidate_batch(current_batch))
+            
+        return grouped_activities
+
+    @classmethod
+    def _consolidate_batch(cls, batch: List[Dict[str, Any]]) -> Dict[str, Any]:
+        if len(batch) == 1:
+            return batch[0]
+            
+        first_act = dict(batch[0])
+        total_units = sum(float(a.get('units', a.get('total_quantity', a.get('filled_quantity', 0))) or 0) for a in batch)
+        
+        tot_val = sum(
+            float(a.get('units', a.get('total_quantity', a.get('filled_quantity', 0))) or 0) *
+            float(a.get('price', a.get('execution_price', 0)) or 0)
+            for a in batch
+        )
+        avg_price = (tot_val / total_units) if total_units > 0 else float(first_act.get('price', 0) or 0)
+        
+        first_id = str(first_act.get('id', 'batch'))
+        total_fee = sum(float(a.get('fee', 0) or 0) for a in batch)
+        first_act['units'] = total_units
+        first_act['price'] = round(avg_price, 4)
+        first_act['fee'] = round(total_fee, 4)
+        first_act['id'] = f"BATCH-{first_id}-{len(batch)}"
+        first_act['_batched_count'] = len(batch)
+        
+        return first_act
+
+    @classmethod
     def get_positions(cls, account_id: str) -> List[Dict[str, Any]]:
         """Returns all cached explicit positions for the given account ID."""
+        resolved_id = cls._resolve_account_id(account_id)
         cache = cls._load_cache()
-        acct_data = cache.get(account_id, {})
+        acct_data = cache.get(resolved_id, {})
         if isinstance(acct_data, list):
             return []
         return acct_data.get("positions", [])
@@ -708,13 +827,32 @@ class BrokerageCache:
     @classmethod
     def calculate_realized_pnl(cls, account_id: str, start_date: str, end_date: str) -> Dict[str, Any]:
         """
-        Calculates the Realized PnL for a given date range using a FIFO tax-lot engine supporting short trades.
+        Calculates the Realized PnL for a given date range using explicit closed positions (if available/TopStep) or FIFO tax-lot engine.
         Returns a dict with total_pnl and a list of closed_trades.
         """
+        explicit_closed = cls.get_closed_positions(account_id)
+        if explicit_closed:
+            filtered = []
+            for t in explicit_closed:
+                c_date = (t.get("close_date") or t.get("trade_date") or "")[:10]
+                if start_date <= c_date <= end_date:
+                    filtered.append(t)
+            grouped = cls.group_closed_trades(filtered, max_time_gap_seconds=30)
+            tot_pnl = sum(float(t.get("pnl", 0) or 0) for t in grouped)
+            tot_fees = sum(float(t.get("fees", 0) or 0) for t in grouped)
+            return {
+                "total_pnl": round(tot_pnl, 2),
+                "closed_trades": grouped,
+                "total_fees": round(tot_fees, 2)
+            }
+
         activities = cls.get_activities(account_id)
         if not activities:
             return {"total_pnl": 0.0, "closed_trades": []}
             
+        # Pre-group sequential 1-contract activities within 30s & $0.50 tolerance
+        activities = cls.group_trade_activities(activities, price_tolerance=0.50, max_time_gap_seconds=30)
+        
         # Sort chronologically (oldest first) using parse_time
         chronological_acts = sorted(activities, key=cls._parse_time)
         
@@ -839,6 +977,8 @@ class BrokerageCache:
                         
             elif action in ["SELL", "SOLD", "STC", "STO"]:
                 if lot_info["type"] in ["flat", "short"]:
+                    if account_id in {"Rollover IRA *5513", "Health Savings Account *6937"}:
+                        continue
                     lot_info["lots"].append({"qty": qty, "price": price, "date": trade_date_str})
                     lot_info["type"] = "short"
                 else: # closing long
@@ -920,6 +1060,72 @@ class BrokerageCache:
                 total_fees += float(act.get("fee", 0.0) or 0.0)
 
         realized_pnl -= total_fees
-        return {"total_pnl": realized_pnl, "closed_trades": closed_trades, "total_fees": total_fees}
+        grouped_closed_trades = cls.group_closed_trades(closed_trades)
+        return {"total_pnl": realized_pnl, "closed_trades": grouped_closed_trades, "total_fees": total_fees}
+
+    @classmethod
+    def group_closed_trades(cls, closed_trades: List[Dict[str, Any]], max_time_gap_seconds: float = 30.0) -> List[Dict[str, Any]]:
+        if not closed_trades:
+            return []
+            
+        sorted_trades = sorted(closed_trades, key=lambda c: cls._parse_time({"trade_date": c.get("close_date", "")}))
+        grouped = []
+        current_batch = []
+        
+        for trade in sorted_trades:
+            if not current_batch:
+                current_batch.append(trade)
+            else:
+                prev_trade = current_batch[-1]
+                prev_sym = prev_trade.get("symbol", "")
+                curr_sym = trade.get("symbol", "")
+                
+                prev_time = cls._parse_time({"trade_date": prev_trade.get("close_date", "")})
+                curr_time = cls._parse_time({"trade_date": trade.get("close_date", "")})
+                
+                time_delta = abs((curr_time - prev_time).total_seconds()) if (curr_time.year > 1900 and prev_time.year > 1900) else 0
+                
+                same_symbol = (prev_sym == curr_sym)
+                close_time = (time_delta <= max_time_gap_seconds)
+                
+                if same_symbol and close_time:
+                    current_batch.append(trade)
+                else:
+                    grouped.append(cls._consolidate_closed_batch(current_batch))
+                    current_batch = [trade]
+                    
+        if current_batch:
+            grouped.append(cls._consolidate_closed_batch(current_batch))
+            
+        return grouped
+
+    @classmethod
+    def _consolidate_closed_batch(cls, batch: List[Dict[str, Any]]) -> Dict[str, Any]:
+        if len(batch) == 1:
+            return batch[0]
+            
+        first_trade = dict(batch[0])
+        total_qty = sum(float(t.get("qty", 0) or 0) for t in batch)
+        total_pnl = sum(float(t.get("pnl", 0) or 0) for t in batch)
+        total_fees = sum(float(t.get("fees", 0) or 0) for t in batch)
+        
+        tot_buy_val = sum(float(t.get("qty", 0) or 0) * float(t.get("buy_price", 0) or 0) for t in batch)
+        tot_sell_val = sum(float(t.get("qty", 0) or 0) * float(t.get("sell_price", 0) or 0) for t in batch)
+        
+        avg_buy_price = (tot_buy_val / total_qty) if total_qty > 0 else float(first_trade.get("buy_price", 0) or 0)
+        avg_sell_price = (tot_sell_val / total_qty) if total_qty > 0 else float(first_trade.get("sell_price", 0) or 0)
+        
+        mult = cls.get_futures_multiplier(first_trade.get("symbol", ""))
+        total_entry_val = tot_buy_val * mult
+        
+        first_trade["qty"] = total_qty
+        first_trade["buy_price"] = round(avg_buy_price, 4)
+        first_trade["sell_price"] = round(avg_sell_price, 4)
+        first_trade["pnl"] = round(total_pnl, 2)
+        first_trade["fees"] = round(total_fees, 4)
+        first_trade["pnl_pct"] = round((total_pnl / total_entry_val * 100), 2) if total_entry_val > 0 else 0.0
+        first_trade["_batched_count"] = len(batch)
+        
+        return first_trade
 
 

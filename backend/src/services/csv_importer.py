@@ -411,106 +411,165 @@ def parse_topstepx_trades(csv_path: str):
     if not os.path.exists(csv_path):
         return {}
 
-    activities = []
+    with open(csv_path, "r", encoding="utf-8-sig", errors="ignore") as f:
+        file_text = f.read()
+
+    fname = os.path.basename(csv_path).lower()
+    full_path_str = os.path.abspath(csv_path).lower()
+    full_search_text = f"{full_path_str} {file_text.lower()}"
+
+    # Determine default target TopStep account by checking for account identifiers in path, filename, or file text
+    default_account = None
+    if any(k in full_search_text for k in ["7328", "5972", "7952", "7925", "50287952"]):
+        default_account = "TopStepX Express *7328"
+    elif any(k in full_search_text for k in ["7085", "4889", "81134889"]):
+        default_account = "TopStepX Combine *7085"
+    elif "1299" in full_search_text:
+        default_account = "TopStepX Combine *1299"
+    else:
+        default_account = "TopStepX Express *7328"
+
+    activities_by_account = {}
+    closed_positions_by_account = {}
+
     with open(csv_path, "r", encoding="utf-8-sig") as f:
         reader = list(csv.DictReader(f))
 
     for row in reader:
-            trade_id = (row.get("Id") or "").strip()
-            raw_sym = (row.get("ContractName") or "").strip().upper()
-            if not raw_sym:
-                continue
+        # Check per-row account if present
+        row_acct_raw = str(row.get("Account") or row.get("Account Name") or row.get("Account Number") or "").lower()
+        target_account = None
+        if any(k in row_acct_raw for k in ["7328", "5972", "7952", "7925", "50287952"]):
+            target_account = "TopStepX Express *7328"
+        elif any(k in row_acct_raw for k in ["7085", "4889", "81134889"]):
+            target_account = "TopStepX Combine *7085"
+        elif "1299" in row_acct_raw:
+            target_account = "TopStepX Combine *1299"
+        else:
+            target_account = default_account
 
-            clean_sym = re.sub(r'[FGHJKMNQUVXZ]\d{1,2}$', '', raw_sym)
-            if not clean_sym:
-                clean_sym = raw_sym
-            if not clean_sym.startswith("/"):
-                sym = f"/{clean_sym}"
-            else:
-                sym = clean_sym
+        # Mandatory rule: Do not process topstep csv files that do not contain at least the last 4 digits of account num
+        if not target_account:
+            continue
 
-            trade_type = (row.get("Type") or "").strip().lower()
-            qty_str = (row.get("Size") or "0").replace(',', '')
+        trade_id = (row.get("Id") or "").strip()
+        raw_sym = (row.get("ContractName") or "").strip().upper()
+        if not raw_sym:
+            continue
+
+        clean_sym = re.sub(r'[FGHJKMNQUVXZ]\d{1,2}$', '', raw_sym)
+        if not clean_sym:
+            clean_sym = raw_sym
+        if not clean_sym.startswith("/"):
+            sym = f"/{clean_sym}"
+        else:
+            sym = clean_sym
+
+        trade_type = (row.get("Type") or "").strip().lower()
+        qty_str = (row.get("Size") or "0").replace(',', '')
+        try:
+            qty = float(qty_str)
+        except Exception:
+            qty = 0.0
+
+        if qty <= 0:
+            continue
+
+        entry_price_str = (row.get("EntryPrice") or "0").replace(',', '')
+        exit_price_str = (row.get("ExitPrice") or "0").replace(',', '')
+        try:
+            entry_price = float(entry_price_str)
+            exit_price = float(exit_price_str)
+        except Exception:
+            continue
+
+        entered_at = (row.get("EnteredAt") or "").strip()
+        exited_at = (row.get("ExitedAt") or "").strip()
+
+        def parse_topstep_time(t_str):
+            if not t_str:
+                return ""
             try:
-                qty = float(qty_str)
+                parts = t_str.split(" ")
+                dt_part = f"{parts[0]} {parts[1]}"
+                dt_obj = datetime.datetime.strptime(dt_part, "%m/%d/%Y %H:%M:%S")
+                
+                from zoneinfo import ZoneInfo
+                eastern = ZoneInfo("America/New_York")
+                utc = ZoneInfo("UTC")
+                dt_est = dt_obj.replace(tzinfo=eastern)
+                dt_utc = dt_est.astimezone(utc)
+                return dt_utc.strftime("%Y-%m-%dT%H:%M:%S.000Z")
             except Exception:
-                qty = 0.0
+                return t_str
 
-            if qty <= 0:
-                continue
+        entry_iso = parse_topstep_time(entered_at)
+        exit_iso = parse_topstep_time(exited_at)
 
-            entry_price_str = (row.get("EntryPrice") or "0").replace(',', '')
-            exit_price_str = (row.get("ExitPrice") or "0").replace(',', '')
-            try:
-                entry_price = float(entry_price_str)
-                exit_price = float(exit_price_str)
-            except Exception:
-                continue
+        if trade_type == "short":
+            entry_action = "SELL"
+            exit_action = "BUY"
+        else:
+            entry_action = "BUY"
+            exit_action = "SELL"
 
-            entered_at = (row.get("EnteredAt") or "").strip()
-            exited_at = (row.get("ExitedAt") or "").strip()
+        fees_str = (row.get("Fees") or "0").replace(',', '')
+        comm_str = (row.get("Commissions") or "0").replace(',', '')
+        try:
+            trade_fee = float(fees_str) + float(comm_str)
+        except Exception:
+            trade_fee = 0.0
+        fill_fee = round(trade_fee / 2.0, 4)
 
-            def parse_topstep_time(t_str):
-                if not t_str:
-                    return ""
-                try:
-                    parts = t_str.split(" ")
-                    dt_part = f"{parts[0]} {parts[1]}"
-                    dt_obj = datetime.datetime.strptime(dt_part, "%m/%d/%Y %H:%M:%S")
-                    
-                    from zoneinfo import ZoneInfo
-                    eastern = ZoneInfo("America/New_York")
-                    utc = ZoneInfo("UTC")
-                    dt_est = dt_obj.replace(tzinfo=eastern)
-                    dt_utc = dt_est.astimezone(utc)
-                    return dt_utc.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-                except Exception:
-                    return t_str
+        entry_act_id = f"TOPSTEP-ENTRY-{sym}-{entry_iso}-{qty}-{entry_action}-{trade_id}".replace(":", "").replace(" ", "-")
+        exit_act_id = f"TOPSTEP-EXIT-{sym}-{exit_iso}-{qty}-{exit_action}-{trade_id}".replace(":", "").replace(" ", "-")
 
-            entry_iso = parse_topstep_time(entered_at)
-            exit_iso = parse_topstep_time(exited_at)
+        if target_account not in activities_by_account:
+            activities_by_account[target_account] = []
+            closed_positions_by_account[target_account] = []
 
-            if trade_type == "short":
-                entry_action = "SELL"
-                exit_action = "BUY"
-            else:
-                entry_action = "BUY"
-                exit_action = "SELL"
+        activities_by_account[target_account].append({
+            "id": entry_act_id,
+            "type": entry_action,
+            "units": qty,
+            "price": entry_price,
+            "trade_date": entry_iso,
+            "fee": fill_fee,
+            "status": "Executed",
+            "symbol": {"symbol": sym}
+        })
 
-            fees_str = (row.get("Fees") or "0").replace(',', '')
-            comm_str = (row.get("Commissions") or "0").replace(',', '')
-            try:
-                trade_fee = float(fees_str) + float(comm_str)
-            except Exception:
-                trade_fee = 0.0
-            fill_fee = round(trade_fee / 2.0, 4)
+        activities_by_account[target_account].append({
+            "id": exit_act_id,
+            "type": exit_action,
+            "units": qty,
+            "price": exit_price,
+            "trade_date": exit_iso,
+            "fee": fill_fee,
+            "status": "Executed",
+            "symbol": {"symbol": sym}
+        })
 
-            entry_act_id = f"TOPSTEP-ENTRY-{sym}-{entry_iso}-{qty}-{entry_action}-{trade_id}".replace(":", "").replace(" ", "-")
-            exit_act_id = f"TOPSTEP-EXIT-{sym}-{exit_iso}-{qty}-{exit_action}-{trade_id}".replace(":", "").replace(" ", "-")
+        pnl_val = float(row.get("PnL") or "0")
+        closed_positions_by_account[target_account].append({
+            "symbol": sym,
+            "close_date": exit_iso,
+            "open_date": entry_iso,
+            "qty": qty,
+            "buy_price": entry_price if trade_type != "short" else exit_price,
+            "sell_price": exit_price if trade_type != "short" else entry_price,
+            "pnl": round(pnl_val, 2),
+            "fees": round(trade_fee, 2),
+            "direction": "Short" if trade_type == "short" else "Long"
+        })
 
-            activities.append({
-                "id": entry_act_id,
-                "type": entry_action,
-                "units": qty,
-                "price": entry_price,
-                "trade_date": entry_iso,
-                "fee": fill_fee,
-                "status": "Executed",
-                "symbol": {"symbol": sym}
-            })
+    if not activities_by_account:
+        logger.warning(
+            f"Rejecting TopStep CSV {csv_path}: File does not contain at least the last 4 digits of a valid TopStep account number (7952 or 4889)."
+        )
+        return {}
 
-            activities.append({
-                "id": exit_act_id,
-                "type": exit_action,
-                "units": qty,
-                "price": exit_price,
-                "trade_date": exit_iso,
-                "fee": fill_fee,
-                "status": "Executed",
-                "symbol": {"symbol": sym}
-            })
-
-    return {"TopStepX Futures": activities} if activities else {}
+    return {"activities": activities_by_account, "closed_positions": closed_positions_by_account}
 
 
 def get_dropzone_csvs(optional_path=None):
@@ -638,7 +697,13 @@ def process_dropzone_files(optional_path=None):
         dropzone_dir = os.path.dirname(target_path)
     else:
         dropzone_dir = target_path
-        all_files = glob.glob(os.path.join(dropzone_dir, "*.csv")) + glob.glob(os.path.join(dropzone_dir, "*.txt"))
+        archive_dir = os.path.abspath(os.path.join(dropzone_dir, "archive"))
+        raw_files = glob.glob(os.path.join(dropzone_dir, "**", "*.csv"), recursive=True) + \
+                    glob.glob(os.path.join(dropzone_dir, "**", "*.txt"), recursive=True)
+        all_files = []
+        for f in raw_files:
+            if not os.path.abspath(f).startswith(archive_dir):
+                all_files.append(f)
         all_files.sort(key=os.path.getctime, reverse=True)
 
     archive_dir = os.path.join(dropzone_dir, "archive")
@@ -701,15 +766,25 @@ def process_dropzone_files(optional_path=None):
                 messages.append(f"Error processing watchlist {filename}: {e}")
             continue
             
-        # 1. Match exporting tool/account from config regexes
+        # 1. Match exporting tool/account from subfolder path or config regexes
         target_account = None
-        for acct, pattern in dropzone_accounts.items():
-            try:
-                if re.match(pattern, filename, re.IGNORECASE) or re.search(pattern, filename, re.IGNORECASE):
-                    target_account = acct
-                    break
-            except Exception as e:
-                logger.error(f"Invalid regex '{pattern}' for account '{acct}': {e}")
+        search_target = os.path.normpath(file_path)
+        parent_folder = os.path.basename(os.path.dirname(file_path)).lower()
+
+        if "7328" in parent_folder or "5972" in parent_folder or "7952" in parent_folder or "7925" in parent_folder or "50287952" in parent_folder:
+            target_account = "TopStepX Express *7328"
+        elif "7085" in parent_folder or "4889" in parent_folder or "81134889" in parent_folder:
+            target_account = "TopStepX Combine *7085"
+        elif "1299" in parent_folder:
+            target_account = "TopStepX Combine *1299"
+        else:
+            for acct, pattern in dropzone_accounts.items():
+                try:
+                    if re.search(pattern, filename, re.IGNORECASE) or re.search(pattern, search_target, re.IGNORECASE):
+                        target_account = acct
+                        break
+                except Exception as e:
+                    logger.error(f"Invalid regex '{pattern}' for account '{acct}': {e}")
                 
         # Header fallback for TopStepX CSV exports
         if not target_account and os.path.isfile(file_path):
@@ -717,7 +792,14 @@ def process_dropzone_files(optional_path=None):
                 with open(file_path, "r", encoding="utf-8-sig", errors="ignore") as header_f:
                     first_line = header_f.readline()
                     if "ContractName" in first_line and "EnteredAt" in first_line and "ExitedAt" in first_line:
-                        target_account = "TopStepX Futures"
+                        with open(file_path, "r", encoding="utf-8-sig", errors="ignore") as full_f:
+                            content = f"{search_target} {full_f.read()}".lower()
+                        if "7328" in content or "5972" in content or "7952" in content or "7925" in content or "50287952" in content:
+                            target_account = "TopStepX Express *7328"
+                        elif "7085" in content or "4889" in content or "81134889" in content or "81137085" in content:
+                            target_account = "TopStepX Combine *7085"
+                        elif "1299" in content:
+                            target_account = "TopStepX Combine *1299"
             except Exception:
                 pass
 
@@ -731,11 +813,11 @@ def process_dropzone_files(optional_path=None):
         file_type_label = ""
         paper_prefix = ""
         
-        if "topstep" in target_account.lower() or "topstep" in lower_name:
+        if "topstep" in target_account.lower() or "topstep" in lower_name or "topstep" in search_target.lower():
             paper_prefix = "TOPSTEP_"
             check_and_backup_dropzone_file(file_path, prefix=paper_prefix)
             parsed_data = parse_topstepx_trades(file_path)
-            file_type_label = "TopStepX Futures"
+            file_type_label = ", ".join(parsed_data.keys()) if parsed_data else target_account
         elif "paper" in target_account.lower():
             # TradingView Paper Trading export
             asset_type = get_tradingview_csv_asset_type(file_path)
@@ -793,24 +875,38 @@ def process_dropzone_files(optional_path=None):
                 
         # 3. Merge parsed details to cache and move file to archive
         file_updated = False
-        for account, data in parsed_data.items():
-            if not data:
-                continue
-            if "paper" in file_type_label.lower() or "topstep" in file_type_label.lower() or file_type_label in ["Orders", "History"]:
-                BrokerageCache.merge_activities(account, data)
-                file_updated = True
-                updates_made = True
-            elif file_type_label == "Positions":
-                BrokerageCache.set_positions(account, data)
-                file_updated = True
-                updates_made = True
-            elif file_type_label == "Closed Positions":
-                BrokerageCache.replace_closed_positions(account, data)
-                file_updated = True
-                updates_made = True
+        if isinstance(parsed_data, dict) and ("activities" in parsed_data or "closed_positions" in parsed_data):
+            for account, data in parsed_data.get("activities", {}).items():
+                if data:
+                    BrokerageCache.merge_activities(account, data)
+                    file_updated = True
+                    updates_made = True
+            for account, data in parsed_data.get("closed_positions", {}).items():
+                if data:
+                    BrokerageCache.replace_closed_positions(account, data)
+                    file_updated = True
+                    updates_made = True
+        else:
+            for account, data in parsed_data.items():
+                if not data:
+                    continue
+                if "paper" in file_type_label.lower() or "topstep" in file_type_label.lower() or file_type_label in ["Orders", "History"]:
+                    BrokerageCache.merge_activities(account, data)
+                    file_updated = True
+                    updates_made = True
+                elif file_type_label == "Positions":
+                    BrokerageCache.set_positions(account, data)
+                    file_updated = True
+                    updates_made = True
+                elif file_type_label == "Closed Positions":
+                    BrokerageCache.replace_closed_positions(account, data)
+                    file_updated = True
+                    updates_made = True
                 
         if file_updated or (target_account and "paper" in target_account.lower()):
-            dest_filename = f"{paper_prefix}{filename}" if (paper_prefix and not filename.startswith(paper_prefix)) else filename
+            parent_dir = os.path.basename(os.path.dirname(file_path))
+            subfolder_prefix = f"{parent_dir}_" if (parent_dir and parent_dir != os.path.basename(dropzone_dir) and parent_dir != "archive") else ""
+            dest_filename = f"{paper_prefix}{subfolder_prefix}{filename}" if (paper_prefix and not filename.startswith(paper_prefix)) else f"{subfolder_prefix}{filename}"
             dest_path = os.path.join(archive_dir, dest_filename)
             try:
                 shutil.copy2(file_path, dest_path)
@@ -867,7 +963,10 @@ def watch_dropzone_and_process(optional_path=None):
         if os.path.isfile(dropzone_dir):
             current_files = [dropzone_dir]
         else:
-            current_files = glob.glob(os.path.join(dropzone_dir, "*.csv")) + glob.glob(os.path.join(dropzone_dir, "*.txt"))
+            archive_dir = os.path.abspath(os.path.join(dropzone_dir, "archive"))
+            raw_files = glob.glob(os.path.join(dropzone_dir, "**", "*.csv"), recursive=True) + \
+                        glob.glob(os.path.join(dropzone_dir, "**", "*.txt"), recursive=True)
+            current_files = [f for f in raw_files if not os.path.abspath(f).startswith(archive_dir)]
             
         if current_files:
             logger.info(f"Dropzone files detected: {[os.path.basename(f) for f in current_files]}. Processing.")

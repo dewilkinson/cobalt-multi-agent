@@ -3296,7 +3296,7 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                     dedup_activities.append(act)
             else:
                 dedup_activities.append(act)
-        activities = dedup_activities
+        activities = BrokerageCache.group_trade_activities(dedup_activities, price_tolerance=0.50, max_time_gap_seconds=30)
         
         # Reverse to oldest first for chronological timestamping and position calculation
         activities_chronological = list(reversed(activities))
@@ -3331,6 +3331,14 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                     if "CASH" in sym_raw or "FZFXX" in sym_raw or "SPAXX" in sym_raw or "FDIC" in sym_raw:
                         continue
                     
+                    pos_qty = float(pos.get("quantity", 0.0))
+                    if abs(pos_qty) <= 0.0001:
+                        continue
+                        
+                    avg_cost = float(pos.get("average_cost", 0.0))
+                    raw_tot = pos.get("total_cost")
+                    tot_cost = float(raw_tot) if (raw_tot is not None and float(raw_tot) != 0.0) else (pos_qty * avg_cost)
+                    
                     # Calculate qty_today from activities
                     qty_today = 0.0
                     for act in acct_activities:
@@ -3344,19 +3352,19 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                         act_sym_raw = str(act_sym).upper().replace('-USD', '').replace('*', '')
                         
                         if act_sym_raw == sym_raw:
-                            qty = float(act.get('units', 0))
+                            act_u = float(act.get('units', 0))
                             placed_time = act.get('trade_date') or act.get('time_placed') or ''
                             date_only = str(placed_time)[:10] if placed_time else "Unknown"
                             if date_only == today_str:
                                 if action in ["BUY", "BOUGHT", "BTO", "BTC", "REINVEST", "DIVIDEND"]:
-                                    qty_today += qty
+                                    qty_today += act_u
                                 elif action in ["SELL", "SOLD", "STC", "STO"]:
-                                    qty_today -= qty
+                                    qty_today -= act_u
                                     
                     acct_open_positions[sym_raw] = {
-                        "quantity": pos.get("quantity", 0.0),
-                        "average_cost": pos.get("average_cost", 0.0),
-                        "total_cost": pos.get("total_cost", 0.0),
+                        "quantity": pos_qty,
+                        "average_cost": avg_cost,
+                        "total_cost": tot_cost,
                         "qty_today": qty_today
                     }
             else:
@@ -3561,6 +3569,9 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                 yf_tickers.append(yf_t)
                 yf_to_raw[yf_t] = t
                 
+            def fetch_yf():
+                return yf.download(yf_tickers, period="5d", interval="1d", progress=False)
+
             try:
                 import time
                 global _YF_HISTORY_CACHE
@@ -3577,20 +3588,28 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                     except Exception as yf_err:
                         logger.warning(f"yfinance download fallback triggered: {yf_err}")
                         data = None
+
+                if data is None or (hasattr(data, 'empty') and data.empty):
+                    raise ValueError("yfinance returned empty or invalid data")
+
                 for yf_sym, sym in yf_to_raw.items():
                     pdata = open_positions[sym]
                     try:
                         import pandas as pd
-                        sym_data = data if len(yf_tickers) == 1 else data[yf_sym]
                         
-                        # Handle yfinance single-ticker MultiIndex edge case
-                        if isinstance(sym_data.columns, pd.MultiIndex):
-                            try:
-                                close_col = sym_data['Close']
-                            except KeyError:
-                                close_col = sym_data[('Close', yf_sym)] if ('Close', yf_sym) in sym_data.columns else sym_data.iloc[:, 0]
+                        # Handle yfinance DataFrame column structures cleanly
+                        if 'Close' in data.columns:
+                            close_df = data['Close']
                         else:
-                            close_col = sym_data['Close'] if 'Close' in sym_data.columns else sym_data.iloc[:, 0]
+                            close_df = data
+                            
+                        if isinstance(close_df, pd.DataFrame):
+                            if yf_sym in close_df.columns:
+                                close_col = close_df[yf_sym]
+                            else:
+                                close_col = close_df.iloc[:, 0]
+                        else:
+                            close_col = close_df
                             
                         # Extract raw scalar to prevent pandas single-element Series TypeError
                         last_val = close_col.iloc[-1]
@@ -3607,7 +3626,7 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                         if last_price and not prev_close:
                             prev_close = last_price
                         
-                        last_time_obj = sym_data.index[-1]
+                        last_time_obj = close_col.index[-1]
                         last_time_str = last_time_obj.strftime('%Y-%m-%d 16:00') if hasattr(last_time_obj, 'strftime') else 'Unknown'
                         
                         # Override with real execution time from CSV if available
