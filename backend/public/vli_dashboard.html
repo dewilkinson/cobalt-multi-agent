@@ -25,7 +25,7 @@
         };
 
         // Centralized Version Control
-        const VLI_CLIENT_VERSION = "00.000.0265";
+        const VLI_CLIENT_VERSION = "00.000.0266";
     </script>
     
     <link
@@ -701,6 +701,83 @@
 
         .scanner-table tbody tr:hover {
             background-color: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        /* Macro Watchlist Threshold Row Color Schemes & Indicators */
+        .macro-row-vix-high {
+            background: rgba(239, 68, 68, 0.15) !important;
+            border-left: 3px solid #ef4444 !important;
+        }
+        .macro-row-vix-extreme {
+            background: rgba(220, 38, 38, 0.28) !important;
+            border-left: 3px solid #dc2626 !important;
+        }
+        .macro-row-vix-low {
+            background: rgba(16, 185, 129, 0.12) !important;
+            border-left: 3px solid #10b981 !important;
+        }
+
+        .macro-row-rate-high {
+            background: rgba(245, 158, 11, 0.15) !important;
+            border-left: 3px solid #f59e0b !important;
+        }
+        .macro-row-rate-low {
+            background: rgba(16, 185, 129, 0.12) !important;
+            border-left: 3px solid #10b981 !important;
+        }
+
+        .macro-row-dxy-strong {
+            background: rgba(217, 119, 6, 0.15) !important;
+            border-left: 3px solid #d97706 !important;
+        }
+        .macro-row-dxy-weak {
+            background: rgba(16, 185, 129, 0.12) !important;
+            border-left: 3px solid #10b981 !important;
+        }
+
+        .macro-row-oil-spike {
+            background: rgba(239, 68, 68, 0.14) !important;
+            border-left: 3px solid #f97316 !important;
+        }
+        .macro-row-oil-drop {
+            background: rgba(14, 165, 233, 0.12) !important;
+            border-left: 3px solid #0ea5e9 !important;
+        }
+
+        .macro-row-gold-rally {
+            background: rgba(234, 179, 8, 0.18) !important;
+            border-left: 3px solid #eab308 !important;
+        }
+
+        .macro-row-equity-bull {
+            background: rgba(16, 185, 129, 0.12) !important;
+            border-left: 3px solid #10b981 !important;
+        }
+        .macro-row-equity-bear {
+            background: rgba(239, 68, 68, 0.14) !important;
+            border-left: 3px solid #ef4444 !important;
+        }
+
+        /* Macro Tooltip Icon Pill */
+        .macro-tooltip-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 4px;
+            cursor: help;
+            transition: all 0.2s ease;
+        }
+        .macro-tooltip-icon:hover {
+            background: var(--cobalt-blue);
+            color: #fff;
+            box-shadow: 0 0 6px var(--cobalt-blue);
         }
 
         .symbol-bold {
@@ -1964,9 +2041,26 @@
             </div>
             <div class="menu-item" onmouseenter="updateViewMenu()" accesskey="v"><u>V</u>iew
                 <div class="menu-dropdown">
+                    <div class="dropdown-submenu">
+                        <div class="dropdown-item" style="cursor: default; display: flex; justify-content: space-between; align-items: center;">
+                            <span><u>N</u>ew Window</span>
+                            <span style="font-size: 9px; color: var(--text-muted); margin-left: 15px;">▶</span>
+                        </div>
+                        <div class="menu-dropdown">
+                            <div class="dropdown-item" onclick="UXManager.createCard('MACRO_WL', {}, 'watchlist')">Macro Watchlist</div>
+                            <div class="dropdown-item" onclick="UXManager.createCard('MACRO_WL', {}, 'futures_watchlist')">Futures Watchlist</div>
+                            <div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES', {}, 'scanner')">Market Scan</div>
+                            <div class="dropdown-item" onclick="UXManager.createCard('STRUCTURAL_ANALY')">Structural Analysis</div>
+                            <div class="dropdown-item" onclick="UXManager.createCard('ORDER_HIST', {}, 'order_history')">Portfolio</div>
+                            <div class="dropdown-item" onclick="UXManager.createCard('VLI_TELEMETRY')">System Telemetry</div>
+                            <div class="dropdown-item" onclick="UXManager.createCard('SCHEDULER_LOG')">Scheduler Log</div>
+                            <div class="dropdown-item" onclick="UXManager.createCard('REPORTS_TREE')">Reports & Research</div>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
                     <div id="view-menu-list">
-                        <!-- Populated dynamically to show active cards with checkboxes -->
-                        <div class="dropdown-item" style="color:var(--text-muted); cursor:default;">No active windows</div>
+                        <!-- Dynamically populated: open windows list with grayed/highlighted visibility toggle -->
+                        <div class="dropdown-item" style="color:var(--text-muted); cursor:default; font-style:italic;">No open windows</div>
                     </div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-submenu">
@@ -3483,52 +3577,34 @@
 
         function updateViewMenu() {
             const viewMenu = document.getElementById('view-menu-list');
-            if(!viewMenu) return;
+            if (!viewMenu) return;
             viewMenu.innerHTML = '';
             
             const keys = Object.keys(UXManager.instances);
             if (keys.length === 0) {
-                viewMenu.innerHTML = '<div class="dropdown-item" style="color:var(--text-muted); cursor:default;">No active windows</div>';
+                viewMenu.innerHTML = '<div class="dropdown-item" style="color:var(--text-muted); cursor:default; font-style:italic;">No open windows</div>';
                 return;
             }
             
-            // Add a way to manually summon singletons if they are purely removed or never created
-            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'VLI_CHAT')) {
-                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="switchSidebarTab('coordinator')" style="color:var(--emerald-green);">[+] Open Coordinator</div>`;
-            }
-            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'VLI_TELEMETRY')) {
-                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('VLI_TELEMETRY')" style="color:var(--emerald-green);">[+] Spawn System Telemetry</div>`;
-            }
-            
-            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'scanner')) {
-                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES', {}, 'scanner')" style="color:var(--emerald-green);">[+] Spawn Sortino Sniper</div>`;
-            }
-            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'watchlist')) {
-                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('MACRO_WL', {}, 'watchlist')" style="color:var(--emerald-green);">[+] Spawn Macro Watchlist</div>`;
-            }
-            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'futures_watchlist')) {
-                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('MACRO_WL', {}, 'futures_watchlist')" style="color:var(--emerald-green);">[+] Spawn Futures Watchlist</div>`;
-            }
-            if (!Object.values(UXManager.instances).find(c => c.dataset.instanceGuid === 'shield')) {
-                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCAN_RES', {}, 'shield')" style="color:var(--emerald-green);">[+] Spawn Apex Core Scan</div>`;
-            }
-            if (!Object.values(UXManager.instances).find(c => c.dataset.typeGuid === 'SCHEDULER_LOG')) {
-                 viewMenu.innerHTML += `<div class="dropdown-item" onclick="UXManager.createCard('SCHEDULER_LOG')" style="color:var(--emerald-green);">[+] Spawn Scheduler Log</div>`;
-            }
-
-            if (keys.length > 0) viewMenu.innerHTML += '<div class="dropdown-divider"></div>';
-
             keys.forEach(guid => {
                 const card = UXManager.instances[guid];
-                const badge = card.dataset.badge;
+                let title = CARD_TYPES[card.dataset.typeGuid] ? CARD_TYPES[card.dataset.typeGuid].title : 'Window';
                 
-                let title = CARD_TYPES[card.dataset.typeGuid].title;
+                // Handle specific instances with custom titles
+                if (card.dataset.instanceGuid === 'watchlist') {
+                    title = 'Macro Watchlist';
+                } else if (card.dataset.instanceGuid === 'futures_watchlist') {
+                    title = 'Futures Watchlist';
+                } else if (card.dataset.instanceGuid === 'scanner') {
+                    title = 'Market Scan';
+                } else if (card.dataset.instanceGuid === 'shield') {
+                    title = 'Apex Core Scan';
+                }
                 
                 // If it's an Analysis Report (UX Report), attempt to grab the descriptive dynamic title
                 if (card.dataset.typeGuid === 'STRUCTURAL_ANALY') {
                     const titleElem = card.querySelector('.card-header > div:first-child > div:nth-child(2)');
                     if (titleElem) {
-                        // Extract text and remove the LIVE badge if present
                         let text = titleElem.innerText || '';
                         text = text.replace('LIVE', '').trim();
                         if (text && text.length > 0) {
@@ -3537,22 +3613,43 @@
                     }
                 }
                 
-                const isVisible = card.style.display !== 'none';
-                
-                const check = isVisible ? '' : '☐';
                 const el = document.createElement('div');
                 el.className = 'dropdown-item';
-                el.innerHTML = `<span>[${badge}] ${title}</span> <span style="font-size: 11px; margin-left: 20px;">${check}</span>`;
-                el.onclick = () => {
+                el.innerText = title;
+                el.style.cursor = 'pointer';
+                el.style.transition = 'color 0.15s ease, opacity 0.15s ease';
+                
+                const updateItemStyle = () => {
+                    const isVisible = card.style.display !== 'none';
+                    if (isVisible) {
+                        el.style.color = '#ffffff';
+                        el.style.fontWeight = '600';
+                        el.style.opacity = '1';
+                    } else {
+                        el.style.color = 'var(--text-muted)';
+                        el.style.fontWeight = '400';
+                        el.style.opacity = '0.45';
+                    }
+                };
+                
+                updateItemStyle();
+                
+                el.onclick = (e) => {
+                    if (e) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
+                    const isVisible = card.style.display !== 'none';
                     if (isVisible) {
                         card.style.display = 'none';
                     } else {
-                        card.style.display = '';
+                        card.style.display = 'flex';
                         bringToFront(card);
                     }
+                    updateItemStyle();
                     saveLayout();
-                    updateViewMenu();
                 };
+                
                 viewMenu.appendChild(el);
             });
         }
@@ -4445,30 +4542,42 @@
                 return `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)},${p.y.toFixed(2)}`;
             }).join(' ');
 
+            // 1. Sparkline Line Color: Overall Trend Direction (Green, Red, or Gray)
+            const firstVal = validItems[0].v;
+            const lastVal = validItems[validItems.length - 1].v;
             const trendVal = (trends && timeframe) ? trends[timeframe] : null;
-            let color = '#9ca3af';
-            if (trendVal === 'Bullish' || trendVal === 'Uptrend' || trendVal === 'UP') {
-                color = 'var(--emerald-green)';
-            } else if (trendVal === 'Weak Bullish') {
-                color = 'var(--cobalt-blue)';
-            } else if (trendVal === 'Weak Bearish') {
-                color = 'var(--amber-gold)';
-            } else if (trendVal === 'Bearish' || trendVal === 'Downtrend' || trendVal === 'DOWN') {
-                color = 'var(--ruby-red)';
-            } else if (trendVal === 'Accumulation') {
-                color = '#9ca3af';
+
+            let color = '#888888'; // Default Gray for Neutral
+            if (trendVal === 'Bullish' || trendVal === 'Uptrend' || trendVal === 'UP' || trendVal === 'Weak Bullish') {
+                color = '#00cc55'; // Green for Bullish overall trend
+            } else if (trendVal === 'Bearish' || trendVal === 'Downtrend' || trendVal === 'DOWN' || trendVal === 'Weak Bearish') {
+                color = '#ff3344'; // Red for Bearish overall trend
+            } else if (trendVal === 'Accumulation' || trendVal === 'Sideways' || trendVal === 'CONSOLIDATION') {
+                color = '#888888'; // Gray for Neutral overall trend
             } else {
-                const isUp = validItems[validItems.length - 1].v >= validItems[0].v;
-                color = isUp ? '#34d399' : '#fb7185';
+                if (lastVal > firstVal) {
+                    color = '#00cc55'; // Green (overall up)
+                } else if (lastVal < firstVal) {
+                    color = '#ff3344'; // Red (overall down)
+                } else {
+                    color = '#888888'; // Gray (overall flat)
+                }
             }
 
-            const lastVal = validItems[validItems.length - 1].v;
+            // 2. End Dot Color: Instantaneous Direction (last price vs previous price)
             const prevVal = validItems.length >= 2 ? validItems[validItems.length - 2].v : lastVal;
-            const justMovedUp = lastVal >= prevVal;
-            const dotColor = justMovedUp ? '#00ff00' : '#ff0000';
+            let dotColor = '#ffffff'; // Default Bright White for Instantaneous Flat
+            if (lastVal > prevVal) {
+                dotColor = '#00ff66'; // Ultra-Bright Neon Green (Instantaneous UP)
+            } else if (lastVal < prevVal) {
+                dotColor = '#ff0044'; // Ultra-Bright Neon Red (Instantaneous DOWN)
+            } else {
+                dotColor = '#ffffff'; // Bright White
+            }
             
             const lastPoint = points[points.length - 1];
-            const dotHTML = lastPoint ? `<circle cx="${lastPoint.x.toFixed(2)}" cy="${lastPoint.y.toFixed(2)}" r="2.5" fill="${dotColor}" style="filter: drop-shadow(0 0 3px ${dotColor});" />` : '';
+            // Dot is styled with r="3" and glowing drop-shadow so it is visibly brighter than the sparkline path
+            const dotHTML = lastPoint ? `<circle cx="${lastPoint.x.toFixed(2)}" cy="${lastPoint.y.toFixed(2)}" r="3" fill="${dotColor}" style="filter: drop-shadow(0 0 4px ${dotColor}) drop-shadow(0 0 8px ${dotColor});" />` : '';
 
             const trendText = trendVal ? ` (${trendVal})` : '';
             let wrapperTitle = `${timeframe} Sparkline${trendText}`;
@@ -4479,7 +4588,7 @@
             return `
                 <div class="sparkline-wrapper" style="width: 64px; height: 16px; display: flex; align-items: center; position: relative;" title="${wrapperTitle}">
                     <svg class="sparkline-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow:visible; display: block; cursor: crosshair;" data-ticker="${ticker || ''}" data-timeframe="${timeframe || ''}">
-                        <path d="${pathData}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 4px ${color}66);" />
+                        <path d="${pathData}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 3px ${color}88);" />
                         ${dotHTML}
                         <line class="hover-line" x1="0" y1="0" x2="0" y2="${height}" stroke="rgba(255,255,255,0.12)" stroke-width="0.5" stroke-dasharray="1,1" style="display: none; pointer-events: none;" />
                         <circle class="hover-dot" r="1.2" fill="#ffffff" style="display: none; pointer-events: none;" />
@@ -5713,10 +5822,20 @@
             
             let symbolHtml = '';
             if (card.dataset.typeGuid === 'MACRO_WL') {
+                const macroInfo = (typeof getMacroThresholdStyleAndTooltip === 'function') ? getMacroThresholdStyleAndTooltip(c) : { className: '', tooltipText: '', badge: '' };
+                const badgeHtml = macroInfo.badge ? `<span style="font-size: 8.5px; font-weight: 800; padding: 1px 5px; border-radius: 3px; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.18); margin-left: 6px; white-space: nowrap; color: #fff; display: inline-block;">${macroInfo.badge}</span>` : '';
+                const infoIconHtml = macroInfo.tooltipText ? `<span class="macro-tooltip-icon" data-vli-tooltip="${macroInfo.tooltipText.replace(/"/g, '&quot;')}">ⓘ</span>` : '';
+
                 symbolHtml = `
-                    <td style="padding: 4px 16px; text-align: left; vertical-align: middle; max-width: 140px;">
-                        <div style="font-size: 10px; color: var(--text-muted); line-height: 1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.name || ''}</div>
-                        <div style="font-weight: 700; color: #fff;">${c.symbol}</div>
+                    <td style="padding: 4px 16px; text-align: left; vertical-align: middle; max-width: 190px;" ${macroInfo.tooltipText ? `data-vli-tooltip="${macroInfo.tooltipText.replace(/"/g, '&quot;')}"` : ''}>
+                        <div style="font-size: 10px; color: var(--text-muted); line-height: 1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 3px;">
+                            <span>${c.name || ''}</span>
+                            ${infoIconHtml}
+                        </div>
+                        <div style="font-weight: 700; color: #fff; display: flex; align-items: center;">
+                            <span>${c.symbol}</span>
+                            ${badgeHtml}
+                        </div>
                     </td>
                 `;
             } else {
@@ -6625,6 +6744,105 @@
             URL.revokeObjectURL(url);
         }
 
+        window.getMacroThresholdStyleAndTooltip = function(c) {
+            if (!c || !c.symbol) return { className: '', tooltipText: '', badge: '' };
+            
+            const sym = c.symbol.toUpperCase();
+            const chg = parseFloat(c.change_pct !== undefined ? c.change_pct : (c.change || 0));
+            const price = parseFloat(c.price || 0);
+
+            let className = '';
+            let tooltipText = '';
+            let badge = '';
+
+            // 1. Volatility Index (VIX)
+            if (sym.includes('VIX')) {
+                if (price >= 25 || chg >= 10.0) {
+                    className = 'macro-row-vix-extreme';
+                    badge = '🚨 CRISIS';
+                    tooltipText = 'CBOE Volatility Index (VIX) - EXTREME FEAR (>25 or +10% Spiking)\n• Market Impact: Panic hedging & aggressive risk-off liquidation.\n• Affected Sectors: Equities (SPY, QQQ, IWM) heavy drop. Utilities & Bonds may bid.';
+                } else if (price >= 20 || chg >= 4.0) {
+                    className = 'macro-row-vix-high';
+                    badge = '⚠️ HIGH VOL';
+                    tooltipText = 'CBOE Volatility Index (VIX) - ELEVATED RISK (>20 or +4% Rise)\n• Market Impact: Institutional demand for protective options. Expect wider intraday swings.\n• Affected Sectors: Tech (QQQ) & High-Beta Growth under pressure.';
+                } else if (price <= 15 || chg <= -4.0) {
+                    className = 'macro-row-vix-low';
+                    badge = '🟢 RISK-ON';
+                    tooltipText = 'CBOE Volatility Index (VIX) - LOW FEAR (<15)\n• Market Impact: Stable market backdrop supporting steady equity trend continuation.\n• Affected Sectors: Equities (SPY, NQ), Momentum & Growth assets flourish.';
+                } else {
+                    tooltipText = 'CBOE Volatility Index (VIX)\n• Market Impact: S&P 500 option-implied 30-day volatility index (Fear Gauge).';
+                }
+            }
+            // 2. Treasury Yields (10Y / 30Y / 5Y - TNX, TYX, FVX, TLT, IEF)
+            else if (['TNX', 'TYX', 'FVX', '10Y', 'TLT', 'IEF', 'SHY'].some(k => sym.includes(k))) {
+                if (chg >= 1.5 || (sym.includes('TNX') && price >= 4.35)) {
+                    className = 'macro-row-rate-high';
+                    badge = '📈 YIELD SPIKE';
+                    tooltipText = 'U.S. 10Y Treasury Yield (TNX) - YIELD SPIKE (+1.5%+ or >4.35%)\n• Market Impact: Higher borrowing costs & discount rates pressure equity valuations.\n• Affected Sectors: Negative for Tech (QQQ, XLK), Real Estate (XLRE), Housing (XHB). Positive for Bank Net Interest Margins (XLF).';
+                } else if (chg <= -1.5 || (sym.includes('TNX') && price <= 3.80)) {
+                    className = 'macro-row-rate-low';
+                    badge = '📉 YIELD DROP';
+                    tooltipText = 'U.S. 10Y Treasury Yield (TNX) - EASING RATES (-1.5%+ Drop)\n• Market Impact: Easing financial conditions boost high-duration equity valuations.\n• Affected Sectors: Tailwind for Nasdaq (QQQ), Software (IGV), Bond Prices (TLT).';
+                } else {
+                    tooltipText = 'U.S. Treasury Yields\n• Market Impact: Benchmark U.S. sovereign interest rates driving global cost of capital.';
+                }
+            }
+            // 3. Dollar Index (DXY, DX-Y, UUP)
+            else if (['DXY', 'DX-Y', 'UUP'].some(k => sym.includes(k))) {
+                if (chg >= 0.40 || price >= 105.0) {
+                    className = 'macro-row-dxy-strong';
+                    badge = '💵 DOLLAR SURGE';
+                    tooltipText = 'U.S. Dollar Index (DXY) - SURGING DOLLAR (+0.40%+ or >105)\n• Market Impact: Tightens global liquidity & hurts U.S. multinational overseas revenues.\n• Affected Sectors: Headwind for Commodities (Gold, Oil), Emerging Markets (EEM), Tech Exports (AAPL, MSFT).';
+                } else if (chg <= -0.40 || price <= 101.0) {
+                    className = 'macro-row-dxy-weak';
+                    badge = '💵 DOLLAR DROP';
+                    tooltipText = 'U.S. Dollar Index (DXY) - WEAKENING DOLLAR (-0.40%+ Drop)\n• Market Impact: Loosens global financial conditions; drives dollar-denominated asset inflation.\n• Affected Sectors: Strong tailwind for Commodities (Gold / MGC, Crude / MCL) & Global Equities.';
+                } else {
+                    tooltipText = 'U.S. Dollar Index (DXY)\n• Market Impact: Measures USD purchasing power against a basket of 6 major foreign currencies.';
+                }
+            }
+            // 4. Crude Oil (CL, MCL, WTI, USO)
+            else if (['CL', 'MCL', 'WTI', 'USO'].some(k => sym.includes(k))) {
+                if (chg >= 2.0 || price >= 85.0) {
+                    className = 'macro-row-oil-spike';
+                    badge = '🛢️ OIL SPIKE';
+                    tooltipText = 'Crude Oil (CL/MCL) - INFLATIONARY SPIKE (+2.0%+ or >$85)\n• Market Impact: Fueling headline CPI inflation expectations & consumer margin compression.\n• Affected Sectors: Bullish for Energy (XLE, XOP); negative for Airlines (JETS) & Consumer Discretionary (XLY).';
+                } else if (chg <= -2.0) {
+                    className = 'macro-row-oil-drop';
+                    badge = '🛢️ OIL SLUMP';
+                    tooltipText = 'Crude Oil (CL/MCL) - OIL SLUMP (-2.0%+ Drop)\n• Market Impact: Easing inflationary pressure & lowering transport input costs.\n• Affected Sectors: Positive for Transportation, Airlines, Consumer spending; negative for Energy sector profits.';
+                } else {
+                    tooltipText = 'Crude Oil (CL/MCL)\n• Market Impact: Global economic benchmark commodity for energy input costs & CPI trend.';
+                }
+            }
+            // 5. Gold (GC, MGC, GLD, SI, HG)
+            else if (['GC', 'MGC', 'GLD', 'SILVER', 'SI'].some(k => sym.includes(k))) {
+                if (chg >= 1.0) {
+                    className = 'macro-row-gold-rally';
+                    badge = '🥇 GOLD SURGE';
+                    tooltipText = 'Gold (GC/MGC) - SAFE-HAVEN SURGE (+1.0%+)\n• Market Impact: Capital rotating into monetary safe-havens or hedging real-yield declines.\n• Affected Sectors: Bullish Gold Miners (GDX); reflects geopolitical anxiety or currency debasement.';
+                } else {
+                    tooltipText = 'Gold (GC/MGC)\n• Market Impact: Premier global monetary metal, inflation hedge, and real interest rate indicator.';
+                }
+            }
+            // 6. Equity Benchmarks & Futures (SPY, QQQ, IWM, DIA, ES, NQ, YM, RTY)
+            else if (['SPY', 'QQQ', 'IWM', 'DIA', 'ES', 'NQ', 'YM', 'RTY', 'MES', 'MNQ', 'MYM', 'M2K'].some(k => sym.includes(k))) {
+                if (chg >= 0.75) {
+                    className = 'macro-row-equity-bull';
+                    badge = '🚀 EQUITY RALLY';
+                    tooltipText = 'Equity Benchmark - STRONG RISK-ON MOMENTUM (+0.75%+)\n• Market Impact: Broad institutional buying across market caps.\n• Affected Sectors: Bullish momentum in High-Beta Growth & Cyclicals.';
+                } else if (chg <= -0.75) {
+                    className = 'macro-row-equity-bear';
+                    badge = '🔻 EQUITY PULLBACK';
+                    tooltipText = 'Equity Benchmark - RISK-OFF LIQUIDATION (-0.75%+)\n• Market Impact: Broad market selling pressure or profit taking.\n• Affected Sectors: Caution across equities; watch key S/R support levels.';
+                } else {
+                    tooltipText = 'Equity Index Benchmark\n• Market Impact: Core market benchmark tracking equity sentiment and liquidity flow.';
+                }
+            }
+
+            return { className, tooltipText, badge };
+        };
+
         function renderWatchlist(data) {
             if (!data.macro_watchlist_content || !data.macro_watchlist_content.candidates) return;
             window.lastMacroWatchlistData = data;
@@ -6903,8 +7121,17 @@
                         const isOnlySelectedFiltered = window.vliOnlyHighlightedFilters && window.vliOnlyHighlightedFilters[card.dataset.instanceGuid];
                         const isHighlighted = window.vliHighlightedSymbols.has(symKey) && !isOnlySelectedFiltered;
                         
-                        tr.className = isHighlighted ? 'scanner-res-row vli-row-highlighted' : 'scanner-res-row';
+                        const macroInfo = (typeof getMacroThresholdStyleAndTooltip === 'function') ? getMacroThresholdStyleAndTooltip(c) : { className: '', tooltipText: '' };
+                        
+                        let classes = ['scanner-res-row'];
+                        if (macroInfo.className) classes.push(macroInfo.className);
+                        if (isHighlighted) classes.push('vli-row-highlighted');
+                        tr.className = classes.join(' ');
                         tr.style.transition = 'background 0.3s ease, opacity 0.5s ease, filter 0.5s ease';
+                        
+                        if (macroInfo.tooltipText) {
+                            tr.setAttribute('data-vli-tooltip', macroInfo.tooltipText);
+                        }
                         
                         if (isRefreshing) {
                             tr.style.pointerEvents = 'none';
@@ -9327,7 +9554,7 @@
             
             let accountId = window.getSelectedAccounts(instanceGuid);
             if (!accountId) {
-                accountId = 'TradingView Paper Futures,TradingView Paper Stocks,Rollover IRA *5513,Health Savings Account *6937,TopStepX Futures';
+                accountId = 'TradingView Paper Futures,TradingView Paper Stocks,Rollover IRA *5513,Health Savings Account *6937,TopStepX Express *7328,TopStepX Combine *4889,TopStepX Combine *1299';
             }
             
             const startVal = document.getElementById(`order-hist-start-${instanceGuid}`).value;
@@ -10905,7 +11132,7 @@
                 const text = target.dataset.vliTooltip;
                 if (!text || !text.trim()) return;
 
-                tooltip.innerHTML = `<div style="font-weight: 500; font-size: 9.5px; line-height: 1.3;">${text.replace(/\n/g, '<br>')}</div>`;
+                tooltip.innerHTML = `<div style="font-weight: 500; font-size: 13px; line-height: 1.45;">${text.replace(/\n/g, '<br>')}</div>`;
                 tooltip.style.display = 'block';
                 
                 positionTooltip(e);
@@ -10942,6 +11169,6 @@
         }
     </script>
     <div id="sparkline-tooltip" style="position: absolute; display: none; background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(0, 0, 0, 0.15); color: #0f172a; padding: 6px 10px; border-radius: 6px; font-size: 10px; pointer-events: none; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: 'Inter', sans-serif;"></div>
-    <div id="global-custom-tooltip" style="position: absolute; display: none; background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(0, 0, 0, 0.15); color: #0f172a; padding: 6px 10px; border-radius: 6px; font-size: 10px; line-height: 1.4; pointer-events: none; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: 'Inter', sans-serif; max-width: 260px; word-wrap: break-word; white-space: normal;"></div>
+    <div id="global-custom-tooltip" style="position: absolute; display: none; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 10px 14px; border-radius: 6px; font-size: 13px; line-height: 1.45; pointer-events: none; z-index: 10000; box-shadow: 0 8px 24px rgba(0,0,0,0.65); font-family: 'Inter', sans-serif; max-width: 380px; word-wrap: break-word; white-space: normal; backdrop-filter: blur(8px);"></div>
 </body>
 </html>
