@@ -2537,6 +2537,7 @@
             'VLI_CHAT': { idPrefix: 'CI', title: 'Coordinator Interface', isSingleton: true },
             'VLI_TELEMETRY': { idPrefix: 'TM', title: 'System Telemetry', isSingleton: true },
             'MACRO_WL': { idPrefix: 'WL', title: 'Macro Watchlist', isSingleton: false },
+            'CUSTOM_WL': { idPrefix: 'CWL', title: 'Custom Watchlist', isSingleton: false },
             'STRUCTURAL_ANALY': { idPrefix: 'AR', title: 'Structural Analysis', isSingleton: false },
             'SCAN_RES': { idPrefix: 'SR', title: 'Market Scan', isSingleton: false },
             'ORDER_HIST': { idPrefix: 'OH', title: 'Portfolio', isSingleton: true },
@@ -2549,7 +2550,7 @@
         class UXCardManager {
             constructor() {
                 this.instances = {};
-                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'STRUCTURAL_ANALY': 0, 'SCAN_RES': 0, 'ORDER_HIST': 0, 'SCHEDULER_LOG': 0, 'ARTIFACT_VIEWER': 0, 'TRADE_LEDGER': 0, 'REPORTS_TREE': 0 };
+                this.typeCounts = { 'VLI_CHAT': 0, 'VLI_TELEMETRY': 0, 'MACRO_WL': 0, 'CUSTOM_WL': 0, 'STRUCTURAL_ANALY': 0, 'SCAN_RES': 0, 'ORDER_HIST': 0, 'SCHEDULER_LOG': 0, 'ARTIFACT_VIEWER': 0, 'TRADE_LEDGER': 0, 'REPORTS_TREE': 0 };
             }
 
             generateGUID() {
@@ -2695,7 +2696,7 @@
                                 <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; animation: vli-pulse-anim 1.5s infinite ease-in-out;" class="pulse-anim">Initializing Telemetry...</div>
                             </div>
                         </div>`;
-                } else if (typeGuid === 'MACRO_WL') {
+                } else if (typeGuid === 'MACRO_WL' || typeGuid === 'CUSTOM_WL') {
                     bodyContent = `
                         <div class="card-body" style="overflow-y: auto; padding: 10px; display: flex; flex-direction: column;">
                             <div class="card-initializing-loader" style="display: flex; align-items: center; justify-content: center; height: 100%; width: 100%; min-height: 180px; margin: auto; user-select: none;">
@@ -2952,7 +2953,10 @@
                             <div class="card-title-text" style="display:inline-flex; align-items:center; gap:4px; overflow:hidden; text-overflow:ellipsis;">${instanceGuid.includes('futures') ? 'Futures Watchlist' : typeDef.title} ${liveBadgeHTML}${typeGuid === 'SCAN_RES' ? '<span id="scanner-warning-badge" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 800; margin-left: 8px; letter-spacing: 0.5px; display: none;">⚠️ Using Sample Values</span>' : ''}</div>
                         </div>
                         <div class="card-controls" style="display:flex; align-items:center; gap:6px; margin-left:auto; flex-shrink:0;">
-                            ${(typeGuid === 'SCAN_RES' || typeGuid === 'MACRO_WL') ? `
+                            ${(typeGuid === 'CUSTOM_WL' || typeGuid === 'MACRO_WL') ? `
+                                <div class="win-btn" onclick="window.promptAddCustomWatchlistSymbol('${instanceGuid}'); event.stopPropagation();" title="Add Symbol to Watchlist" style="display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-right: 2px; cursor: pointer; color: var(--emerald-green); font-weight: bold; font-size: 15px; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">+</div>
+                            ` : ''}
+                            ${(typeGuid === 'SCAN_RES' || typeGuid === 'MACRO_WL' || typeGuid === 'CUSTOM_WL') ? `
                                 <div class="win-btn" onclick="${typeGuid === 'SCAN_RES' ? 'exportScannerWatchlist' : 'exportMacroWatchlist'}('${instanceGuid}'); event.stopPropagation();" title="Export Watchlist" style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-right: 2px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--emerald-green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                 </div>
@@ -7916,6 +7920,209 @@
             URL.revokeObjectURL(url);
         }
 
+        // --- CUSTOM WATCHLIST MANAGER ---
+        const DEFAULT_CUSTOM_WATCHLIST_SYMBOLS = ["RXO", "GAIN", "ABX", "QQQ", "MGC", "MES", "SIL"];
+
+        window.vliCustomWatchlists = JSON.parse(localStorage.getItem('vliCustomWatchlists') || '{}');
+
+        window.getCustomWatchlistSymbols = function(instanceGuid) {
+            const key = instanceGuid || 'default';
+            if (!window.vliCustomWatchlists[key] || !Array.isArray(window.vliCustomWatchlists[key])) {
+                window.vliCustomWatchlists[key] = [...DEFAULT_CUSTOM_WATCHLIST_SYMBOLS];
+                window.saveCustomWatchlists();
+            }
+            return window.vliCustomWatchlists[key];
+        };
+
+        window.saveCustomWatchlists = function() {
+            localStorage.setItem('vliCustomWatchlists', JSON.stringify(window.vliCustomWatchlists));
+        };
+
+        window.addSymbolToCustomWatchlist = function(instanceGuid, symbol) {
+            if (!symbol) return;
+            symbol = symbol.trim().toUpperCase().replace(/[^A-Z0-9.\-/^]/g, '');
+            if (!symbol) return;
+            const key = instanceGuid || 'default';
+            const list = window.getCustomWatchlistSymbols(key);
+            if (!list.includes(symbol)) {
+                list.push(symbol);
+                window.saveCustomWatchlists();
+                window.updateCustomWatchlistUI(key);
+            }
+        };
+
+        window.removeSymbolFromCustomWatchlist = function(instanceGuid, symbol) {
+            if (!symbol) return;
+            const key = instanceGuid || 'default';
+            const list = window.getCustomWatchlistSymbols(key);
+            const idx = list.indexOf(symbol);
+            if (idx !== -1) {
+                list.splice(idx, 1);
+                window.saveCustomWatchlists();
+                window.updateCustomWatchlistUI(key);
+            }
+        };
+
+        window.promptAddCustomWatchlistSymbol = function(instanceGuid) {
+            const sym = prompt("Enter ticker symbol to add to Watchlist (e.g. RXO, GAIN, ABX, QQQ):");
+            if (sym) {
+                window.addSymbolToCustomWatchlist(instanceGuid, sym);
+            }
+        };
+
+        window.vliContextMenuTarget = null;
+
+        function initCustomWatchlistContextMenu() {
+            let menu = document.getElementById('vli-custom-wl-context-menu');
+            if (!menu) {
+                menu = document.createElement('div');
+                menu.id = 'vli-custom-wl-context-menu';
+                menu.style.cssText = 'display: none; position: fixed; z-index: 100000; background: #161b22; border: 1px solid #30363d; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.7); font-family: "Inter", sans-serif; font-size: 11px; color: #c9d1d9; width: 170px; overflow: hidden;';
+                menu.innerHTML = `
+                    <div id="custom-wl-menu-title" style="padding: 6px 10px; font-weight: 700; color: #fff; background: rgba(255,255,255,0.05); border-bottom: 1px solid #30363d;">Symbol</div>
+                    <div class="custom-menu-item" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;" onclick="window.handleCustomWlAction('add')">
+                        <span style="color: var(--emerald-green); font-weight: bold; font-size: 13px;">+</span> Add Ticker...
+                    </div>
+                    <div class="custom-menu-item" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;" onclick="window.handleCustomWlAction('analyze')">
+                        <span style="color: var(--cobalt-blue);">💬</span> Analyze in Chat
+                    </div>
+                    <div class="custom-menu-item" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #ef4444;" onclick="window.handleCustomWlAction('remove')">
+                        <span>🗑️</span> Remove Symbol
+                    </div>
+                `;
+                document.body.appendChild(menu);
+
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('#vli-custom-wl-context-menu')) {
+                        menu.style.display = 'none';
+                    }
+                });
+            }
+
+            document.addEventListener('contextmenu', (e) => {
+                const card = e.target.closest('.card[data-type-guid="CUSTOM_WL"], .card[data-type-guid="MACRO_WL"], .card[data-type-guid="SCAN_RES"]');
+                if (!card) {
+                    menu.style.display = 'none';
+                    return;
+                }
+
+                const tr = e.target.closest('tr');
+                const instanceGuid = card.dataset.instanceGuid;
+                
+                let sym = null;
+                if (tr) {
+                    const firstTd = tr.querySelector('td');
+                    if (firstTd) {
+                        const symDiv = firstTd.querySelector('div');
+                        if (symDiv) sym = symDiv.textContent.trim();
+                    }
+                }
+
+                e.preventDefault();
+                window.vliContextMenuTarget = { instanceGuid, symbol: sym };
+                document.getElementById('custom-wl-menu-title').textContent = sym ? `${sym} Controls` : 'Watchlist Options';
+                
+                menu.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
+                menu.style.top = Math.min(e.clientY, window.innerHeight - 120) + 'px';
+                menu.style.display = 'block';
+            });
+        }
+
+        window.handleCustomWlAction = function(action) {
+            const menu = document.getElementById('vli-custom-wl-context-menu');
+            if (menu) menu.style.display = 'none';
+            if (!window.vliContextMenuTarget) return;
+
+            const { instanceGuid, symbol } = window.vliContextMenuTarget;
+            if (action === 'add') {
+                window.promptAddCustomWatchlistSymbol(instanceGuid);
+            } else if (action === 'remove') {
+                if (symbol) {
+                    window.removeSymbolFromCustomWatchlist(instanceGuid, symbol);
+                } else {
+                    alert('Please right-click on a symbol row to remove it.');
+                }
+            } else if (action === 'analyze') {
+                if (symbol) {
+                    insertCardIdIntoChat(`analyze ${symbol}`);
+                }
+            }
+        };
+
+        window.updateCustomWatchlistUI = function(instanceGuid) {
+            const cards = instanceGuid ? document.querySelectorAll(`.card[data-instance-guid="${instanceGuid}"]`) : document.querySelectorAll('.card[data-type-guid="CUSTOM_WL"]');
+            cards.forEach(card => {
+                const guid = card.dataset.instanceGuid;
+                const symbols = window.getCustomWatchlistSymbols(guid);
+                let body = card.querySelector('.card-body');
+                if (!body) return;
+
+                let table = body.querySelector('table');
+                if (!table) {
+                    body.innerHTML = `
+                        <div style="font-size: 11px; margin-bottom: 10px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display:flex; gap: 8px; align-items: center;">
+                                <span style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--cobalt-blue);">Custom Watchlist</span>
+                                <button class="vli-input" style="padding: 2px 8px; border: 1px solid var(--emerald-green); background: rgba(16,185,129,0.15); color: #10b981; font-weight: 600; cursor: pointer; border-radius: 3px; font-size: 10px;" onclick="window.promptAddCustomWatchlistSymbol('${guid}')">+ Add Symbol</button>
+                            </div>
+                            <div style="font-size: 10px; color: var(--text-muted); opacity: 0.8;">Right-click row to manage</div>
+                        </div>
+                        <div class="scanner-table-container" style="flex-grow: 1; overflow-y: auto;">
+                            <table class="macro-table scanner-table" style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                                <thead style="position: sticky; top: 0; background: #161b22; z-index: 2;">
+                                    <tr>
+                                        <th style="padding: 6px 8px; text-align: left;">SYMBOL</th>
+                                        <th style="padding: 6px 8px; text-align: right;">PRICE</th>
+                                        <th style="padding: 6px 8px; text-align: right;">CHANGE %</th>
+                                        <th style="padding: 6px 8px; text-align: right;">VOLUME</th>
+                                        <th style="padding: 6px 8px; text-align: right;">VWAP</th>
+                                        <th style="padding: 6px 8px; text-align: center;">GRADE</th>
+                                        <th style="padding: 6px 8px; text-align: center;">ACTIONS</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    `;
+                    table = body.querySelector('table');
+                }
+
+                const tbody = table.querySelector('tbody');
+                if (!tbody) return;
+                tbody.innerHTML = '';
+
+                if (symbols.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 30px; color: var(--text-muted);">Watchlist is empty. Click + Add Symbol to add tickers.</td></tr>`;
+                    return;
+                }
+
+                symbols.forEach(sym => {
+                    let c = (activeScannerCandidates || []).find(cand => cand.symbol === sym);
+                    if (!c) {
+                        c = {
+                            symbol: sym,
+                            price: 0.0,
+                            change_percent: 0.0,
+                            volume: 0,
+                            heat_score: 80,
+                            grade: 'A',
+                            tier: 'SHIELD',
+                            vwap: 0.0
+                        };
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'candidate-row';
+                    tr.style.cursor = 'pointer';
+                    tr.onclick = () => insertCardIdIntoChat(`analyze ${sym}`);
+
+                    tr.innerHTML = generateCandidateRowInnerHTML(c, card);
+                    resolveWatchlistRowPlaceholders(tr, card);
+                    tbody.appendChild(tr);
+                });
+            });
+        };
+
         async function initScannerSettings() {
             try {
                 const res = await fetch('/api/vli/scanner-settings');
@@ -10999,6 +11206,8 @@
             initScannerSettings();
             initSparklineTooltips();
             initGlobalCustomTooltips();
+            initCustomWatchlistContextMenu();
+            updateCustomWatchlistUI();
             
             // Resolve target href dynamically for journaling tab to bypass popup blockers natively
             const journalBtn = document.getElementById('tab-btn-journal');
