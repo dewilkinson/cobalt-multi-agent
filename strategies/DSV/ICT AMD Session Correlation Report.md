@@ -1,14 +1,14 @@
-# Global Session AMD Structure & SMC/CRT Correlation Playbook for Futures
+# Global Session Po3 Structure & SMC/CRT Correlation Playbook for Futures
 
 ## Executive Summary
 
 In algorithmic futures markets (ES, NQ, M2K, YM), the 24-hour trading day is not a chaotic sequence of price movements; it is a structured, institutional liquidity cycle. Central bank algorithms, market makers, and institutional orderflow cycle through distinct phases of position building, liquidity harvesting, and price expansion across timezones.
 
-This report breaks down how the three primary global sessions—**Asia**, **London**, and **New York**—naturally form an **ICT Accumulation, Manipulation, Distribution (AMD)** / **Power of 3 (PO3)** framework. Furthermore, it demonstrates how to combine **Candle Range Theory (CRT)** and **Smart Money Concepts (SMC)** with **Inter-Market Correlation (SMT Divergence)** to locate high-probability, low-risk futures entry points.
+This report breaks down how the three primary global sessions—**Asia**, **London**, and **New York**—naturally form an **ICT Power of 3 (Po3 - Accumulation, Manipulation, Distribution)** / **Power of 3 (PO3)** framework. Furthermore, it demonstrates how to combine **Candle Range Theory (CRT)** and **Smart Money Concepts (SMC)** with **Inter-Market Correlation (SMT Divergence)** to locate high-probability, low-risk futures entry points.
 
 ---
 
-## 1. The Global 24-Hour Session AMD Framework
+## 1. The Global 24-Hour Session Po3 Framework
 
 The global trading day is divided into three distinct operational windows. Each session plays a specialized role in the daily candle's creation:
 
@@ -37,20 +37,20 @@ flowchart TD
 ### Phase 1: Asian Session (18:00 – 02:00 EST) — **Accumulation**
 - **Characteristics**: Low volume, tight consolidation range, range-bound behavior.
 - **Institutional Objective**: Market makers allow retail orderflow to build up buy-stop orders above the **Asian High (AH)** and sell-stop orders below the **Asian Low (AL)**.
-- **Role in AMD**: Accumulates baseline liquidity. This range becomes the **Benchmark Range** for the rest of the trading day.
+- **Role in Po3**: Accumulates baseline liquidity. This range becomes the **Benchmark Range** for the rest of the trading day.
 - **CRT Mapping**: Forms the initial Range High (C_High), Range Low (C_Low), and 50% Equilibrium (EQ) baseline.
 
 ### Phase 2: London Session (02:00 – 08:00 EST) — **Manipulation (The Judas Swing)**
 - **Characteristics**: Sharp spike in volatility, sudden directional burst often counter to the true daily trend.
 - **Institutional Objective**: The algorithm engineers a **Judas Swing** to raid liquidity (AH or AL), triggering stop-losses and enticing breakout traders into wrong-side positions.
-- **Role in AMD**: Sweeps session liquidity into a Higher Timeframe (HTF) Fair Value Gap (FVG), Order Block (OB), or CRT Key Level. London frequently prints the **High of the Day (HOD)** or **Low of the Day (LOD)**.
+- **Role in Po3**: Sweeps session liquidity into a Higher Timeframe (HTF) Fair Value Gap (FVG), Order Block (OB), or CRT Key Level. London frequently prints the **High of the Day (HOD)** or **Low of the Day (LOD)**.
 - **CRT Mapping**: The manipulation candle sweeps past C_High or C_Low before aggressively closing back inside the CRT range or rejecting off the CRT 50% EQ.
 
-### Phase 3: New York Session (08:00 – 17:00 EST) — **Distribution & Micro-AMD**
+### Phase 3: New York Session (08:00 – 17:00 EST) — **Distribution & Micro-Po3**
 - **Characteristics**: High volume, sustained directional momentum, silver bullet windows (08:30 – 11:00 EST & 13:30 – 15:00 EST).
 - **Institutional Objective**: Smart Money distributes positions into opposing session liquidity.
 - **The NY Session Manipulation Phase (NY Judas Swing)**:
-  - While NY acts as the **Macro Distribution** phase for the 24-hour day, **NY frequently features its own internal Micro-AMD cycle**.
+  - While NY acts as the **Macro Distribution** phase for the 24-hour day, **NY frequently features its own internal Micro-Po3 cycle**.
   - **Pre-Market / Open Accumulation (07:00 – 09:30 EST)**: Builds local liquidity around London High (LH) or London Low (LL).
   - **NY Opening Manipulation (08:30 EST News / 09:30 EST Equities Bell)**: Spikes in the *opposite* direction of the intended NY move to raid London High/Low or Pre-Market extremes into an HTF FVG/OB before reversing.
   - **NY Expansion / Distribution (09:45 – 11:30 EST & 13:30 – 15:30 EST)**: The true directional trend expands to sweep Asian liquidity and CRT extension targets.
@@ -70,7 +70,7 @@ Candle Range Theory (CRT) models price as a series of repeating range expansion 
 
 ```
 +-----------------------------------------------------------------------+
-|                        CRT / SMC AMD CONFLUENCE                        |
+|                        CRT / SMC Po3 CONFLUENCE                        |
 |                                                                       |
 | [AH / C_High] ------------------------------------------------------- |
 |                    ▲ Judas Swing (London Manipulation / Sweep)        |
@@ -201,6 +201,6 @@ sequenceDiagram
 > [!IMPORTANT]
 > **Never take a trade based solely on a single session break.** High-probability trades require the confluence of all 4 pillars:
 > 1. **Time**: Operating within London (02:00-05:00 EST) or NY Silver Bullet (08:30-11:00 EST) windows.
-> 2. **Session AMD Phase**: Asia = Accumulation, London = Manipulation, NY = Distribution.
+> 2. **Session Po3 Phase**: Asia = Accumulation, London = Manipulation, NY = Distribution.
 > 3. **CRT Bounds & EQ**: Price sweeping CRT C_High/C_Low and respecting 50% EQ.
 > 4. **Inter-Market SMT**: Failure of ES/NQ/M2K to correlate at key liquidity levels.

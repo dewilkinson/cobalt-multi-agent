@@ -81,7 +81,7 @@ flowchart TD
 
 ## 4. Summary Reference Matrix
 
-| Session Overlap | Window (EST) | Volume / Volatility | Primary Assets | SMC / AMD Operational Role |
+| Session Overlap | Window (EST) | Volume / Volatility | Primary Assets | SMC / Po3 Operational Role |
 | :--- | :--- | :--- | :--- | :--- |
 | **Tokyo / London** | **02:00 – 04:00 EST** | Moderate $\rightarrow$ High | EUR/USD, GBP/USD, AUD/JPY, Gold | **Manipulation Sweep (Judas Swing)** of Asian Range High/Low |
 | **London / New York** | **08:00 – 12:00 EST** | **Extremely High (Peak)** | ES, NQ, M2K, YM, CL, GC | **Macro Distribution / True Expansion** (NY Silver Bullet Entry) |
