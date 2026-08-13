@@ -2,6 +2,7 @@ import os
 import json
 import csv
 import sys
+import re
 import argparse
 from datetime import datetime, timedelta
 
@@ -220,6 +221,14 @@ def run_fifo_matching(cache, start_date, end_date):
             continue
             
         print(f"Running FIFO Matching for account: {account} ({len(activities)} activities)...")
+        
+        # Apply futures trade batching for rapid manual fills (30s window, $0.50 tick tolerance)
+        try:
+            from src.services.brokerage_cache import BrokerageCache
+            activities = BrokerageCache.group_trade_activities(activities, max_time_gap_seconds=30, price_tolerance=0.50)
+        except Exception as e:
+            print(f"Warning: Could not apply trade batching for {account}: {e}")
+
         chronological_acts = sorted(activities, key=parse_time)
         
         from zoneinfo import ZoneInfo
@@ -320,34 +329,31 @@ def run_fifo_matching(cache, start_date, end_date):
                 
         print(f"  - Closed trades matching range for {account}: {len(this_week_closed_trades)}")
         
+        def format_symbol(s, is_fut):
+            if is_fut:
+                clean_sym = str(s).upper().replace('*', '').strip()
+                if ":" in clean_sym:
+                    clean_sym = clean_sym.split(":")[-1].strip()
+                if clean_sym.startswith('/'):
+                    clean_sym = clean_sym[1:]
+                return clean_sym if clean_sym else s
+            return s
+
         for t in this_week_closed_trades:
             direction = t.get("direction", "Long")
-            is_futures = t["symbol"].startswith("/") or t["symbol"].endswith("!") or "Futures" in account
-            spread_val = "Future" if is_futures else "Stock"
-            
-            # Scale quantity for paper futures to match TradingView unit PnL in TradeZella
-            if is_futures and "Paper" in account:
-                try:
-                    from src.services.brokerage_cache import BrokerageCache
-                    multiplier = BrokerageCache.get_futures_multiplier(t["symbol"])
-                    if multiplier > 0:
-                        scaled_qty = t["volume"] * multiplier
-                    else:
-                        scaled_qty = t["volume"]
-                except Exception as e:
-                    print(f"Error scaling futures quantity for {t['symbol']}: {e}")
-                    scaled_qty = t["volume"]
-            else:
-                scaled_qty = t["volume"]
+            is_futures = t["symbol"].startswith("/") or t["symbol"].endswith("!") or "Futures" in account or "Paper" in account or "TopStep" in account
+            spread_val = "Futures" if is_futures else "Stock"
+            export_sym = format_symbol(t["symbol"], is_futures)
+            export_qty = t["volume"]
             
             if direction == "Short":
                 # Entry is Sell
                 trades_to_export.append({
                     'Account Name': account,
                     'Date / Time': t["open_time"].strftime("%m/%d/%Y %H:%M:%S"),
-                    'Symbol': t["symbol"],
+                    'Symbol': export_sym,
                     'Side': 'Sell',
-                    'Quantity': scaled_qty,
+                    'Quantity': export_qty,
                     'Price': t["open_price"],
                     'Spread': spread_val,
                     'Expiration': '',
@@ -362,9 +368,9 @@ def run_fifo_matching(cache, start_date, end_date):
                 trades_to_export.append({
                     'Account Name': account,
                     'Date / Time': t["close_time"].strftime("%m/%d/%Y %H:%M:%S"),
-                    'Symbol': t["symbol"],
+                    'Symbol': export_sym,
                     'Side': 'Buy',
-                    'Quantity': scaled_qty,
+                    'Quantity': export_qty,
                     'Price': t["close_price"],
                     'Spread': spread_val,
                     'Expiration': '',
@@ -380,9 +386,9 @@ def run_fifo_matching(cache, start_date, end_date):
                 trades_to_export.append({
                     'Account Name': account,
                     'Date / Time': t["open_time"].strftime("%m/%d/%Y %H:%M:%S"),
-                    'Symbol': t["symbol"],
+                    'Symbol': export_sym,
                     'Side': 'Buy',
-                    'Quantity': scaled_qty,
+                    'Quantity': export_qty,
                     'Price': t["open_price"],
                     'Spread': spread_val,
                     'Expiration': '',
@@ -397,9 +403,9 @@ def run_fifo_matching(cache, start_date, end_date):
                 trades_to_export.append({
                     'Account Name': account,
                     'Date / Time': t["close_time"].strftime("%m/%d/%Y %H:%M:%S"),
-                    'Symbol': t["symbol"],
+                    'Symbol': export_sym,
                     'Side': 'Sell',
-                    'Quantity': scaled_qty,
+                    'Quantity': export_qty,
                     'Price': t["close_price"],
                     'Spread': spread_val,
                     'Expiration': '',
@@ -410,6 +416,36 @@ def run_fifo_matching(cache, start_date, end_date):
                     '_dt': t["close_time"],
                     '_action_order': 1
                 })
+
+        # Export unmatched open position lots purchased within the date range
+        open_lots_count = 0
+        for sym, lot_info in tax_lots.items():
+            if lot_info["type"] in ["long", "short"]:
+                for lot in lot_info["lots"]:
+                    if start_date <= lot["time"] < end_date:
+                        is_futures = sym.startswith("/") or sym.endswith("!") or "Futures" in account or "Paper" in account
+                        spread_val = "Future" if is_futures else "Stock"
+                        export_sym = format_symbol(sym, is_futures)
+                        side_val = "Buy" if lot_info["type"] == "long" else "Sell"
+                        open_lots_count += 1
+                        trades_to_export.append({
+                            'Account Name': account,
+                            'Date / Time': lot["time"].strftime("%m/%d/%Y %H:%M:%S"),
+                            'Symbol': export_sym,
+                            'Side': side_val,
+                            'Quantity': lot["qty"],
+                            'Price': lot["price"],
+                            'Spread': spread_val,
+                            'Expiration': '',
+                            'Strike': '',
+                            'Call/Put': '',
+                            'Commission': 0,
+                            'Fees': 0,
+                            '_dt': lot["time"],
+                            '_action_order': 0
+                        })
+        if open_lots_count > 0:
+            print(f"  - Open position lots exported for {account}: {open_lots_count}")
                 
     aggregated_trades = {}
     for r in trades_to_export:
@@ -549,26 +585,105 @@ def main():
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
     # Write combined TradeZella CSV
-    with open(output_path, 'w', newline='', encoding='utf-8') as f:
+    with open(output_path, 'w', newline='', encoding='utf-8-sig') as f:
         writer = csv.DictWriter(f, fieldnames=tz_headers)
         writer.writeheader()
         writer.writerows(rows)
     print(f"Exported {len(rows)} execution rows to combined file: {output_path}")
 
     # Write separate files per account
-    import re
+    # Clean Account Mapping for Generic CSV exports
+    def get_clean_account_filename(acc_name):
+        acc_lower = acc_name.lower()
+        if "rollover ira" in acc_lower or "fidelity" in acc_lower or "5513" in acc_lower:
+            return "tradezella-import-fidelity-ira.csv"
+        elif "tradingview" in acc_lower or "paper" in acc_lower:
+            return "tradezella-import-tradingview-paper-futures.csv"
+        elif "topstep" in acc_lower:
+            # User prefers native TopStepX exports ONLY, no generic Topstep files
+            return None
+        else:
+            acc_clean = re.sub(r'[^a-zA-Z0-9]', '_', acc_name).strip('_')
+            return f"tradezella-import-{acc_clean}.csv"
+
     accounts = set(r["Account Name"] for r in rows)
     for acc in accounts:
         acc_rows = [r for r in rows if r["Account Name"] == acc]
-        acc_clean = re.sub(r'[^a-zA-Z0-9\s_*-]', '', acc)
-        acc_clean = acc_clean.replace(' ', '_').replace('*', '').replace('-', '_')
-        acc_output_path = os.path.join(os.path.dirname(output_path), f"tradezella-import-{acc_clean}.csv")
+        filename = get_clean_account_filename(acc)
+        if not filename:
+            continue
+        acc_output_path = os.path.join(os.path.dirname(output_path), filename)
         
-        with open(acc_output_path, 'w', newline='', encoding='utf-8') as f:
+        with open(acc_output_path, 'w', newline='', encoding='utf-8-sig') as f:
             writer = csv.DictWriter(f, fieldnames=tz_headers)
             writer.writeheader()
             writer.writerows(acc_rows)
         print(f"Exported {len(acc_rows)} execution rows for account '{acc}' to: {acc_output_path}")
+
+    # Export native TopStepX Trades tab CSV format (ONE file per unique account ID)
+    import glob, shutil
+    dropzone_root = os.path.join(project_root, "data", "dropzone")
+    all_csvs = glob.glob(os.path.join(dropzone_root, "**", "*.csv"), recursive=True)
+    topstep_archives = [f for f in all_csvs if "topstep" in f.lower()]
+    
+    if topstep_archives:
+        def copy_fresh(src, dst):
+            shutil.copy(src, dst)
+            os.utime(dst, None) # Refresh modification timestamp to current time
+
+        # Extract active Topstep account IDs configured in DROPZONE_ACCOUNTS
+        try:
+            from src.config.loader import get_config
+            cfg = get_config()
+            dz_accts = cfg.get("DROPZONE_ACCOUNTS", {})
+        except Exception:
+            dz_accts = {}
+
+        active_account_ids = set()
+        for acct_name in dz_accts.keys():
+            if "topstep" in acct_name.lower():
+                m = re.search(r'(\d{4,8})', acct_name)
+                if m:
+                    acc_id = m.group(1)[-4:] if len(m.group(1)) >= 4 else m.group(1)
+                    active_account_ids.add(acc_id)
+                
+        for acc_id in sorted(active_account_ids):
+            acc_files = [f for f in topstep_archives if acc_id in f]
+            if acc_files:
+                latest_acc_file = max(acc_files, key=os.path.getctime)
+                dst_path = os.path.join(os.path.dirname(output_path), f"tradezella-import-TopStepX-{acc_id}.csv")
+                copy_fresh(latest_acc_file, dst_path)
+                print(f"Exported native TopStepX file for account {acc_id} to: {dst_path}")
+
+    # Remove all legacy/stale duplicate & inactive account files
+    export_dir = os.path.dirname(output_path)
+    for f in glob.glob(os.path.join(export_dir, "tradezella-import-TopStepX-*.csv")):
+        m = re.search(r'TopStepX-(\d{4,8})\.csv', os.path.basename(f))
+        if m:
+            acc_id = m.group(1)
+            if acc_id not in active_account_ids:
+                try:
+                    os.remove(f)
+                    print(f"Cleaned up legacy account export file: {os.path.basename(f)}")
+                except Exception:
+                    pass
+
+    stale_patterns = [
+        "tradezella-import-TopStepX_*.csv",
+        "tradezella-import-TopStepX-*-generic.csv",
+        "tradezella-import-TopStepX-generic.csv",
+        "tradezella-import-Rollover_IRA_*.csv",
+        "tradezella-import-TradingView_Paper_Futures.csv",
+        "*.bak"
+    ]
+    for pattern in stale_patterns:
+        stale_files = glob.glob(os.path.join(export_dir, pattern))
+        for sf in stale_files:
+            try:
+                os.remove(sf)
+                print(f"Cleaned up stale export file: {os.path.basename(sf)}")
+            except Exception:
+                pass
 
     if not success:
         sys.exit(1)

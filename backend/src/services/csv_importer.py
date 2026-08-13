@@ -369,14 +369,12 @@ def parse_tradingview_paper_trading(csv_path: str):
                 
             closing_time = row.get("Closing time") or "" # "2026-06-25 15:28:58"
             
-            # Format closing time to ISO string
+            # Format closing time to ISO string (TradingView CSV timestamps are in UTC)
             try:
                 from zoneinfo import ZoneInfo
-                eastern = ZoneInfo("America/New_York")
                 utc = ZoneInfo("UTC")
-                dt_obj = datetime.datetime.strptime(closing_time, "%Y-%m-%d %H:%M:%S").replace(tzinfo=eastern)
-                dt_utc = dt_obj.astimezone(utc)
-                iso_time = dt_utc.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+                dt_obj = datetime.datetime.strptime(closing_time, "%Y-%m-%d %H:%M:%S").replace(tzinfo=utc)
+                iso_time = dt_obj.strftime("%Y-%m-%dT%H:%M:%S.000Z")
             except Exception:
                 iso_time = closing_time
                 
@@ -931,8 +929,10 @@ def process_dropzone_files(optional_path=None):
 
         try:
             import subprocess
+            import sys
             script_path = os.path.join(project_root, "scripts", "utils", "generate_tradingview_script.py")
-            subprocess.run(["python", script_path], check=True, capture_output=True)
+            creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            subprocess.run([sys.executable, script_path], check=True, capture_output=True, creationflags=creationflags)
             messages.append("TradingView script updated successfully.")
         except Exception as tv_err:
             logger.error(f"TradingView script generation failed during dropzone processing: {tv_err}")
