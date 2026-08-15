@@ -64,10 +64,10 @@ var DSVDAGState dag = DSVDAGState.new(
  )
 
 // ============================================================================
-// 2. INPUTS & CONFIGURATION ($250k Account | $500 1R | Daily Max = 2R)
+// 2. INPUTS & CONFIGURATION ($250k Account | $1000 1R | Daily Max = 3R)
 // ============================================================================
-grp_risk        = "1. Risk & Position Sizing ($250k Account | $500 Risk = 1R | Daily Max = 3R)"
-fixed_risk_usd  = input.float(500.0, "Fixed Risk Amount ($ = 1R)", group=grp_risk)
+grp_risk        = "1. Risk & Position Sizing ($250k Account | $1000 Risk = 1R | Daily Max = 3R)"
+fixed_risk_usd  = input.float(1000.0, "Fixed Risk Amount ($ = 1R)", group=grp_risk)
 max_daily_loss_r= input.float(3.0, "Daily Max Loss Limit (R Multiplier)", group=grp_risk)
 enable_scale_in = input.bool(true, "Enable FVG Stack Scale-In (+1 Qty)", group=grp_risk)
 enable_t1_exit  = input.bool(false, "Enable Partial Profit Taking (REMOVED)", group=grp_risk)
@@ -83,6 +83,9 @@ news_filter= input.bool(true, "Enable Tier-1 Macro News Blackout", group=grp_tim
 block_macro_window  = input.bool(true, "Block 09:50-10:10 EST Macro Window", group=grp_time)
 use_london_fvg_gate = input.bool(false, "Require 5m FVG Gate during London Open (03:00-04:00 EST)", group=grp_time)
 
+use_date_filter = input.bool(true, "Enable 90-Day Horizon Filter", group=grp_time)
+start_date      = input.time(timestamp("17 May 2026 00:00 +0000"), "Start Date (Last 90 Days)", group=grp_time)
+
 grp_dag   = "3. DAG Thresholds & Timeouts"
 sweep_rvol_min = input.float(1.5, "Min 1m RVOL for Sweep Confirmation", group=grp_dag)
 asia_rvol_min  = input.float(1.2, "Min Asian 1m RVOL for Sweep Confirmation", group=grp_dag)
@@ -97,7 +100,10 @@ t_hour = hour(time, "America/New_York")
 t_min  = minute(time, "America/New_York")
 t_day  = dayofweek(time, "America/New_York")
 
-// Daily Max Loss Circuit Breaker ($1,000 / 2R Max Daily Loss)
+// Date Horizon Filter (Last 90 Days Window)
+bool in_date_range = not use_date_filter or (time >= start_date)
+
+// Daily Max Loss Circuit Breaker ($3,000 / 3R Max Daily Loss)
 var float daily_start_equity = na
 if ta.change(time("D"))
     daily_start_equity := strategy.equity
@@ -119,8 +125,8 @@ bool is_macro_window      = block_macro_window and (t_hour == 9 and t_min >= 50 
 bool is_pre_ny_blackout   = (t_hour == 7) // Blocks 07:00 EST London pre-market drag
 bool is_asia_end_blackout = (t_hour == 1) // Blocks 01:00 EST Asian end drift losses
 
-// Master Session Operational Gate (Enforces 2R Daily Max Loss Circuit Breaker)
-bool execution_permitted = session_gate_open and not is_news_blackout and not is_macro_window and not is_pre_ny_blackout and not is_asia_end_blackout and not daily_loss_exceeded
+// Master Session Operational Gate (Enforces 3R Daily Max Loss & 90-Day Horizon)
+bool execution_permitted = session_gate_open and not is_news_blackout and not is_macro_window and not is_pre_ny_blackout and not is_asia_end_blackout and not daily_loss_exceeded and in_date_range
 
 // ============================================================================
 // 4. MULTI-TIMEFRAME (MTF) DATA LAYER (1h ➔ 15m ➔ 5m ➔ 1m)

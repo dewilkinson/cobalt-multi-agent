@@ -10,6 +10,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 PRIMARY_CACHE_PATH = os.path.join(PROJECT_ROOT, "backend", "data", "trends_cache.json")
 EXEC_HISTORY_PATH  = os.path.join(PROJECT_ROOT, "data", "strategy_execution_history.json")
 STRATEGY_LOGS_DIR  = os.path.join(PROJECT_ROOT, "strategies", "DSV", "logs")
+STRATEGY_SNAPS_DIR = os.path.join(PROJECT_ROOT, "strategies", "DSV", "snapshots")
 ARCHIVE_DIR        = os.path.join(PROJECT_ROOT, "data", "archive")
 
 def backup_backtest_db(force=False):
@@ -18,6 +19,7 @@ def backup_backtest_db(force=False):
       1. trends_cache.json (Backtest DB)
       2. strategy_execution_history.json (Strategy Run History)
       3. Symbol Strategy Logs (strategies/DSV/logs/)
+      4. Strategy Config Snapshots (strategies/DSV/snapshots/)
     in data/archive/ and mirrors to Google Drive.
     """
     os.makedirs(ARCHIVE_DIR, exist_ok=True)
@@ -63,6 +65,12 @@ def backup_backtest_db(force=False):
             for log_f in os.listdir(STRATEGY_LOGS_DIR):
                 if log_f.endswith(".md"):
                     sync_file_to_gdrive(os.path.join(STRATEGY_LOGS_DIR, log_f), f"strategy_logs/{log_f}")
+
+        # Mirror strategy snapshots directly to GDrive strategy_snapshots/ folder
+        if os.path.exists(STRATEGY_SNAPS_DIR):
+            for snap_f in os.listdir(STRATEGY_SNAPS_DIR):
+                if snap_f.endswith(".json"):
+                    sync_file_to_gdrive(os.path.join(STRATEGY_SNAPS_DIR, snap_f), f"strategy_snapshots/{snap_f}")
 
         sync_entire_archive_to_gdrive(ARCHIVE_DIR)
     except Exception as g_err:

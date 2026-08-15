@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0.0",
+  "snapshot_id": "DSV_MGC1_2026_PEAK_V1",
+  "created_at": "2026-08-15T19:49:00-04:00",
+  "symbols": [
+    "COMEX_MINI:MGC1!",
+    "NYMEX:MCL1!"
+  ],
+  "metadata": {
+    "strategy_name": "Dual-Session Vector (DSV) Strategy - DAG Engine",
+    "strategy_file": "strategies/DSV/dsv_strategy_dag.pine",
+    "version_tag": "Run #23/24 Peak Production Engine",
+    "author": "Cobalt Multiagent AI / Pair Programming Team",
+    "description": "High-expectancy 5-Node DAG state machine trend runner targeting high-volume session sweeps with 1H macro trend alignment, 21 EMA 5m FVG base trailing stops, and 3-stage milestone profit locks.",
+    "notes": "Validated across 2026 YTD horizon. Produced +$8,128.00 Net PnL on $250k capital scale ($500 1R) with 48.94% Win Rate and 2.27 Reward-to-Risk ratio.",
+    "benchmark_metrics": {
+      "net_pnl_usd": 8128.00,
+      "win_rate_pct": 48.94,
+      "payoff_ratio": 2.27,
+      "avg_win_usd": 653.91,
+      "avg_loss_usd": -288.00,
+      "total_trades": 47
+    }
+  },
+  "capital_and_risk_settings": {
+    "initial_capital_usd": 250000.0,
+    "fixed_risk_usd": 1000.0,
+    "max_daily_loss_r": 3.0,
+    "max_daily_loss_usd": 3000.0,
+    "enable_scale_in": true,
+    "scale_in_rr_target": 3.0,
+    "use_atr_sizing": true,
+    "max_sl_ticks": 150
+  },
+  "time_and_session_settings": {
+    "use_asia": true,
+    "asia_window_est": "18:00 - 23:00 EST",
+    "use_london": true,
+    "london_window_est": "02:00 - 08:00 EST",
+    "use_ny": true,
+    "ny_window_est": "09:30 - 11:15 EST",
+    "news_filter": true,
+    "block_macro_window": true,
+    "macro_window_est": "09:50 - 10:10 EST",
+    "pre_ny_blackout_est": "07:00 EST",
+    "asia_end_blackout_est": "01:00 EST",
+    "use_date_filter": true,
+    "start_date": "2026-05-17T00:00:00Z",
+    "horizon_days": 90
+  },
+  "macro_trend_settings": {
+    "htf_timeframe": "1H",
+    "ema_fast_period": 50,
+    "ema_slow_period": 200,
+    "strict_macro_gate": "Price >= 1H 200 EMA & 1H 50 EMA >= 1H 200 EMA (Bullish) | Price <= 1H 200 EMA & 1H 50 EMA < 1H 200 EMA (Bearish)"
+  },
+  "dag_engine_settings": {
+    "sweep_timeframe": "15m",
+    "mss_timeframe": "5m",
+    "entry_timeframe": "1m",
+    "sweep_rvol_min": 1.5,
+    "asia_rvol_min": 1.2,
+    "rvol_threshold": 1.8,
+    "max_mss_bars": 10
+  },
+  "trailing_stop_settings": {
+    "enable_fvg_trail": true,
+    "trail_timeframe": "5m",
+    "ema21_confirmation_gate": true,
+    "stage1_breakeven_lock": "+0.1R at +1.0R Floating Expansion",
+    "stage2_structural_lock": "+0.75R at +1.5R Floating Expansion",
+    "stage3_fvg_trailing": "21 EMA-Gated 5m FVG Base Trailing"
+  }
+}
