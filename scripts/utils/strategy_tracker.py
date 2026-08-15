@@ -278,37 +278,93 @@ def process_dropzone():
         parsed["regressions_logged"] = regressions_logged
         parsed["proposed_improvements"] = proposed_improvements
 
+        # Save History
         history["test_series"][series_id].append(parsed)
         save_history(history)
+        new_runs_count += 1
 
-        # Move to archive
+        # Move processed CSV file to data/dropzone/archive/
         dest_path = os.path.join(ARCHIVE_DIR, filename)
         if os.path.exists(dest_path):
             os.remove(dest_path)
         os.rename(filepath, dest_path)
-        print(f"[Tracker] Successfully ingested Run #{run_number} & archived file to data/dropzone/archive/")
 
-        # Console Summary Report
         m = parsed["metrics"]
-        cfg = parsed["test_config"]
         print("-" * 80)
-        print(f" Run #{run_number}: {filename}")
-        print(f"   📅 Test Window : {cfg['start_date'][:16]} ➔ {cfg['end_date'][:16]} ({cfg['days_span']} days)")
-        print(f"   ⏱️ Monotonic   : {'✅ YES' if parsed['is_monotonic'] else '❌ NO'}")
-        print(f"   📊 Win Rate    : {m['win_rate_pct']}% | Scratch: {m['scratch_rate_pct']}% | Net PnL: ${m['net_pnl_usd']:,.2f}")
-        print(f"   ⚖️ Payoff R:R  : {m['payoff_ratio']} | Avg Win: ${m['avg_win_usd']} | Avg Loss: ${m['avg_loss_usd']}")
-        print(f"   ⚠️ MFE Giveback: {m['mfe_giveback_pct']}% of losing trades reached profit first")
+        print(f" Run #{run_number}: {filename} ({parsed.get('symbol', 'MGC1!')})")
+        print(f"   📊 Win Rate    : {m['win_rate_pct']}% | Net PnL: ${m['net_pnl_usd']:,.2f} | R:R: {m['payoff_ratio']}")
         print(f"   🕒 Worst Hour  : {m['worst_hour']}")
-
-        if delta_info:
-            print(f"   📈 DELTA vs Run #{run_number-1}: WR {delta_info['delta_win_rate_pct']:+} | Net PnL ${delta_info['delta_net_pnl_usd']:+,} | R:R {delta_info['delta_payoff_ratio']:+}")
-            print(f"   📐 Institutional MOE Score: {delta_info['moe_score']} R/param [{delta_info['moe_label']}]")
-
-        if regressions_logged:
-            print("   ⚠️ REGRESSIONS LOGGED:")
-            for r in regressions_logged:
-                print(f"      - {r['metric']} ({r['delta']}): Cause -> {r['cause']}")
         print("-" * 80)
+        
+        # Auto-compile Symbol Markdown Log
+        symbol_clean = parsed.get("symbol", "MGC1!").replace("!", "").replace(":", "_").split("_")[-1]
+        update_symbol_markdown_log(symbol_clean, history)
+
+    if new_runs_count > 0:
+        print(f"\n[Tracker Success] Successfully processed & archived {new_runs_count} new strategy run(s).")
+
+def update_symbol_markdown_log(symbol_clean, history):
+    """
+    Automatically generates/updates symbol-specific optimization markdown logs
+    in strategies/DSV/logs/[SYMBOL]_Optimization_Log.md for any ticker.
+    """
+    log_dir = os.path.join(os.getcwd(), "strategies", "DSV", "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    target_log = os.path.join(log_dir, f"{symbol_clean}_Optimization_Log.md")
+    
+    # Collect all runs for this symbol
+    all_runs = []
+    for s_id, runs in history.get("test_series", {}).items():
+        for r in runs:
+            r_sym = r.get("symbol", "").replace("!", "").replace(":", "_").split("_")[-1]
+            if r_sym == symbol_clean or (symbol_clean == "MGC1" and s_id == "MGC1!_2026_YTD_Optimization_Series"):
+                all_runs.append(r)
+                
+    if not all_runs:
+        return
+        
+    all_runs.sort(key=lambda x: x.get("run_number", 0))
+    latest = all_runs[-1]
+    m_latest = latest.get("metrics", {})
+    
+    content = f"# 📜 DSV Strategy Optimization & Evolution Log: {symbol_clean}\n\n"
+    content += f"**Symbol**: `{symbol_clean}`  \n"
+    content += f"**Timeframe**: 1m Native / 5m MSS / 15m Benchmark / 1h Macro  \n"
+    content += f"**Primary Strategy Engine**: `strategies/DSV/dsv_strategy_dag.pine` & `dsv_high_frequency_engine.pine`  \n\n"
+    content += "---\n\n"
+    content += "## 🏆 Current Performance Summary\n\n"
+    content += "| Parameter | Value |\n"
+    content += "| :--- | :--- |\n"
+    content += f"| **Latest Run** | **Run #{latest.get('run_number', 'N/A')}** (`{latest.get('filename', '')[-12:]}`) |\n"
+    content += f"| **Net PnL** | **${m_latest.get('net_pnl_usd', 0):,.2f}** |\n"
+    content += f"| **Win Rate %** | **{m_latest.get('win_rate_pct', 0):.2f}%** |\n"
+    content += f"| **Payoff Ratio (R:R)** | **{m_latest.get('payoff_ratio', 0):.2f} R:R** |\n"
+    content += f"| **Avg Win** | **${m_latest.get('avg_win_usd', 0):,.2f}** |\n"
+    content += f"| **Avg Loss** | **${m_latest.get('avg_loss_usd', 0):,.2f}** |\n"
+    content += f"| **Total Executions** | **{m_latest.get('total_trades', 0)} Trades** |\n\n"
+    content += "---\n\n"
+    content += "## 📊 Complete Historical Progression Matrix\n\n"
+    content += "| Run # | Export File | Net PnL ($) | Win Rate % | Payoff R:R | Trades | Worst Hour |\n"
+    content += "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n"
+    
+    for r in all_runs:
+        m = r.get("metrics", {})
+        r_num = r.get("run_number", 0)
+        fn = r.get("filename", "")
+        pnl = m.get("net_pnl_usd", 0)
+        wr = m.get("win_rate_pct", 0)
+        rr = m.get("payoff_ratio", 0)
+        trades = m.get("total_trades", 0)
+        wh = m.get("worst_hour", "N/A")
+        content += f"| **Run #{r_num}** | `{fn[-12:]}` | `${pnl:,.2f}` | {wr:.2f}% | {rr:.2f} | {trades} | {wh} |\n"
+        
+    try:
+        with open(target_log, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"[Tracker] Automatically updated symbol markdown log: {target_log}")
+    except Exception as e:
+        print(f"[Tracker Error] Failed writing symbol markdown log: {e}")
 
 if __name__ == "__main__":
+    ensure_directories()
     process_dropzone()
