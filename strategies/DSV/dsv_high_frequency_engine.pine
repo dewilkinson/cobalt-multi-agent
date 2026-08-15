@@ -1,0 +1,374 @@
+//@version=5
+strategy("Dual-Session Vector (DSV) - High-Frequency Portfolio Engine", overlay=true, initial_capital=250000, default_qty_type=strategy.fixed, default_qty_value=1, currency=currency.USD, commission_type=strategy.commission.cash_per_contract, commission_value=1.50, margin_long=10, margin_short=10)
+
+// ============================================================================
+// DUAL-SESSION VECTOR (DSV) - HIGH-FREQUENCY PORTFOLIO ENGINE (HF-DSV)
+// ============================================================================
+// Target Horizon : $3,000 / Week ($15,000 / Month)
+// Frequency      : Up to 4 Round-Trip Trades / Day across Multi-Asset Portfolio
+// Target Win Rate: >= 50% - 55% Win Rate
+// Payoff Target  : 1.25R Fixed Target 1 (60% Qty) + 21 EMA Trailing Runner (40% Qty)
+// ============================================================================
+
+// ============================================================================
+// 1. STATE DEFINITIONS & TYPE COMPONENT
+// ============================================================================
+int NODE_IDLE             = 0
+int NODE_SWEEP_DETECTED   = 1
+int NODE_MSS_CONFIRMED    = 2
+int NODE_FVG_RETESTED     = 3
+int NODE_ENTRY_VALIDATED  = 5
+int NODE_IN_POSITION     = 6
+
+type DSVDAGState
+    int   current_node
+    bool  is_long_path
+    int   sweep_bar_index
+    float sweep_price
+    float mss_price
+    float fvg1_top
+    float fvg1_bottom
+    float fvg1_eq
+    float candle1_high
+    float candle1_low
+    float fvg2_top
+    float fvg2_bottom
+    bool  fvg_stacked
+    bool  t1_scaled
+    bool  path_valid
+    bool  macro_bias_bullish
+    float trail_sl
+
+var DSVDAGState dag = DSVDAGState.new(
+     current_node       = 0,
+     is_long_path       = true,
+     sweep_bar_index    = 0,
+     sweep_price        = 0.0,
+     mss_price          = 0.0,
+     fvg1_top           = 0.0,
+     fvg1_bottom        = 0.0,
+     fvg1_eq           = 0.0,
+     candle1_high       = 0.0,
+     candle1_low        = 0.0,
+     fvg2_top           = 0.0,
+     fvg2_bottom        = 0.0,
+     fvg_stacked        = false,
+     t1_scaled          = false,
+     path_valid         = false,
+     macro_bias_bullish = true,
+     trail_sl           = 0.0
+ )
+
+// ============================================================================
+// 2. INPUTS & CONFIGURATION ($250k Account | $1000 1R | 3R Daily Cap)
+// ============================================================================
+grp_risk        = "1. Risk & Position Sizing ($250k Capital | $1000 Risk = 1R)"
+fixed_risk_usd  = input.float(1000.0, "Fixed Risk Amount ($ = 1R)", group=grp_risk)
+max_daily_loss_r= input.float(3.0, "Daily Max Loss Limit (R Multiplier)", group=grp_risk)
+t1_rr_target    = input.float(1.25, "Target 1 Fixed R:R (60% Position Qty)", group=grp_risk)
+enable_scale_in = input.bool(true, "Enable FVG Stack Scale-In (+1 Qty)", group=grp_risk)
+enable_fvg_trail= input.bool(true, "Enable 21 EMA 5m FVG Base Trailing Stop", group=grp_risk)
+use_atr_sizing  = input.bool(true, "Enable 1H ATR Dynamic Position Sizing", group=grp_risk)
+max_sl_ticks    = input.int(150, "Max Stop Loss Distance (Ticks)", minval=10, group=grp_risk)
+
+grp_time  = "2. Session & Time Window Controls"
+use_asia   = input.bool(true, "Enable Asian Window (18:00 - 23:00 EST)", group=grp_time)
+use_london = input.bool(true, "Enable London Window (02:00 - 08:00 EST)", group=grp_time)
+use_ny     = input.bool(true, "Enable NY Cash Open Window (09:30 - 11:15 EST)", group=grp_time)
+news_filter= input.bool(true, "Enable Tier-1 Macro News Blackout", group=grp_time)
+block_macro_window = input.bool(true, "Block 09:50-10:10 EST Macro Window", group=grp_time)
+use_date_filter    = input.bool(true, "Enable 90-Day Horizon Filter", group=grp_time)
+start_date         = input.time(timestamp("17 May 2026 00:00 +0000"), "Start Date (Last 90 Days)", group=grp_time)
+
+grp_dag   = "3. DAG Thresholds & Timeouts"
+enable_5m_sweeps = input.bool(true, "Enable 5m Micro Liquidity Sweeps", group=grp_dag)
+sweep_rvol_min   = input.float(1.5, "Min 1m RVOL for Sweep Confirmation", group=grp_dag)
+asia_rvol_min    = input.float(1.2, "Min Asian 1m RVOL for Sweep Confirmation", group=grp_dag)
+rvol_threshold   = input.float(1.8, "Min 5m RVOL for MSS Confirmation", group=grp_dag)
+max_mss_bars     = input.int(10, "Max Bars Allowed to Form MSS Displacement", group=grp_dag)
+
+// ============================================================================
+// 3. ASSET-TO-SESSION MATRIX & TIME FILTERS
+// ============================================================================
+t_hour = hour(time, "America/New_York")
+t_min  = minute(time, "America/New_York")
+t_day  = dayofweek(time, "America/New_York")
+
+// Date Horizon Filter (Last 90 Days Window)
+bool in_date_range = not use_date_filter or (time >= start_date)
+
+// Daily Max Loss Circuit Breaker ($3,000 / 3R Max Daily Loss)
+var float daily_start_equity = na
+if ta.change(time("D"))
+    daily_start_equity := strategy.equity
+
+float daily_pnl = strategy.equity - (na(daily_start_equity) ? strategy.equity : daily_start_equity)
+bool daily_loss_exceeded = daily_pnl <= -(max_daily_loss_r * fixed_risk_usd)
+
+// Active Session Windows
+bool in_asia_window   = (t_hour >= 18 and t_hour <= 22)
+bool in_london_window = (t_hour >= 2 and t_hour < 8)
+bool in_ny_window     = ((t_hour == 9 and t_min >= 30) or t_hour == 10 or (t_hour == 11 and t_min <= 15))
+
+bool session_gate_open = (use_asia and in_asia_window) or (use_london and in_london_window) or (use_ny and in_ny_window)
+
+// Blackout Filters
+bool is_news_blackout     = news_filter and ((t_hour == 8 and t_min >= 15 and t_min <= 40))
+bool is_macro_window      = block_macro_window and (t_hour == 9 and t_min >= 50 or (t_hour == 10 and t_min <= 10))
+bool is_pre_ny_blackout   = (t_hour == 7) // 07:00 EST London pre-market blackout
+bool is_asia_end_blackout = (t_hour == 1) // 01:00 EST Asian end blackout
+
+bool execution_permitted = session_gate_open and not is_news_blackout and not is_macro_window and not is_pre_ny_blackout and not is_asia_end_blackout and not daily_loss_exceeded and in_date_range
+
+// ============================================================================
+// 4. MULTI-TIMEFRAME (MTF) DATA LAYER
+// ============================================================================
+htf15_high = request.security(syminfo.tickerid, "15", high[1])
+htf15_low  = request.security(syminfo.tickerid, "15", low[1])
+
+htf5_high  = request.security(syminfo.tickerid, "5", high[1])
+htf5_low   = request.security(syminfo.tickerid, "5", low[1])
+
+htf5_close = request.security(syminfo.tickerid, "5", close)
+htf5_open  = request.security(syminfo.tickerid, "5", open)
+htf5_volume= request.security(syminfo.tickerid, "5", volume)
+htf5_vol_sma= request.security(syminfo.tickerid, "5", ta.sma(volume, 20))
+htf5_ema21 = request.security(syminfo.tickerid, "5", ta.ema(close, 21))
+
+htf60_close  = request.security(syminfo.tickerid, "60", close)
+htf60_ema50  = request.security(syminfo.tickerid, "60", ta.ema(close, 50))
+htf60_ema200 = request.security(syminfo.tickerid, "60", ta.ema(close, 200))
+htf60_atr    = request.security(syminfo.tickerid, "60", ta.atr(14))
+
+// 1H Strict Macro Trend Alignment Gate
+bool strict_macro_bullish = (htf60_close >= htf60_ema200) and (htf60_ema50 >= htf60_ema200)
+bool strict_macro_bearish = (htf60_close <= htf60_ema200) and (htf60_ema50 < htf60_ema200)
+
+// 1m Volume Relative Analysis
+m1_vol_sma = ta.sma(volume, 20)
+m1_rvol    = m1_vol_sma > 0 ? (volume / m1_vol_sma) : 1.0
+m1_ema21   = ta.ema(close, 21)
+
+// ============================================================================
+// 5. FAIR VALUE GAP (FVG) DETECTION ENGINE
+// ============================================================================
+bool m1_fvg_up   = (low[0] > high[2])
+bool m1_fvg_down = (high[0] < low[2])
+
+float m1_fvg_up_top    = m1_fvg_up ? low[0] : na
+float m1_fvg_up_bottom = m1_fvg_up ? high[2] : na
+float m1_fvg_up_ce     = m1_fvg_up ? (m1_fvg_up_top + m1_fvg_up_bottom) / 2.0 : na
+
+float m1_fvg_down_top    = m1_fvg_down ? low[2] : na
+float m1_fvg_down_bottom = m1_fvg_down ? high[0] : na
+float m1_fvg_down_ce     = m1_fvg_down ? (m1_fvg_down_top + m1_fvg_down_bottom) / 2.0 : na
+
+bool htf5_fvg_up   = request.security(syminfo.tickerid, "5", low[0] > high[2])
+bool htf5_fvg_down = request.security(syminfo.tickerid, "5", high[0] < low[2])
+
+float htf5_fvg_up_base   = request.security(syminfo.tickerid, "5", low[0])
+float htf5_fvg_down_base = request.security(syminfo.tickerid, "5", high[0])
+
+// ============================================================================
+// 6. SEQUENTIAL DAG STATE MACHINE (NODES 0 ➔ 6)
+// ============================================================================
+
+// Reset DAG on Flat State
+if strategy.position_size == 0 and dag.current_node == NODE_IN_POSITION
+    dag.current_node     := NODE_IDLE
+    dag.sweep_price      := 0.0
+    dag.mss_price        := 0.0
+    dag.fvg1_top         := 0.0
+    dag.fvg1_bottom      := 0.0
+    dag.fvg2_top         := 0.0
+    dag.fvg2_bottom      := 0.0
+    dag.fvg_stacked      := false
+    dag.t1_scaled        := false
+    dag.path_valid       := false
+    dag.trail_sl         := 0.0
+
+switch dag.current_node
+    // ------------------------------------------------------------------------
+    // NODE 0: IDLE STATE (Waiting for Session Gate & Macro Bias)
+    // ------------------------------------------------------------------------
+    NODE_IDLE =>
+        if execution_permitted
+            float active_sweep_rvol = in_asia_window ? asia_rvol_min : sweep_rvol_min
+            
+            // Check 15m & 5m Liquidity Sweeps
+            bool long_sweep_15m = (low < htf15_low) and m1_rvol >= active_sweep_rvol
+            bool short_sweep_15m = (high > htf15_high) and m1_rvol >= active_sweep_rvol
+            
+            bool long_sweep_5m  = enable_5m_sweeps and (low < htf5_low) and m1_rvol >= active_sweep_rvol
+            bool short_sweep_5m = enable_5m_sweeps and (high > htf5_high) and m1_rvol >= active_sweep_rvol
+            
+            if (long_sweep_15m or long_sweep_5m) and strict_macro_bullish
+                dag.is_long_path       := true
+                dag.sweep_bar_index    := bar_index
+                dag.sweep_price        := low
+                dag.macro_bias_bullish := true
+                dag.current_node       := NODE_SWEEP_DETECTED
+            else if (short_sweep_15m or short_sweep_5m) and strict_macro_bearish
+                dag.is_long_path       := false
+                dag.sweep_bar_index    := bar_index
+                dag.sweep_price        := high
+                dag.macro_bias_bullish := false
+                dag.current_node       := NODE_SWEEP_DETECTED
+
+    // ------------------------------------------------------------------------
+    // NODE 1: SWEEP DETECTED (Waiting for 5m MSS Displacement)
+    // ------------------------------------------------------------------------
+    NODE_SWEEP_DETECTED =>
+        if (bar_index - dag.sweep_bar_index) > (max_mss_bars * 5)
+            dag.current_node := NODE_IDLE
+        else
+            bool mss_bullish = htf5_close > htf5_high[1] and (htf5_volume / htf5_vol_sma) >= rvol_threshold
+            bool mss_bearish = htf5_close < htf5_low[1] and (htf5_volume / htf5_vol_sma) >= rvol_threshold
+
+            if dag.is_long_path and mss_bullish
+                dag.mss_price    := htf5_close
+                dag.current_node := NODE_MSS_CONFIRMED
+            else if not dag.is_long_path and mss_bearish
+                dag.mss_price    := htf5_close
+                dag.current_node := NODE_MSS_CONFIRMED
+
+    // ------------------------------------------------------------------------
+    // NODE 2: MSS CONFIRMED (Discover FVG & Transition to 1m Execution)
+    // ------------------------------------------------------------------------
+    NODE_MSS_CONFIRMED =>
+        if dag.is_long_path and m1_fvg_up
+            dag.fvg1_top     := m1_fvg_up_top
+            dag.fvg1_bottom  := m1_fvg_up_bottom
+            dag.fvg1_eq      := m1_fvg_up_ce
+            dag.current_node := NODE_FVG_RETESTED
+        else if not dag.is_long_path and m1_fvg_down
+            dag.fvg1_top     := m1_fvg_down_top
+            dag.fvg1_bottom  := m1_fvg_down_bottom
+            dag.fvg1_eq      := m1_fvg_down_ce
+            dag.current_node := NODE_FVG_RETESTED
+
+    // ------------------------------------------------------------------------
+    // NODE 3: 1m FVG RETEST & 2-CANDLE CONFIRMATION
+    // ------------------------------------------------------------------------
+    NODE_FVG_RETESTED =>
+        if dag.is_long_path
+            bool retested_long = low <= dag.fvg1_top and close >= dag.fvg1_bottom
+            if retested_long
+                dag.candle1_high   := high
+                dag.candle1_low    := low
+                dag.path_valid     := true
+                dag.current_node   := NODE_ENTRY_VALIDATED
+        else
+            bool retested_short = high >= dag.fvg1_bottom and close <= dag.fvg1_top
+            if retested_short
+                dag.candle1_high   := high
+                dag.candle1_low    := low
+                dag.path_valid     := true
+                dag.current_node   := NODE_ENTRY_VALIDATED
+
+    // ------------------------------------------------------------------------
+    // NODE 5: SIGNAL VALIDATED -> EXECUTE DUAL-TARGET POSITION ENTRY
+    // ------------------------------------------------------------------------
+    NODE_ENTRY_VALIDATED =>
+        if dag.path_valid
+            float entry_p = close
+            float raw_sl = math.abs(entry_p - dag.sweep_price)
+            float sl_dist = raw_sl > 0 ? math.min(raw_sl, max_sl_ticks * syminfo.mintick) : (10 * syminfo.mintick)
+            
+            float risk_dist = sl_dist
+            if use_atr_sizing
+                risk_dist := math.max(sl_dist, htf60_atr * 0.5)
+            
+            float total_base_qty = math.floor(fixed_risk_usd / (risk_dist * syminfo.pointvalue))
+            float total_qty      = math.max(2.0, total_base_qty) // Minimum 2 contracts for Dual-Target Split
+            
+            // Dual-Target Qty Division (60% Target 1 / 40% Target 2 Runner)
+            float t1_qty     = math.max(1.0, math.floor(total_qty * 0.6))
+            float runner_qty = math.max(1.0, total_qty - t1_qty)
+            
+            float r_dist = risk_dist
+            float t1_limit = dag.is_long_path ? (entry_p + t1_rr_target * r_dist) : (entry_p - t1_rr_target * r_dist)
+            
+            dag.trail_sl := dag.sweep_price
+
+            if dag.is_long_path
+                strategy.entry("HF_Long_T1", strategy.long, qty=t1_qty)
+                strategy.entry("HF_Long_Runner", strategy.long, qty=runner_qty)
+                strategy.exit("Exit_Long_T1", "HF_Long_T1", stop=dag.trail_sl, limit=t1_limit)
+                strategy.exit("Exit_Long_Runner", "HF_Long_Runner", stop=dag.trail_sl)
+            else
+                strategy.entry("HF_Short_T1", strategy.short, qty=t1_qty)
+                strategy.entry("HF_Short_Runner", strategy.short, qty=runner_qty)
+                strategy.exit("Exit_Short_T1", "HF_Short_T1", stop=dag.trail_sl, limit=t1_limit)
+                strategy.exit("Exit_Short_Runner", "HF_Short_Runner", stop=dag.trail_sl)
+            
+            dag.current_node := NODE_IN_POSITION
+
+    // ------------------------------------------------------------------------
+    // NODE 6: IN POSITION (Hybrid Dual-Target Exit Engine)
+    // ------------------------------------------------------------------------
+    NODE_IN_POSITION =>
+        if strategy.position_size == 0
+            dag.current_node := NODE_IDLE
+        else
+            float entry_p = strategy.position_avg_price
+            float r_dist  = math.abs(entry_p - dag.sweep_price)
+
+            // 21 EMA Confirmation Gate for 5m FVG Trailing Stop Updates
+            bool ema21_cross_long  = (m1_ema21 >= htf5_fvg_down_base) or (htf5_ema21 >= htf5_fvg_down_base)
+            bool ema21_cross_short = (m1_ema21 <= htf5_fvg_up_base) or (htf5_ema21 <= htf5_fvg_up_base)
+
+            // Dynamic Multi-Stage Trailing Stop Lock Engine (Proposal D + 21 EMA Gate)
+            if dag.is_long_path
+                // Stage 1: Breakeven (+0.1R Lock) at +1.0R Floating Expansion
+                if high >= (entry_p + 1.0 * r_dist)
+                    dag.trail_sl := math.max(dag.trail_sl, entry_p + 0.1 * r_dist)
+
+                // Stage 2: Structural Lock (+0.75R Lock) at +1.5R Floating Expansion
+                if high >= (entry_p + 1.5 * r_dist)
+                    dag.trail_sl := math.max(dag.trail_sl, entry_p + 0.75 * r_dist)
+
+                // Stage 3: 21 EMA-Gated 5m FVG Base Trailing (Runner Position)
+                if enable_fvg_trail and htf5_fvg_down and htf5_fvg_down_base > dag.trail_sl and ema21_cross_long
+                    dag.trail_sl := htf5_fvg_down_base
+            else
+                // Stage 1: Breakeven (+0.1R Lock) at +1.0R Floating Expansion
+                if low <= (entry_p - 1.0 * r_dist)
+                    dag.trail_sl := math.min(dag.trail_sl, entry_p - 0.1 * r_dist)
+
+                // Stage 2: Structural Lock (+0.75R Lock) at +1.5R Floating Expansion
+                if low <= (entry_p - 1.5 * r_dist)
+                    dag.trail_sl := math.min(dag.trail_sl, entry_p - 0.75 * r_dist)
+
+                // Stage 3: 21 EMA-Gated 5m FVG Base Trailing (Runner Position)
+                if enable_fvg_trail and htf5_fvg_up and htf5_fvg_up_base < dag.trail_sl and ema21_cross_short
+                    dag.trail_sl := htf5_fvg_up_base
+
+            // Update Active Runner Exit Orders
+            if dag.is_long_path
+                strategy.exit("Exit_Long_Runner", "HF_Long_Runner", stop=dag.trail_sl)
+            else
+                strategy.exit("Exit_Short_Runner", "HF_Short_Runner", stop=dag.trail_sl)
+
+            // Optional 1m FVG Stack Scale-In (3.0R Expanded Target)
+            if enable_scale_in and not dag.fvg_stacked
+                if dag.is_long_path and m1_fvg_down and close > dag.fvg1_top
+                    dag.fvg2_top    := low[2]
+                    dag.fvg2_bottom := high[0]
+                    float fvg2_ce    = (dag.fvg2_top + dag.fvg2_bottom) / 2.0
+                    float stack_target = entry_p + (3.0 * r_dist)
+                    strategy.entry("HF_Long_Stack", strategy.long, qty=1)
+                    strategy.exit("Exit_Long_Stack", "HF_Long_Stack", stop=fvg2_ce, limit=stack_target)
+                    dag.fvg_stacked := true
+                else if not dag.is_long_path and m1_fvg_up and close < dag.fvg1_bottom
+                    dag.fvg2_top    := high[2]
+                    dag.fvg2_bottom := low[0]
+                    float fvg2_ce    = (dag.fvg2_top + dag.fvg2_bottom) / 2.0
+                    float stack_target = entry_p - (3.0 * r_dist)
+                    strategy.entry("HF_Short_Stack", strategy.short, qty=1)
+                    strategy.exit("Exit_Short_Stack", "HF_Short_Stack", stop=fvg2_ce, limit=stack_target)
+                    dag.fvg_stacked := true
+
+// ============================================================================
+// END OF DUAL-SESSION VECTOR (DSV) - HIGH-FREQUENCY PORTFOLIO ENGINE
+// ============================================================================
