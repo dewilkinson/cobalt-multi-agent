@@ -1,0 +1,1227 @@
+{
+    "test_series": {
+        "MGC1!_2026_YTD_Optimization_Series": [
+            {
+                "filename": "Dual-Session_Vector_(DSV)_DAG_Strategy_COMEX_MINI_MGC1!_2026-08-15_56426.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "b524c33c640fb7eb73acf8113c0adb00",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-16 07:00:00",
+                    "end_date": "2026-06-23 00:15:00",
+                    "days_span": 157,
+                    "ytd_exact": true,
+                    "ytd_label": "2026 YTD"
+                },
+                "metrics": {
+                    "total_trades": 8,
+                    "wins": 2,
+                    "losses": 4,
+                    "scratches": 2,
+                    "win_rate_pct": 25.0,
+                    "scratch_rate_pct": 25.0,
+                    "net_pnl_usd": -707.0,
+                    "avg_win_usd": 58.0,
+                    "avg_loss_usd": -205.75,
+                    "payoff_ratio": 0.28,
+                    "mfe_giveback_pct": 100.0,
+                    "worst_hour": "09:00 EST ($-601.00)"
+                },
+                "run_number": 1,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -707.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -1469.0,
+                    "drawdown_from_peak_pct": -192.78,
+                    "is_at_peak_profit": false
+                }
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_DAG_Strategy_COMEX_MINI_MGC1!_2026-08-15_b9309.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "7c2f7fc23a9d79f20423f9fa77e69989",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-16 07:00:00",
+                    "end_date": "2026-06-23 00:15:00",
+                    "days_span": 157,
+                    "ytd_exact": true,
+                    "ytd_label": "2026 YTD"
+                },
+                "metrics": {
+                    "total_trades": 8,
+                    "wins": 2,
+                    "losses": 4,
+                    "scratches": 2,
+                    "win_rate_pct": 25.0,
+                    "scratch_rate_pct": 25.0,
+                    "net_pnl_usd": -707.0,
+                    "avg_win_usd": 58.0,
+                    "avg_loss_usd": -205.75,
+                    "payoff_ratio": 0.28,
+                    "mfe_giveback_pct": 100.0,
+                    "worst_hour": "09:00 EST ($-601.00)"
+                },
+                "run_number": 2,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -707.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -1469.0,
+                    "drawdown_from_peak_pct": -192.78,
+                    "is_at_peak_profit": false
+                }
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_DAG_Strategy_COMEX_MINI_MGC1!_2026-08-15_6bb1d.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "a441b8d82a19371714e11d48a59656db",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-16 07:00:00",
+                    "end_date": "2026-06-23 05:00:00",
+                    "days_span": 157,
+                    "ytd_exact": true,
+                    "ytd_label": "2026 YTD"
+                },
+                "metrics": {
+                    "total_trades": 6,
+                    "wins": 1,
+                    "losses": 2,
+                    "scratches": 3,
+                    "win_rate_pct": 16.67,
+                    "scratch_rate_pct": 50.0,
+                    "net_pnl_usd": 25.0,
+                    "avg_win_usd": 247.0,
+                    "avg_loss_usd": -111.0,
+                    "payoff_ratio": 2.23,
+                    "mfe_giveback_pct": 100.0,
+                    "worst_hour": "11:00 EST ($-129.00)"
+                },
+                "run_number": 3,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -707.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -737.0,
+                    "drawdown_from_peak_pct": -96.72,
+                    "is_at_peak_profit": false
+                }
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_DAG_Strategy_COMEX_MINI_MGC1!_2026-08-15_eae32.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "de8166453ea95cc90e551f4e054ba21e",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2022-11-08 05:00:00",
+                    "end_date": "2023-05-10 04:30:00",
+                    "days_span": 182,
+                    "ytd_exact": false,
+                    "ytd_label": "Recent 8-Month Window (2022-11 to 2023-05)"
+                },
+                "metrics": {
+                    "total_trades": 2,
+                    "wins": 0,
+                    "losses": 2,
+                    "scratches": 0,
+                    "win_rate_pct": 0.0,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": -31.0,
+                    "avg_win_usd": 0.0,
+                    "avg_loss_usd": -15.5,
+                    "payoff_ratio": 0.0,
+                    "mfe_giveback_pct": 100.0,
+                    "worst_hour": "04:00 EST ($-29.00)"
+                },
+                "run_number": 4,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -707.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -793.0,
+                    "drawdown_from_peak_pct": -104.07,
+                    "is_at_peak_profit": false
+                }
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_DAG_Strategy_COMEX_MINI_MGC1!_2026-08-15_072f8.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "1e98136086016a72ab66fcaacc4ee5bd",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-03-25 04:15:00",
+                    "end_date": "2026-03-25 04:15:00",
+                    "days_span": 0,
+                    "ytd_exact": true,
+                    "ytd_label": "2026 YTD"
+                },
+                "metrics": {
+                    "total_trades": 1,
+                    "wins": 0,
+                    "losses": 0,
+                    "scratches": 1,
+                    "win_rate_pct": 0.0,
+                    "scratch_rate_pct": 100.0,
+                    "net_pnl_usd": 0.0,
+                    "avg_win_usd": 0.0,
+                    "avg_loss_usd": 0.0,
+                    "payoff_ratio": 0.0,
+                    "mfe_giveback_pct": 0.0,
+                    "worst_hour": "04:00 EST ($0.00)"
+                },
+                "run_number": 5,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -707.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -762.0,
+                    "drawdown_from_peak_pct": -100.0,
+                    "is_at_peak_profit": false
+                }
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_DAG_Strategy_COMEX_MINI_MGC1!_2026-08-15_19539.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "bf308ffd03dbab81303ce3b52855b4b8",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2022-11-08 05:00:00",
+                    "end_date": "2023-04-04 08:15:00",
+                    "days_span": 147,
+                    "ytd_exact": false,
+                    "ytd_label": "Recent 8-Month Window (2022-11 to 2023-04)"
+                },
+                "metrics": {
+                    "total_trades": 2,
+                    "wins": 0,
+                    "losses": 1,
+                    "scratches": 1,
+                    "win_rate_pct": 0.0,
+                    "scratch_rate_pct": 50.0,
+                    "net_pnl_usd": -38.0,
+                    "avg_win_usd": 0.0,
+                    "avg_loss_usd": -38.0,
+                    "payoff_ratio": 0.0,
+                    "mfe_giveback_pct": 100.0,
+                    "worst_hour": "08:00 EST ($-38.00)"
+                },
+                "run_number": 6,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -707.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -800.0,
+                    "drawdown_from_peak_pct": -104.99,
+                    "is_at_peak_profit": false
+                }
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_94b11.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "1f175b874cc1e72f5bb61968afdcf574",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2025-10-03 02:20:00",
+                    "end_date": "2026-08-10 04:00:00",
+                    "days_span": 311
+                },
+                "metrics": {
+                    "total_trades": 17,
+                    "wins": 5,
+                    "losses": 12,
+                    "scratches": 0,
+                    "win_rate_pct": 29.41,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": 738.0,
+                    "avg_win_usd": 204.0,
+                    "avg_loss_usd": -23.5,
+                    "payoff_ratio": 8.68,
+                    "mfe_giveback_pct": 33.33,
+                    "worst_hour": "03:00 EST ($-160.00)"
+                },
+                "run_number": 7,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -707.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -24.0,
+                    "drawdown_from_peak_pct": -3.15,
+                    "is_at_peak_profit": false
+                },
+                "performance_delta": {},
+                "regressions_logged": [],
+                "proposed_improvements": [
+                    {
+                        "action": "Move SL to Breakeven at +1R",
+                        "target_issue": "58% Profit giveback on losing trades",
+                        "status": "IMPLEMENTED IN RUN 2"
+                    },
+                    {
+                        "action": "Scale-in on 1m FVG Stack (#2)",
+                        "target_issue": "Low payoff ratio on trend days",
+                        "status": "IMPLEMENTED IN RUN 2"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_d3379.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "44a5007a446f20c066834d4201a39545",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2025-10-03 02:20:00",
+                    "end_date": "2026-08-10 04:00:00",
+                    "days_span": 311
+                },
+                "metrics": {
+                    "total_trades": 10,
+                    "wins": 5,
+                    "losses": 5,
+                    "scratches": 0,
+                    "win_rate_pct": 50.0,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": 762.0,
+                    "avg_win_usd": 204.0,
+                    "avg_loss_usd": -51.6,
+                    "payoff_ratio": 3.95,
+                    "mfe_giveback_pct": 80.0,
+                    "worst_hour": "03:00 EST ($-160.00)"
+                },
+                "run_number": 8,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -707.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": 0.0,
+                    "drawdown_from_peak_pct": 0.0,
+                    "is_at_peak_profit": true
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": 20.59,
+                    "delta_net_pnl_usd": 24.0,
+                    "delta_payoff_ratio": -4.73,
+                    "moe_score": 0.48,
+                    "moe_status": "DIMINISHING_RETURNS",
+                    "moe_label": "\ud83d\udd34 DIMINISHING RETURNS / OVERFITTING RISK"
+                },
+                "regressions_logged": [],
+                "proposed_improvements": [
+                    {
+                        "action": "Block 09:45-10:15 EST NY Macro Reversal Window",
+                        "target_issue": "10:00 EST worst hour (-$556 PnL)",
+                        "status": "IMPLEMENTED IN RUN 3"
+                    },
+                    {
+                        "action": "RVOL Threshold >= 1.5 on 15m Sweeps",
+                        "target_issue": "False breakouts during Asian low volume",
+                        "status": "IMPLEMENTED IN RUN 3"
+                    },
+                    {
+                        "action": "Trail SL to FVG #2 50% CE Midpoint",
+                        "target_issue": "Average loss optimization",
+                        "status": "IMPLEMENTED IN RUN 3"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_212d0.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "563a4dccd001843e283168d6d370cd13",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-09 08:25:00",
+                    "end_date": "2026-08-10 04:00:00",
+                    "days_span": 212
+                },
+                "metrics": {
+                    "total_trades": 14,
+                    "wins": 4,
+                    "losses": 10,
+                    "scratches": 0,
+                    "win_rate_pct": 28.57,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": 440.0,
+                    "avg_win_usd": 230.0,
+                    "avg_loss_usd": -48.0,
+                    "payoff_ratio": 4.79,
+                    "mfe_giveback_pct": 50.0,
+                    "worst_hour": "03:00 EST ($-160.00)"
+                },
+                "run_number": 9,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -707.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -322.0,
+                    "drawdown_from_peak_pct": -42.26,
+                    "is_at_peak_profit": false
+                },
+                "performance_delta": {},
+                "regressions_logged": [],
+                "proposed_improvements": [
+                    {
+                        "action": "Move SL to Breakeven at +1R",
+                        "target_issue": "58% Profit giveback on losing trades",
+                        "status": "IMPLEMENTED IN RUN 2"
+                    },
+                    {
+                        "action": "Scale-in on 1m FVG Stack (#2)",
+                        "target_issue": "Low payoff ratio on trend days",
+                        "status": "IMPLEMENTED IN RUN 2"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_c44b8.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "8bdb57d9dbd1c75ab1444794a649a66f",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-09 08:25:00",
+                    "end_date": "2026-08-10 04:00:00",
+                    "days_span": 212
+                },
+                "metrics": {
+                    "total_trades": 15,
+                    "wins": 4,
+                    "losses": 11,
+                    "scratches": 0,
+                    "win_rate_pct": 26.67,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": 165.0,
+                    "avg_win_usd": 162.0,
+                    "avg_loss_usd": -43.91,
+                    "payoff_ratio": 3.69,
+                    "mfe_giveback_pct": 45.45,
+                    "worst_hour": "03:00 EST ($-160.00)"
+                },
+                "run_number": 10,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -707.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -597.0,
+                    "drawdown_from_peak_pct": -78.35,
+                    "is_at_peak_profit": false
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": -1.9,
+                    "delta_net_pnl_usd": -275.0,
+                    "delta_payoff_ratio": -1.1,
+                    "moe_score": -5.5,
+                    "moe_status": "DIMINISHING_RETURNS",
+                    "moe_label": "\ud83d\udd34 DIMINISHING RETURNS / OVERFITTING RISK"
+                },
+                "regressions_logged": [
+                    {
+                        "metric": "Win Rate %",
+                        "delta": "-1.9%",
+                        "cause": "Increased FVG scale-in trade size / tighter Breakeven stops before target validation."
+                    },
+                    {
+                        "metric": "Net PnL ($)",
+                        "delta": "$-275.0",
+                        "cause": "Over-filtering valid breakout entries / adverse slippage on high volatility days."
+                    }
+                ],
+                "proposed_improvements": [
+                    {
+                        "action": "Block 09:45-10:15 EST NY Macro Reversal Window",
+                        "target_issue": "10:00 EST worst hour (-$556 PnL)",
+                        "status": "IMPLEMENTED IN RUN 3"
+                    },
+                    {
+                        "action": "RVOL Threshold >= 1.5 on 15m Sweeps",
+                        "target_issue": "False breakouts during Asian low volume",
+                        "status": "IMPLEMENTED IN RUN 3"
+                    },
+                    {
+                        "action": "Trail SL to FVG #2 50% CE Midpoint",
+                        "target_issue": "Average loss optimization",
+                        "status": "IMPLEMENTED IN RUN 3"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_9e177.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "13572e0852713df20a16f0d9a425f1f9",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-09 08:25:00",
+                    "end_date": "2026-08-04 08:55:00",
+                    "days_span": 207
+                },
+                "metrics": {
+                    "total_trades": 9,
+                    "wins": 2,
+                    "losses": 7,
+                    "scratches": 0,
+                    "win_rate_pct": 22.22,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": -276.0,
+                    "avg_win_usd": 82.0,
+                    "avg_loss_usd": -62.86,
+                    "payoff_ratio": 1.3,
+                    "mfe_giveback_pct": 57.14,
+                    "worst_hour": "03:00 EST ($-160.00)"
+                },
+                "run_number": 11,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -707.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -1038.0,
+                    "drawdown_from_peak_pct": -136.22,
+                    "is_at_peak_profit": false
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": -4.45,
+                    "delta_net_pnl_usd": -441.0,
+                    "delta_payoff_ratio": -2.39,
+                    "moe_score": -8.82,
+                    "moe_status": "DIMINISHING_RETURNS",
+                    "moe_label": "\ud83d\udd34 DIMINISHING RETURNS / OVERFITTING RISK"
+                },
+                "regressions_logged": [
+                    {
+                        "metric": "Win Rate %",
+                        "delta": "-4.45%",
+                        "cause": "Increased FVG scale-in trade size / tighter Breakeven stops before target validation."
+                    },
+                    {
+                        "metric": "Net PnL ($)",
+                        "delta": "$-441.0",
+                        "cause": "Over-filtering valid breakout entries / adverse slippage on high volatility days."
+                    }
+                ],
+                "proposed_improvements": [
+                    {
+                        "action": "Dynamic ATR Volatility Sizing",
+                        "target_issue": "Smoothing drawdown on high ATR days",
+                        "status": "PROPOSED FOR RUN 4"
+                    },
+                    {
+                        "action": "Asia Session Drift Lockout",
+                        "target_issue": "Low liquidity chop",
+                        "status": "PROPOSED FOR RUN 4"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_restored_440.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "563a4dccd001843e283168d6d370cd13",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-09 08:25:00",
+                    "end_date": "2026-08-10 04:00:00",
+                    "days_span": 212
+                },
+                "metrics": {
+                    "total_trades": 14,
+                    "wins": 4,
+                    "losses": 10,
+                    "scratches": 0,
+                    "win_rate_pct": 28.57,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": 440.0,
+                    "avg_win_usd": 230.0,
+                    "avg_loss_usd": -48.0,
+                    "payoff_ratio": 4.79,
+                    "mfe_giveback_pct": 50.0,
+                    "worst_hour": "03:00 EST ($-160.00)"
+                },
+                "run_number": 12,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -707.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -322.0,
+                    "drawdown_from_peak_pct": -42.26,
+                    "is_at_peak_profit": false
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": 6.35,
+                    "delta_net_pnl_usd": 716.0,
+                    "delta_payoff_ratio": 3.49,
+                    "moe_score": 14.32,
+                    "moe_status": "OPTIMAL_EFFICIENCY",
+                    "moe_label": "\ud83d\udfe2 High Return / Low Complexity"
+                },
+                "regressions_logged": [],
+                "proposed_improvements": [
+                    {
+                        "action": "Dynamic ATR Volatility Sizing",
+                        "target_issue": "Smoothing drawdown on high ATR days",
+                        "status": "PROPOSED FOR RUN 4"
+                    },
+                    {
+                        "action": "Asia Session Drift Lockout",
+                        "target_issue": "Low liquidity chop",
+                        "status": "PROPOSED FOR RUN 4"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_b7cef.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "87c4f54db275d7f74eed60b6c667b1a4",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-05 20:55:00",
+                    "end_date": "2026-08-13 01:50:00",
+                    "days_span": 219
+                },
+                "metrics": {
+                    "total_trades": 224,
+                    "wins": 76,
+                    "losses": 148,
+                    "scratches": 0,
+                    "win_rate_pct": 33.93,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": -7530.0,
+                    "avg_win_usd": 246.01,
+                    "avg_loss_usd": -177.21,
+                    "payoff_ratio": 1.39,
+                    "mfe_giveback_pct": 65.54,
+                    "worst_hour": "08:00 EST ($-3,213.00)"
+                },
+                "run_number": 13,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -7530.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -8292.0,
+                    "drawdown_from_peak_pct": -1088.19,
+                    "is_at_peak_profit": false
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": 5.36,
+                    "delta_net_pnl_usd": -7970.0,
+                    "delta_payoff_ratio": -3.4,
+                    "moe_score": -159.4,
+                    "moe_status": "DIMINISHING_RETURNS",
+                    "moe_label": "\ud83d\udd34 DIMINISHING RETURNS / OVERFITTING RISK"
+                },
+                "regressions_logged": [
+                    {
+                        "metric": "Net PnL ($)",
+                        "delta": "$-7970.0",
+                        "cause": "Over-filtering valid breakout entries / adverse slippage on high volatility days."
+                    }
+                ],
+                "proposed_improvements": [
+                    {
+                        "action": "Dynamic ATR Volatility Sizing",
+                        "target_issue": "Smoothing drawdown on high ATR days",
+                        "status": "PROPOSED FOR RUN 4"
+                    },
+                    {
+                        "action": "Asia Session Drift Lockout",
+                        "target_issue": "Low liquidity chop",
+                        "status": "PROPOSED FOR RUN 4"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_58cb2.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "23fdfe2fb099b883028d0b0c20167925",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-05 20:55:00",
+                    "end_date": "2026-08-13 01:50:00",
+                    "days_span": 219
+                },
+                "metrics": {
+                    "total_trades": 135,
+                    "wins": 43,
+                    "losses": 91,
+                    "scratches": 1,
+                    "win_rate_pct": 31.85,
+                    "scratch_rate_pct": 0.74,
+                    "net_pnl_usd": -1972.0,
+                    "avg_win_usd": 252.81,
+                    "avg_loss_usd": -141.13,
+                    "payoff_ratio": 1.79,
+                    "mfe_giveback_pct": 76.92,
+                    "worst_hour": "07:00 EST ($-2,093.00)"
+                },
+                "run_number": 14,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -7530.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -2734.0,
+                    "drawdown_from_peak_pct": -358.79,
+                    "is_at_peak_profit": false
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": -2.08,
+                    "delta_net_pnl_usd": 5558.0,
+                    "delta_payoff_ratio": 0.4,
+                    "moe_score": 111.16,
+                    "moe_status": "OPTIMAL_EFFICIENCY",
+                    "moe_label": "\ud83d\udfe2 High Return / Low Complexity"
+                },
+                "regressions_logged": [
+                    {
+                        "metric": "Win Rate %",
+                        "delta": "-2.08%",
+                        "cause": "Increased FVG scale-in trade size / tighter Breakeven stops before target validation."
+                    }
+                ],
+                "proposed_improvements": [
+                    {
+                        "action": "Dynamic ATR Volatility Sizing",
+                        "target_issue": "Smoothing drawdown on high ATR days",
+                        "status": "PROPOSED FOR RUN 4"
+                    },
+                    {
+                        "action": "Asia Session Drift Lockout",
+                        "target_issue": "Low liquidity chop",
+                        "status": "PROPOSED FOR RUN 4"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_276b4.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "27630a8e11740093f587e0ff9b50034c",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-05 20:55:00",
+                    "end_date": "2026-08-13 01:50:00",
+                    "days_span": 219
+                },
+                "metrics": {
+                    "total_trades": 114,
+                    "wins": 43,
+                    "losses": 71,
+                    "scratches": 0,
+                    "win_rate_pct": 37.72,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": -1989.0,
+                    "avg_win_usd": 189.12,
+                    "avg_loss_usd": -142.55,
+                    "payoff_ratio": 1.33,
+                    "mfe_giveback_pct": 78.87,
+                    "worst_hour": "07:00 EST ($-1,280.00)"
+                },
+                "run_number": 15,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -7530.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -2751.0,
+                    "drawdown_from_peak_pct": -361.02,
+                    "is_at_peak_profit": false
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": 5.87,
+                    "delta_net_pnl_usd": -17.0,
+                    "delta_payoff_ratio": -0.46,
+                    "moe_score": -0.34,
+                    "moe_status": "DIMINISHING_RETURNS",
+                    "moe_label": "\ud83d\udd34 DIMINISHING RETURNS / OVERFITTING RISK"
+                },
+                "regressions_logged": [
+                    {
+                        "metric": "Net PnL ($)",
+                        "delta": "$-17.0",
+                        "cause": "Over-filtering valid breakout entries / adverse slippage on high volatility days."
+                    }
+                ],
+                "proposed_improvements": [
+                    {
+                        "action": "Dynamic ATR Volatility Sizing",
+                        "target_issue": "Smoothing drawdown on high ATR days",
+                        "status": "PROPOSED FOR RUN 4"
+                    },
+                    {
+                        "action": "Asia Session Drift Lockout",
+                        "target_issue": "Low liquidity chop",
+                        "status": "PROPOSED FOR RUN 4"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_991dc.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "0d1563aaa1d404520d264f5a6e7c93b6",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-05 20:55:00",
+                    "end_date": "2026-08-07 16:35:00",
+                    "days_span": 213
+                },
+                "metrics": {
+                    "total_trades": 77,
+                    "wins": 31,
+                    "losses": 46,
+                    "scratches": 0,
+                    "win_rate_pct": 40.26,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": 540.0,
+                    "avg_win_usd": 230.61,
+                    "avg_loss_usd": -143.67,
+                    "payoff_ratio": 1.61,
+                    "mfe_giveback_pct": 80.43,
+                    "worst_hour": "01:00 EST ($-835.00)"
+                },
+                "run_number": 16,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 762.0,
+                    "min_pnl_usd": -7530.0,
+                    "peak_run_number": 8,
+                    "distance_from_max_pnl_usd": -222.0,
+                    "drawdown_from_peak_pct": -29.13,
+                    "is_at_peak_profit": false
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": 2.54,
+                    "delta_net_pnl_usd": 2529.0,
+                    "delta_payoff_ratio": 0.28,
+                    "moe_score": 50.58,
+                    "moe_status": "OPTIMAL_EFFICIENCY",
+                    "moe_label": "\ud83d\udfe2 High Return / Low Complexity"
+                },
+                "regressions_logged": [],
+                "proposed_improvements": [
+                    {
+                        "action": "Dynamic ATR Volatility Sizing",
+                        "target_issue": "Smoothing drawdown on high ATR days",
+                        "status": "PROPOSED FOR RUN 4"
+                    },
+                    {
+                        "action": "Asia Session Drift Lockout",
+                        "target_issue": "Low liquidity chop",
+                        "status": "PROPOSED FOR RUN 4"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_f39fb.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "f67583ba12d0cd5b04a9fd321bf0396e",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-19 21:25:00",
+                    "end_date": "2026-08-07 16:35:00",
+                    "days_span": 199
+                },
+                "metrics": {
+                    "total_trades": 59,
+                    "wins": 26,
+                    "losses": 33,
+                    "scratches": 0,
+                    "win_rate_pct": 44.07,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": 2455.0,
+                    "avg_win_usd": 262.38,
+                    "avg_loss_usd": -132.33,
+                    "payoff_ratio": 1.98,
+                    "mfe_giveback_pct": 81.82,
+                    "worst_hour": "23:00 EST ($-743.00)"
+                },
+                "run_number": 17,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 2455.0,
+                    "min_pnl_usd": -7530.0,
+                    "peak_run_number": 17,
+                    "distance_from_max_pnl_usd": 0.0,
+                    "drawdown_from_peak_pct": 0.0,
+                    "is_at_peak_profit": true
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": 3.81,
+                    "delta_net_pnl_usd": 1915.0,
+                    "delta_payoff_ratio": 0.37,
+                    "moe_score": 38.3,
+                    "moe_status": "OPTIMAL_EFFICIENCY",
+                    "moe_label": "\ud83d\udfe2 High Return / Low Complexity"
+                },
+                "regressions_logged": [],
+                "proposed_improvements": [
+                    {
+                        "action": "Dynamic ATR Volatility Sizing",
+                        "target_issue": "Smoothing drawdown on high ATR days",
+                        "status": "PROPOSED FOR RUN 4"
+                    },
+                    {
+                        "action": "Asia Session Drift Lockout",
+                        "target_issue": "Low liquidity chop",
+                        "status": "PROPOSED FOR RUN 4"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_1fa83.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "54683d922e6118018d8c866976844586",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-19 21:25:00",
+                    "end_date": "2026-08-07 16:35:00",
+                    "days_span": 199
+                },
+                "metrics": {
+                    "total_trades": 49,
+                    "wins": 22,
+                    "losses": 27,
+                    "scratches": 0,
+                    "win_rate_pct": 44.9,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": 2738.0,
+                    "avg_win_usd": 299.0,
+                    "avg_loss_usd": -142.22,
+                    "payoff_ratio": 2.1,
+                    "mfe_giveback_pct": 88.89,
+                    "worst_hour": "23:00 EST ($-737.00)"
+                },
+                "run_number": 18,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 2738.0,
+                    "min_pnl_usd": -7530.0,
+                    "peak_run_number": 18,
+                    "distance_from_max_pnl_usd": 0.0,
+                    "drawdown_from_peak_pct": 0.0,
+                    "is_at_peak_profit": true
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": 0.83,
+                    "delta_net_pnl_usd": 283.0,
+                    "delta_payoff_ratio": 0.12,
+                    "moe_score": 5.66,
+                    "moe_status": "OPTIMAL_EFFICIENCY",
+                    "moe_label": "\ud83d\udfe2 High Return / Low Complexity"
+                },
+                "regressions_logged": [],
+                "proposed_improvements": [
+                    {
+                        "action": "Dynamic ATR Volatility Sizing",
+                        "target_issue": "Smoothing drawdown on high ATR days",
+                        "status": "PROPOSED FOR RUN 4"
+                    },
+                    {
+                        "action": "Asia Session Drift Lockout",
+                        "target_issue": "Low liquidity chop",
+                        "status": "PROPOSED FOR RUN 4"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_d0fbb.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "54683d922e6118018d8c866976844586",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-19 21:25:00",
+                    "end_date": "2026-08-07 16:35:00",
+                    "days_span": 199
+                },
+                "metrics": {
+                    "total_trades": 49,
+                    "wins": 22,
+                    "losses": 27,
+                    "scratches": 0,
+                    "win_rate_pct": 44.9,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": 2738.0,
+                    "avg_win_usd": 299.0,
+                    "avg_loss_usd": -142.22,
+                    "payoff_ratio": 2.1,
+                    "mfe_giveback_pct": 88.89,
+                    "worst_hour": "23:00 EST ($-737.00)"
+                },
+                "run_number": 19,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 2738.0,
+                    "min_pnl_usd": -7530.0,
+                    "peak_run_number": 18,
+                    "distance_from_max_pnl_usd": 0.0,
+                    "drawdown_from_peak_pct": 0.0,
+                    "is_at_peak_profit": true
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": 0.0,
+                    "delta_net_pnl_usd": 0.0,
+                    "delta_payoff_ratio": 0.0,
+                    "moe_score": 0.0,
+                    "moe_status": "DIMINISHING_RETURNS",
+                    "moe_label": "\ud83d\udd34 DIMINISHING RETURNS / OVERFITTING RISK"
+                },
+                "regressions_logged": [],
+                "proposed_improvements": [
+                    {
+                        "action": "Dynamic ATR Volatility Sizing",
+                        "target_issue": "Smoothing drawdown on high ATR days",
+                        "status": "PROPOSED FOR RUN 4"
+                    },
+                    {
+                        "action": "Asia Session Drift Lockout",
+                        "target_issue": "Low liquidity chop",
+                        "status": "PROPOSED FOR RUN 4"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_92e79.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "504faccb0fca2b4d4b098f2daaf419e5",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-19 21:25:00",
+                    "end_date": "2026-08-06 23:20:00",
+                    "days_span": 199
+                },
+                "metrics": {
+                    "total_trades": 39,
+                    "wins": 10,
+                    "losses": 29,
+                    "scratches": 0,
+                    "win_rate_pct": 25.64,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": -330.0,
+                    "avg_win_usd": 84.0,
+                    "avg_loss_usd": -40.34,
+                    "payoff_ratio": 2.08,
+                    "mfe_giveback_pct": 58.62,
+                    "worst_hour": "06:00 EST ($-230.00)"
+                },
+                "run_number": 20,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 2738.0,
+                    "min_pnl_usd": -7530.0,
+                    "peak_run_number": 18,
+                    "distance_from_max_pnl_usd": -3068.0,
+                    "drawdown_from_peak_pct": -112.05,
+                    "is_at_peak_profit": false
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": -19.26,
+                    "delta_net_pnl_usd": -3068.0,
+                    "delta_payoff_ratio": -0.02,
+                    "moe_score": -61.36,
+                    "moe_status": "DIMINISHING_RETURNS",
+                    "moe_label": "\ud83d\udd34 DIMINISHING RETURNS / OVERFITTING RISK"
+                },
+                "regressions_logged": [
+                    {
+                        "metric": "Win Rate %",
+                        "delta": "-19.26%",
+                        "cause": "Increased FVG scale-in trade size / tighter Breakeven stops before target validation."
+                    },
+                    {
+                        "metric": "Net PnL ($)",
+                        "delta": "$-3068.0",
+                        "cause": "Over-filtering valid breakout entries / adverse slippage on high volatility days."
+                    }
+                ],
+                "proposed_improvements": [
+                    {
+                        "action": "Dynamic ATR Volatility Sizing",
+                        "target_issue": "Smoothing drawdown on high ATR days",
+                        "status": "PROPOSED FOR RUN 4"
+                    },
+                    {
+                        "action": "Asia Session Drift Lockout",
+                        "target_issue": "Low liquidity chop",
+                        "status": "PROPOSED FOR RUN 4"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_d91d5.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "d17b2b2a744995aa5d965e7cd1e5aade",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-19 21:25:00",
+                    "end_date": "2026-08-07 08:25:00",
+                    "days_span": 199
+                },
+                "metrics": {
+                    "total_trades": 48,
+                    "wins": 22,
+                    "losses": 26,
+                    "scratches": 0,
+                    "win_rate_pct": 45.83,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": 2745.0,
+                    "avg_win_usd": 286.45,
+                    "avg_loss_usd": -136.81,
+                    "payoff_ratio": 2.09,
+                    "mfe_giveback_pct": 88.46,
+                    "worst_hour": "23:00 EST ($-612.00)"
+                },
+                "run_number": 21,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 2745.0,
+                    "min_pnl_usd": -7530.0,
+                    "peak_run_number": 21,
+                    "distance_from_max_pnl_usd": 0.0,
+                    "drawdown_from_peak_pct": 0.0,
+                    "is_at_peak_profit": true
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": 20.19,
+                    "delta_net_pnl_usd": 3075.0,
+                    "delta_payoff_ratio": 0.01,
+                    "moe_score": 61.5,
+                    "moe_status": "OPTIMAL_EFFICIENCY",
+                    "moe_label": "\ud83d\udfe2 High Return / Low Complexity"
+                },
+                "regressions_logged": [],
+                "proposed_improvements": [
+                    {
+                        "action": "Dynamic ATR Volatility Sizing",
+                        "target_issue": "Smoothing drawdown on high ATR days",
+                        "status": "PROPOSED FOR RUN 4"
+                    },
+                    {
+                        "action": "Asia Session Drift Lockout",
+                        "target_issue": "Low liquidity chop",
+                        "status": "PROPOSED FOR RUN 4"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_86e11.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "25750af3ce6b6d6aefa75ba7b0ab9ea6",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-19 21:25:00",
+                    "end_date": "2026-08-07 16:35:00",
+                    "days_span": 199
+                },
+                "metrics": {
+                    "total_trades": 47,
+                    "wins": 23,
+                    "losses": 24,
+                    "scratches": 0,
+                    "win_rate_pct": 48.94,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": 8128.0,
+                    "avg_win_usd": 653.91,
+                    "avg_loss_usd": -288.0,
+                    "payoff_ratio": 2.27,
+                    "mfe_giveback_pct": 91.67,
+                    "worst_hour": "07:00 EST ($-1,519.00)"
+                },
+                "run_number": 22,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 8128.0,
+                    "min_pnl_usd": -7530.0,
+                    "peak_run_number": 22,
+                    "distance_from_max_pnl_usd": 0.0,
+                    "drawdown_from_peak_pct": 0.0,
+                    "is_at_peak_profit": true
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": 3.11,
+                    "delta_net_pnl_usd": 5383.0,
+                    "delta_payoff_ratio": 0.18,
+                    "moe_score": 107.66,
+                    "moe_status": "OPTIMAL_EFFICIENCY",
+                    "moe_label": "\ud83d\udfe2 High Return / Low Complexity"
+                },
+                "regressions_logged": [],
+                "proposed_improvements": [
+                    {
+                        "action": "Dynamic ATR Volatility Sizing",
+                        "target_issue": "Smoothing drawdown on high ATR days",
+                        "status": "PROPOSED FOR RUN 4"
+                    },
+                    {
+                        "action": "Asia Session Drift Lockout",
+                        "target_issue": "Low liquidity chop",
+                        "status": "PROPOSED FOR RUN 4"
+                    }
+                ]
+            },
+            {
+                "filename": "Dual-Session_Vector_(DSV)_Strategy_-_DAG_Engine_COMEX_MINI_MGC1!_2026-08-15_ad8e3.csv",
+                "symbol": "MGC1!",
+                "series_id": "MGC1!_2026_YTD_Optimization_Series",
+                "file_hash": "25750af3ce6b6d6aefa75ba7b0ab9ea6",
+                "is_monotonic": true,
+                "test_config": {
+                    "start_date": "2026-01-19 21:25:00",
+                    "end_date": "2026-08-07 16:35:00",
+                    "days_span": 199
+                },
+                "metrics": {
+                    "total_trades": 47,
+                    "wins": 23,
+                    "losses": 24,
+                    "scratches": 0,
+                    "win_rate_pct": 48.94,
+                    "scratch_rate_pct": 0.0,
+                    "net_pnl_usd": 8128.0,
+                    "avg_win_usd": 653.91,
+                    "avg_loss_usd": -288.0,
+                    "payoff_ratio": 2.27,
+                    "mfe_giveback_pct": 91.67,
+                    "worst_hour": "07:00 EST ($-1,519.00)"
+                },
+                "run_number": 23,
+                "series_pnl_tracker": {
+                    "max_pnl_usd": 8128.0,
+                    "min_pnl_usd": -7530.0,
+                    "peak_run_number": 22,
+                    "distance_from_max_pnl_usd": 0.0,
+                    "drawdown_from_peak_pct": 0.0,
+                    "is_at_peak_profit": true
+                },
+                "performance_delta": {
+                    "delta_win_rate_pct": 0.0,
+                    "delta_net_pnl_usd": 0.0,
+                    "delta_payoff_ratio": 0.0,
+                    "moe_score": 0.0,
+                    "moe_status": "DIMINISHING_RETURNS",
+                    "moe_label": "\ud83d\udd34 DIMINISHING RETURNS / OVERFITTING RISK"
+                },
+                "regressions_logged": [],
+                "proposed_improvements": [
+                    {
+                        "action": "Dynamic ATR Volatility Sizing",
+                        "target_issue": "Smoothing drawdown on high ATR days",
+                        "status": "PROPOSED FOR RUN 4"
+                    },
+                    {
+                        "action": "Asia Session Drift Lockout",
+                        "target_issue": "Low liquidity chop",
+                        "status": "PROPOSED FOR RUN 4"
+                    }
+                ]
+            }
+        ]
+    }
+}
