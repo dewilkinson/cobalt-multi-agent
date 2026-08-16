@@ -119,7 +119,12 @@ def analyze_strategy_csv(filepath):
     end_date_str = str(df["dt"].max())
     days_span = (df["dt"].max() - df["dt"].min()).days
 
-    series_id = "MGC1!_2026_YTD_Optimization_Series"
+    # Dynamic Strategy Series Routing
+    if "High-Frequency" in filename or "HF" in filename:
+        series_id = f"{symbol}_HF_DSV_Optimization_Series"
+    else:
+        series_id = f"{symbol}_DSV_DAG_Optimization_Series"
+
     file_hash = compute_file_hash(filepath)
 
     return {
