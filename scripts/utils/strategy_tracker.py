@@ -127,6 +127,13 @@ def analyze_strategy_csv(filepath):
 
     file_hash = compute_file_hash(filepath)
 
+    # Averaging Metrics (6-Month / Multi-Month Horizon Analysis)
+    span = max(1, days_span)
+    weekly_avg_pnl = round((net_pnl / span) * 7.0, 2)
+    monthly_avg_pnl = round((net_pnl / span) * 30.0, 2)
+    trading_days = max(1.0, span * (5.0 / 7.0))
+    daily_trade_freq = round(total_trades / trading_days, 2)
+
     return {
         "filename": filename,
         "symbol": symbol,
@@ -150,7 +157,10 @@ def analyze_strategy_csv(filepath):
             "avg_loss_usd": round(avg_loss, 2),
             "payoff_ratio": round(payoff_ratio, 2),
             "mfe_giveback_pct": round(mfe_giveback_pct, 2),
-            "worst_hour": worst_hour_str
+            "worst_hour": worst_hour_str,
+            "weekly_avg_pnl_usd": weekly_avg_pnl,
+            "monthly_avg_pnl_usd": monthly_avg_pnl,
+            "daily_trade_freq": daily_trade_freq
         }
     }
 
@@ -341,27 +351,29 @@ def update_symbol_markdown_log(symbol_clean, history):
     content += "| Parameter | Value |\n"
     content += "| :--- | :--- |\n"
     content += f"| **Latest Run** | **Run #{latest.get('run_number', 'N/A')}** (`{latest.get('filename', '')[-12:]}`) |\n"
-    content += f"| **Net PnL** | **${m_latest.get('net_pnl_usd', 0):,.2f}** |\n"
+    content += f"| **Net PnL (Horizon)** | **${m_latest.get('net_pnl_usd', 0):,.2f}** |\n"
+    content += f"| **Weekly Avg PnL** | **${m_latest.get('weekly_avg_pnl_usd', 0):,.2f} / week** |\n"
+    content += f"| **Monthly Avg PnL** | **${m_latest.get('monthly_avg_pnl_usd', 0):,.2f} / month** |\n"
+    content += f"| **Daily Trade Freq** | **{m_latest.get('daily_trade_freq', 0):.2f} trades / day** |\n"
     content += f"| **Win Rate %** | **{m_latest.get('win_rate_pct', 0):.2f}%** |\n"
     content += f"| **Payoff Ratio (R:R)** | **{m_latest.get('payoff_ratio', 0):.2f} R:R** |\n"
-    content += f"| **Avg Win** | **${m_latest.get('avg_win_usd', 0):,.2f}** |\n"
-    content += f"| **Avg Loss** | **${m_latest.get('avg_loss_usd', 0):,.2f}** |\n"
     content += f"| **Total Executions** | **{m_latest.get('total_trades', 0)} Trades** |\n\n"
     content += "---\n\n"
     content += "## 📊 Complete Historical Progression Matrix\n\n"
-    content += "| Run # | Export File | Net PnL ($) | Win Rate % | Payoff R:R | Trades | Worst Hour |\n"
-    content += "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n"
+    content += "| Run # | Export File | Net PnL ($) | Weekly Avg ($) | Monthly Avg ($) | Win Rate % | Payoff R:R | Trades |\n"
+    content += "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n"
     
     for r in all_runs:
         m = r.get("metrics", {})
         r_num = r.get("run_number", 0)
         fn = r.get("filename", "")
         pnl = m.get("net_pnl_usd", 0)
+        wpnl = m.get("weekly_avg_pnl_usd", 0)
+        mpnl = m.get("monthly_avg_pnl_usd", 0)
         wr = m.get("win_rate_pct", 0)
         rr = m.get("payoff_ratio", 0)
         trades = m.get("total_trades", 0)
-        wh = m.get("worst_hour", "N/A")
-        content += f"| **Run #{r_num}** | `{fn[-12:]}` | `${pnl:,.2f}` | {wr:.2f}% | {rr:.2f} | {trades} | {wh} |\n"
+        content += f"| **Run #{r_num}** | `{fn[-12:]}` | `${pnl:,.2f}` | `${wpnl:,.2f}` | `${mpnl:,.2f}` | {wr:.2f}% | {rr:.2f} | {trades} |\n"
         
     try:
         with open(target_log, "w", encoding="utf-8") as f:

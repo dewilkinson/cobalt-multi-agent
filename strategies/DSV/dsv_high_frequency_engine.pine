@@ -77,8 +77,8 @@ use_london = input.bool(true, "Enable London Window (02:00 - 08:00 EST)", group=
 use_ny     = input.bool(true, "Enable NY Cash Open Window (09:30 - 11:15 EST)", group=grp_time)
 news_filter= input.bool(true, "Enable Tier-1 Macro News Blackout", group=grp_time)
 block_macro_window = input.bool(true, "Block 09:50-10:10 EST Macro Window", group=grp_time)
-use_date_filter    = input.bool(true, "Enable 90-Day Horizon Filter", group=grp_time)
-start_date         = input.time(timestamp("17 May 2026 00:00 +0000"), "Start Date (Last 90 Days)", group=grp_time)
+use_date_filter    = input.bool(true, "Enable 6-Month Horizon Filter", group=grp_time)
+start_date         = input.time(timestamp("15 Feb 2026 00:00 +0000"), "Start Date (6-Month Horizon)", group=grp_time)
 
 grp_dag   = "3. DAG Thresholds & Timeouts"
 enable_5m_sweeps = input.bool(true, "Enable 5m Micro Liquidity Sweeps", group=grp_dag)
