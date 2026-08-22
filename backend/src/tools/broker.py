@@ -295,6 +295,26 @@ def get_personal_risk_metrics(config: RunnableConfig):
     return "\n".join([str(l) for l in buf])
 
 
+def get_cached_brokerage_summary() -> str:
+    """
+    Retrieves ground-truth brokerage account summary directly from local BrokerageCache,
+    bypassing external broker API bridges.
+    """
+    from src.services.brokerage_cache import BrokerageCache
+    cache = BrokerageCache._load_cache()
+    if not cache:
+        return "BrokerageCache initialized. No cached accounts."
+    
+    summary_lines = []
+    for acct_id, data in cache.items():
+        if "TEST" in acct_id.upper() or "DUMMY" in acct_id.upper():
+            continue
+        acts = data.get("activities", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+        summary_lines.append(f"- **{acct_id}**: Active Ground-Truth Account ({len(acts)} recorded transactions)")
+    
+    return "VERIFIED GROUND-TRUTH BROKERAGE ACCOUNTS (LOCAL CACHE):\n" + "\n".join(summary_lines)
+
+
 @tool
 async def get_daily_blotter(days_back: int = 1):
     """
@@ -321,12 +341,10 @@ async def get_daily_blotter(days_back: int = 1):
     else:
         base_date = datetime.now()
 
-    if days_back <= 2:
-        cutoff_str = base_date.strftime("%Y-%m-%d")
-    else:
-        cutoff = base_date - timedelta(days=days_back)
-        cutoff_str = cutoff.strftime("%Y-%m-%d")
+    cutoff = base_date - timedelta(days=max(0, days_back - 1))
+    cutoff_str = cutoff.strftime("%Y-%m-%d")
 
+    all_candidates = []
     for account_id, acct_data in cache.items():
         if "TEST" in account_id.upper() or "DUMMY" in account_id.upper():
             continue
@@ -335,59 +353,60 @@ async def get_daily_blotter(days_back: int = 1):
         for act in activities:
             t_date = str(act.get("trade_date", "") or act.get("time_placed", ""))
             
-            # Filter out non-executed orders (Open, Canceled, Rejected)
+            # Filter out explicit non-executed orders (Open, Canceled, Rejected)
             status = str(act.get("status", "")).upper()
-            if status and "EXECUTED" not in status:
+            if status and any(s in status for s in ["CANCEL", "REJECT", "DECLINE", "UNFILLED"]):
                 continue
                 
-            # Filter for last N days
-            if t_date >= cutoff_str:
-                sym = ""
-                if 'universal_symbol' in act and act['universal_symbol']:
-                    sym = act['universal_symbol'].get('symbol', '')
-                elif 'symbol' in act and act['symbol'] and isinstance(act['symbol'], dict):
-                    sym = act['symbol'].get('symbol', '')
-                elif 'symbol' in act and isinstance(act['symbol'], str):
-                    sym = act['symbol']
-                    
-                if not sym:
-                    continue
-                    
-                action = "BUY" if "BUY" in str(act.get('type', '')).upper() or act.get('action') == "BUY" else "SELL"
-                qty = act.get('units') or act.get('quantity') or 0
-                price = act.get('price') or 0
+            sym = ""
+            if 'universal_symbol' in act and act['universal_symbol']:
+                sym = act['universal_symbol'].get('symbol', '')
+            elif 'symbol' in act and act['symbol'] and isinstance(act['symbol'], dict):
+                sym = act['symbol'].get('symbol', '')
+            elif 'symbol' in act and isinstance(act['symbol'], str):
+                sym = act['symbol']
                 
-                snapshot_str = ""
-                try:
-                    from src.tools.indicators import get_intraday_snapshot
-                    func = getattr(get_intraday_snapshot, "coroutine", getattr(get_intraday_snapshot, "func", None))
-                    if func:
-                        import asyncio
-                        if asyncio.iscoroutinefunction(func):
-                            snap_res = await func(sym, t_date)
-                        else:
-                            snap_res = func(sym, t_date)
-                        
-                        import json
-                        snap_data = json.loads(snap_res)
-                        if isinstance(snap_data, dict) and "rsi" in snap_data:
-                            snapshot_str = f" [Snapshot: RSI={snap_data['rsi']}, Sortino={snap_data['sortino']}, POC={snap_data['poc']}, CVD={snap_data['cvd']}, RVOL={snap_data['rvol']}]"
-                except Exception as ex:
-                    logger.warning(f"Failed to embed intraday snapshot for {sym} at {t_date}: {ex}")
+            if not sym:
+                continue
+                
+            action = "BUY" if "BUY" in str(act.get('type', '')).upper() or act.get('action') == "BUY" else "SELL"
+            qty = act.get('units') or act.get('quantity') or 0
+            price = act.get('price') or 0
+            
+            all_candidates.append({
+                "account": account_id,
+                "date": t_date,
+                "action": action,
+                "qty": qty,
+                "price": price,
+                "sym": sym
+            })
 
-                recent_trades.append(f"{t_date}: {action} {qty} {sym} @ ${price}{snapshot_str}")
-                unique_tickers.add(sym)
+    if not all_candidates:
+        return "No trade executions found in brokerage cache."
 
-    if not recent_trades:
-        return "No trades executed in the last 48 hours."
+    # Filter for last N days or fallback to most recent entries
+    recent_candidates = [c for c in all_candidates if c["date"] >= cutoff_str]
+    if not recent_candidates:
+        # Fallback: Sort all candidates descending by date and take the top 100 most recent
+        all_candidates.sort(key=lambda x: x["date"], reverse=True)
+        recent_candidates = all_candidates[:100]
+
+    for c in recent_candidates:
+        sym = c["sym"]
+        t_date = c["date"]
+        recent_trades.append(f"{t_date} ({c['account']}): {c['action']} {c['qty']} {sym} @ ${c['price']}")
+        unique_tickers.add(sym)
 
     # Calculate precise realized PnL for the period using FIFO engine
     total_realized_pnl = 0.0
     end_date_str = base_date.strftime("%Y-%m-%d")
+    effective_cutoff = cutoff_str if recent_candidates and recent_candidates[0]["date"] >= cutoff_str else (recent_candidates[-1]["date"][:10] if recent_candidates else cutoff_str)
+    
     for account_id in cache.keys():
         if "TEST" in account_id.upper() or "DUMMY" in account_id.upper():
             continue
-        pnl_data = BrokerageCache.calculate_realized_pnl(account_id, cutoff_str, end_date_str)
+        pnl_data = BrokerageCache.calculate_realized_pnl(account_id, effective_cutoff, end_date_str)
         total_realized_pnl += pnl_data.get("total_pnl", 0.0)
 
     # Find the most recent trade date to calculate Single-Day PnL

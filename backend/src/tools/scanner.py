@@ -11,6 +11,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from typing import Any, Dict, List
 import traceback
 import sys
+import time
 
 from langchain_core.tools import tool
 from src.tools.finance import _extract_ticker_data
@@ -398,20 +399,45 @@ async def _build_session_watchlist_impl(strategy_config: str = "{}", universe_cs
     
     tasks = []
     
+    _STATIC_GRADE_CACHE = getattr(_build_session_watchlist_impl, "_cache", {})
+    
     async def filter_ticker(ticker, current_sortino_map):
+        now_ts = time.time()
+        if ticker in _STATIC_GRADE_CACHE:
+            cached_ts, cached_res = _STATIC_GRADE_CACHE[ticker]
+            if now_ts - cached_ts < 900: # 15 min TTL
+                cached_res["sortino"] = float(current_sortino_map.get(ticker, 0.0))
+                return cached_res
+
         try:
             ticker_obj = await asyncio.to_thread(yf.Ticker, ticker)
-            info = await asyncio.to_thread(lambda: ticker_obj.info)
-            if not info:
-                return {"symbol": ticker, "grade": "F", "reason": "No info"}
             
-            q_type = info.get("quoteType", "EQUITY")
-            price = float(info.get("preMarketPrice") or info.get("postMarketPrice") or info.get("currentPrice") or info.get("regularMarketPrice") or 0.0)
-            cap = int(info.get("marketCap") or 0)
-            float_shares = int(info.get("floatShares") or 0)
-            
+            # Fast property access via fast_info to avoid heavy .info web-scraping calls
+            fast_info = getattr(ticker_obj, "fast_info", None)
+            price = 0.0
+            cap = 0
+            float_shares = 0
+            q_type = "EQUITY"
+
+            if fast_info:
+                try:
+                    price = float(getattr(fast_info, "last_price", 0.0) or getattr(fast_info, "previous_close", 0.0) or 0.0)
+                    cap = int(getattr(fast_info, "market_cap", 0) or 0)
+                    float_shares = int(getattr(fast_info, "shares", 0) or 0)
+                except Exception:
+                    pass
+
+            # Fallback to .info only if fast_info missing critical fields
+            if price == 0.0 or cap == 0:
+                info = await asyncio.to_thread(lambda: getattr(ticker_obj, "info", {}))
+                if info:
+                    q_type = info.get("quoteType", "EQUITY")
+                    price = float(info.get("preMarketPrice") or info.get("postMarketPrice") or info.get("currentPrice") or info.get("regularMarketPrice") or price)
+                    cap = int(info.get("marketCap") or cap)
+                    float_shares = int(info.get("floatShares") or float_shares)
+
             if q_type not in ["EQUITY", "ETF"]:
-                return {
+                res = {
                     "symbol": ticker, 
                     "grade": "F", 
                     "price": price, 
@@ -419,17 +445,12 @@ async def _build_session_watchlist_impl(strategy_config: str = "{}", universe_cs
                     "float": float_shares, 
                     "reason": f"Non-Equity ({q_type})"
                 }
+                _STATIC_GRADE_CACHE[ticker] = (now_ts, res)
+                return res
 
             grade = calculate_static_grade(price, cap, float_shares, config, q_type)
             
-            news = info.get("news", [])
-            for article in news[:5]:
-                title = article.get("title", "").lower()
-                if any(kw.lower() in title for kw in FDA_KEYWORDS):
-                    logger.warning(f"SCANNER VETO: {ticker} has potential FDA/Binary event.")
-                    grade = "F"
-                    
-            return {
+            res = {
                 "symbol": ticker, 
                 "grade": grade, 
                 "price": price, 
@@ -437,6 +458,9 @@ async def _build_session_watchlist_impl(strategy_config: str = "{}", universe_cs
                 "float": float_shares,
                 "sortino": float(current_sortino_map.get(ticker, 0.0))
             }
+            _STATIC_GRADE_CACHE[ticker] = (now_ts, res)
+            _build_session_watchlist_impl._cache = _STATIC_GRADE_CACHE
+            return res
         except Exception as e:
             logger.debug(f"Filter failed for {ticker}: {e}")
             return {"symbol": str(ticker), "grade": "F", "reason": str(e), "price": 0.0, "cap": 0, "float": 0, "sortino": 0.0}
@@ -720,7 +744,9 @@ async def _run_activity_pulse_impl(strategy_config: str = "{}", watchlist: str =
                     "heat_score": heat_score,
                     "raw_power": raw_power,
                     "cvd_warning": cvd_trap,
-                    "is_miss": is_miss
+                    "is_miss": is_miss,
+                    "state_machine": "STRIKE" if tier == "STRIKE" else ("MSS" if tier == "SCOUT" else "IDLE"),
+                    "state_triggered_at": datetime.now().isoformat()
                 }
                 
                 if is_miss:

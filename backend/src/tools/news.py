@@ -93,16 +93,26 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
                     if rel_score > relevance_threshold:
                         title = _sanitize_text(item.get('title', 'No Title'))
                         headlines.append(title)
-                        source = _sanitize_text(item.get('source', ''))
+                        source = _sanitize_text(item.get('source', 'Unknown Source'))
                         url = item.get('url', '')
                         summary = _sanitize_text(item.get('summary', ''))[:200]
                         label = item.get('overall_sentiment_label', 'Neutral')
                         
-                        report.append(f"- **{title}** ({source}) | Polarity: {tik_score} ({label})")
-                        report.append(f"  > {summary}...")
-                        report.append(f"  [Source]({url})")
+                        formatted_time = ""
+                        if time_published:
+                            try:
+                                dt_val = datetime.strptime(time_published, "%Y%m%dT%H%M%S")
+                                formatted_time = dt_val.strftime("%Y-%m-%d %H:%M EDT")
+                            except Exception:
+                                formatted_time = time_published
                         
-                        raw_news_items.append(f"Headline {title}\nSource: {source or url}\nRelevance: {rel_score}")
+                        time_tag = f"`[{formatted_time}]` " if formatted_time else ""
+                        report.append(f"- {time_tag}**{title}** | **Source**: `{source}` | **Sentiment**: `{label}` ({tik_score:+.2f})")
+                        report.append(f"  > {summary}...")
+                        if url:
+                            report.append(f"  [Read Article]({url})")
+                        
+                        raw_news_items.append(f"Time: {formatted_time}\nHeadline: {title}\nSource: {source or url}\nRelevance: {rel_score}")
                         
                 success = True
                 logger.info(f"[NEWS] Successfully fetched Alpha Vantage Sentiment for {t}")
@@ -124,18 +134,26 @@ async def get_ticker_news(subject: str = "", ticker: str = "", refresh: bool = F
                 for item in news_items:
                     # [TEMPORAL_CUTOFF] Ensure no future-leakage during replay
                     pub_time = item.get("providerPublishTime", 0)
-                    if pub_time and isinstance(pub_time, int):
+                    formatted_time = ""
+                    if pub_time and isinstance(pub_time, (int, float)):
                         if pub_time > ref_time.timestamp():
                             continue
+                        try:
+                            dt_val = datetime.fromtimestamp(pub_time)
+                            formatted_time = dt_val.strftime("%Y-%m-%d %H:%M EDT")
+                        except Exception:
+                            pass
 
                     title = _sanitize_text(item.get("title", ""))
-                    publisher = _sanitize_text(item.get("publisher", "Unknown"))
+                    publisher = _sanitize_text(item.get("publisher", "Unknown Source"))
                     link = item.get("link", "#")
                     headlines.append(title)
-                    report.append(f"- **{title}** ({publisher})")
+                    
+                    time_tag = f"`[{formatted_time}]` " if formatted_time else ""
+                    report.append(f"- {time_tag}**{title}** | **Source**: `{publisher}`")
                     report.append(f"  [Read More]({link})")
                     
-                    raw_news_items.append(f"Headline {title}\nSource: {publisher} or {link}\nRelevance: N/A")
+                    raw_news_items.append(f"Time: {formatted_time}\nHeadline: {title}\nSource: {publisher} or {link}\nRelevance: N/A")
                 success = True
         except Exception as e:
             logger.error(f"YFinance fallback failed for {t}: {e}")
@@ -305,24 +323,25 @@ async def get_macro_news(refresh: bool = False) -> str:
             if feed:
                 report.append("### Alpha Vantage Macro Intelligence")
                 for item in feed:
-                    time_published = item.get("time_published", "")
+                    formatted_time = ""
                     if time_published:
                         try:
-                            item_dt = datetime.strptime(time_published, "%Y%m%dT%H%M%S")
-                            if item_dt > ref_time:
-                                continue
+                            dt_val = datetime.strptime(time_published, "%Y%m%dT%H%M%S")
+                            formatted_time = dt_val.strftime("%Y-%m-%d %H:%M EDT")
                         except Exception:
-                            pass
+                            formatted_time = time_published
                             
-                    title = item.get("title", "")
-                    source = item.get("source", "Unknown")
+                    title = _sanitize_text(item.get("title", ""))
+                    source = _sanitize_text(item.get("source", "Unknown Source"))
                     url_link = item.get("url", "#")
-                    summary = item.get("summary", "")[:200] + "..."
+                    summary = _sanitize_text(item.get("summary", ""))[:200] + "..."
                     
                     headlines.append(title)
-                    report.append(f"- **{title}** ({source})")
+                    time_tag = f"`[{formatted_time}]` " if formatted_time else ""
+                    report.append(f"- {time_tag}**{title}** | **Source**: `{source}`")
                     report.append(f"  *Summary*: {summary}")
-                    report.append(f"  [Read More]({url_link})")
+                    if url_link:
+                        report.append(f"  [Read Article]({url_link})")
                 success = True
         except Exception as e:
             logger.error(f"Alpha Vantage Macro news failed: {e}")

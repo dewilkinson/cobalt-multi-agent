@@ -79,8 +79,12 @@ MACRO_NAMES = {
     "MCL": "Micro Crude Oil Futures",
     "GC": "Gold Futures",
     "MGC": "Micro Gold Futures",
+    "MGCZ2026": "Micro Gold Dec 2026",
     "NKD": "Nikkei 225 USD Futures",
-    "MNK": "Micro Nikkei 225 Futures"
+    "MNK": "Micro Nikkei 225 Futures",
+    "USDJPY": "USD/JPY Spot FX",
+    "6J": "Japanese Yen Futures",
+    "6J1!": "Japanese Yen Futures"
 }
 
 TIMEFRAMES = ["1h", "1d"]

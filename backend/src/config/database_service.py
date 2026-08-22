@@ -74,12 +74,49 @@ class ResearchDatabaseService:
 
     @staticmethod
     def create_research_document(project_id: int, title: str, content: str = "", source_url: str = "", document_type: str = "web") -> ResearchDocument:
-        """Create a research document."""
+        """Create a research document and export a markdown report to the Reports subfolder."""
         with next(get_db()) as db:
             document = ResearchDocument(project_id=project_id, title=title, content=content, source_url=source_url, document_type=document_type)
             db.add(document)
             db.commit()
             db.refresh(document)
+            
+            try:
+                import re, os
+                from datetime import datetime
+                today_str = datetime.now().strftime("%Y-%m-%d")
+                clean = re.sub(r'^(Research_Doc_|Market_Brief_|Brief_|\d+_)+', '', str(title or "Research Doc"), flags=re.IGNORECASE)
+                clean = re.sub(r'^Web_Search_(site_[a-zA-Z0-9]+_com_)?', '', clean, flags=re.IGNORECASE)
+                clean = re.sub(r'^site_[a-zA-Z0-9]+_com_', '', clean, flags=re.IGNORECASE)
+                clean = clean.replace("_", " ").replace("-", " ").strip()
+                clean = re.sub(r'\s+', ' ', clean)
+                words = clean.split(" ")
+                capitalized = [w.upper() if w.upper() in ["SPY","QQQ","IWM","VIX","DXY","BTC","USD","US10Y","FOMC","CPI","BOJ","CME","GLD","NKD","MNK","DIA","CL","GC"] else w.capitalize() for w in words if w]
+                clean_title = " ".join(capitalized)[:60].strip() or "Research Brief"
+                filename = f"{clean_title}.md"
+                
+                reports_dirs = [
+                    os.path.join(os.getcwd(), "data", "reports", "Research"),
+                    os.path.join(os.getcwd(), "backend", "data", "reports", "Research"),
+                    os.path.join(os.getcwd(), "data", "reports", today_str),
+                    os.path.join(os.getcwd(), "backend", "data", "reports", today_str),
+                    r"C:\github\obsidian-vault\_cobalt\Research"
+                ]
+                
+                md_content = f"# {title}\n\n"
+                if source_url:
+                    md_content += f"**Source**: [{source_url}]({source_url})\n\n"
+                md_content += f"**Type**: `{document_type}` | **Created**: `{document.created_at}`\n\n---\n\n"
+                md_content += content if content else ""
+                
+                for rdir in reports_dirs:
+                    if os.path.exists(os.path.dirname(rdir)):
+                        os.makedirs(rdir, exist_ok=True)
+                        with open(os.path.join(rdir, filename), "w", encoding="utf-8") as f:
+                            f.write(md_content)
+            except Exception:
+                pass
+
             return document
 
     @staticmethod

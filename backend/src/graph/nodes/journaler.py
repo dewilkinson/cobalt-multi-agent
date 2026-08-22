@@ -19,7 +19,7 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from src.tools import get_daily_blotter, get_journal_folder, get_stock_quote, list_journal_entries, read_journal_entry, set_journal_folder, write_daily_journal, log_feedback
+from src.tools import get_daily_blotter, get_journal_folder, get_stock_quote, list_journal_entries, read_journal_entry, set_journal_folder, write_daily_journal, log_feedback, get_personal_risk_metrics, get_attribution_summary
 from src.tools.smc import run_smc_analysis, get_raw_smc_tables
 from src.tools.indicators import get_volume_profile, get_intraday_snapshot
 from src.tools.shared_storage import GLOBAL_CONTEXT, JOURNALER_CONTEXT
@@ -42,6 +42,6 @@ _GLOBAL_RESOURCE_CONTEXT = GLOBAL_CONTEXT
 async def journaler_node(state: State, config: RunnableConfig):
     """Journaler node implementation."""
     logger.info("Journaler Node: Documenting vibes and trades. SMC Execution context provided.")
-    tools = [write_daily_journal, list_journal_entries, read_journal_entry, get_journal_folder, set_journal_folder, get_daily_blotter, get_stock_quote, log_feedback, run_smc_analysis, get_raw_smc_tables, get_volume_profile, get_intraday_snapshot]
+    tools = [write_daily_journal, list_journal_entries, read_journal_entry, get_journal_folder, set_journal_folder, get_daily_blotter, get_stock_quote, log_feedback, run_smc_analysis, get_raw_smc_tables, get_volume_profile, get_intraday_snapshot, get_personal_risk_metrics, get_attribution_summary]
 
     return await _setup_and_execute_agent_step(state, config, "journaler", tools)

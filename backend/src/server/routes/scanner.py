@@ -13,16 +13,6 @@ import sys
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from zoneinfo import ZoneInfo
-from src.tools.finance import _fetch_batch_history, _extract_ticker_data, _normalize_ticker
-
-from src.tools.scanner import (
-    _build_session_watchlist_impl, 
-    _run_activity_pulse_impl,
-    build_session_watchlist,
-    run_activity_pulse
-)
-from src.tools.sortino_sniper_trawl import run_background_trawl
-from src.tools.shield_scanner_trawl import run_shield_trawl
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -113,6 +103,7 @@ class NpEncoder(json.JSONEncoder):
 async def trigger_scanner_trawl():
     """Manual trigger for Layer A (The Background Trawl)."""
     try:
+        from src.tools.sortino_sniper_trawl import run_background_trawl
         results = await run_background_trawl()
         return sanitize_data({"status": "success", "data": results})
     except Exception as e:
@@ -221,7 +212,7 @@ def fill_futures_gaps(df, freq):
     if orig_tz is not None:
         df_ny = df.tz_convert('America/New_York')
     else:
-        df_ny = df.tz_localize('UTC').tz_convert('America/New_York')
+        df_ny = df.tz_localize('America/New_York')
         
     start_time = df_ny.index.min()
     end_time = df_ny.index.max()
@@ -377,11 +368,11 @@ def calculate_vwap_state(df_5m, atr=1.0):
         logger.error(f"Error calculating VWAP state: {e}")
         return 0.0
 
-def calculate_crt_segments(df):
-    if df is None or len(df) < 6:
+def calculate_crt_segments(df, max_lookback=48):
+    if df is None or len(df) < 2:
         return [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open_time": "", "close_time": ""} for i in range(5)]
     
-    sub = df.tail(6)
+    sub = df.tail(max_lookback)
     segments = []
     
     col_map = {str(c).lower(): c for c in sub.columns}
@@ -403,7 +394,8 @@ def calculate_crt_segments(df):
     except Exception as e:
         logger.warning(f"Error calculating candle duration: {e}")
 
-    for i in range(1, 6):
+    n_sub = len(sub)
+    for i in range(1, n_sub):
         prev = sub.iloc[i-1]
         curr = sub.iloc[i]
         
@@ -414,20 +406,26 @@ def calculate_crt_segments(df):
         curr_close = float(curr[close_col])
         curr_open = float(curr[open_col])
         
-        is_forming = (i == 5)
+        is_forming = (i == n_sub - 1)
         state = "NONE"
         potential_setup = "NONE"
         
         # Define noise tolerance (0.005% of price) to prevent minor data feed differences from causing false states
         tol = prev_low * 0.00005
         
-        is_bull_sweep = curr_low < prev_low - tol and curr_close > prev_low - tol and curr_close <= prev_high + tol and curr_low < min(curr_open, curr_close)
-        is_bear_sweep = curr_high > prev_high + tol and curr_close < prev_high + tol and curr_close >= prev_low - tol and curr_high > max(curr_open, curr_close)
+        is_green_candle = curr_close >= curr_open - tol
+        is_red_candle = curr_close <= curr_open + tol
+
+        # Bullish Sweep: Sweeps prev_low, closes back inside range AND candle itself is GREEN (bullish close)
+        is_bull_sweep = (curr_low < prev_low - tol) and (curr_close >= prev_low - tol) and (curr_close <= prev_high + tol) and is_green_candle
+        
+        # Bearish Sweep: Sweeps prev_high, closes back inside range AND candle itself is RED (bearish close)
+        is_bear_sweep = (curr_high > prev_high + tol) and (curr_close <= prev_high + tol) and (curr_close >= prev_low - tol) and is_red_candle
 
         if is_bull_sweep and is_bear_sweep:
             state = "DOUBLE_SWEEP"
             if is_forming:
-                potential_setup = "BULLISH" if curr_close >= curr_open else "BEARISH"
+                potential_setup = "BULLISH" if is_green_candle else "BEARISH"
         elif is_bull_sweep:
             state = "BULL_SWEEP"
             if is_forming:
@@ -438,8 +436,12 @@ def calculate_crt_segments(df):
                 potential_setup = "BEARISH"
         elif curr_close > prev_high + tol:
             state = "BULL_OUTSIDE"
+            if is_forming and is_green_candle:
+                potential_setup = "BULLISH"
         elif curr_close < prev_low - tol:
             state = "BEAR_OUTSIDE"
+            if is_forming and is_red_candle:
+                potential_setup = "BEARISH"
         elif curr_high <= prev_high + tol and curr_low >= prev_low - tol:
             state = "INSIDE"
             
@@ -455,7 +457,7 @@ def calculate_crt_segments(df):
                 if dt_open.tzinfo is not None:
                     dt_open_local = dt_open.astimezone(est)
                 else:
-                    dt_open_local = pytz.utc.localize(dt_open).astimezone(est)
+                    dt_open_local = est.localize(dt_open)
                     
                 dt_close_local = dt_open_local + candle_duration
                 
@@ -478,6 +480,74 @@ def calculate_crt_segments(df):
             "close_time": close_time_str
         })
     return segments
+
+def calculate_single_tf_structure(df_tf, swing_len=5):
+    res = {"structure": "STABLE", "swing_high": None, "swing_low": None}
+    if df_tf is None or df_tf.empty:
+        return res
+    try:
+        from smartmoneyconcepts import smc as smc_lib
+        df_calc = df_tf.copy()
+        df_calc.columns = [col.lower() for col in df_calc.columns]
+        swings = smc_lib.swing_highs_lows(df_calc, swing_length=swing_len)
+        
+        if not swings.empty:
+            if "HighLow" in swings.columns and "Level" in swings.columns:
+                valid_shs = swings[swings["HighLow"] == 1.0]["Level"].dropna()
+                if not valid_shs.empty:
+                    res["swing_high"] = float(valid_shs.iloc[-1])
+                valid_sls = swings[swings["HighLow"] == -1.0]["Level"].dropna()
+                if not valid_sls.empty:
+                    res["swing_low"] = float(valid_sls.iloc[-1])
+            else:
+                sh_col = "Highs" if "Highs" in swings.columns else "highs"
+                sl_col = "Lows" if "Lows" in swings.columns else "lows"
+                if sh_col in swings.columns:
+                    valid_shs = swings[sh_col].dropna()
+                    valid_shs = valid_shs[valid_shs != 0]
+                    if not valid_shs.empty:
+                        res["swing_high"] = float(valid_shs.iloc[-1])
+                if sl_col in swings.columns:
+                    valid_sls = swings[sl_col].dropna()
+                    valid_sls = valid_sls[valid_sls != 0]
+                    if not valid_sls.empty:
+                        res["swing_low"] = float(valid_sls.iloc[-1])
+                
+        struct = smc_lib.bos_choch(df_calc, swings)
+        valid_events = struct[(struct["BOS"].fillna(0) != 0) | (struct["CHOCH"].fillna(0) != 0)]
+        if not valid_events.empty:
+            last_row = valid_events.iloc[-1]
+            broken_idx = last_row.get("BrokenIndex")
+            total_bars = len(df_calc)
+            
+            if pd.notna(broken_idx) and (total_bars - int(broken_idx)) <= 20:
+                is_choch = pd.notna(last_row.get("CHOCH")) and last_row.get("CHOCH") != 0
+                val = last_row.get("CHOCH") if is_choch else last_row.get("BOS")
+                event_name = "CHoCH" if is_choch else "BOS"
+                direction = "BULLISH" if val == 1 else "BEARISH"
+                
+                # Validate structure against current live price action
+                struct_level = last_row.get("Level")
+                curr_close = float(df_calc["close"].iloc[-1]) if ("close" in df_calc.columns and not df_calc["close"].empty) else None
+                
+                if pd.notna(struct_level) and curr_close is not None:
+                    level_val = float(struct_level)
+                    if direction == "BULLISH" and curr_close < level_val:
+                        direction = "BEARISH"
+                    elif direction == "BEARISH" and curr_close > level_val:
+                        direction = "BULLISH"
+                        
+                if direction == "BULLISH" and res.get("swing_low") is not None and curr_close is not None:
+                    if curr_close < res["swing_low"]:
+                        direction = "BEARISH"
+                elif direction == "BEARISH" and res.get("swing_high") is not None and curr_close is not None:
+                    if curr_close > res["swing_high"]:
+                        direction = "BULLISH"
+                
+                res["structure"] = f"{direction} {event_name}"
+    except Exception as e:
+        logger.error(f"Failed to calculate structure: {e}")
+    return res
 
 def backtest_timeframe_setups(df):
     if df is None or len(df) < 10:
@@ -507,8 +577,12 @@ def backtest_timeframe_setups(df):
         except Exception:
             continue
             
-        is_bull_sweep = curr_low < prev_low and curr_close > prev_low
-        is_bear_sweep = curr_high > prev_high and curr_close < prev_high
+        tol = prev_low * 0.00005
+        is_green_candle = curr_close >= curr_open - tol
+        is_red_candle = curr_close <= curr_open + tol
+
+        is_bull_sweep = (curr_low < prev_low - tol) and (curr_close >= prev_low - tol) and (curr_close <= prev_high + tol) and is_green_candle
+        is_bear_sweep = (curr_high > prev_high + tol) and (curr_close <= prev_high + tol) and (curr_close >= prev_low - tol) and is_red_candle
         
         if is_bull_sweep and is_bear_sweep:
             states[t] = "DOUBLE_SWEEP"
@@ -516,11 +590,11 @@ def backtest_timeframe_setups(df):
             states[t] = "BULL_SWEEP"
         elif is_bear_sweep:
             states[t] = "BEAR_SWEEP"
-        elif curr_close > prev_high:
+        elif curr_close > prev_high + tol:
             states[t] = "BULL_OUTSIDE"
-        elif curr_close < prev_low:
+        elif curr_close < prev_low - tol:
             states[t] = "BEAR_OUTSIDE"
-        elif curr_high <= prev_high and curr_low >= prev_low:
+        elif curr_high <= prev_high + tol and curr_low >= prev_low - tol:
             states[t] = "INSIDE"
             
     for t in range(1, len(df)):
@@ -647,8 +721,19 @@ def align_forming_candle(df, tf_name, live_price, now_time, is_future=False):
     return df
 
 PENDING_FETCH = set()
-
 PENDING_BACKTESTS = set()
+
+def get_future_multiplier(sym: str) -> float:
+    s = sym.upper().replace('/', '').replace('=F', '').replace('1!', '')
+    if s.startswith('MGC') or s.startswith('GC'): return 10.0 if s.startswith('MGC') else 100.0
+    if s.startswith('MES') or s.startswith('ES'): return 5.0 if s.startswith('MES') else 50.0
+    if s.startswith('MNQ') or s.startswith('NQ'): return 2.0 if s.startswith('MNQ') else 20.0
+    if s.startswith('M2K') or s.startswith('RTY'): return 5.0 if s.startswith('M2K') else 50.0
+    if s.startswith('MYM') or s.startswith('YM'): return 0.5 if s.startswith('MYM') else 5.0
+    if s.startswith('MCL') or s.startswith('CL'): return 100.0 if s.startswith('MCL') else 1000.0
+    if s.startswith('MNK') or s.startswith('NKD'): return 0.5 if s.startswith('MNK') else 5.0
+    if s.startswith('MBT') or s.startswith('BTC'): return 0.1 if s.startswith('MBT') else 1.0
+    return 1.0
 
 def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False, target_window=None):
     if df_5m is None or df_5m.empty or len(df_5m) < 15:
@@ -857,63 +942,74 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False, tar
         is_midday_lull = (dt.hour == 11 and dt.minute >= 30) or (dt.hour == 12) or (dt.hour == 13 and dt.minute < 30)
         is_eod_cutoff = (dt.hour == 15 and dt.minute >= 45)
         
-        is_candidate_setup = is_market_open_safe and not is_eod_cutoff and (tf_trend_bias in ["BULLISH", "NONE"]) and has_bull_sweep
+        is_long_setup = is_market_open_safe and not is_eod_cutoff and (tf_trend_bias in ["BULLISH", "NONE"]) and has_bull_sweep
+        is_short_setup = is_market_open_safe and not is_eod_cutoff and (tf_trend_bias in ["BEARISH", "NONE"]) and has_bear_sweep
         
-        if is_candidate_setup:
-            is_long = True
+        if is_long_setup or is_short_setup:
+            is_long = is_long_setup
             avg_cost = closes[t]
             atr_val = atr_series[t]
 
-            # Step 0: Midday Lull Filter
-            if is_midday_lull:
+            # Step 0: Midday Lull Filter (Balanced Mode: Bypass midday ban if high relative volume RVOL >= 1.35)
+            if is_midday_lull and rvol_val < 1.35:
                 rejected_trades.append({
-                    "type": "Long",
+                    "type": "Long" if is_long else "Short",
                     "time": dt.strftime("%Y-%m-%d %H:%M"),
                     "price": float(round(avg_cost, 2)),
                     "step": "Midday Filter",
-                    "reason": f"Entry time ({dt.strftime('%H:%M')}) is during low-volume midday chop window (11:30 - 13:30 EDT)"
+                    "reason": f"Entry time ({dt.strftime('%H:%M')}) is during low-volume midday chop window (RVOL {rvol_val:.2f} < 1.35)"
                 })
                 t += 1
                 continue
 
             # Step 0-Macro: 1H Macro Trend Alignment Filter
-            if tf_trend_bias == "BEARISH":
+            if (is_long and tf_trend_bias == "BEARISH") or (not is_long and tf_trend_bias == "BULLISH"):
                 rejected_trades.append({
-                    "type": "Long",
+                    "type": "Long" if is_long else "Short",
                     "time": dt.strftime("%Y-%m-%d %H:%M"),
                     "price": float(round(avg_cost, 2)),
                     "step": "Macro Trend Filter",
-                    "reason": "Entry against 1H Macro Bearish Trend"
+                    "reason": f"Entry against 1H Macro {tf_trend_bias.capitalize()} Trend"
                 })
                 t += 1
                 continue
             
-            # Step 0a: Strength Filter (Require green bullish entry candle: close > open)
-            if closes[t] <= opens[t]:
+            # Step 0a: Strength / Pin-bar Filter (Balanced Mode: Allow green close OR strong wick sweep >= 40%)
+            bar_range = max(highs[t] - lows[t], 1e-5)
+            if is_long:
+                lower_wick = min(opens[t], closes[t]) - lows[t]
+                is_pin_bar = (lower_wick / bar_range) >= 0.40
+                weak_bar = closes[t] <= opens[t] and not is_pin_bar
+            else:
+                upper_wick = highs[t] - max(opens[t], closes[t])
+                is_pin_bar = (upper_wick / bar_range) >= 0.40
+                weak_bar = closes[t] >= opens[t] and not is_pin_bar
+
+            if weak_bar:
                 rejected_trades.append({
-                    "type": "Long",
+                    "type": "Long" if is_long else "Short",
                     "time": dt.strftime("%Y-%m-%d %H:%M"),
                     "price": float(round(avg_cost, 2)),
                     "step": "Strength Filter",
-                    "reason": f"Entry candle closed weak/red (Close {closes[t]:.2f} <= Open {opens[t]:.2f})"
+                    "reason": f"Entry candle closed weak ({'red' if is_long else 'green'}) and wick sweep < 40%"
                 })
                 t += 1
                 continue
 
-            # Step 0b: Volume Filter (Require solid volume: RVOL >= 1.25)
-            if rvol_val < 1.25:
+            # Step 0b: Volume Filter (Balanced Mode: Require baseline volume: RVOL >= 1.05)
+            if rvol_val < 1.05:
                 rejected_trades.append({
-                    "type": "Long",
+                    "type": "Long" if is_long else "Short",
                     "time": dt.strftime("%Y-%m-%d %H:%M"),
                     "price": float(round(avg_cost, 2)),
                     "step": "Volume Filter",
-                    "reason": f"Relative volume ({rvol_val:.2f}) < 1.25 threshold"
+                    "reason": f"Relative volume ({rvol_val:.2f}) < 1.05 threshold"
                 })
                 t += 1
                 continue
 
-            # Step 1: P&D Zone Filter (Reject Deep Premium: pd_val >= 0.5)
-            if pd_val >= 0.5:
+            # Step 1: P&D Zone Filter
+            if is_long and pd_val >= 0.5:
                 rejected_trades.append({
                     "type": "Long",
                     "time": dt.strftime("%Y-%m-%d %H:%M"),
@@ -923,13 +1019,25 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False, tar
                 })
                 t += 1
                 continue
+            elif not is_long and pd_val <= -0.5:
+                rejected_trades.append({
+                    "type": "Short",
+                    "time": dt.strftime("%Y-%m-%d %H:%M"),
+                    "price": float(round(avg_cost, 2)),
+                    "step": "P&D Filter",
+                    "reason": f"P&D zone value ({pd_val:.1f}) is in Deep Discount (<= -0.5)"
+                })
+                t += 1
+                continue
                 
             target_rr = 3.0
             target_offset = target_rr * atr_val
-            if pd_val > 0.0:
+            if is_long and pd_val > 0.0:
                 target_offset = target_offset * (1.0 - (pd_val * 0.5))
+            elif not is_long and pd_val < 0.0:
+                target_offset = target_offset * (1.0 - (abs(pd_val) * 0.5))
                 
-            # Step 2: Realistic Target Attainment Filter (Rule 8: Target offset within 1.4 * ATR unless profit ratio > 1.1)
+            # Step 2: Realistic Target Attainment Filter
             est_sl_dist = max(1.0 * atr_val, 0.10)
             profit_ratio = target_offset / est_sl_dist if est_sl_dist > 0 else 0.0
             
@@ -937,57 +1045,69 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False, tar
                 capped_target_offset = 1.4 * atr_val
                 capped_profit_ratio = capped_target_offset / est_sl_dist if est_sl_dist > 0 else 0.0
                 
-                # Rule 8 Exception: If profit target is outside 1.4 ATR BUT could still yield profit ratio > 1.1, proceed with trade
                 if profit_ratio > 1.1 or capped_profit_ratio > 1.1:
                     target_offset = capped_target_offset
                 else:
                     rejected_trades.append({
-                        "type": "Long",
+                        "type": "Long" if is_long else "Short",
                         "time": dt.strftime("%Y-%m-%d %H:%M"),
                         "price": float(round(avg_cost, 2)),
                         "step": "Target Reachability Filter",
-                        "reason": f"Target offset ({target_offset:.2f}) > 1.4x ATR and profit ratio ({profit_ratio:.2f}) <= 1.1 threshold"
+                        "reason": f"Target offset ({target_offset:.2f}) > 1.4x ATR and profit ratio ({profit_ratio:.2f}) <= 1.1"
                     })
                     t += 1
                     continue
                 
-            # Step 3: Hybrid Support Structure Stop Placement & 100k Account Risk Qualification
-            # Hybrid Stop: Place Stop Loss at 0.50x ATR buffer below NEAREST support structure (EMA 9/21, VWAP, OB, FVG, Swing Low)
+            # Step 3: Hybrid Support / Resistance Structure Stop Placement
             max_allowed_sl = 1.50 * atr_val # Max Hybrid SL Ceiling (1.5x ATR)
             min_sl_dist = max(1.25 * atr_val, avg_cost * 0.0035) # Minimum ATR Noise Protection SL Floor
             support_candidates = []
             
-            if ema_9[t] < avg_cost: support_candidates.append((ema_9[t], "EMA 9"))
-            if ema_21[t] < avg_cost: support_candidates.append((ema_21[t], "EMA 21"))
-            if vwap_values[t] < avg_cost: support_candidates.append((vwap_values[t], "VWAP"))
-            for ob in active_bullish_obs:
-                if ob[0] < avg_cost: support_candidates.append((ob[0], "Bullish OB"))
-            for fvg in active_bullish_fvgs:
-                if fvg[0] < avg_cost: support_candidates.append((fvg[0], "Bullish FVG"))
-            if swing_lows[t] < avg_cost: support_candidates.append((swing_lows[t], "Swing Low"))
+            if is_long:
+                if ema_9[t] < avg_cost: support_candidates.append((ema_9[t], "EMA 9"))
+                if ema_21[t] < avg_cost: support_candidates.append((ema_21[t], "EMA 21"))
+                if vwap_values[t] < avg_cost: support_candidates.append((vwap_values[t], "VWAP"))
+                for ob in active_bullish_obs:
+                    if ob[0] < avg_cost: support_candidates.append((ob[0], "Bullish OB"))
+                for fvg in active_bullish_fvgs:
+                    if fvg[0] < avg_cost: support_candidates.append((fvg[0], "Bullish FVG"))
+                if swing_lows[t] < avg_cost: support_candidates.append((swing_lows[t], "Swing Low"))
+                valid_supports = [s for s in support_candidates if (avg_cost - s[0]) <= max_allowed_sl]
+            else:
+                if ema_9[t] > avg_cost: support_candidates.append((ema_9[t], "EMA 9"))
+                if ema_21[t] > avg_cost: support_candidates.append((ema_21[t], "EMA 21"))
+                if vwap_values[t] > avg_cost: support_candidates.append((vwap_values[t], "VWAP"))
+                for ob in active_bearish_obs:
+                    if ob[1] > avg_cost: support_candidates.append((ob[1], "Bearish OB"))
+                for fvg in active_bearish_fvgs:
+                    if fvg[1] > avg_cost: support_candidates.append((fvg[1], "Bearish FVG"))
+                if swing_highs[t] > avg_cost: support_candidates.append((swing_highs[t], "Swing High"))
+                valid_supports = [s for s in support_candidates if (s[0] - avg_cost) <= max_allowed_sl]
             
-            # Filter support structures within max hybrid SL distance
-            valid_supports = [s for s in support_candidates if (avg_cost - s[0]) <= max_allowed_sl]
             if not valid_supports:
                 rejected_trades.append({
-                    "type": "Long",
+                    "type": "Long" if is_long else "Short",
                     "time": dt.strftime("%Y-%m-%d %H:%M"),
                     "price": float(round(avg_cost, 2)),
                     "step": "Support Structure Filter",
-                    "reason": f"No valid support structure (EMA 9/21, VWAP, OB, FVG, Swing Low) within max 1.5x ATR ({max_allowed_sl:.2f})"
+                    "reason": f"No valid structure anchor within max 1.5x ATR ({max_allowed_sl:.2f})"
                 })
                 t += 1
                 continue
                 
-            # Place Hybrid Stop Loss 0.50x ATR below NEAREST support structure
-            nearest_support = max(valid_supports, key=lambda x: x[0])
-            hybrid_sl_price = nearest_support[0] - (0.50 * atr_val)
-            sl_dist = avg_cost - hybrid_sl_price
+            if is_long:
+                nearest_support = max(valid_supports, key=lambda x: x[0])
+                hybrid_sl_price = nearest_support[0] - (0.50 * atr_val)
+                sl_dist = avg_cost - hybrid_sl_price
+            else:
+                nearest_resistance = min(valid_supports, key=lambda x: x[0])
+                hybrid_sl_price = nearest_resistance[0] + (0.50 * atr_val)
+                sl_dist = hybrid_sl_price - avg_cost
             
             # Enforce Minimum ATR Noise Protection SL Floor and Max SL Ceiling
             if sl_dist < min_sl_dist:
                 rejected_trades.append({
-                    "type": "Long",
+                    "type": "Long" if is_long else "Short",
                     "time": dt.strftime("%Y-%m-%d %H:%M"),
                     "price": float(round(avg_cost, 2)),
                     "step": "ATR Stop Floor Filter",
@@ -995,11 +1115,9 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False, tar
                 })
                 t += 1
                 continue
-                sl_dist = min_sl_dist
-                sl_price = avg_cost - sl_dist
             elif sl_dist > max_allowed_sl:
                 rejected_trades.append({
-                    "type": "Long",
+                    "type": "Long" if is_long else "Short",
                     "time": dt.strftime("%Y-%m-%d %H:%M"),
                     "price": float(round(avg_cost, 2)),
                     "step": "Max Risk Filter",
@@ -1012,48 +1130,69 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False, tar
             
             # Position Sizing: 100k Account, 0.5% Risk ($500 per trade), $50,000 Max Position Cap
             risk_per_trade = 500.0 # $500 per trade (0.5% of $100k Account)
-            raw_shares = risk_per_trade / sl_dist
-            max_pos_shares = 50000.0 / avg_cost
+            fut_mult = get_future_multiplier(sym) if is_future else 1.0
+            sl_cost_unit = (sl_dist * fut_mult) if (sl_dist * fut_mult) > 0 else 1e-5
+            raw_shares = risk_per_trade / sl_cost_unit
+            max_pos_shares = (50000.0 / avg_cost) if avg_cost > 0 else raw_shares
             position_shares = min(raw_shares, max_pos_shares)
             
-            blockers = []  # list of (bottom_price, description)
-            target_price = avg_cost + target_offset
-            
-            # Check Bearish OBs
-            for bottom, top in active_bearish_obs:
-                if bottom <= target_price and top >= avg_cost:
-                    blockers.append((bottom, f"Bearish Order Block ({bottom:.2f} - {top:.2f})"))
+            blockers = []  # list of (price, description)
+            if is_long:
+                target_price = avg_cost + target_offset
+                for bottom, top in active_bearish_obs:
+                    if bottom <= target_price and top >= avg_cost:
+                        blockers.append((bottom, f"Bearish Order Block ({bottom:.2f} - {top:.2f})"))
+                for name, ema_arr in [("EMA 50", ema_50), ("EMA 200", ema_200)]:
+                    ema_val = ema_arr[t]
+                    if avg_cost < ema_val <= target_price:
+                        blockers.append((ema_val, f"{name} ({ema_val:.2f})"))
+                vwap_val = vwap_values[t]
+                if avg_cost < vwap_val <= target_price:
+                    blockers.append((vwap_val, f"VWAP ({vwap_val:.2f})"))
                     
-            # Check EMAs
-            for name, ema_arr in [("EMA 50", ema_50), ("EMA 200", ema_200)]:
-                ema_val = ema_arr[t]
-                if avg_cost < ema_val <= target_price:
-                    blockers.append((ema_val, f"{name} ({ema_val:.2f})"))
+                if blockers:
+                    blockers.sort(key=lambda x: x[0])
+                    min_block_bottom, blocker_reason = blockers[0]
+                    if min_block_bottom - avg_cost >= sl_dist:
+                        target_offset = min_block_bottom - avg_cost
+                    else:
+                        rejected_trades.append({
+                            "type": "Long",
+                            "time": dt.strftime("%Y-%m-%d %H:%M"),
+                            "price": float(round(avg_cost, 2)),
+                            "step": "Blocker Filter",
+                            "reason": f"{blocker_reason} in path prevents 1:1 RR"
+                        })
+                        t += 1
+                        continue
+            else:
+                target_price = avg_cost - target_offset
+                for bottom, top in active_bullish_obs:
+                    if top >= target_price and bottom <= avg_cost:
+                        blockers.append((top, f"Bullish Order Block ({bottom:.2f} - {top:.2f})"))
+                for name, ema_arr in [("EMA 50", ema_50), ("EMA 200", ema_200)]:
+                    ema_val = ema_arr[t]
+                    if target_price <= ema_val < avg_cost:
+                        blockers.append((ema_val, f"{name} ({ema_val:.2f})"))
+                vwap_val = vwap_values[t]
+                if target_price <= vwap_val < avg_cost:
+                    blockers.append((vwap_val, f"VWAP ({vwap_val:.2f})"))
                     
-            # Check VWAP
-            vwap_val = vwap_values[t]
-            if avg_cost < vwap_val <= target_price:
-                blockers.append((vwap_val, f"VWAP ({vwap_val:.2f})"))
-                
-            if blockers:
-                blockers.sort(key=lambda x: x[0])
-                min_block_bottom, blocker_reason = blockers[0]
-                
-                # Check if distance to blocker bottom yields at least 1:1 RR
-                if min_block_bottom - avg_cost >= sl_dist:
-                    # Truncate target to exit right before the blocker
-                    target_offset = min_block_bottom - avg_cost
-                else:
-                    # Reject trade
-                    rejected_trades.append({
-                        "type": "Long",
-                        "time": dt.strftime("%Y-%m-%d %H:%M"),
-                        "price": float(round(avg_cost, 2)),
-                        "step": "Blocker Filter",
-                        "reason": f"{blocker_reason} in path prevents 1:1 RR (dist {(min_block_bottom - avg_cost):.2f} < SL {sl_dist:.2f})"
-                    })
-                    t += 1
-                    continue
+                if blockers:
+                    blockers.sort(key=lambda x: x[0], reverse=True)
+                    max_block_top, blocker_reason = blockers[0]
+                    if avg_cost - max_block_top >= sl_dist:
+                        target_offset = avg_cost - max_block_top
+                    else:
+                        rejected_trades.append({
+                            "type": "Short",
+                            "time": dt.strftime("%Y-%m-%d %H:%M"),
+                            "price": float(round(avg_cost, 2)),
+                            "step": "Blocker Filter",
+                            "reason": f"{blocker_reason} in path prevents 1:1 RR"
+                        })
+                        t += 1
+                        continue
                 
             entry_swing_high = swing_highs[t]
             
@@ -1099,7 +1238,7 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False, tar
                     realized_rr = float(round(pnl / sl_dist, 2))
                     
                     # Scale trade size with max $50k position cap
-                    scaled_pnl = float(round(pnl * position_shares, 2))
+                    scaled_pnl = float(round(pnl * position_shares * fut_mult, 2))
                     
                     trades_ledger.append({
                         "type": "Long" if is_long else "Short",
@@ -1128,7 +1267,7 @@ def run_weekly_5m_replay_backtest(df_5m, df_1h, df_1d, sym, is_future=False, tar
                     realized_rr = float(round(pnl / sl_dist, 2))
                     
                     # Scale trade size with max $50k position cap
-                    scaled_pnl = float(round(pnl * position_shares, 2))
+                    scaled_pnl = float(round(pnl * position_shares * fut_mult, 2))
                     
                     is_win = pnl > 0.0
                     outcome_val = "Success" if is_win else "Fail"
@@ -1279,25 +1418,29 @@ async def bulk_fetch_trends_and_sparklines(symbols):
             all_search = list(set(futures_search + stocks_search))
             
             async with YF_LOCK:
-                # 1m
-                f_1m = await asyncio.to_thread(yf.download, futures_search, period="5d", interval="1m", prepost=True, progress=False) if futures_search else None
-                s_1m = await asyncio.to_thread(yf.download, stocks_search, period="5d", interval="1m", prepost=False, progress=False) if stocks_search else None
-                
-                # 5m
-                f_5m = await asyncio.to_thread(yf.download, futures_search, period="5d", interval="5m", prepost=True, progress=False) if futures_search else None
-                s_5m = await asyncio.to_thread(yf.download, stocks_search, period="5d", interval="5m", prepost=False, progress=False) if stocks_search else None
-                
-                # 15m
-                f_15m = await asyncio.to_thread(yf.download, futures_search, period="1mo", interval="15m", prepost=True, progress=False) if futures_search else None
-                s_15m = await asyncio.to_thread(yf.download, stocks_search, period="1mo", interval="15m", prepost=False, progress=False) if stocks_search else None
-                
-                # 1h
-                f_1h = await asyncio.to_thread(yf.download, futures_search, period="3mo", interval="1h", prepost=True, progress=False) if futures_search else None
-                s_1h = await asyncio.to_thread(yf.download, stocks_search, period="3mo", interval="1h", prepost=False, progress=False) if stocks_search else None
-                
-                # 1d & 1w (prepost not applicable)
-                c_batch_1d = await asyncio.to_thread(yf.download, all_search, period="2y", interval="1d", progress=False) if all_search else None
-                c_batch_1w = await asyncio.to_thread(yf.download, all_search, period="5y", interval="1wk", progress=False) if all_search else None
+                def dl(tickers, period, interval, prepost=False):
+                    if not tickers:
+                        return None
+                    return yf.download(tickers, period=period, interval=interval, prepost=prepost, progress=False)
+
+                (
+                    f_1m, s_1m,
+                    f_5m, s_5m,
+                    f_15m, s_15m,
+                    f_1h, s_1h,
+                    c_batch_1d, c_batch_1w
+                ) = await asyncio.gather(
+                    asyncio.to_thread(dl, futures_search, "5d", "1m", True),
+                    asyncio.to_thread(dl, stocks_search, "5d", "1m", False),
+                    asyncio.to_thread(dl, futures_search, "5d", "5m", True),
+                    asyncio.to_thread(dl, stocks_search, "5d", "5m", False),
+                    asyncio.to_thread(dl, futures_search, "1mo", "15m", True),
+                    asyncio.to_thread(dl, stocks_search, "1mo", "15m", False),
+                    asyncio.to_thread(dl, futures_search, "3mo", "1h", True),
+                    asyncio.to_thread(dl, stocks_search, "3mo", "1h", False),
+                    asyncio.to_thread(dl, all_search, "2y", "1d", False),
+                    asyncio.to_thread(dl, all_search, "5y", "1wk", False)
+                )
             
             # Helper to merge dfs
             def safe_merge(f_df, s_df):
@@ -1620,6 +1763,7 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     import time
                     webhook_ts = cached.get("webhook_ts_" + cached_key, 0.0)
                     timeframe_durations = {
+                        "crt_5m": 5 * 60,
                         "crt_15m": 15 * 60,
                         "crt_1h": 60 * 60,
                         "crt_4h": 4 * 60 * 60
@@ -1652,60 +1796,11 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                         return cached_segs
                     return calc_segs
 
+                crt_5m = get_valid_crt_segments(c_timeframes.get("5m"), "crt_5m")
                 crt_15m = get_valid_crt_segments(df_15m, "crt_15m")
                 crt_1h = get_valid_crt_segments(df_1h, "crt_1h")
                 crt_4h = get_valid_crt_segments(df_4h, "crt_4h")
                 
-                # Calculate Structural Events (BOS/CHoCH) for multiple timeframes using smartmoneyconcepts
-                def calculate_single_tf_structure(df_tf, swing_len=5):
-                    res = {"structure": "STABLE", "swing_high": None, "swing_low": None}
-                    if df_tf is None or df_tf.empty:
-                        return res
-                    try:
-                        from smartmoneyconcepts import smc as smc_lib
-                        df_calc = df_tf.copy()
-                        df_calc.columns = [col.lower() for col in df_calc.columns]
-                        swings = smc_lib.swing_highs_lows(df_calc, swing_length=swing_len)
-                        
-                        if not swings.empty:
-                            if "HighLow" in swings.columns and "Level" in swings.columns:
-                                valid_shs = swings[swings["HighLow"] == 1.0]["Level"].dropna()
-                                if not valid_shs.empty:
-                                    res["swing_high"] = float(valid_shs.iloc[-1])
-                                valid_sls = swings[swings["HighLow"] == -1.0]["Level"].dropna()
-                                if not valid_sls.empty:
-                                    res["swing_low"] = float(valid_sls.iloc[-1])
-                            else:
-                                sh_col = "Highs" if "Highs" in swings.columns else "highs"
-                                sl_col = "Lows" if "Lows" in swings.columns else "lows"
-                                if sh_col in swings.columns:
-                                    valid_shs = swings[sh_col].dropna()
-                                    valid_shs = valid_shs[valid_shs != 0]
-                                    if not valid_shs.empty:
-                                        res["swing_high"] = float(valid_shs.iloc[-1])
-                                if sl_col in swings.columns:
-                                    valid_sls = swings[sl_col].dropna()
-                                    valid_sls = valid_sls[valid_sls != 0]
-                                    if not valid_sls.empty:
-                                        res["swing_low"] = float(valid_sls.iloc[-1])
-                                
-                        struct = smc_lib.bos_choch(df_calc, swings)
-                        valid_events = struct[(struct["BOS"].fillna(0) != 0) | (struct["CHOCH"].fillna(0) != 0)]
-                        if not valid_events.empty:
-                            last_row = valid_events.iloc[-1]
-                            broken_idx = last_row.get("BrokenIndex")
-                            total_bars = len(df_calc)
-                            
-                            if pd.notna(broken_idx) and (total_bars - int(broken_idx)) <= 20:
-                                is_choch = pd.notna(last_row.get("CHOCH")) and last_row.get("CHOCH") != 0
-                                val = last_row.get("CHOCH") if is_choch else last_row.get("BOS")
-                                event_name = "CHoCH" if is_choch else "BOS"
-                                direction = "BULLISH" if val == 1 else "BEARISH"
-                                res["structure"] = f"{direction} {event_name}"
-                    except Exception as e:
-                        logger.error(f"Failed to calculate structure: {e}")
-                    return res
-
                 res_5m = calculate_single_tf_structure(c_timeframes.get("5m"), swing_len=5)
                 res_15m = calculate_single_tf_structure(c_timeframes.get("15m"), swing_len=5)
                 res_1h = calculate_single_tf_structure(c_timeframes.get("1h"), swing_len=5)
@@ -1743,26 +1838,17 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                 cached_ledger = cached.get("trade_ledger") if cached else []
                 cached_rejected = cached.get("rejected_trades") if cached else []
                 
-                has_cached_tally = False
-                if cached_stats_15m is not None and "success" in cached_stats_15m and "fail" in cached_stats_15m:
-                    if cached.get("backtest_pending") is False or cached_ledger is not None:
-                        has_cached_tally = True
-                    
+                crt_15m_stats_val = cached_stats_15m if (cached_stats_15m and "success" in cached_stats_15m) else {"success": 0, "fail": 0}
+                crt_1h_stats_val = cached_stats_1h if (cached_stats_1h and "success" in cached_stats_1h) else {"success": 0, "fail": 0}
+                crt_4h_stats_val = cached_stats_4h if (cached_stats_4h and "success" in cached_stats_4h) else {"success": 0, "fail": 0}
+                crt_ledger_val = cached_ledger if cached_ledger is not None else []
+                crt_rejected_val = cached_rejected if cached_rejected is not None else []
+
+                has_cached_tally = (crt_15m_stats_val["success"] + crt_15m_stats_val["fail"] + len(crt_ledger_val) + len(crt_rejected_val) > 0) or (cached.get("backtest_pending") is False if cached else False)
                 is_backtest_pending = (sym in PENDING_BACKTESTS) or (not has_cached_tally)
-                if not has_cached_tally:
-                    if sym not in PENDING_BACKTESTS:
-                        asyncio.create_task(run_weekly_backtest_low_priority(sym, is_future=is_future))
-                    crt_15m_stats_val = {"success": 0, "fail": 0}
-                    crt_1h_stats_val = {"success": 0, "fail": 0}
-                    crt_4h_stats_val = {"success": 0, "fail": 0}
-                    crt_ledger_val = []
-                    crt_rejected_val = []
-                else:
-                    crt_15m_stats_val = cached_stats_15m
-                    crt_1h_stats_val = cached_stats_1h
-                    crt_4h_stats_val = cached_stats_4h
-                    crt_ledger_val = cached_ledger
-                    crt_rejected_val = cached_rejected
+                
+                if not has_cached_tally and sym not in PENDING_BACKTESTS:
+                    asyncio.create_task(run_weekly_backtest_low_priority(sym, is_future=is_future))
 
                 if sym not in TRENDS_CACHE:
                     TRENDS_CACHE[sym] = {}
@@ -1785,6 +1871,7 @@ async def bulk_fetch_trends_and_sparklines(symbols):
                     "change": live_change if live_change is not None else (cached.get("change") if cached else None),
                     "rvol": live_rvol if live_rvol is not None else (cached.get("rvol") if cached else None),
                     "pd_zone": live_pd_zone if live_pd_zone is not None else (cached.get("pd_zone") if cached else None),
+                    "crt_5m": crt_5m,
                     "crt_15m": crt_15m,
                     "crt_1h": crt_1h,
                     "crt_4h": crt_4h,
@@ -1806,6 +1893,48 @@ async def bulk_fetch_trends_and_sparklines(symbols):
     finally:
         for s in to_fetch:
             PENDING_FETCH.discard(s)
+
+def is_crt_stale(cached_entry, sym):
+    if not cached_entry:
+        return True
+    segs = cached_entry.get("crt_15m", [])
+    if not segs or len(segs) < 5:
+        return True
+    last_seg = segs[-1]
+    open_time_str = last_seg.get("open_time", "")
+    if not open_time_str:
+        return True
+        
+    try:
+        import pytz
+        from datetime import datetime
+        est = pytz.timezone("America/New_York")
+        now_est = datetime.now(est)
+        
+        clean_sym = sym.lstrip("/^").upper()
+        is_future = clean_sym in ["ES", "MES", "NQ", "MNQ", "YM", "MYM", "RTY", "M2K", "CL", "MCL", "GC", "MGC", "NKD", "MNK"] or clean_sym.endswith("=F")
+        
+        parts = open_time_str.strip().split()
+        if len(parts) >= 2:
+            dt_str = f"{parts[0]} {parts[1]}"
+            seg_dt = est.localize(datetime.strptime(dt_str, "%Y-%m-%d %H:%M"))
+            
+            if is_future:
+                # Futures trading continuous session: if last segment is > 45 mins old, cache is stale
+                if (now_est - seg_dt).total_seconds() > 45 * 60:
+                    return True
+            else:
+                # Stocks: if within RTH (09:30-16:00 ET) and last segment > 45 mins old, cache is stale
+                mkt_open = now_est.replace(hour=9, minute=30, second=0, microsecond=0)
+                mkt_close = now_est.replace(hour=16, minute=0, second=0, microsecond=0)
+                if mkt_open <= now_est <= mkt_close:
+                    if (now_est - seg_dt).total_seconds() > 45 * 60:
+                        return True
+    except Exception as e:
+        logger.warning(f"Error checking CRT staleness for {sym}: {e}")
+        return True
+        
+    return False
 
 async def enrich_candidates_with_trends(candidates):
     if not candidates:
@@ -1927,13 +2056,12 @@ async def enrich_candidates_with_trends(candidates):
                 }
             
         cached = TRENDS_CACHE.get(sym)
-        if not cached or (now - cached["timestamp"] > TRENDS_CACHE_EXPIRY) or not cached.get("sparkline_1m") or ("trade_ledger" not in cached):
+        if not cached or (now - cached["timestamp"] > TRENDS_CACHE_EXPIRY) or not cached.get("sparkline_1m") or ("trade_ledger" not in cached) or is_crt_stale(cached, sym):
             if sym not in PENDING_FETCH and sym not in symbols_to_fetch:
                 symbols_to_fetch.append(sym)
             
             
     if symbols_to_fetch:
-        # Prioritize top 25 symbols to prevent yfinance rate limits
         symbols_to_fetch = symbols_to_fetch[:25]
         asyncio.create_task(bulk_fetch_trends_and_sparklines(symbols_to_fetch))
             
@@ -1968,6 +2096,7 @@ async def enrich_candidates_with_trends(candidates):
                 "5m": 1.0, "15m": 1.0, "1h": 1.0, "1d": 1.0
             })
             
+            c["crt_5m"] = TRENDS_CACHE[sym].get("crt_5m", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
             c["crt_15m"] = TRENDS_CACHE[sym].get("crt_15m", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
             c["crt_1h"] = TRENDS_CACHE[sym].get("crt_1h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
             c["crt_4h"] = TRENDS_CACHE[sym].get("crt_4h", [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in sym) + i) % 2 == 0) else 99.0} for i in range(5)])
@@ -1978,6 +2107,70 @@ async def enrich_candidates_with_trends(candidates):
             c["trade_ledger"] = TRENDS_CACHE[sym].get("trade_ledger", [])
             c["rejected_trades"] = TRENDS_CACHE[sym].get("rejected_trades", [])
             c["backtest_pending"] = TRENDS_CACHE[sym].get("backtest_pending", (sym in PENDING_BACKTESTS or len(c.get("trade_ledger", [])) == 0))
+            
+            # Derive active state machine phase from CRT structures with Apex 250F 100-minute (20 5m bars) sweep timeout
+            def _derive_cand_state(cand):
+                import time
+                from datetime import datetime
+
+                segs = []
+                for tf_key in ["crt_5m", "crt_15m", "crt_1h", "crt_4h"]:
+                    segs.extend(cand.get(tf_key) or [])
+                last_st = "NONE"
+                sweep_time_str = None
+
+                for s in reversed(segs):
+                    if isinstance(s, dict) and s.get("state") and s.get("state") != "NONE":
+                        st_name = str(s.get("state")).upper()
+                        if "STRIKE" in st_name or "ENTRY" in st_name:
+                            return "STRIKE"
+                        elif "OUTSIDE" in st_name or "MSS" in st_name:
+                            return "MSS"
+                        elif "INSIDE" in st_name or "RETEST" in st_name:
+                            return "RETEST"
+                        elif "SWEEP" in st_name and last_st == "NONE":
+                            last_st = "SWEEP"
+                            sweep_time_str = s.get("open_time") or s.get("t")
+
+                if last_st == "SWEEP":
+                    # Enforce Apex 250F 100-minute (20 5m bars) Sweep Timeout Rule
+                    now_ts = time.time()
+                    sweep_ts = None
+                    if sweep_time_str:
+                        try:
+                            if isinstance(sweep_time_str, (int, float)):
+                                sweep_ts = float(sweep_time_str)
+                                if sweep_ts > 1e11:  # Convert ms to sec if needed
+                                    sweep_ts /= 1000.0
+                            elif isinstance(sweep_time_str, str):
+                                str_clean = sweep_time_str.replace("EDT", "").replace("EST", "").replace("UTC", "").strip()
+                                for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+                                    try:
+                                        dt_obj = datetime.strptime(str_clean.split(".")[0], fmt)
+                                        sweep_ts = dt_obj.timestamp()
+                                        break
+                                    except ValueError:
+                                        pass
+                        except Exception:
+                            pass
+
+                    # Maximum 100 minutes (6000 seconds) allowed between SWEEP and MSS
+                    MAX_SWEEP_TO_MSS_SEC = 6000
+                    if sweep_ts and (now_ts - sweep_ts > MAX_SWEEP_TO_MSS_SEC):
+                        # Sweep has expired without forming MSS -> Revert to TREND
+                        return "TREND"
+                    return "SWEEP"
+
+                if cand.get("state_machine") and cand.get("state_machine") not in ["IDLE", "NONE"]:
+                    return cand["state_machine"]
+                if cand.get("state") and cand.get("state") not in ["IDLE", "NONE"]:
+                    return cand["state"]
+
+                return "TREND"
+
+            d_state = _derive_cand_state(c)
+            c["state"] = d_state
+            c["state_machine"] = d_state
             
              # Update live stats dynamically
             cached_price = TRENDS_CACHE[sym].get("price")
@@ -2023,9 +2216,15 @@ async def enrich_candidates_with_trends(candidates):
             c["atrs"] = c.get("atrs", {
                 "5m": 1.0, "15m": 1.0, "1h": 1.0, "1d": 1.0
             })
-            c["crt_15m"] = c.get("crt_15m", [])
-            c["crt_1h"] = c.get("crt_1h", [])
-            c["crt_4h"] = c.get("crt_4h", [])
+            def_crt_5m = [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in (sym or "MKT")) + i) % 2 == 0) else 99.0} for i in range(5)]
+            def_crt_15m = [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in (sym or "MKT")) + i) % 2 == 0) else 99.0} for i in range(5)]
+            def_crt_1h = [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in (sym or "MKT")) + i + 1) % 2 == 0) else 99.0} for i in range(5)]
+            def_crt_4h = [{"state": "NONE", "is_forming": i == 4, "potential_setup": "NONE", "open": 100.0, "close": 101.0 if ((sum(ord(char) for char in (sym or "MKT")) + i + 2) % 2 == 0) else 99.0} for i in range(5)]
+            
+            c["crt_5m"] = c.get("crt_5m") if (c.get("crt_5m") and len(c.get("crt_5m")) >= 5) else def_crt_5m
+            c["crt_15m"] = c.get("crt_15m") if (c.get("crt_15m") and len(c.get("crt_15m")) >= 5) else def_crt_15m
+            c["crt_1h"] = c.get("crt_1h") if (c.get("crt_1h") and len(c.get("crt_1h")) >= 5) else def_crt_1h
+            c["crt_4h"] = c.get("crt_4h") if (c.get("crt_4h") and len(c.get("crt_4h")) >= 5) else def_crt_4h
             c["crt_15m_stats"] = c.get("crt_15m_stats", {"success": 0, "fail": 0})
             c["crt_1h_stats"] = c.get("crt_1h_stats", {"success": 0, "fail": 0})
             c["crt_4h_stats"] = c.get("crt_4h_stats", {"success": 0, "fail": 0})
@@ -2112,7 +2311,7 @@ async def enrich_candidates_with_trends(candidates):
         
         has_bull_sweep = False
         has_bear_sweep = False
-        for tf_name in ["crt_15m", "crt_1h", "crt_4h"]:
+        for tf_name in ["crt_5m", "crt_15m", "crt_1h", "crt_4h"]:
             segs = c.get(tf_name, [])
             for s in segs:
                 if s.get("potential_setup") == "BULLISH":

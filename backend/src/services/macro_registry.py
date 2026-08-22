@@ -36,9 +36,11 @@ class MacroRegistry:
         "CL": "CL=F",
         "MCL": "MCL=F",
         "GC": "GC=F",
-        "MGC": "MGC=F",
+        "MGC": "MGCZ26.CMX",
         "NKD": "NKD=F",
-        "MNK": "MNK=F"
+        "MNK": "MNK=F",
+        "USDJPY": "JPY=X",
+        "6J": "6J=F"
     }
 
     def __init__(self):

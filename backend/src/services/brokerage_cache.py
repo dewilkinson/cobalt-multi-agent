@@ -366,7 +366,9 @@ class BrokerageCache:
                     skip = True
                 if "C:\\Backup" in abs_p or "C:/Backup" in abs_p:
                     skip = True
-                    
+                if "error_" in path_part or (path_part.startswith("!! ") or path_part.endswith("/")) and any(x in path_part for x in ["error_", "_0.txt", "__pycache__"]):
+                    skip = True
+
                 if not skip and os.path.exists(abs_p):
                     if os.path.isfile(abs_p):
                         rel_p = os.path.relpath(abs_p, project_root)
@@ -493,11 +495,37 @@ class BrokerageCache:
     def _resolve_account_id(cls, account_id: str) -> str:
         if not account_id:
             return account_id
-        if account_id.strip() in ["TopStepX Futures", "TopStepX", "TopStepX Express"]:
+        acct_str = account_id.strip()
+        if not cls._cached_data:
+            cls._load_cache()
+        if cls._cached_data and acct_str in cls._cached_data:
+            return acct_str
+            
+        acct_lower = acct_str.lower()
+        if any(k in acct_lower for k in ["5513", "rollover", "ira"]):
+            return "Rollover IRA *5513"
+        if any(k in acct_lower for k in ["6937", "health savings", "hsa"]):
+            return "Health Savings Account *6937"
+        if "1299" in acct_lower:
+            return "TopStepX Combine *1299"
+        if "5496" in acct_lower:
+            return "TopStepX Combine *5496"
+        if "2210" in acct_lower:
+            return "TopStepX Express *2210"
+        if "7085" in acct_lower:
+            return "TopStepX Combine *7085"
+        if any(k in acct_lower for k in ["7328", "express"]):
             return "TopStepX Express *7328"
-        if account_id.strip() in ["TopStepX Combine"]:
-            return "TopStepX Combine *4889"
-        return account_id
+        if "replay" in acct_lower:
+            return "Replay Trades"
+        if "paper purgatory" in acct_lower or "purgatory" in acct_lower:
+            return "Paper Purgatory"
+        if "paper futures" in acct_lower:
+            return "TradingView Paper Futures"
+        if "paper stocks" in acct_lower:
+            return "TradingView Paper Stocks"
+            
+        return acct_str
 
     @classmethod
     def get_activities(cls, account_id: str) -> List[Dict[str, Any]]:
@@ -791,7 +819,12 @@ class BrokerageCache:
 
     @classmethod
     def get_futures_multiplier(cls, symbol: str) -> float:
-        sym = symbol.upper().replace('/', '').replace('*', '')
+        import re
+        sym = symbol.upper().replace('/', '').replace('*', '').strip()
+        if ":" in sym:
+            sym = sym.split(":")[-1].strip()
+        sym = re.sub(r'!\d*$', '', sym)
+        sym = re.sub(r'[FGHJKMNQUVXZ]\d{1,4}$', '', sym)
         while sym and sym[-1].isdigit():
             sym = sym[:-1]
         if sym.endswith('!'):
@@ -833,8 +866,23 @@ class BrokerageCache:
         explicit_closed = cls.get_closed_positions(account_id)
         if explicit_closed:
             filtered = []
+            from datetime import datetime as dt_cls
+            from zoneinfo import ZoneInfo
+            ny_tz = ZoneInfo("America/New_York")
+            
             for t in explicit_closed:
-                c_date = (t.get("close_date") or t.get("trade_date") or "")[:10]
+                c_date_raw = t.get("close_date") or t.get("trade_date") or ""
+                c_date = ""
+                if c_date_raw:
+                    try:
+                        if "Z" in c_date_raw:
+                            dt_utc = dt_cls.fromisoformat(c_date_raw.replace("Z", "+00:00"))
+                        else:
+                            dt_utc = dt_cls.fromisoformat(c_date_raw)
+                        c_date = dt_utc.astimezone(ny_tz).strftime("%Y-%m-%d")
+                    except Exception:
+                        c_date = c_date_raw[:10]
+                        
                 if start_date <= c_date <= end_date:
                     filtered.append(t)
             grouped = cls.group_closed_trades(filtered, max_time_gap_seconds=30)

@@ -405,6 +405,111 @@ def parse_tradingview_paper_trading(csv_path: str):
     return res
 
 
+def parse_tradingview_replay_report(csv_path: str):
+    if not os.path.exists(csv_path):
+        return {}
+
+    filename = os.path.basename(csv_path)
+    sym = "/MES"
+    sym_match = re.search(r'([A-Z0-9]{2,6}!?)', filename.upper())
+    if sym_match:
+        raw_sym = sym_match.group(1).rstrip("!")
+        while raw_sym and raw_sym[-1].isdigit():
+            raw_sym = raw_sym[:-1]
+        if raw_sym:
+            sym = f"/{raw_sym}" if not raw_sym.startswith("/") else raw_sym
+
+    activities = []
+    trades_by_num = {}
+
+    with open(csv_path, "r", encoding="utf-8-sig", errors="ignore") as f:
+        reader = list(csv.DictReader(f))
+
+    for row in reader:
+        trade_num = (row.get("Trade number") or row.get("Trade #") or "").strip()
+        t_type = (row.get("Type") or "").strip().lower()
+        dt_str = (row.get("Date and time") or row.get("Date/Time") or row.get("Time") or "").strip()
+        price_str = (row.get("Price USD") or row.get("Price") or "0").replace(',', '')
+        qty_str = (row.get("Size (qty)") or row.get("Quantity") or row.get("Size") or "0").replace(',', '')
+        pnl_str = (row.get("Net PnL USD") or row.get("Net PnL") or row.get("PnL") or "0").replace(',', '')
+        comm_str = (row.get("Commission USD") or row.get("Commission") or "0").replace(',', '')
+
+        try:
+            price = float(price_str)
+            qty = float(qty_str)
+            pnl = float(pnl_str)
+            comm = float(comm_str)
+        except Exception:
+            continue
+
+        if qty <= 0:
+            continue
+
+        iso_time = dt_str
+        try:
+            if " " in dt_str:
+                dt_obj = datetime.datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+            else:
+                dt_obj = datetime.datetime.strptime(dt_str, "%Y-%m-%d")
+            iso_time = dt_obj.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        except Exception:
+            pass
+
+        is_entry = "entry" in t_type
+        is_short = "short" in t_type
+
+        if (is_entry and not is_short) or (not is_entry and is_short):
+            action = "BUY"
+        else:
+            action = "SELL"
+
+        act_id = f"REPLAY-{sym}-{iso_time}-{trade_num}-{action}".replace(":", "").replace(" ", "-")
+        activities.append({
+            "id": act_id,
+            "type": action,
+            "units": qty,
+            "price": price,
+            "trade_date": iso_time,
+            "fee": comm,
+            "status": "Executed",
+            "symbol": {"symbol": sym}
+        })
+
+        if trade_num:
+            if trade_num not in trades_by_num:
+                trades_by_num[trade_num] = {}
+            if is_entry:
+                trades_by_num[trade_num]["entry"] = {"price": price, "date": iso_time, "qty": qty, "is_short": is_short}
+            else:
+                trades_by_num[trade_num]["exit"] = {"price": price, "date": iso_time, "pnl": pnl, "comm": comm}
+
+    closed_positions = []
+    for t_num, t_data in trades_by_num.items():
+        entry = t_data.get("entry")
+        exit_data = t_data.get("exit")
+        if entry and exit_data:
+            is_short = entry.get("is_short", False)
+            buy_price = exit_data["price"] if is_short else entry["price"]
+            sell_price = entry["price"] if is_short else exit_data["price"]
+            closed_positions.append({
+                "symbol": sym,
+                "open_date": entry["date"],
+                "close_date": exit_data["date"],
+                "qty": entry["qty"],
+                "buy_price": buy_price,
+                "sell_price": sell_price,
+                "pnl": round(exit_data["pnl"], 2),
+                "fees": round(exit_data.get("comm", 0), 2),
+                "direction": "Short" if is_short else "Long"
+            })
+
+    target_acct = "Replay Trades"
+    return {
+        "activities": {target_acct: activities},
+        "closed_positions": {target_acct: closed_positions}
+    }
+
+
 def parse_topstepx_trades(csv_path: str):
     if not os.path.exists(csv_path):
         return {}
@@ -424,8 +529,12 @@ def parse_topstepx_trades(csv_path: str):
         default_account = "TopStepX Combine *7085"
     elif "1299" in full_search_text:
         default_account = "TopStepX Combine *1299"
-    else:
-        default_account = "TopStepX Express *7328"
+    elif "5496" in full_search_text:
+        default_account = "TopStepX Combine *5496"
+    elif "2210" in full_search_text:
+        default_account = "TopStepX Express *2210"
+    elif any(k in full_search_text for k in ["topstep", "trades_export"]):
+        default_account = "TopStepX Express *2210"
 
     activities_by_account = {}
     closed_positions_by_account = {}
@@ -443,10 +552,14 @@ def parse_topstepx_trades(csv_path: str):
             target_account = "TopStepX Combine *7085"
         elif "1299" in row_acct_raw:
             target_account = "TopStepX Combine *1299"
+        elif "5496" in row_acct_raw:
+            target_account = "TopStepX Combine *5496"
+        elif "2210" in row_acct_raw:
+            target_account = "TopStepX Express *2210"
         else:
             target_account = default_account
 
-        # Mandatory rule: Do not process topstep csv files that do not contain at least the last 4 digits of account num
+        # Mandatory rule: Do not process topstep csv files that do not contain valid account target
         if not target_account:
             continue
 
@@ -562,8 +675,8 @@ def parse_topstepx_trades(csv_path: str):
         })
 
     if not activities_by_account:
-        logger.warning(
-            f"Rejecting TopStep CSV {csv_path}: File does not contain at least the last 4 digits of a valid TopStep account number (7952 or 4889)."
+        logger.info(
+            f"TopStep CSV {csv_path}: File contains 0 trade executions or header-only content."
         )
         return {}
 
@@ -769,12 +882,18 @@ def process_dropzone_files(optional_path=None):
         search_target = os.path.normpath(file_path)
         parent_folder = os.path.basename(os.path.dirname(file_path)).lower()
 
-        if "7328" in parent_folder or "5972" in parent_folder or "7952" in parent_folder or "7925" in parent_folder or "50287952" in parent_folder:
+        if any(k in parent_folder for k in ["7328", "5972", "7952", "7925", "50287952"]):
             target_account = "TopStepX Express *7328"
-        elif "7085" in parent_folder or "4889" in parent_folder or "81134889" in parent_folder:
+        elif any(k in parent_folder for k in ["7085", "4889", "81134889"]):
             target_account = "TopStepX Combine *7085"
         elif "1299" in parent_folder:
             target_account = "TopStepX Combine *1299"
+        elif "5496" in parent_folder:
+            target_account = "TopStepX Combine *5496"
+        elif "2210" in parent_folder:
+            target_account = "TopStepX Express *2210"
+        elif "topstep" in parent_folder:
+            target_account = "TopStepX Express *2210"
         else:
             for acct, pattern in dropzone_accounts.items():
                 try:
@@ -784,6 +903,37 @@ def process_dropzone_files(optional_path=None):
                 except Exception as e:
                     logger.error(f"Invalid regex '{pattern}' for account '{acct}': {e}")
                 
+        # Replay Trading Dropzone Ingestion Guard
+        is_replay_trading = False
+        replay_date_override = None
+        if any(k in lower_name for k in ["replay trading", "replay_trading", "replay"]) or \
+           any(k in search_target.lower() for k in ["replay trading", "replay_trading"]):
+            is_replay_trading = True
+        elif os.path.isfile(file_path):
+            try:
+                with open(file_path, "r", encoding="utf-8-sig", errors="ignore") as f_chk:
+                    head_txt = f_chk.read(2048).lower()
+                    if "replay trading" in head_txt or "replay_trading" in head_txt:
+                        is_replay_trading = True
+            except Exception:
+                pass
+
+        if is_replay_trading:
+            date_match = re.search(r'(\d{4}[-_\.]\d{2}[-_\.]\d{2})|(\d{2}[-_\.]\d{2}[-_\.]\d{4})', filename)
+            if date_match:
+                raw_d = date_match.group(0).replace('_', '-').replace('.', '-')
+                try:
+                    if len(raw_d.split('-')[0]) == 4:
+                        dt_obj = datetime.datetime.strptime(raw_d, "%Y-%m-%d")
+                    else:
+                        dt_obj = datetime.datetime.strptime(raw_d, "%m-%d-%Y")
+                    replay_date_override = dt_obj.strftime("%Y-%m-%d")
+                except Exception:
+                    pass
+
+            # Unified account for Replay Trades (supports both futures and equities)
+            target_account = "Replay Trades"
+
         # Header fallback for TopStepX CSV exports
         if not target_account and os.path.isfile(file_path):
             try:
@@ -811,7 +961,84 @@ def process_dropzone_files(optional_path=None):
         file_type_label = ""
         paper_prefix = ""
         
-        if "topstep" in target_account.lower() or "topstep" in lower_name or "topstep" in search_target.lower():
+        if is_replay_trading:
+            paper_prefix = "REPLAY_"
+            check_and_backup_dropzone_file(file_path, prefix=paper_prefix)
+            
+            is_topstep_fmt = False
+            try:
+                with open(file_path, "r", encoding="utf-8-sig", errors="ignore") as f_fmt:
+                    line = f_fmt.readline()
+                    if "ContractName" in line or "EnteredAt" in line:
+                        is_topstep_fmt = True
+            except Exception:
+                pass
+
+            if is_topstep_fmt:
+                raw_parsed = parse_topstepx_trades(file_path)
+                parsed_data = {}
+                if isinstance(raw_parsed, dict):
+                    acts = raw_parsed.get("activities", {})
+                    cls_pos = raw_parsed.get("closed_positions", {})
+                    all_acts = []
+                    for data_list in acts.values():
+                        all_acts.extend(data_list)
+                    all_cls = []
+                    for data_list in cls_pos.values():
+                        all_cls.extend(data_list)
+                    parsed_data = {
+                        "activities": {target_account: all_acts},
+                        "closed_positions": {target_account: all_cls}
+                    }
+            else:
+                is_strategy_report = False
+                try:
+                    with open(file_path, "r", encoding="utf-8-sig", errors="ignore") as f_rpt:
+                        hdr = f_rpt.readline()
+                        if "Trade number" in hdr or "Trade #" in hdr or "Net PnL" in hdr or "Favorable excursion" in hdr:
+                            is_strategy_report = True
+                except Exception:
+                    pass
+
+                if is_strategy_report:
+                    parsed_data = parse_tradingview_replay_report(file_path)
+                else:
+                    raw_parsed = parse_tradingview_paper_trading(file_path)
+                    all_acts = []
+                    if isinstance(raw_parsed, dict):
+                        for data_list in raw_parsed.values():
+                            all_acts.extend(data_list)
+                    parsed_data = {target_account: all_acts}
+                
+            file_type_label = f"Replay Trading ({target_account})"
+
+            # Only rebind dates if the parsed trades do not already contain explicit replay row timestamps
+            if replay_date_override and parsed_data and not is_strategy_report:
+                def rebind_dates(item_list):
+                    for item in item_list:
+                        if isinstance(item, dict):
+                            for d_key in ["trade_date", "close_date", "open_date"]:
+                                if d_key in item and item[d_key]:
+                                    val = str(item[d_key])
+                                    t_part = "09:30:00.000Z"
+                                    if "T" in val:
+                                        t_part = val.split("T")[-1]
+                                    elif " " in val:
+                                        t_part = val.split(" ")[-1]
+                                    item[d_key] = f"{replay_date_override}T{t_part}"
+
+                if "activities" in parsed_data:
+                    for acct, act_list in parsed_data["activities"].items():
+                        rebind_dates(act_list)
+                if "closed_positions" in parsed_data:
+                    for acct, pos_list in parsed_data["closed_positions"].items():
+                        rebind_dates(pos_list)
+                if isinstance(parsed_data, dict):
+                    for acct, act_list in parsed_data.items():
+                        if isinstance(act_list, list):
+                            rebind_dates(act_list)
+
+        elif "topstep" in target_account.lower() or "topstep" in lower_name or "topstep" in search_target.lower():
             paper_prefix = "TOPSTEP_"
             check_and_backup_dropzone_file(file_path, prefix=paper_prefix)
             parsed_data = parse_topstepx_trades(file_path)

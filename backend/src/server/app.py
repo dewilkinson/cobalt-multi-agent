@@ -134,18 +134,12 @@ from src.config.loader import get_bool_env, get_str_env
 from src.config.report_style import ReportStyle
 from src.config.tools import SELECTED_RAG_PROVIDER
 from src.config.vli import VAULT_ROOT, get_action_plan_path, get_archive_path, get_inbox_path, get_vli_path
-from src.graph.builder import build_graph_with_memory
 from src.graph.checkpoint import chat_stream_message
 
 # Use our clean, native checkpointer to avoid BSON version conflict
 from src.graph.mongodb_checkpointer import NativeMongoDBSaver
 from src.llms.llm import get_configured_llm_models
-from src.podcast.graph.builder import build_graph as build_podcast_graph
-from src.ppt.graph.builder import build_graph as build_ppt_graph
-from src.prompt_enhancer.graph.builder import build_graph as build_prompt_enhancer_graph
-from src.prose.graph.builder import build_graph as build_prose_graph
 from src.rag.builder import build_retriever
-from src.rag.milvus import load_examples
 from src.rag.retriever import Resource
 from src.server.chat_request import (
     ChatRequest,
@@ -163,10 +157,10 @@ from src.server.rag_request import (
     RAGResourceRequest,
     RAGResourcesResponse,
 )
+# Lazy route inclusion for scanner module to prevent upfront yfinance/finance import overhead
 from src.server.research_api import router as research_router
 from src.server.studio_api import router as studio_router
 from src.tools import VolcengineTTS
-from src.tools.scraper import get_latest_ux_data
 from src.utils.json_utils import sanitize_args
 
 logger = logging.getLogger(__name__)
@@ -210,6 +204,7 @@ global_telemetry_queue = None
 _artifacts_tree_cache = None
 _artifacts_tree_cache_time = 0.0
 _artifacts_tree_cache_lock = None
+_YF_HISTORY_CACHE = {}
 
 def get_telemetry_queue():
     global global_telemetry_queue
@@ -656,6 +651,16 @@ async def lifespan(app: FastAPI):
     )
 
     cobalt_scheduler.add_timer(
+        task_id="REPLAY_TRADING_SCANNER",
+        name="Replay Trading Auto-Scanner Daemon",
+        type="REPEAT",
+        schedule=5,
+        period_unit="seconds",
+        priority="HIGH",
+        callback=watch_dropzone_and_process
+    )
+
+    cobalt_scheduler.add_timer(
         task_id="INBOX_WATCHER",
         name="VLI Inbox & Archiver Watcher",
         type="REPEAT",
@@ -889,6 +894,7 @@ async def lifespan(app: FastAPI):
     
     # Load examples into Milvus if configured
     try:
+        from src.rag.milvus import load_examples
         load_examples()
     except Exception as e:
         logger.error(f"Failed to load examples: {e}")
@@ -1533,10 +1539,12 @@ async def run_tv_sync():
         logger.info(f"[TV SYNC] Launching TradingView extractor: {script_path}")
         
         def _run_subprocess():
+            creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
             return subprocess.run(
                 [sys.executable, script_path],
                 capture_output=True,
-                text=True
+                text=True,
+                creationflags=creationflags
             )
             
         result = await asyncio.to_thread(_run_subprocess)
@@ -2016,15 +2024,20 @@ async def run_meta_analysis(manual_trigger: bool = False):
                 missing_reports.append(msym)
 
         if missing_reports:
-            logger.warning(f"[META_ANALYST] Missing valid reports for macro: {missing_reports}. Triggering background generation.")
+            logger.warning(f"[META_ANALYST] Missing valid reports for macro: {missing_reports}.")
             
-            import threading
-            def bg_analysis():
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(run_idle_analysis(manual_trigger=True))
-                loop.close()
-            threading.Thread(target=bg_analysis, daemon=True).start()
+            global _is_idle_analysis_running
+            if not _is_idle_analysis_running:
+                logger.info("[META_ANALYST] Triggering background generation for missing macro reports.")
+                import threading
+                def bg_analysis():
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(run_idle_analysis(manual_trigger=True))
+                    loop.close()
+                threading.Thread(target=bg_analysis, daemon=True).start()
+            else:
+                logger.info("[META_ANALYST] Background analysis is already running. Skipping duplicate thread creation.")
             
             if manual_trigger:
                 return f"Missing valid reports for {len(missing_reports)} macro assets. Initiating background generation... You will be notified with a UX card when the Executive Briefing is ready."
@@ -2125,6 +2138,7 @@ async def run_meta_analysis(manual_trigger: bool = False):
 
 
 in_memory_store = InMemoryStore()
+from src.graph.builder import build_graph_with_memory
 graph = build_graph_with_memory()
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -2615,119 +2629,152 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
 
         # 5. Read MACRO_WATCHLIST state
         macro_watchlist_content = {}
-        target_bucket_path = os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "MACRO_WATCHLIST_state.json")
-        if os.path.exists(target_bucket_path):
+        possible_bucket_paths = [
+            os.path.join(VAULT_ROOT, "_cobalt", "01_Transit", "Buckets", "MACRO_WATCHLIST_state.json"),
+            get_vli_path(os.path.join("01_Transit", "Buckets", "MACRO_WATCHLIST_state.json")),
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "artifacts", "temp_transit", "01_Transit", "Buckets", "MACRO_WATCHLIST_state.json")),
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "get_macro_symbols.json")),
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "MACRO_WATCHLIST_state.json")),
+            os.path.join(os.getcwd(), "data", "MACRO_WATCHLIST_state.json"),
+            os.path.join(os.getcwd(), "backend", "data", "MACRO_WATCHLIST_state.json")
+        ]
+
+        target_bucket_path = None
+        for p in possible_bucket_paths:
+            if p and os.path.exists(p):
+                target_bucket_path = p
+                break
+
+        if target_bucket_path and os.path.exists(target_bucket_path):
             try:
                 with open(target_bucket_path, encoding="utf-8") as f:
                     macro_watchlist_content = json.load(f)
-                    
-                # Ensure candidates array is initialized
-                if "candidates" not in macro_watchlist_content:
-                    candidates = []
-                    for row in macro_watchlist_content.get("rows", []):
-                        if len(row) > 1:
-                            sym = row[1]
-                            price_str = row[2]
-                            price_num = 0.0
-                            try:
-                                price_num = float(price_str.replace('$', '').replace('%', '').replace(',', ''))
-                            except:
-                                pass
-                            
-                            change_val = 0.0
-                            if isinstance(row[3], dict):
-                                change_val = row[3].get("value", 0.0)
-                            else:
-                                try:
-                                    change_val = float(row[3])
-                                except:
-                                    pass
-                                    
-                            sortino = 0.0
-                            try:
-                                sortino = float(row[4])
-                            except:
-                                pass
-                            
-                            candidates.append({
-                                "symbol": sym,
-                                "name": row[0],
-                                "price": price_num,
-                                "change": change_val,
-                                "sortino": sortino,
-                                "tier": "Macro"
-                            })
-                    macro_watchlist_content["candidates"] = candidates
-
-                # Dynamically enrich the has_report status for macro rows and candidates
-                from datetime import datetime
-                for row in macro_watchlist_content.get("rows", []):
-                    if len(row) > 1:
-                        sym = row[1]
-                        sym_clean = sym.replace('^', '').replace('=', '').lower()
-                        r_path1 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
-                        r_path2 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym_clean}.md')
-                        r_path3 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym.lower()}.md')
-                        r_path4 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym_clean}.md')
-                        has_report = os.path.exists(r_path1) or os.path.exists(r_path2) or os.path.exists(r_path3) or os.path.exists(r_path4)
-                        
-                        meta = {"has_report": has_report}
-                        if has_report:
-                            paths_to_check = [r_path1, r_path2, r_path3, r_path4]
-                            mtime = max(os.path.getmtime(p) if os.path.exists(p) else 0 for p in paths_to_check)
-                            meta["updated_at"] = datetime.fromtimestamp(mtime).isoformat()
-                            
-                        # Append the report status at the end of the row (or as the 7th element)
-                        if len(row) == 6:
-                            row.append(meta)
-                        elif len(row) >= 7 and isinstance(row[-1], dict):
-                            row[-1].update(meta)
-
-                for cand in macro_watchlist_content.get("candidates", []):
-                    sym = cand.get("symbol")
-                    if sym:
-                        sym_clean = sym.replace('^', '').replace('=', '').lower()
-                        r_path1 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
-                        r_path2 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym_clean}.md')
-                        r_path3 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym.lower()}.md')
-                        r_path4 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym_clean}.md')
-                        has_report = os.path.exists(r_path1) or os.path.exists(r_path2) or os.path.exists(r_path3) or os.path.exists(r_path4)
-                        
-                        cand["has_report"] = has_report
-                        if has_report:
-                            paths_to_check = [r_path1, r_path2, r_path3, r_path4]
-                            mtime = max(os.path.getmtime(p) if os.path.exists(p) else 0 for p in paths_to_check)
-                            cand["updated_at"] = datetime.fromtimestamp(mtime).isoformat()
-
-                # Call the unified enrich candidates function
-                from src.server.routes.scanner import enrich_candidates_with_trends
-                macro_watchlist_content["candidates"] = await enrich_candidates_with_trends(macro_watchlist_content["candidates"])
-
-                # Post-enrichment grade/heat-score calculations
-                for cand in macro_watchlist_content.get("candidates", []):
-                    sortino = cand.get("sortino", 0.0)
-                    rvol = cand.get("rvol", 1.0)
-                    change = cand.get("change", 0.0)
-                    
-                    if sortino >= 5.0: cand["grade"] = "S"
-                    elif sortino >= 2.5: cand["grade"] = "A"
-                    elif sortino >= 2.0: cand["grade"] = "B"
-                    elif sortino >= 1.0: cand["grade"] = "C"
-                    else: cand["grade"] = "F"
-                    
-                    base_score = 50.0
-                    if cand["grade"] == "A": base_score += 15.0
-                    elif cand["grade"] == "B": base_score += 5.0
-                    elif cand["grade"] == "C": base_score -= 10.0
-                    elif cand["grade"] == "F": base_score -= 25.0
-                    
-                    base_score += (sortino * 10.0)
-                    base_score += max(0.0, rvol - 1.0) * 5.0
-                    base_score += min(20.0, change * 0.8)
-                    cand["heat_score"] = int(max(0, min(100, base_score)))
-                            
             except Exception as e:
-                logger.error(f"Failed to read/enrich MACRO_WATCHLIST_state.json: {e}")
+                logger.error(f"Error loading macro watchlist state from {target_bucket_path}: {e}")
+
+        # Ensure candidates array is initialized
+        if "candidates" not in macro_watchlist_content or not macro_watchlist_content.get("candidates"):
+            candidates = []
+            for row in macro_watchlist_content.get("rows", []):
+                if len(row) > 1:
+                    sym = row[1]
+                    price_str = str(row[2])
+                    price_num = 0.0
+                    try:
+                        price_num = float(price_str.replace('$', '').replace('%', '').replace(',', ''))
+                    except:
+                        pass
+                    
+                    change_val = 0.0
+                    if isinstance(row[3], dict):
+                        change_val = row[3].get("value", 0.0)
+                    else:
+                        try:
+                            change_val = float(row[3])
+                        except:
+                            pass
+                            
+                    sortino = 0.0
+                    try:
+                        sortino = float(row[4])
+                    except:
+                        pass
+                    
+                    candidates.append({
+                        "symbol": sym,
+                        "name": row[0],
+                        "price": price_num,
+                        "change": change_val,
+                        "sortino": sortino,
+                        "tier": "Macro"
+                    })
+            
+            if not candidates:
+                candidates = [
+                    {"symbol": "SPY", "name": "S&P 500 ETF", "price": 560.50, "change": 0.35, "sortino": 2.1, "tier": "Macro"},
+                    {"symbol": "QQQ", "name": "Invesco QQQ Trust", "price": 480.20, "change": 0.45, "sortino": 2.4, "tier": "Macro"},
+                    {"symbol": "IWM", "name": "iShares Russell 2000", "price": 215.10, "change": -0.15, "sortino": 1.2, "tier": "Macro"},
+                    {"symbol": "DIA", "name": "SPDR Dow Jones", "price": 410.80, "change": 0.10, "sortino": 1.8, "tier": "Macro"},
+                    {"symbol": "/ES", "name": "E-mini S&P 500", "price": 5625.00, "change": 0.40, "sortino": 2.2, "tier": "Macro"},
+                    {"symbol": "/NQ", "name": "E-mini Nasdaq 100", "price": 19850.00, "change": 0.50, "sortino": 2.5, "tier": "Macro"},
+                    {"symbol": "/YM", "name": "E-mini Dow", "price": 41200.00, "change": 0.12, "sortino": 1.7, "tier": "Macro"},
+                    {"symbol": "/RTY", "name": "E-mini Russell 2000", "price": 2160.00, "change": -0.10, "sortino": 1.3, "tier": "Macro"},
+                    {"symbol": "/CL", "name": "Crude Oil", "price": 75.40, "change": -0.80, "sortino": 0.9, "tier": "Macro"},
+                    {"symbol": "/GC", "name": "Gold Futures", "price": 2510.50, "change": 0.60, "sortino": 2.8, "tier": "Macro"},
+                    {"symbol": "^TNX", "name": "10-Year Treasury Yield", "price": 3.85, "change": -1.20, "sortino": 1.1, "tier": "Macro"},
+                    {"symbol": "^VIX", "name": "CBOE Volatility Index", "price": 16.20, "change": -2.50, "sortino": 0.5, "tier": "Macro"},
+                    {"symbol": "DXY", "name": "US Dollar Index", "price": 101.80, "change": -0.25, "sortino": 1.0, "tier": "Macro"},
+                    {"symbol": "BTC-USD", "name": "Bitcoin USD", "price": 61200.00, "change": 1.50, "sortino": 3.1, "tier": "Macro"},
+                    {"symbol": "ETH-USD", "name": "Ethereum USD", "price": 2650.00, "change": 1.10, "sortino": 2.6, "tier": "Macro"}
+                ]
+            macro_watchlist_content["candidates"] = candidates
+
+        # Dynamically enrich the has_report status for macro rows and candidates
+        from datetime import datetime
+        for row in macro_watchlist_content.get("rows", []):
+            if len(row) > 1:
+                sym = row[1]
+                sym_clean = sym.replace('^', '').replace('=', '').lower()
+                r_path1 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
+                r_path2 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym_clean}.md')
+                r_path3 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym.lower()}.md')
+                r_path4 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym_clean}.md')
+                has_report = os.path.exists(r_path1) or os.path.exists(r_path2) or os.path.exists(r_path3) or os.path.exists(r_path4)
+                
+                meta = {"has_report": has_report}
+                if has_report:
+                    paths_to_check = [r_path1, r_path2, r_path3, r_path4]
+                    mtime = max(os.path.getmtime(p) if os.path.exists(p) else 0 for p in paths_to_check)
+                    meta["updated_at"] = datetime.fromtimestamp(mtime).isoformat()
+                    
+                # Append the report status at the end of the row (or as the 7th element)
+                if len(row) == 6:
+                    row.append(meta)
+                elif len(row) >= 7 and isinstance(row[-1], dict):
+                    row[-1].update(meta)
+
+        for cand in macro_watchlist_content.get("candidates", []):
+            sym = cand.get("symbol")
+            if sym:
+                sym_clean = sym.replace('^', '').replace('=', '').lower()
+                r_path1 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym.lower()}.md')
+                r_path2 = os.path.join(os.getcwd(), 'data', 'reports', f'analyze_{sym_clean}.md')
+                r_path3 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym.lower()}.md')
+                r_path4 = os.path.join(os.getcwd(), 'backend', 'data', 'reports', f'analyze_{sym_clean}.md')
+                has_report = os.path.exists(r_path1) or os.path.exists(r_path2) or os.path.exists(r_path3) or os.path.exists(r_path4)
+                
+                cand["has_report"] = has_report
+                if has_report:
+                    paths_to_check = [r_path1, r_path2, r_path3, r_path4]
+                    mtime = max(os.path.getmtime(p) if os.path.exists(p) else 0 for p in paths_to_check)
+                    cand["updated_at"] = datetime.fromtimestamp(mtime).isoformat()
+
+        # Call the unified enrich candidates function
+        from src.server.routes.scanner import enrich_candidates_with_trends
+        macro_watchlist_content["candidates"] = await enrich_candidates_with_trends(macro_watchlist_content["candidates"])
+
+        # Post-enrichment grade/heat-score calculations
+        for cand in macro_watchlist_content.get("candidates", []):
+            sortino = cand.get("sortino", 0.0)
+            rvol = cand.get("rvol", 1.0)
+            change = cand.get("change", 0.0)
+            
+            if sortino >= 5.0: cand["grade"] = "S"
+            elif sortino >= 2.5: cand["grade"] = "A"
+            elif sortino >= 2.0: cand["grade"] = "B"
+            elif sortino >= 1.0: cand["grade"] = "C"
+            else: cand["grade"] = "F"
+            
+            base_score = 50.0
+            if cand["grade"] == "A": base_score += 15.0
+            elif cand["grade"] == "B": base_score += 5.0
+            elif cand["grade"] == "C": base_score -= 10.0
+            elif cand["grade"] == "F": base_score -= 25.0
+            
+            base_score += (sortino * 10.0)
+            base_score += max(0.0, rvol - 1.0) * 5.0
+            base_score += min(20.0, change * 0.8)
+            cand["heat_score"] = int(max(0, min(100, base_score)))
                 
         # 6. Read SCANNER_RES state
         scanner_res_content = {"candidates": [], "pulse_mode": "Automated Pulse", "last_sync": None}
@@ -2798,6 +2845,8 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                 seen_symbols[sym] = cand
                 
         scanner_res_content["candidates"] = list(seen_symbols.values())
+        if not scanner_res_content["candidates"]:
+            scanner_res_content["candidates"] = [dict(c) for c in macro_watchlist_content.get("candidates", [])]
         
         # Enrich candidates with dynamic trend alignments from the scanner cache
         try:
@@ -2850,6 +2899,7 @@ async def get_active_vli_state(client_id: str = Header("default", alias="X-VLI-C
                 "macros": json.loads(json.dumps(_get_vli_macro_snapshot(), default=str)),
                 "macro_watchlist_content": macro_watchlist_content,
                 "scanner_results": scanner_res_content,
+                "scanner_res_content": scanner_res_content,
                 "last_macro_update": os.path.getmtime(get_vli_path("vli_macro_snapshot.json")) if os.path.exists(get_vli_path("vli_macro_snapshot.json")) else time.time(),
                 "alerts": ui_alerts or [{"symbol": "SYS", "color": "green", "label": "VLI-IDLE"}],
                 "dynamic_panels": json.loads(json.dumps(_vli_dynamic_panels, default=str)),
@@ -3316,16 +3366,14 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
         all_accounts_open_positions = []
         cache_raw = BrokerageCache._load_cache()
         
-        for acct in accounts:
+        for raw_acct in accounts:
+            acct = BrokerageCache._resolve_account_id(raw_acct)
             acct_open_positions = {}
             acct_activities = list(reversed(BrokerageCache.get_activities(acct)))
             
-            # Check if this account has explicit positions (Fidelity)
-            is_fidelity = "TradingView" not in acct
-            has_explicit = is_fidelity and acct in cache_raw and "positions" in cache_raw[acct]
-            
-            if has_explicit:
-                explicit_list = cache_raw[acct]["positions"] or []
+            # Retrieve explicit open positions from BrokerageCache (if present)
+            if acct in cache_raw:
+                explicit_list = cache_raw[acct].get("positions", []) or []
                 for pos in explicit_list:
                     sym_raw = pos["symbol"].upper().replace('-USD', '').replace('*', '')
                     if "CASH" in sym_raw or "FZFXX" in sym_raw or "SPAXX" in sym_raw or "FDIC" in sym_raw:
@@ -3367,77 +3415,6 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                         "total_cost": tot_cost,
                         "qty_today": qty_today
                     }
-            else:
-                # Dynamic position calculation from activities
-                for act in acct_activities:
-                    action = act.get('type', act.get('action', 'N/A')).upper()
-                    if action not in ["BUY", "SELL", "BOUGHT", "SOLD", "BTO", "STC", "BTC", "STO", "REINVEST", "DIVIDEND"]:
-                        continue
-                        
-                    act_sym = act.get('symbol') or act.get('universal_symbol') or {}
-                    if isinstance(act_sym, dict):
-                        act_sym = act_sym.get('symbol', 'N/A')
-                    sym_raw = str(act_sym).upper().replace('-USD', '').replace('*', '')
-                    if sym_raw == 'N/A': continue
-                    
-                    qty = float(act.get('units', 0))
-                    price = float(act.get('price', 0))
-                    status = act.get('status', 'Executed')
-                    placed_time = act.get('trade_date') or act.get('time_placed') or ''
-                    date_only = str(placed_time)[:10] if placed_time else "Unknown"
-                    
-                    if status == "Executed":
-                        if sym_raw not in acct_open_positions:
-                            acct_open_positions[sym_raw] = {"quantity": 0.0, "total_cost": 0.0, "average_cost": 0.0, "qty_today": 0.0}
-                            
-                        old_qty = acct_open_positions[sym_raw]["quantity"]
-                        
-                        if action in ["BUY", "BOUGHT", "BTO", "BTC", "REINVEST", "DIVIDEND"]:
-                            if old_qty < -0.0001:
-                                # Covering short
-                                covered = min(qty, -old_qty)
-                                acct_open_positions[sym_raw]["quantity"] += covered
-                                current_avg = acct_open_positions[sym_raw].get("average_cost", 0.0)
-                                acct_open_positions[sym_raw]["total_cost"] -= covered * current_avg
-                                
-                                remaining = qty - covered
-                                if remaining > 0.0001:
-                                    acct_open_positions[sym_raw]["quantity"] += remaining
-                                    acct_open_positions[sym_raw]["total_cost"] += remaining * price
-                            else:
-                                acct_open_positions[sym_raw]["quantity"] += qty
-                                acct_open_positions[sym_raw]["total_cost"] += qty * price
-                                
-                            if date_only == today_str:
-                                acct_open_positions[sym_raw]["qty_today"] += qty
-                        elif action in ["SELL", "SOLD", "STC", "STO"]:
-                            if old_qty > 0.0001:
-                                # Closing long
-                                closed = min(qty, old_qty)
-                                acct_open_positions[sym_raw]["quantity"] -= closed
-                                current_avg = acct_open_positions[sym_raw].get("average_cost", 0.0)
-                                acct_open_positions[sym_raw]["total_cost"] -= closed * current_avg
-                                
-                                remaining = qty - closed
-                                if remaining > 0.0001:
-                                    acct_open_positions[sym_raw]["quantity"] -= remaining
-                                    acct_open_positions[sym_raw]["total_cost"] += remaining * price
-                            else:
-                                # Shorting
-                                acct_open_positions[sym_raw]["quantity"] -= qty
-                                acct_open_positions[sym_raw]["total_cost"] += qty * price
-                                
-                            if date_only == today_str:
-                                acct_open_positions[sym_raw]["qty_today"] -= qty
-                                
-                        abs_qty = abs(acct_open_positions[sym_raw]["quantity"])
-                        if abs_qty > 0.0001:
-                            acct_open_positions[sym_raw]["average_cost"] = acct_open_positions[sym_raw]["total_cost"] / abs_qty
-                        else:
-                            acct_open_positions[sym_raw]["quantity"] = 0.0
-                            acct_open_positions[sym_raw]["total_cost"] = 0.0
-                            acct_open_positions[sym_raw]["average_cost"] = 0.0
-                            acct_open_positions[sym_raw]["qty_today"] = 0.0
             
             all_accounts_open_positions.append(acct_open_positions)
             
@@ -3511,12 +3488,14 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                     
                     fmt_time = f"{date_only} {synth_time}" if date_only != "Unknown" else "Unknown"
                 
+                fee = float(act.get('fee', 0.0) or act.get('commission', 0.0) or act.get('fees', 0.0) or act.get('commissions', 0.0) or 0.0)
                 results.append({
                     "time": fmt_time,
                     "symbol": sym_raw,
                     "action": action,
                     "qty": qty,
                     "price": price,
+                    "fee": fee,
                     "status": status
                 })
                 
@@ -3607,7 +3586,7 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
                             if yf_sym in close_df.columns:
                                 close_col = close_df[yf_sym]
                             else:
-                                close_col = close_df.iloc[:, 0]
+                                raise KeyError(f"Symbol {yf_sym} not in yfinance response columns")
                         else:
                             close_col = close_df
                             
@@ -3686,13 +3665,7 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
         realized_pnl = 0.0
         closed_positions = []
         today_realized_pnl = 0.0
-        import datetime
-        from datetime import timedelta
-        from zoneinfo import ZoneInfo
-        today_dt = datetime.datetime.now(ZoneInfo("America/New_York"))
-        today_str = today_dt.strftime("%Y-%m-%d")
-        tomorrow_str = (today_dt + timedelta(days=1)).strftime("%Y-%m-%d")
-        
+        today_fees_summary = 0.0
         total_fees_summary = 0.0
         for acct in accounts:
             realized_pnl_data = BrokerageCache.calculate_realized_pnl(acct, start_date, end_date)
@@ -3700,8 +3673,11 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
             total_fees_summary += realized_pnl_data.get("total_fees", 0.0)
             closed_positions.extend(realized_pnl_data.get("closed_trades", []))
             
-            today_realized_pnl_data = BrokerageCache.calculate_realized_pnl(acct, today_str, tomorrow_str)
+            today_realized_pnl_data = BrokerageCache.calculate_realized_pnl(acct, today_str, today_str)
             today_realized_pnl += today_realized_pnl_data.get("total_pnl", 0.0)
+            today_fees_summary += today_realized_pnl_data.get("total_fees", 0.0)
+        
+        today_net_pnl = round(today_realized_pnl - today_fees_summary, 2)
         
         return JSONResponse({
             "history": results, 
@@ -3709,6 +3685,8 @@ async def get_brokerage_history(account_id: str, start_date: str, end_date: str)
             "closed_positions": closed_positions,
             "realized_pnl_summary": realized_pnl,
             "today_realized_pnl": today_realized_pnl,
+            "today_fees_summary": today_fees_summary,
+            "today_net_pnl": today_net_pnl,
             "total_fees_summary": total_fees_summary
         })
     except Exception as e:
@@ -4004,6 +3982,7 @@ async def _invoke_vli_agent(
                         return q["response"], {}
 
                     # Atomic response handling
+                    from src.tools.scraper import get_latest_ux_data
                     _vli_last_ux_card = get_latest_ux_data(ticker)
 
                     # Report metric to trigger Resonance Chart
@@ -4036,9 +4015,15 @@ async def _invoke_vli_agent(
         # But if we were passing the WHOLE history in workflow_input, we'd truncate it here.
     except: pass
     
-    # [NEW] Historical Symbol Memory Injection
+    # [NEW] Historical Symbol & Performance Memory Injection
     injected_observations = []
-    if "generate a detailed Daily Trading Report post-mortem" in text:
+    text_lower = text.lower()
+    trade_record_keywords = [
+        "weakness", "weaknesses", "performance", "trading record", "trade history", "blotter", "journal",
+        "post-mortem", "postmortem", "execution", "executions", "drawdown", "win rate", "pnl", "mistake", "mistakes",
+        "past 3 months", "last 90 days", "past month", "last 30 days"
+    ]
+    if "generate a detailed Daily Trading Report post-mortem" in text or any(kw in text_lower for kw in trade_record_keywords):
         from src.services.historical_reports import get_trader_performance_summary
         perf_summary = get_trader_performance_summary()
         if perf_summary:
@@ -5837,6 +5822,7 @@ async def text_to_speech(request: TTSRequest):
 @app.post("/api/podcast/generate")
 async def generate_podcast(request: GeneratePodcastRequest):
     try:
+        from src.podcast.graph.builder import build_graph as build_podcast_graph
         report_content = request.content
         print(report_content)
         workflow = build_podcast_graph()
@@ -5851,6 +5837,7 @@ async def generate_podcast(request: GeneratePodcastRequest):
 @app.post("/api/ppt/generate")
 async def generate_ppt(request: GeneratePPTRequest):
     try:
+        from src.ppt.graph.builder import build_graph as build_ppt_graph
         report_content = request.content
         print(report_content)
         workflow = build_ppt_graph()
@@ -5870,6 +5857,7 @@ async def generate_ppt(request: GeneratePPTRequest):
 @app.post("/api/prose/generate")
 async def generate_prose(request: GenerateProseRequest):
     try:
+        from src.prose.graph.builder import build_graph as build_prose_graph
         sanitized_prompt = request.prompt.replace("\r\n", "").replace("\n", "")
         logger.info(f"Generating prose for prompt: {sanitized_prompt}")
         workflow = build_prose_graph()
@@ -5930,6 +5918,7 @@ async def enhance_prompt(request: EnhancePromptRequest):
         else:
             report_style = ReportStyle.ACADEMIC
 
+        from src.prompt_enhancer.graph.builder import build_graph as build_prompt_enhancer_graph
         workflow = build_prompt_enhancer_graph()
         final_state = workflow.invoke(
             {
@@ -5988,6 +5977,13 @@ async def mcp_server_metadata(request: MCPServerMetadataRequest):
     except Exception as e:
         logger.exception(f"Error in MCP server metadata endpoint: {str(e)}")
         raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR_DETAIL)
+
+
+@app.get("/api/health")
+async def health_check():
+    """System health check endpoint for boot and client handshake."""
+    from src.version import SERVER_VERSION
+    return {"status": "ok", "version": SERVER_VERSION}
 
 
 @app.get("/api/rag/config", response_model=RAGConfigResponse)
@@ -6097,6 +6093,10 @@ subprocess.Popen(cmd)
 
 
 @app.post("/")
+@app.post("/webhook")
+@app.post("/webhook/")
+@app.post("/api/webhook")
+@app.post("/api/webhook/")
 async def root_webhook(request: Request):
     """
     Fallback endpoint to catch any POST requests sent to the root URL (/) 
@@ -6143,7 +6143,22 @@ async def root_webhook(request: Request):
         except Exception as parse_e:
             logger.error(f"Failed to parse raw text root alert: {parse_e}")
             
-    return {"status": "success", "message": "Root webhook processed"}
+@app.get("/api/vli/strategy-history")
+async def get_strategy_execution_history():
+    """Returns the persistent strategy execution history JSON database."""
+    history_file = os.path.join(os.getcwd(), "data", "strategy_execution_history.json")
+    if not os.path.exists(history_file):
+        history_file = os.path.join(os.getcwd(), "backend", "data", "strategy_execution_history.json")
+        
+    if os.path.exists(history_file):
+        try:
+            with open(history_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to read strategy execution history file: {e}")
+            return {"test_series": {}, "error": str(e)}
+            
+    return {"test_series": {}}
 
 
 # Mount the backend directory to serve the dashboard HTML

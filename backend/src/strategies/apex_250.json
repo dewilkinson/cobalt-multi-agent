@@ -1,0 +1,21 @@
+{
+    "strategy_name": "Apex 250",
+    "price_min": 10.0,
+    "price_max": 250.0,
+    "market_cap_min": 300000000,
+    "market_cap_max": 5000000000,
+    "float_min": 10000000,
+    "float_max": 500000000,
+    "volume_hurdle": 50000,
+    "gap_min": -20.0,
+    "gap_max": 500.0,
+    "rvol_scout_min": 1.0,
+    "rvol_strike_min": 2.0,
+    "rvol_veto_max": 100.0,
+    "sortino_hurdle": 2.0,
+    "rs_hurdle": 90,
+    "retest_timeframes": ["1m", "5m"],
+    "retest_mode": "post_mss_retest",
+    "fib_rebound_range": [0.50, 0.618],
+    "fvg_stop_policy": "fibonacci_fvg_rebound_range"
+}

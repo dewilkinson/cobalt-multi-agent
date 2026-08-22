@@ -141,10 +141,10 @@ def _normalize_ticker(ticker: str) -> str:
     # Handle S&P 100 / Common Discrepancies (Dots to Hyphens)
     # e.g., BRK.B -> BRK-B, BF.B -> BF-B
     # EXCLUSION: DX-Y.NYB requires the dot to be preserved
-    if "." in t and t != "DX-Y.NYB":
-        return t.replace(".", "-")
+    if t.upper() in ["MGC", "MGC1!", "/MGC", "MGCZ2026", "MGCZ26", "/MGCZ2026", "/MGCZ26"]:
+        return "MGCZ26.CMX"
 
-    if t in ["ES", "MES", "NQ", "MNQ", "YM", "MYM", "RTY", "M2K", "CL", "MCL", "GC", "MGC", "NKD", "MNK"]:
+    if t in ["ES", "MES", "NQ", "MNQ", "YM", "MYM", "RTY", "M2K", "CL", "MCL", "GC", "NKD", "MNK"]:
         return t + "=F"
 
     return t
@@ -399,15 +399,17 @@ def _fetch_batch_history(tickers: list[str], period: str = "5d", interval: str =
                     )
                 yf_data = _do_yf_fallback()
                 if yf_data is not None and not yf_data.empty:
-                    if len(failed_tickers) == 1:
+                    if isinstance(yf_data.columns, pd.MultiIndex):
+                        for col in yf_data.columns:
+                            part1, part2 = str(col[0]), str(col[1])
+                            if part1 in failed_tickers:
+                                master_dict[(part2, part1)] = yf_data[col]
+                            elif part2 in failed_tickers:
+                                master_dict[(part1, part2)] = yf_data[col]
+                    elif len(failed_tickers) == 1:
                         t = failed_tickers[0]
                         for col in yf_data.columns:
                             master_dict[(col, t)] = yf_data[col]
-                    else:
-                        for t in failed_tickers:
-                            if t in yf_data:
-                                for col in yf_data[t].columns:
-                                    master_dict[(col, t)] = yf_data[t][col]
             except Exception as yfe:
                 logger.error(f"[AV FALLBACK] YFinance download failed for {failed_tickers}: {yfe}")
         # Standardize all indices to tz-naive to prevent TypeError: Cannot join tz-naive with tz-aware DatetimeIndex
@@ -1522,7 +1524,13 @@ async def get_macro_symbols(fast_update: bool = False) -> str:
 
             if ticker_df.empty:
                 results[label] = {"symbol": ticker, "status": "Error (No Data)"}
-                display_ticker = '/' + ticker.replace('=F', '') if ticker.endswith('=F') else ticker
+                if ticker.endswith('=F'):
+                    display_ticker = '/' + ticker.replace('=F', '')
+                elif ticker.endswith('.CMX') or label.upper() in ["MGC", "MGCZ2026", "ES", "MES", "NQ", "MNQ", "YM", "MYM", "RTY", "M2K", "CL", "MCL", "GC", "NKD", "MNK"]:
+                    clean_l = label.replace('/', '').replace('=F', '')
+                    display_ticker = '/' + clean_l
+                else:
+                    display_ticker = ticker
                 display_ticker_upper = display_ticker.upper()
                 if display_ticker_upper in existing_rows and display_ticker_upper in existing_candidates:
                     rows.append(existing_rows[display_ticker_upper])
@@ -1630,7 +1638,13 @@ async def get_macro_symbols(fast_update: bool = False) -> str:
             if display_name == label and label.upper() == "CL":
                 display_name = "WTI Crude Oil"
 
-            display_ticker = '/' + ticker.replace('=F', '') if ticker.endswith('=F') else ticker
+            if ticker.endswith('=F'):
+                display_ticker = '/' + ticker.replace('=F', '')
+            elif ticker.endswith('.CMX') or label.upper() in ["MGC", "MGCZ2026", "ES", "MES", "NQ", "MNQ", "YM", "MYM", "RTY", "M2K", "CL", "MCL", "GC", "NKD", "MNK"]:
+                clean_l = label.replace('/', '').replace('=F', '')
+                display_ticker = '/' + clean_l
+            else:
+                display_ticker = ticker
 
             rows.append([
                 display_name,

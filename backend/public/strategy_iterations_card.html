@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategy Backtest Iteration Matrix | Quantdesk UX Card</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #080c14;
+            --card-bg: rgba(13, 17, 24, 0.95);
+            --card-border: rgba(88, 166, 255, 0.18);
+            --header-bg: #111622;
+            --text-primary: #e6edf3;
+            --text-muted: #8b949e;
+            --accent-blue: #58a6ff;
+            --accent-cyan: #39c5bb;
+            --emerald-green: #3fb950;
+            --crimson-red: #f85149;
+            --amber-gold: #d29922;
+            --purple-glow: #bc8cff;
+            --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            padding: 16px;
+            font-size: 13px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        /* --- PORTFOLIO UX CARD CONTAINER --- */
+        .iteration-card {
+            width: 100%;
+            max-width: 1280px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(88, 166, 255, 0.05);
+            overflow: hidden;
+            backdrop-filter: blur(12px);
+        }
+
+        /* --- CARD TITLE BAR --- */
+        .card-header-bar {
+            height: 38px;
+            background: var(--header-bg);
+            border-bottom: 1px solid var(--card-border);
+            padding: 0 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--accent-blue);
+        }
+
+        .card-title-icon {
+            width: 18px;
+            height: 18px;
+            background: rgba(88, 166, 255, 0.15);
+            border: 1px solid var(--accent-blue);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-refresh {
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid var(--card-border);
+            color: var(--accent-blue);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-refresh:hover {
+            background: rgba(88, 166, 255, 0.25);
+            border-color: var(--accent-blue);
+        }
+
+        /* --- CONFIGURATION & FILTER CONTROL PANEL --- */
+        .config-panel {
+            background: rgba(17, 22, 34, 0.6);
+            border-bottom: 1px solid var(--card-border);
+            padding: 12px 16px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .inputs-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .vli-input, .vli-select {
+            background-color: #161b26;
+            border: 1px solid rgba(88, 166, 255, 0.25);
+            color: var(--text-primary);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            width: 100%;
+            transition: border-color 0.2s ease;
+        }
+
+        .vli-input:focus, .vli-select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 8px rgba(88, 166, 255, 0.3);
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 12px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-primary);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            accent-color: var(--accent-blue);
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+
+        /* --- ITERATION MATRIX TABLE --- */
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 520px;
+            overflow-y: auto;
+        }
+
+        .iteration-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            text-align: left;
+        }
+
+        .iteration-table th {
+            position: sticky;
+            top: 0;
+            background: #111622;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.6px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--card-border);
+            z-index: 10;
+        }
+
+        .iteration-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+        }
+
+        .iteration-table tbody tr {
+            transition: background-color 0.15s ease;
+        }
+
+        .iteration-table tbody tr:hover {
+            background-color: rgba(88, 166, 255, 0.06);
+        }
+
+        /* --- BADGES & STYLING --- */
+        .badge-run {
+            background: rgba(88, 166, 255, 0.15);
+            color: var(--accent-blue);
+            border: 1px solid rgba(88, 166, 255, 0.4);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .badge-mono-yes {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--emerald-green);
+            border: 1px solid rgba(63, 185, 80, 0.4);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .badge-mono-no {
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--crimson-red);
+            border: 1px solid rgba(248, 81, 73, 0.4);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .pnl-positive {
+            color: var(--emerald-green);
+            font-family: var(--font-mono);
+            font-weight: 700;
+        }
+
+        .pnl-negative {
+            color: var(--crimson-red);
+            font-family: var(--font-mono);
+            font-weight: 700;
+        }
+
+        .delta-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .delta-pos {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--emerald-green);
+            border: 1px solid rgba(63, 185, 80, 0.3);
+        }
+
+        .delta-neg {
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--crimson-red);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+        }
+
+        .mfe-warning {
+            color: var(--amber-gold);
+            font-weight: 600;
+        }
+
+        /* --- FOOTER STATUS BAR --- */
+        .card-footer {
+            height: 28px;
+            background: #111622;
+            border-top: 1px solid var(--card-border);
+            padding: 0 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--emerald-green);
+            box-shadow: 0 0 6px var(--emerald-green);
+            display: inline-block;
+            margin-right: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PORTFOLIO ITERATION MATRIX UX CARD -->
+    <div class="iteration-card">
+        
+        <!-- CARD HEADER BAR -->
+        <div class="card-header-bar">
+            <div class="card-title">
+                <div class="card-title-icon">⚡</div>
+                <span>Strategy Iteration Performance Matrix</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn-refresh" onclick="loadIterationData()">↻ Sync Dropzone</button>
+            </div>
+        </div>
+
+        <!-- CONFIGURATION & CONTROLS HEADER AREA -->
+        <div class="config-panel">
+            
+            <!-- 1. Strategy & Symbol Selectors -->
+            <div class="control-group">
+                <div class="control-label">🎯 Benchmark Symbol & Strategy</div>
+                <div class="inputs-row">
+                    <select id="selectSymbol" class="vli-select" onchange="filterData()">
+                        <option value="MGC1!" selected>MGC1! (Micro Gold)</option>
+                        <option value="MCL1!">MCL1! (Crude Oil)</option>
+                        <option value="MNQ1!">MNQ1! (Nasdaq 100)</option>
+                        <option value="MES1!">MES1! (S&P 500)</option>
+                        <option value="M2K1!">M2K1! (Russell 2000)</option>
+                        <option value="ALL">All Symbols</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 2. Test Configuration Parameters -->
+            <div class="control-group">
+                <div class="control-label">⚙️ Strategy Execution Parameters</div>
+                <div class="inputs-row">
+                    <input type="number" id="inputRisk" class="vli-input" placeholder="Risk $" value="50" title="Fixed Risk ($)">
+                    <input type="number" id="inputRR" class="vli-input" placeholder="R:R" value="2.0" step="0.1" title="Target R:R">
+                    <input type="number" id="inputRVOL" class="vli-input" placeholder="RVOL" value="1.5" step="0.1" title="RVOL Threshold">
+                </div>
+            </div>
+
+            <!-- 3. Session Window Gates -->
+            <div class="control-group">
+                <div class="control-label">🕒 Active Session Windows</div>
+                <div class="checkbox-grid">
+                    <label class="checkbox-label"><input type="checkbox" id="chkAsia" checked onchange="filterData()"> Asia (18:00-02:00)</label>
+                    <label class="checkbox-label"><input type="checkbox" id="chkLondon" checked onchange="filterData()"> London (02:00-08:00)</label>
+                    <label class="checkbox-label"><input type="checkbox" id="chkNY" checked onchange="filterData()"> NY (08:00-11:30)</label>
+                    <label class="checkbox-label"><input type="checkbox" id="chkNews" checked onchange="filterData()"> Tier-1 News Gate</label>
+                </div>
+            </div>
+
+            <!-- 4. Monotonic Sequence Validation -->
+            <div class="control-group">
+                <div class="control-label">⏱️ Sequence Validation</div>
+                <div class="checkbox-grid">
+                    <label class="checkbox-label" style="grid-column: span 2;">
+                        <input type="checkbox" id="chkMonotonic" checked onchange="filterData()">
+                        Strict Monotonic Time Check
+                    </label>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ITERATION DATA MATRIX -->
+        <div class="table-wrapper">
+            <table class="iteration-table">
+                <thead>
+                    <tr>
+                        <th>Run #</th>
+                        <th>Strategy & File Label</th>
+                        <th>Test Window</th>
+                        <th>Sequence</th>
+                        <th>Trades</th>
+                        <th>Win Rate</th>
+                        <th>Scratch</th>
+                        <th>Net P&L ($)</th>
+                        <th>Payoff R:R</th>
+                        <th>MFE Giveback</th>
+                        <th>Worst Hour</th>
+                        <th>Performance Delta vs Prior</th>
+                    </tr>
+                </thead>
+                <tbody id="iterationTableBody">
+                    <!-- Dynamic Iteration Rows Injected Here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- CARD FOOTER STATUS BAR -->
+        <div class="card-footer">
+            <div>
+                <span class="status-dot"></span>
+                <span>DATA PERSISTENCE: data/strategy_execution_history.json</span>
+            </div>
+            <div id="footerSummary">Showing 2 Iterations | Benchmark Series: MGC1!_2011-09_to_2026-06</div>
+        </div>
+
+    </div>
+
+    <!-- INLINE ENGINE SCRIPT -->
+    <script>
+        let rawData = {};
+
+        function renderTable(runs) {
+            const tbody = document.getElementById('iterationTableBody');
+            tbody.innerHTML = '';
+
+            let prevRun = null;
+
+            runs.forEach((r, idx) => {
+                const m = r.metrics;
+                const cfg = r.test_config;
+                const d = r.performance_delta || {};
+                const regs = r.regressions_logged || [];
+                const improvs = r.proposed_improvements || [];
+
+                const monoBadge = r.is_monotonic ? '<span class="badge-mono-yes">✅ MONOTONIC</span>' : '<span class="badge-mono-no">❌ NON-MONO</span>';
+                const pnlClass = m.net_pnl_usd >= 0 ? 'pnl-positive' : 'pnl-negative';
+                const formattedPnL = (m.net_pnl_usd >= 0 ? '+$' : '-$') + Math.abs(m.net_pnl_usd).toLocaleString('en-US', {minimumFractionDigits: 2});
+
+                // Delta & MOE calculation
+                let deltaHTML = '<span style="color: var(--text-muted); font-size: 11px;">— Baseline Run —</span>';
+                if (d.moe_score !== undefined) {
+                    const wrClass = d.delta_win_rate_pct >= 0 ? 'delta-pos' : 'delta-neg';
+                    const pnlDeltaClass = d.delta_net_pnl_usd >= 0 ? 'delta-pos' : 'delta-neg';
+
+                    const wrStr = (d.delta_win_rate_pct >= 0 ? '+' : '') + d.delta_win_rate_pct.toFixed(2) + '%';
+                    const pnlStr = (d.delta_net_pnl_usd >= 0 ? '+$' : '-$') + Math.abs(d.delta_net_pnl_usd).toFixed(2);
+                    const payoffStr = (d.delta_payoff_ratio >= 0 ? '+' : '') + d.delta_payoff_ratio.toFixed(2);
+
+                    const moeClass = d.moe_score > 5 ? 'delta-pos' : (d.moe_score >= 1 ? 'delta-pos' : 'delta-neg');
+
+                    let peakBadgeHTML = '';
+                    const tracker = r.series_pnl_tracker;
+                    if (tracker) {
+                        if (tracker.is_at_peak_profit) {
+                            peakBadgeHTML = `<div style="font-size: 10px; color: var(--emerald-green); font-weight: 700;">🏆 ALL-TIME PEAK PROFIT (+$${tracker.max_pnl_usd.toLocaleString()})</div>`;
+                        } else {
+                            peakBadgeHTML = `<div style="font-size: 10px; color: var(--crimson-red); font-weight: 600;">🔻 -$${Math.abs(tracker.distance_from_max_pnl_usd).toLocaleString()} (${tracker.drawdown_from_peak_pct}% from Peak Run #${tracker.peak_run_number})</div>`;
+                        }
+                    }
+
+                    deltaHTML = `
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <span class="delta-badge ${pnlDeltaClass}">${pnlStr} PnL</span>
+                                <span class="delta-badge ${wrClass}">${wrStr} WR</span>
+                                <span class="delta-badge ${d.delta_payoff_ratio >= 0 ? 'delta-pos' : 'delta-neg'}">${payoffStr} R:R</span>
+                            </div>
+                            <div style="font-size: 10px; color: var(--accent-cyan); font-family: var(--font-mono);">
+                                📐 MOE: <span class="delta-badge ${moeClass}">${d.moe_score} R/param</span> [${d.moe_status}]
+                            </div>
+                            ${peakBadgeHTML}
+                        </div>
+                    `;
+                }
+
+                // Regressions HTML
+                let regHTML = '<span style="color: var(--emerald-green); font-size: 10px;">✅ None</span>';
+                if (regs.length > 0) {
+                    regHTML = regs.map(rg => `<div style="color: var(--crimson-red); font-size: 10px;">⚠️ ${rg.metric} (${rg.delta}): ${rg.cause}</div>`).join('');
+                }
+
+                // Proposed Improvements HTML
+                let impHTML = improvs.map(imp => `<div style="font-size: 10px; color: var(--text-primary);">• <b>${imp.action}</b> (${imp.status})</div>`).join('');
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="badge-run">#${r.run_number}</span></td>
+                    <td>
+                        <div style="font-weight: 600;">${r.strategy_name || 'Dual-Session Vector (DSV)'}</div>
+                        <div style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);">${r.filename}</div>
+                    </td>
+                    <td>
+                        <div style="font-family: var(--font-mono); font-size: 11px;">${cfg.start_date.substring(0, 10)} ➔ ${cfg.end_date.substring(0, 10)}</div>
+                        <div style="font-size: 10px; color: var(--text-muted);">${cfg.days_span} Days</div>
+                    </td>
+                    <td>${monoBadge}</td>
+                    <td style="font-family: var(--font-mono); font-weight: 600;">${m.total_trades}</td>
+                    <td style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-cyan);">${m.win_rate_pct}%</td>
+                    <td style="font-family: var(--font-mono); color: var(--text-muted);">${m.scratch_rate_pct}%</td>
+                    <td class="${pnlClass}">${formattedPnL}</td>
+                    <td style="font-family: var(--font-mono); font-weight: 600;">${m.payoff_ratio}</td>
+                    <td class="mfe-warning" style="font-family: var(--font-mono);">${m.mfe_giveback_pct}%</td>
+                    <td style="font-size: 11px; color: var(--text-muted);">${m.worst_hour}</td>
+                    <td>${deltaHTML}</td>
+                `;
+                tbody.appendChild(tr);
+                prevRun = r;
+            });
+        }
+
+        function filterData() {
+            const sym = document.getElementById('selectSymbol').value;
+            const strictMono = document.getElementById('chkMonotonic').checked;
+
+            let seriesKey = "MGC1!_2011-09_to_2026-06";
+            let runs = [];
+            
+            if (rawData.test_series && rawData.test_series[seriesKey]) {
+                runs = rawData.test_series[seriesKey];
+            } else if (rawData[seriesKey]) {
+                runs = rawData[seriesKey];
+            }
+
+            if (strictMono) {
+                runs = runs.filter(r => r.is_monotonic);
+            }
+
+            renderTable(runs);
+            document.getElementById('footerSummary').innerText = `Showing ${runs.length} Iterations | Benchmark Series: ${seriesKey}`;
+        }
+
+        function loadIterationData() {
+            fetch('/api/vli/strategy-history')
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Fetched strategy execution history:', data);
+                    rawData = data;
+                    filterData();
+                })
+                .catch(err => {
+                    console.log('Using local client dataset:', err);
+                    filterData();
+                });
+        }
+
+        // Initialize on load
+        loadIterationData();
+    </script>
+</body>
+</html>

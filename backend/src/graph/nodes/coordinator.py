@@ -131,8 +131,15 @@ async def coordinator_node(state: State, config: RunnableConfig) -> dict[str, An
         user_query_content = str(getattr(last_msg, "content", "")).lower()
     
     # 1. Unconditional Trade Analysis Intercept
-    trade_intent_keywords = ["analyze", "show", "get", "print", "log", "review", "evaluate", "post-mortem", "postmortem", "summary"]
-    trade_target_keywords = ["trades", "journal", "blotter", "executions", "today's action"]
+    trade_intent_keywords = [
+        "analyze", "show", "get", "print", "log", "review", "evaluate", "post-mortem", "postmortem", "summary",
+        "what", "how", "identify", "find", "check", "diagnose", "tell", "explain", "assess"
+    ]
+    trade_target_keywords = [
+        "trades", "journal", "blotter", "executions", "today's action", "weakness", "weaknesses", "performance",
+        "record", "records", "history", "mistake", "mistakes", "drawdown", "pnl", "win rate", "loss", "flaw", "flaws",
+        "habit", "habits", "stats", "metrics", "trading"
+    ]
     
     has_intent = any(kw in user_query_content for kw in trade_intent_keywords)
     has_target = any(kw in user_query_content for kw in trade_target_keywords)
@@ -153,10 +160,13 @@ async def coordinator_node(state: State, config: RunnableConfig) -> dict[str, An
         days_match = re.search(r'(\d+)\s*days?', user_query_content)
         if days_match:
             days_back = int(days_match.group(1))
+        months_match = re.search(r'(\d+)\s*months?', user_query_content)
+        if months_match:
+            days_back = int(months_match.group(1)) * 30
             
         from src.prompts.planner_model import Step, StepType
-        desc = f"Analyze the user's execution efficiency for the past {days_back} days using the blotter. Use days_back={days_back}."
-        plan_obj.steps = [Step(need_search=False, title="Trade Efficiency Analysis", description=desc, step_type=StepType.JOURNALER)]
+        desc = f"Analyze the trader's execution efficiency, journal entries, trade history, and primary weaknesses for the past {days_back} days. Use list_journal_entries, read_journal_entry, get_daily_blotter(days_back={days_back}), get_personal_risk_metrics, and Trader_Performance_History.md to evaluate key structural weaknesses, win rates, risk metrics, and drawdown patterns."
+        plan_obj.steps = [Step(need_search=False, title="Trade Efficiency & Performance Analysis", description=desc, step_type=StepType.JOURNALER)]
         
     # 2. Conditional Technical Guardrail (Only if LLM tries to skip steps)
     elif (not plan_obj.steps or plan_obj.has_enough_context) and not state.get("direct_mode", False):

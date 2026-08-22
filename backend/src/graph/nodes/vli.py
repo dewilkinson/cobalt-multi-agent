@@ -198,35 +198,78 @@ async def vli_node(
                 goto=END
             )
 
-    # --- [ANALYZE TRADES INTENT] ---
-    is_analyze_trades = bool(re.search(r'^(analyze|audit|check|grade|performance|evaluate)\s+(?:the\s+)?(?:session\s+|today\'s\s+)?trades$', stripped_query))
+    # --- [ANALYZE TRADES / PORTFOLIO INTENT] ---
+    trade_keywords = [
+        "trade", "trades", "execution", "executions", "blotter", "portfolio", "position", "positions",
+        "holding", "holdings", "balance", "pnl", "profit", "loss", "performance", "weakness",
+        "record", "records", "journal", "history", "account", "did i make", "how many trades", "make today",
+        "made today", "today's trades", "today trades"
+    ]
+    is_trade_perf_query = any(kw in stripped_query for kw in trade_keywords)
+    is_analyze_trades = is_trade_perf_query or bool(re.search(r'(?:how\s+many\s+)?trades|(?:my\s+)?portfolio|(?:my\s+)?positions|blotter|executions|performance', stripped_query))
     if is_analyze_trades:
         from src.tools.broker import get_daily_blotter
+        from src.services.historical_reports import get_trader_performance_summary
         from datetime import datetime
         
-        logger.info(f"[VLI_SPINE] Trade analysis requested. Ingesting session blotter...")
+        logger.info(f"[VLI_SPINE] Trade/Portfolio analysis requested. Ingesting session blotter...")
         
+        days_back = 2
+        if any(w in stripped_query for w in ["today", "today's", "did i make", "make today", "made today", "how many trades"]):
+            days_back = 1
+        elif "3 months" in stripped_query or "90 days" in stripped_query or "quarter" in stripped_query:
+            days_back = 90
+        elif "month" in stripped_query or "30 days" in stripped_query:
+            days_back = 30
+        elif "week" in stripped_query or "7 days" in stripped_query:
+            days_back = 7
+        elif "year" in stripped_query:
+            days_back = 365
+            
+        m_match = re.search(r'(\d+)\s*months?', stripped_query)
+        if m_match:
+            days_back = int(m_match.group(1)) * 30
+        d_match = re.search(r'(\d+)\s*days?', stripped_query)
+        if d_match:
+            days_back = int(d_match.group(1))
+
         # [TELEMETRY]
         try:
             from src.config.vli import get_vli_path
             telemetry_file = get_vli_path("VLI_Raw_Telemetry.md")
             timestamp = datetime.now().strftime("[%H:%M:%S]")
             with open(telemetry_file, "a", encoding="utf-8") as tf:
-                tf.write(f"\n{timestamp}  **[TRADE_ANALYSIS]** Ingesting session blotter for post-trade efficiency audit.\n")
+                tf.write(f"\n{timestamp}  **[TRADE_ANALYSIS]** Ingesting blotter (days_back={days_back}) for trade/portfolio report.\n")
                 tf.flush()
         except:
             pass
             
-        # Invoke the blotter tool to bundle all session executions and reports
-        blotter_data = await get_daily_blotter.ainvoke({}, config=config)
+        # Invoke the blotter tool to bundle session executions and reports
+        blotter_data = await get_daily_blotter.ainvoke({"days_back": days_back}, config=config)
+        perf_summary = get_trader_performance_summary()
+
+        from src.tools.broker import get_cached_brokerage_summary
+        portfolio_info = get_cached_brokerage_summary()
+        
+        combined_payload = (
+            "=== BROKERAGE CACHE (DEFINITIVE GROUND TRUTH LEDGER & PORTFOLIO) ===\n"
+            "GROUND TRUTH DATA POLICY: The local BrokerageCache is the 100% complete, definitive ground truth for all trade executions, active accounts, and position states. External API bridges (IBKR/Apex/SnapTrade) are explicitly bypassed. Do NOT claim API bridges are offline or uninitialized.\n\n"
+            f"=== ACCOUNTS SUMMARY ===\n{portfolio_info}\n\n"
+            f"=== TRADER PERFORMANCE SUMMARY ===\n{perf_summary if perf_summary else 'No prior performance summary.'}\n\n"
+            f"=== EXECUTIONS BLOTTER (PAST {days_back} DAYS) ===\n{blotter_data}"
+        )
         
         return Command(
             update={
-                "intent": "TACTICAL_EXECUTION",
-                "directive": "Perform a highly critical Post-Trade Efficiency Report. Grade every execution against the structural POC/VAH/VAL levels provided in the reports.",
+                "intent": "PORTFOLIO_REPORT",
+                "directive": (
+                    f"Directly report the user's trading executions, trade count, fill prices, net PnL, and account status using the provided [TRADE_BLOTTER_DATA] payload. "
+                    f"The local BrokerageCache is your GROUND TRUTH. You are STRICTLY FORBIDDEN from stating that broker API bridges are offline, uninitialized, or disconnected, "
+                    f"and you MUST NOT claim 0 trades when executions are listed in the cache."
+                ),
                 "messages": fallback_msgs_all + [
-                    AIMessage(content=f"[SILENT_LOG] Session Blotter Ingested: {len(str(blotter_data))} bytes.", name="vli_coordinator"),
-                    AIMessage(content=f"[TRADE_BLOTTER_DATA]\n{blotter_data}", name="broker_specialist")
+                    AIMessage(content=f"[SILENT_LOG] Session Blotter & Portfolio Ingested from Ground Truth Cache: {len(str(combined_payload))} bytes.", name="vli_coordinator"),
+                    AIMessage(content=f"[TRADE_BLOTTER_DATA]\n{combined_payload}", name="broker_specialist")
                 ],
                 "metadata": {**state.get("metadata", {}), "analysis_type": "TRADES"}
             },

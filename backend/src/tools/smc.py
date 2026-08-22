@@ -46,6 +46,77 @@ _SHARED_RESOURCE_CONTEXT = ANALYST_CONTEXT
 _GLOBAL_RESOURCE_CONTEXT = GLOBAL_CONTEXT
 
 
+def select_fibonacci_aligned_fvg_stop(df: pd.DataFrame, fvgs: pd.DataFrame, direction: str = "Bullish") -> dict:
+    """
+    Apex 250 Post-MSS Retest Fibonacci FVG Selection & Stop Loss Placement:
+    1. Identifies recent MSS dealing range (high/low).
+    2. Calculates the 50% - 61.8% Golden Pocket Fibonacci retracement range.
+    3. Evaluates active FVG bands against the Fib retracement range.
+    4. Selects the FVG band that best overlaps with the Fib 0.50-0.618 zone.
+    5. Calculates structural stop loss just below (long) or above (short) the selected FVG band.
+    """
+    if df.empty or fvgs is None or fvgs.empty:
+        return {}
+        
+    active_fvgs = fvgs[fvgs["FVG"].fillna(0) != 0].copy() if "FVG" in fvgs.columns else pd.DataFrame()
+    if active_fvgs.empty:
+        return {}
+        
+    high_val = float(df['high'].max())
+    low_val = float(df['low'].min())
+    dealing_range = high_val - low_val
+    if dealing_range <= 0:
+        return {}
+        
+    is_bullish = direction.lower() in ["bullish", "long", "buy"]
+    if is_bullish:
+        fib_50 = low_val + 0.50 * dealing_range
+        fib_618 = low_val + 0.618 * dealing_range
+        fib_min, fib_max = min(fib_50, fib_618), max(fib_50, fib_618)
+    else:
+        fib_50 = high_val - 0.50 * dealing_range
+        fib_618 = high_val - 0.618 * dealing_range
+        fib_min, fib_max = min(fib_50, fib_618), max(fib_50, fib_618)
+
+    best_fvg = None
+    best_score = float('inf')
+
+    for _, row in active_fvgs.iterrows():
+        top = float(row.get('Top', 0))
+        bottom = float(row.get('Bottom', 0))
+        mid = (top + bottom) / 2.0
+        
+        fib_mid = (fib_min + fib_max) / 2.0
+        dist = abs(mid - fib_mid)
+        if dist < best_score:
+            best_score = dist
+            best_fvg = {
+                "top": top,
+                "bottom": bottom,
+                "mid": mid,
+                "type": "Bullish" if row.get("FVG") == 1 else "Bearish"
+            }
+            
+    if not best_fvg:
+        return {}
+
+    # Calculate stop loss placement just under (long) or over (short) the expected rebound level
+    if is_bullish:
+        rebound_level = best_fvg["bottom"]
+        stop_loss = rebound_level * 0.998
+    else:
+        rebound_level = best_fvg["top"]
+        stop_loss = rebound_level * 1.002
+
+    return {
+        "selected_fvg": best_fvg,
+        "fib_range": [round(fib_min, 4), round(fib_max, 4)],
+        "rebound_level": round(rebound_level, 4),
+        "stop_loss": round(stop_loss, 4),
+        "direction": direction
+    }
+
+
 @tool
 async def run_smc_analysis(ticker: str, interval: str = "auto") -> str:
     """
@@ -145,6 +216,16 @@ async def run_smc_analysis(ticker: str, interval: str = "auto") -> str:
             if not active_fvgs.empty:
                 fvg_details = [f"  - {'Bullish' if r['FVG'] == 1 else 'Bearish'}: `{r['Bottom']:.4f}` - `{r['Top']:.4f}`" for _, r in active_fvgs.tail(3).iterrows()]
                 report.append(f"- **Relevant FVGs**:\n" + "\n".join(fvg_details))
+
+            # Apex 250 Post-MSS Retest Fib-FVG Stop Loss Anchor
+            fib_fvg_analysis = select_fibonacci_aligned_fvg_stop(df_calc, fvg, "Bullish")
+            if fib_fvg_analysis:
+                report.append("\n### Apex 250 Post-MSS Retest (Fibonacci FVG Alignment)")
+                report.append(f"- **Golden Pocket Fib Range (0.50-0.618)**: `{fib_fvg_analysis['fib_range'][0]}` - `{fib_fvg_analysis['fib_range'][1]}`")
+                report.append(f"- **Selected Fib-Aligned FVG Band**: `{fib_fvg_analysis['selected_fvg']['bottom']:.4f}` - `{fib_fvg_analysis['selected_fvg']['top']:.4f}`")
+                report.append(f"- **Expected Rebound Level**: `{fib_fvg_analysis['rebound_level']:.4f}`")
+                report.append(f"- **Recommended Stop Loss (Under Rebound Level)**: `{fib_fvg_analysis['stop_loss']:.4f}`")
+
             report.append(f"\n**Current Price**: `${df['close'].iloc[-1]:.2f}`")
             
             final_report = "\n".join([str(r) for r in report])
