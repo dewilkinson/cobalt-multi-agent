@@ -73,10 +73,8 @@ def clean_symbol(sym):
         sym = sym[1:]
     return sym
 
-def sanitize_account_filename(account_name, suffix=""):
+def sanitize_account_filename(account_name):
     clean = account_name.replace(" ", "-").replace("*", "").replace("/", "-")
-    if suffix:
-        return f"tradezella-import-{clean}-{suffix}.csv"
     return f"tradezella-import-{clean}.csv"
 
 def pair_closed_trades(activities):
@@ -200,18 +198,8 @@ def export_tradezella(start_date=None, end_date=None, target_account=None):
         "TradeDay", "TradeDuration", "Commissions"
     ]
 
-    tz_canonical_headers = [
-        "Account Name", "Date / Time", "Symbol", "Side", 
-        "Quantity", "Price", "Spread", "Expiration", 
-        "Strike", "Call/Put", "Commission", "Fees"
-    ]
-
     all_native_trades = []
     account_native_trades = defaultdict(list)
-
-    all_generic_rows = []
-    account_generic_rows = defaultdict(list)
-
     today_str = datetime.now().strftime("%Y-%m-%d")
 
     for account_name, account_data in cache.items():
@@ -224,7 +212,7 @@ def export_tradezella(start_date=None, end_date=None, target_account=None):
         if not activities:
             continue
 
-        # A. Native Topstep/Tradovate Paired Trades
+        # Native Topstep/Tradovate 13-column Paired Trades
         closed_trades = pair_closed_trades(activities)
         for t in closed_trades:
             raw_date = t.get("_raw_date")
@@ -240,69 +228,6 @@ def export_tradezella(start_date=None, end_date=None, target_account=None):
             all_native_trades.append(clean_t)
             account_native_trades[account_name].append(clean_t)
 
-        # B. Generic Executions Rows
-        all_activities = []
-        for act in activities:
-            st = str(act.get("status", "")).upper()
-            if st and any(s in st for s in ["CANCEL", "REJECT", "DECLINE", "UNFILLED"]):
-                continue
-            dt = parse_datetime(act.get("trade_date") or act.get("time_placed"))
-            if not dt:
-                continue
-            all_activities.append(act)
-
-        all_activities.sort(key=lambda a: parse_datetime(a.get("trade_date") or a.get("time_placed")) or datetime.min)
-
-        for act in all_activities:
-            dt = parse_datetime(act.get("trade_date") or act.get("time_placed"))
-            date_str = dt.strftime("%Y-%m-%d")
-
-            if start_date and date_str < start_date:
-                continue
-            if end_date and date_str > end_date:
-                continue
-
-            raw_sym = ""
-            if "universal_symbol" in act and act["universal_symbol"]:
-                raw_sym = act["universal_symbol"].get("symbol", "")
-            elif "symbol" in act and isinstance(act["symbol"], dict):
-                raw_sym = act["symbol"].get("symbol", "")
-            elif "symbol" in act and isinstance(act["symbol"], str):
-                raw_sym = act["symbol"]
-
-            if not raw_sym:
-                continue
-
-            sym = clean_symbol(raw_sym)
-            action = "Buy" if "BUY" in str(act.get("type", "")).upper() or act.get("action") == "BUY" else "Sell"
-            qty = float(act.get("units") or act.get("quantity") or 0)
-            price = float(act.get("price") or 0)
-
-            tz_date = dt.strftime("%m/%d/%Y")
-            tz_time = dt.strftime("%H:%M:%S")
-            tz_datetime = f"{tz_date} {tz_time}"
-
-            is_futures = raw_sym.startswith("/") or sym in ["MGC", "MNQ", "MES", "MCL", "MYM", "M2K", "NQ", "ES", "GC", "CL", "YM", "RTY"]
-            spread_val = "Future" if is_futures else "Stock"
-
-            gen_row = {
-                "Account Name": account_name,
-                "Date / Time": tz_datetime,
-                "Symbol": sym,
-                "Side": action,
-                "Quantity": int(qty) if qty.is_integer() else qty,
-                "Price": round(price, 4),
-                "Spread": spread_val,
-                "Expiration": "",
-                "Strike": "",
-                "Call/Put": "",
-                "Commission": float(act.get("commission") or 0),
-                "Fees": float(act.get("fee") or act.get("fees") or 0),
-                "_raw_date": date_str
-            }
-            all_generic_rows.append(gen_row)
-            account_generic_rows[account_name].append(gen_row)
-
     def write_csv(filename, fieldnames, rows):
         out_path = os.path.join(exports_dir, filename)
         with open(out_path, "w", newline="", encoding="utf-8-sig") as f:
@@ -310,45 +235,28 @@ def export_tradezella(start_date=None, end_date=None, target_account=None):
             writer.writeheader()
             writer.writerows(rows)
 
-    # 1. Output Account Primary Native CSV Files
+    # 1. Output Exactly ONE Primary CSV File Per Account
     for acct_name, trades in account_native_trades.items():
         clean_rows = [{k: v for k, v in r.items() if not k.startswith("_")} for r in trades]
         fn = sanitize_account_filename(acct_name)
         write_csv(fn, native_headers, clean_rows)
+        print(f"[EXPORT]: Generated {fn} ({len(clean_rows)} trades)")
 
-        fn_nat = sanitize_account_filename(acct_name, "native")
-        write_csv(fn_nat, native_headers, clean_rows)
-
-    # 2. Output Account Generic Execution CSV Files
-    for acct_name, rows in account_generic_rows.items():
-        clean_gen = [{k: v for k, v in r.items() if not k.startswith("_")} for r in rows]
-        fn_gen = sanitize_account_filename(acct_name, "generic")
-        write_csv(fn_gen, tz_canonical_headers, clean_gen)
-
-    # 3. Master Native File (tradezella-import-all.csv)
+    # 2. Master All-Trades CSV File (tradezella-import-all.csv)
     master_clean_native = [{k: v for k, v in r.items() if not k.startswith("_")} for r in all_native_trades]
     write_csv("tradezella-import-all.csv", native_headers, master_clean_native)
+    print(f"[EXPORT]: Generated tradezella-import-all.csv ({len(master_clean_native)} trades)")
 
-    # 4. Master Generic File (tradezella-import-all-generic.csv)
-    master_clean_gen = [{k: v for k, v in r.items() if not k.startswith("_")} for r in all_generic_rows]
-    write_csv("tradezella-import-all-generic.csv", tz_canonical_headers, master_clean_gen)
-
-    # 5. Today's Files (tradezella-import-today.csv & tradezella-import-today-generic.csv)
+    # 3. Today's Session CSV File (tradezella-import-today.csv)
     today_native_trades = [
         {k: v for k, v in r.items() if not k.startswith("_")}
         for r in all_native_trades 
         if r.get("_raw_date") == today_str or r.get("_exit_raw_date") == today_str
     ]
     write_csv("tradezella-import-today.csv", native_headers, today_native_trades)
+    print(f"[EXPORT]: Generated tradezella-import-today.csv ({len(today_native_trades)} trades)")
 
-    today_generic_rows = [
-        {k: v for k, v in r.items() if not k.startswith("_")}
-        for r in all_generic_rows 
-        if r.get("_raw_date") == today_str
-    ]
-    write_csv("tradezella-import-today-generic.csv", tz_canonical_headers, today_generic_rows)
-
-    print(f"[EXPORT]: Generated clean exports in root directory: {exports_dir}")
+    print(f"[EXPORT]: Complete. Output 1 file per target in {exports_dir}")
 
 if __name__ == "__main__":
     start = sys.argv[1] if len(sys.argv) > 1 else None
