@@ -166,7 +166,8 @@ def pair_closed_trades(activities):
                     'TradeDay': entry_dt.strftime('%m/%d/%Y 00:00:00 -05:00'),
                     'TradeDuration': dur_str,
                     'Commissions': round(entry_comm_part + exit_comm_part, 2),
-                    '_raw_date': entry_dt.strftime('%Y-%m-%d')
+                    '_raw_date': entry_dt.strftime('%Y-%m-%d'),
+                    '_exit_raw_date': exit_dt.strftime('%Y-%m-%d')
                 })
                 
                 fill_qty -= matched_qty
@@ -190,14 +191,12 @@ def export_tradezella(start_date=None, end_date=None, target_account=None):
     exports_dir = os.path.join(BASE_DIR, "data", "exports")
     os.makedirs(exports_dir, exist_ok=True)
 
-    # 1. Native Tradovate / Topstep Format Headers (Matches tradezella-import-TopStepX_7952.csv)
     native_headers = [
         "Id", "ContractName", "EnteredAt", "ExitedAt", "EntryPrice", 
         "ExitPrice", "Fees", "PnL", "Size", "Type", 
         "TradeDay", "TradeDuration", "Commissions"
     ]
 
-    # 2. TradeZella Generic Format Headers
     tz_canonical_headers = [
         "Account Name", "Date / Time", "Symbol", "Side", 
         "Quantity", "Price", "Spread", "Expiration", 
@@ -231,8 +230,10 @@ def export_tradezella(start_date=None, end_date=None, target_account=None):
             if end_date and raw_date > end_date:
                 continue
             
-            clean_t = dict(t)
-            del clean_t["_raw_date"]
+            clean_t = {k: v for k, v in t.items() if not k.startswith("_")}
+            clean_t["_raw_date"] = t.get("_raw_date")
+            clean_t["_exit_raw_date"] = t.get("_exit_raw_date")
+
             all_native_trades.append(clean_t)
             account_native_trades[account_name].append(clean_t)
 
@@ -293,52 +294,81 @@ def export_tradezella(start_date=None, end_date=None, target_account=None):
                 "Strike": "",
                 "Call/Put": "",
                 "Commission": float(act.get("commission") or 0),
-                "Fees": float(act.get("fee") or act.get("fees") or 0)
+                "Fees": float(act.get("fee") or act.get("fees") or 0),
+                "_raw_date": date_str
             }
             all_generic_rows.append(gen_row)
             account_generic_rows[account_name].append(gen_row)
 
-    # Output Primary Files as Native Tradovate/Topstep 13-column format (e.g. tradezella-import-TopStepX-Combine-1299.csv)
+    # 1. Output Account Primary Native CSV Files
     for acct_name, trades in account_native_trades.items():
         fn = sanitize_account_filename(acct_name)
         out_path = os.path.join(exports_dir, fn)
+        clean_rows = [{k: v for k, v in r.items() if not k.startswith("_")} for r in trades]
         with open(out_path, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.DictWriter(f, fieldnames=native_headers)
             writer.writeheader()
-            writer.writerows(trades)
-        print(f"Exported NATIVE Topstep/Tradovate ({len(trades)} trades) -> {fn}")
+            writer.writerows(clean_rows)
+        print(f"Exported NATIVE Topstep ({len(clean_rows)} trades) -> {fn}")
 
-        # Also write explicit native suffix file
         fn_nat = sanitize_account_filename(acct_name, "native")
         out_path_nat = os.path.join(exports_dir, fn_nat)
         with open(out_path_nat, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.DictWriter(f, fieldnames=native_headers)
             writer.writeheader()
-            writer.writerows(trades)
+            writer.writerows(clean_rows)
 
-    # Output Generic Executions Files (e.g. tradezella-import-TopStepX-Combine-1299-generic.csv)
+    # 2. Output Account Generic Execution CSV Files
     for acct_name, rows in account_generic_rows.items():
         fn_gen = sanitize_account_filename(acct_name, "generic")
         out_path_gen = os.path.join(exports_dir, fn_gen)
+        clean_gen = [{k: v for k, v in r.items() if not k.startswith("_")} for r in rows]
         with open(out_path_gen, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.DictWriter(f, fieldnames=tz_canonical_headers)
             writer.writeheader()
-            writer.writerows(rows)
+            writer.writerows(clean_gen)
 
-    # Master Native File (tradezella-import-all.csv)
+    # 3. Master Native File (tradezella-import-all.csv)
     master_native_path = os.path.join(exports_dir, "tradezella-import-all.csv")
+    master_clean_native = [{k: v for k, v in r.items() if not k.startswith("_")} for r in all_native_trades]
     with open(master_native_path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=native_headers)
         writer.writeheader()
-        writer.writerows(all_native_trades)
-    print(f"Exported MASTER NATIVE file ({len(all_native_trades)} trades) -> tradezella-import-all.csv")
+        writer.writerows(master_clean_native)
+    print(f"Exported MASTER NATIVE file ({len(master_clean_native)} trades) -> tradezella-import-all.csv")
 
-    # Master Generic File (tradezella-import-all-generic.csv)
+    # 4. Master Generic File (tradezella-import-all-generic.csv)
     master_generic_path = os.path.join(exports_dir, "tradezella-import-all-generic.csv")
+    master_clean_gen = [{k: v for k, v in r.items() if not k.startswith("_")} for r in all_generic_rows]
     with open(master_generic_path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=tz_canonical_headers)
         writer.writeheader()
-        writer.writerows(all_generic_rows)
+        writer.writerows(master_clean_gen)
+
+    # 5. Today's Files (tradezella-import-today.csv & tradezella-import-today-generic.csv)
+    today_native_trades = [
+        {k: v for k, v in r.items() if not k.startswith("_")}
+        for r in all_native_trades 
+        if r.get("_raw_date") == today_str or r.get("_exit_raw_date") == today_str
+    ]
+    today_path = os.path.join(exports_dir, "tradezella-import-today.csv")
+    with open(today_path, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=native_headers)
+        writer.writeheader()
+        writer.writerows(today_native_trades)
+    print(f"Exported TODAY NATIVE file ({len(today_native_trades)} trades) -> tradezella-import-today.csv")
+
+    today_generic_rows = [
+        {k: v for k, v in r.items() if not k.startswith("_")}
+        for r in all_generic_rows 
+        if r.get("_raw_date") == today_str
+    ]
+    today_gen_path = os.path.join(exports_dir, "tradezella-import-today-generic.csv")
+    with open(today_gen_path, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=tz_canonical_headers)
+        writer.writeheader()
+        writer.writerows(today_generic_rows)
+    print(f"Exported TODAY GENERIC file ({len(today_generic_rows)} executions) -> tradezella-import-today-generic.csv")
 
 if __name__ == "__main__":
     start = sys.argv[1] if len(sys.argv) > 1 else None
