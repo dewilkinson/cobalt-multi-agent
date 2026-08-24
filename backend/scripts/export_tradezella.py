@@ -4,8 +4,10 @@ from collections import defaultdict, deque
 from datetime import datetime, timedelta
 import os
 import sys
+import shutil
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT_DIR = os.path.dirname(BASE_DIR)
 sys.path.insert(0, BASE_DIR)
 
 MULTIPLIERS = {
@@ -34,6 +36,7 @@ def get_cache():
         
     cache_paths = [
         os.path.join(BASE_DIR, "data", "brokerage_cache.json"),
+        os.path.join(ROOT_DIR, "data", "brokerage_cache.json"),
         os.path.join(BASE_DIR, "data", "archive", "BrokerageCacheDailyBackup.json"),
     ]
     for cp in cache_paths:
@@ -188,8 +191,12 @@ def export_tradezella(start_date=None, end_date=None, target_account=None):
         print("[ERROR]: BrokerageCache is empty or could not be loaded.")
         return
 
-    exports_dir = os.path.join(BASE_DIR, "data", "exports")
-    os.makedirs(exports_dir, exist_ok=True)
+    export_dirs = [
+        os.path.join(BASE_DIR, "data", "exports"),
+        os.path.join(ROOT_DIR, "data", "exports")
+    ]
+    for ed in export_dirs:
+        os.makedirs(ed, exist_ok=True)
 
     native_headers = [
         "Id", "ContractName", "EnteredAt", "ExitedAt", "EntryPrice", 
@@ -300,50 +307,36 @@ def export_tradezella(start_date=None, end_date=None, target_account=None):
             all_generic_rows.append(gen_row)
             account_generic_rows[account_name].append(gen_row)
 
+    def write_csv_to_dirs(filename, fieldnames, rows):
+        for ed in export_dirs:
+            out_path = os.path.join(ed, filename)
+            with open(out_path, "w", newline="", encoding="utf-8-sig") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(rows)
+
     # 1. Output Account Primary Native CSV Files
     for acct_name, trades in account_native_trades.items():
-        fn = sanitize_account_filename(acct_name)
-        out_path = os.path.join(exports_dir, fn)
         clean_rows = [{k: v for k, v in r.items() if not k.startswith("_")} for r in trades]
-        with open(out_path, "w", newline="", encoding="utf-8-sig") as f:
-            writer = csv.DictWriter(f, fieldnames=native_headers)
-            writer.writeheader()
-            writer.writerows(clean_rows)
-        print(f"Exported NATIVE Topstep ({len(clean_rows)} trades) -> {fn}")
+        fn = sanitize_account_filename(acct_name)
+        write_csv_to_dirs(fn, native_headers, clean_rows)
 
         fn_nat = sanitize_account_filename(acct_name, "native")
-        out_path_nat = os.path.join(exports_dir, fn_nat)
-        with open(out_path_nat, "w", newline="", encoding="utf-8-sig") as f:
-            writer = csv.DictWriter(f, fieldnames=native_headers)
-            writer.writeheader()
-            writer.writerows(clean_rows)
+        write_csv_to_dirs(fn_nat, native_headers, clean_rows)
 
     # 2. Output Account Generic Execution CSV Files
     for acct_name, rows in account_generic_rows.items():
-        fn_gen = sanitize_account_filename(acct_name, "generic")
-        out_path_gen = os.path.join(exports_dir, fn_gen)
         clean_gen = [{k: v for k, v in r.items() if not k.startswith("_")} for r in rows]
-        with open(out_path_gen, "w", newline="", encoding="utf-8-sig") as f:
-            writer = csv.DictWriter(f, fieldnames=tz_canonical_headers)
-            writer.writeheader()
-            writer.writerows(clean_gen)
+        fn_gen = sanitize_account_filename(acct_name, "generic")
+        write_csv_to_dirs(fn_gen, tz_canonical_headers, clean_gen)
 
     # 3. Master Native File (tradezella-import-all.csv)
-    master_native_path = os.path.join(exports_dir, "tradezella-import-all.csv")
     master_clean_native = [{k: v for k, v in r.items() if not k.startswith("_")} for r in all_native_trades]
-    with open(master_native_path, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=native_headers)
-        writer.writeheader()
-        writer.writerows(master_clean_native)
-    print(f"Exported MASTER NATIVE file ({len(master_clean_native)} trades) -> tradezella-import-all.csv")
+    write_csv_to_dirs("tradezella-import-all.csv", native_headers, master_clean_native)
 
     # 4. Master Generic File (tradezella-import-all-generic.csv)
-    master_generic_path = os.path.join(exports_dir, "tradezella-import-all-generic.csv")
     master_clean_gen = [{k: v for k, v in r.items() if not k.startswith("_")} for r in all_generic_rows]
-    with open(master_generic_path, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=tz_canonical_headers)
-        writer.writeheader()
-        writer.writerows(master_clean_gen)
+    write_csv_to_dirs("tradezella-import-all-generic.csv", tz_canonical_headers, master_clean_gen)
 
     # 5. Today's Files (tradezella-import-today.csv & tradezella-import-today-generic.csv)
     today_native_trades = [
@@ -351,24 +344,16 @@ def export_tradezella(start_date=None, end_date=None, target_account=None):
         for r in all_native_trades 
         if r.get("_raw_date") == today_str or r.get("_exit_raw_date") == today_str
     ]
-    today_path = os.path.join(exports_dir, "tradezella-import-today.csv")
-    with open(today_path, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=native_headers)
-        writer.writeheader()
-        writer.writerows(today_native_trades)
-    print(f"Exported TODAY NATIVE file ({len(today_native_trades)} trades) -> tradezella-import-today.csv")
+    write_csv_to_dirs("tradezella-import-today.csv", native_headers, today_native_trades)
 
     today_generic_rows = [
         {k: v for k, v in r.items() if not k.startswith("_")}
         for r in all_generic_rows 
         if r.get("_raw_date") == today_str
     ]
-    today_gen_path = os.path.join(exports_dir, "tradezella-import-today-generic.csv")
-    with open(today_gen_path, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=tz_canonical_headers)
-        writer.writeheader()
-        writer.writerows(today_generic_rows)
-    print(f"Exported TODAY GENERIC file ({len(today_generic_rows)} executions) -> tradezella-import-today-generic.csv")
+    write_csv_to_dirs("tradezella-import-today-generic.csv", tz_canonical_headers, today_generic_rows)
+
+    print(f"[EXPORT]: Synchronized exports to both root and backend export directories.")
 
 if __name__ == "__main__":
     start = sys.argv[1] if len(sys.argv) > 1 else None
