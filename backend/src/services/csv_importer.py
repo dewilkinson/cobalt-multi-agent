@@ -510,7 +510,7 @@ def parse_tradingview_replay_report(csv_path: str):
     }
 
 
-def parse_topstepx_trades(csv_path: str):
+def parse_topstepx_trades(csv_path: str, account_override: str = None):
     if not os.path.exists(csv_path):
         return {}
 
@@ -522,19 +522,20 @@ def parse_topstepx_trades(csv_path: str):
     full_search_text = f"{full_path_str} {file_text.lower()}"
 
     # Determine default target TopStep account by checking for account identifiers in path, filename, or file text
-    default_account = None
-    if any(k in full_search_text for k in ["7328", "5972", "7952", "7925", "50287952"]):
-        default_account = "TopStepX Express *7328"
-    elif any(k in full_search_text for k in ["7085", "4889", "81134889"]):
-        default_account = "TopStepX Combine *7085"
-    elif "1299" in full_search_text:
-        default_account = "TopStepX Combine *1299"
-    elif "5496" in full_search_text:
-        default_account = "TopStepX Combine *5496"
-    elif "2210" in full_search_text:
-        default_account = "TopStepX Express *2210"
-    elif any(k in full_search_text for k in ["topstep", "trades_export"]):
-        default_account = "TopStepX Express *2210"
+    default_account = account_override
+    if not default_account:
+        if any(k in full_search_text for k in ["7328", "5972", "7952", "7925", "50287952"]):
+            default_account = "TopStepX Express *7328"
+        elif any(k in full_search_text for k in ["7085", "4889", "81134889"]):
+            default_account = "TopStepX Combine *7085"
+        elif "1299" in full_search_text:
+            default_account = "TopStepX Combine *1299"
+        elif "5496" in full_search_text:
+            default_account = "TopStepX Combine *5496"
+        elif "2210" in full_search_text:
+            default_account = "TopStepX Express *2210"
+        elif any(k in full_search_text for k in ["topstep", "trades_export"]):
+            default_account = "TopStepX Express *2210"
 
     activities_by_account = {}
     closed_positions_by_account = {}
